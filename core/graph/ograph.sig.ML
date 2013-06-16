@@ -83,8 +83,9 @@ val get_in_dir_edges : T -> V.name -> E.NSet.T
 val get_out_dir_edges : T -> V.name -> E.NSet.T
 val get_adj_undir_edges : T -> V.name -> E.NSet.T
 
-(* get all adjacent vertices (not including the given one) *)
+(* get all adjacent vertices (not including the given vertex or vertices) *)
 val get_adj_vertices : T -> V.name -> V.NSet.T
+val get_adj_vertices_to_set : T -> V.NSet.T -> V.NSet.T
 
 (* get incoming, outgoing, undirected edges adjacent to vertex *)
 val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
@@ -306,6 +307,7 @@ val do_plug_and_normalise : V.name -> V.name -> T -> T
  *)
 val get_open_subgraph : T -> V.NSet.T -> T
 
+
 (*
 (* TODO: ? *)
 (*val fold_adj_wire_vertices : (V.name * E.name -> 'a -> 'a) -> T -> V.name -> E.name V.NTab.T*)
@@ -333,9 +335,6 @@ val get_open_subgraph : T -> V.NSet.T -> T
 val fold_adj : (incidence_type * V.name * (E.name * (dir_or_undir * Data.edata))
                 -> 'a -> 'a)
       -> T -> V.name -> 'a -> 'a
-
-(* the vertices connected to the given set, but outside it *) 
-val incident_vertices : T -> V.NSet.T -> V.NSet.T
 
 val get_self_loops : T -> V.name -> Data.edata E.NTab.T
 

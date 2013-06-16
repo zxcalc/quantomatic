@@ -7,7 +7,7 @@ signature BANG_GRAPH_MATCH_STATE
   include OGRAPH_MATCH_STATE;
   (* NB: there is no BANG_GRAPH_SHARING signature *)
   structure BG : BANG_GRAPH;
-  sharing G.SharingOGraph = BG.SharingOGraph;
+  sharing Graph.Sharing = BG.Sharing;
 
   (* Issues encountered during matching *)
   datatype Warning = (* A !-box with no node-vertices was killed to stop
@@ -44,8 +44,8 @@ signature BANG_GRAPH_MATCH_STATE
   (* initialise MatchState and schedule all concrete vertices in pattern
    * to be matched
    * args: pattern graph, target graph *)
-  val init_and_schedule_concrete : G.T -> G.T -> T
-  val init_subgraph_and_schedule_concrete : G.T -> G.T -> V.NSet.T -> T
+  val init_and_schedule_concrete : Graph.T -> Graph.T -> T
+  val init_subgraph_and_schedule_concrete : Graph.T -> Graph.T -> V.NSet.T -> T
   (* schedules all the concrete vertices that have not been seen before
    *)
   val schedule_new_concrete : T -> T
@@ -68,12 +68,12 @@ signature BANG_GRAPH_MATCH_STATE
    * It is also required that any vertex names in the graph were part
    * of pat_avoids, otherwise a name clash could occur.
    *)
-  val replay_pat_bbox_ops : T -> G.T -> G.T
+  val replay_pat_bbox_ops : T -> Graph.T -> Graph.T
 end
 
 (* type-coerced version of MatchState for pattern graphs *)
 functor BangGraphMatchState(
-  structure G : BANG_GRAPH
+  structure Graph : BANG_GRAPH
   type data
   val empty_data : data
 ) : BANG_GRAPH_MATCH_STATE
@@ -83,8 +83,8 @@ functor BangGraphMatchState(
   datatype BBoxOp = BBKill of B.name
                   | BBCopy of {
                       bbox : B.name,
-                      vmap : V.name V.NTab.T,
-                      bmap : B.name B.NTab.T
+                      vmap : VSub.T,
+                      bmap : BSub.T
                     };
 
   datatype Warning = WildBBoxKilled of B.name;
@@ -142,18 +142,18 @@ functor BangGraphMatchState(
     data         = #data bdata
   };
 
-  structure BG = G;
+  structure BG = Graph
   structure OGMS = OGraphMatchState(
-    structure G = G
+    structure Graph = Graph
     type data = bdata
     val empty_data = {
       pat_avoids   = V.NSet.empty,
-      pat_tracked   = V.NSet.empty,
+      pat_tracked  = V.NSet.empty,
       pat_bbox_ops = [],
       warnings     = [],
       data         = empty_data
     }
-  );
+  )
   open OGMS;
   
 
@@ -196,28 +196,28 @@ functor BangGraphMatchState(
   fun schedule_concrete new_vs new_es ms = let
     val pat = get_pat ms
 
-    val touched = G.incident_vertices pat new_vs
+    val touched = Graph.get_adj_vertices_to_set pat new_vs
     val to_sched = V.NSet.intersect (get_p_nodeverts ms) touched
 
     val unbboxed = V.NSet.subtract new_vs (BG.get_bboxed pat)
-    val wires = G.get_wires_for_edges pat new_es
+    val wires = Graph.get_wires_for_edges pat new_es
     fun delete_wvs_in_wire (s,t,wv,_) set =
       set |> V.NSet.remove_set wv
-          |> (if G.is_wire_vertex pat s then V.NSet.delete s else I)
-          |> (if G.is_wire_vertex pat t then V.NSet.delete t else I)
+          |> (if Graph.is_wire_vertex pat s then V.NSet.delete s else I)
+          |> (if Graph.is_wire_vertex pat t then V.NSet.delete t else I)
     val circles = filter (fn (s,t,_,_) =>
                     V.name_eq (s,t) andalso
-                    G.is_wire_vertex pat s andalso
+                    Graph.is_wire_vertex pat s andalso
                     V.NSet.contains unbboxed s
                   ) wires
     val bare_wires = filter (fn (s,t,_,_) =>
                        not (V.name_eq (s,t)) andalso
-                       G.is_wire_vertex pat s andalso
-                       G.is_wire_vertex pat t andalso
+                       Graph.is_wire_vertex pat s andalso
+                       Graph.is_wire_vertex pat t andalso
                        V.NSet.contains unbboxed s
                      ) wires
-    val nvs = V.NSet.filter (G.is_node_vertex pat) new_vs
-    val wvs' = V.NSet.filter (G.is_wire_vertex pat) new_vs
+    val nvs = V.NSet.filter (Graph.is_node_vertex pat) new_vs
+    val wvs' = V.NSet.filter (Graph.is_wire_vertex pat) new_vs
     val wvs = fold delete_wvs_in_wire (circles @ bare_wires) wvs'
     val circle_wvs = fold (fn (s,_,_,_) => fn set => set |> V.NSet.add s) circles V.NSet.empty
     val bare_wire_es = fold (fn (_,_,_,es) => E.NSet.add ((the o E.NSet.get_min) es)) bare_wires E.NSet.empty  
@@ -232,19 +232,19 @@ functor BangGraphMatchState(
   (* NB: undefined behaviour if !-boxes not open subgraphs or graphs not
    * normalised *)
   fun init_and_schedule_concrete pat tgt =
-    schedule_concrete (G.get_vnames pat) (G.get_enames pat) (init pat tgt)
+    schedule_concrete (Graph.get_vertices pat) (Graph.get_edges pat) (init pat tgt)
 
   (* NB: undefined behaviour if !-boxes not open subgraphs or graphs not
    * normalised *)
   fun init_subgraph_and_schedule_concrete pat tgt tgt_verts =
-    schedule_concrete (G.get_vnames pat)
-                      (G.get_enames pat)
+    schedule_concrete (Graph.get_vertices pat)
+                      (Graph.get_edges pat)
                       (init_subgraph pat tgt tgt_verts)
 
   fun schedule_new_concrete ms = let
-    val new_vs = V.NSet.subtract (G.get_vnames (get_pat ms))
+    val new_vs = V.NSet.subtract (Graph.get_vertices (get_pat ms))
                                  (VInjEndo.get_domset (get_vmap ms))
-    val new_es = E.NSet.subtract (G.get_enames (get_pat ms))
+    val new_es = E.NSet.subtract (Graph.get_edges (get_pat ms))
                                  (EInjEndo.get_domset (get_emap ms))
   in
     schedule_concrete new_vs new_es ms
@@ -252,16 +252,16 @@ functor BangGraphMatchState(
 
   fun replay_bbox_op _ (BBKill b) g = BG.kill_bbox b g
     | replay_bbox_op v_avoid (BBCopy {bbox,vmap,bmap}) g = let
-        val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
-        val vrn = V.Rnm.mk V.NSet.empty v_avoid vmap
+        val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vertices g)
+        val vrn = vmap
         (*val _ = TextIO.print ">>>>> replaying: BBCopy on \n"*)
-        (*val _ = G.print g*)
+        (*val _ = Graph.print g*)
         (*val _ = TextIO.print "\n>>>>> with renamer: \n"*)
         (*val _ = V.Rnm.print vrn*)
-        val ern = E.Rnm.mk_from_avoids (BG.get_enames g)
-        val brn = B.Rnm.mk B.NSet.empty (BG.get_bboxes g) bmap
+        val ern = ESub.mk_from_avoids (BG.get_edges g)
+        val brn = bmap
         (*val _ = TextIO.print "\n>>>>> performing expand\n"*)
-        val (_,g') = BG.expand1_bbox bbox ((vrn,ern,brn),g)
+        val (_,g') = BG.expand_bbox bbox ((vrn,ern,brn),g)
         (*val _ = TextIO.print "\n>>>>> BBCopy done\n"*)
       in g' end
 
@@ -269,7 +269,7 @@ functor BangGraphMatchState(
     val bbops   = get_pat_bbox_ops ms
     val avoids' = get_pat_avoids ms
     val pat     = get_pat ms
-    val avoids  = avoids' |> V.NSet.union_merge (BG.get_vnames pat)
+    val avoids  = avoids' |> V.NSet.union_merge (BG.get_vertices pat)
   in
     fold_rev (replay_bbox_op avoids) bbops
   end
@@ -277,27 +277,27 @@ functor BangGraphMatchState(
   fun expand_pat_bbox b ms = let
     val g = get_pat ms
     val v_avoid = get_pat_avoids ms
-    val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
-    val vrn = V.Rnm.mk_from_avoids v_avoid
-    val ern = E.Rnm.mk_from_avoids (BG.get_enames g)
-    val brn = B.Rnm.mk_from_avoids (BG.get_bboxes g)
-    val ((vrn',_,brn'),g') = BG.expand1_bbox b ((vrn,ern,brn),g)
-    val vmap = V.Rnm.get_nmap vrn'
+    val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vertices g)
+    val vrn = VSub.mk_from_avoids v_avoid
+    val ern = ESub.mk_from_avoids (BG.get_edges g)
+    val brn = BSub.mk_from_avoids (BG.get_bboxes g)
+    val ((vrn',_,brn'),g') = BG.expand_bbox b ((vrn,ern,brn),g)
+    val vmap = vrn'
     val tracked = get_pat_tracked ms
     (* only keep track of the names of the vertices we care about *)
     val vmap' = V.NSet.fold (fn v =>
-        case V.NTab.lookup vmap v of
-             NONE => (fn x => x)
-           | SOME v' => V.NTab.ins (v,v')) tracked V.NTab.empty
+        case VSub.get_opt vmap v of
+             NONE => I
+           | SOME v' => VSub.add (v,v')) tracked VSub.empty
     val bbop = BBCopy {
         bbox = b,
         vmap = vmap',
-        bmap = B.Rnm.get_nmap brn'
+        bmap = brn'
       }
   in
     ms |> set_pat g'
        |> update_pat_bbox_ops (cons bbop)
-       |> update_pat_tracked (V.NTab.fold (V.NSet.add o snd) vmap')
+       |> update_pat_tracked (V.NSet.union_merge (VSub.get_cod_set vmap'))
   end
 
   fun kill_pat_bbox b ms = let
@@ -311,12 +311,12 @@ functor BangGraphMatchState(
   fun kill_bboxes_adj_to_complete_nvs ms = let
     val pat = get_pat ms
     val complete = get_complete_nodeverts ms
-    val touched = G.incident_vertices pat complete
+    val touched = Graph.get_adj_vertices_to_set pat complete
     fun kill_all_bboxes v ms = let
       val pat = get_pat ms
     in
-      B.NSet.fold kill_pat_bbox (BG.get_bboxes_of pat v) ms
-      handle G.no_such_vname_exp _ => ms
+      B.NSet.fold kill_pat_bbox (BG.get_bboxes_containing_vertex pat v) ms
+      handle Graph.no_such_vname_exp _ => ms
     end
   in
     V.NSet.fold kill_all_bboxes touched ms
@@ -324,21 +324,13 @@ functor BangGraphMatchState(
 
   fun kill_wild_bboxes ms = let
     fun is_end_of_bare_wire g v =
-      if G.is_input_vertex g v
-      then
-        case E.NSet.tryget_singleton (G.get_out_edges g v)
-          of NONE => false (* this shouldn't happen, but isn't strictly impossible *)
-           | SOME e => G.is_output_vertex g (G.get_edge_target g e)
-      else
-        if G.is_output_vertex g v
-        then
-          case E.NSet.tryget_singleton (G.get_in_edges g v)
-            of NONE => false (* this shouldn't happen, but isn't strictly impossible *)
-             | SOME e => G.is_input_vertex g (G.get_edge_source g e)
-        else
-          false
+      case E.NSet.tryget_singleton (Graph.get_adj_edges g v)
+        of SOME e =>
+             Graph.is_boundary g (Graph.get_edge_source g e) andalso
+             Graph.is_boundary g (Graph.get_edge_target g e)
+         | NONE => false
     fun is_wild g bbox =
-      V.NSet.forall (is_end_of_bare_wire g) (BG.get_bbox_contents g bbox)
+      V.NSet.forall (is_end_of_bare_wire g) (BG.get_vertices_in_bbox g bbox)
     fun kill_pat_bbox' bbox ms =
       ms |> kill_pat_bbox bbox
          |> add_warning (WildBBoxKilled bbox)

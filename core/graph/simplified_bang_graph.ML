@@ -204,6 +204,17 @@ fun get_adj_edges g v =
   E.NSet.union_merge (EVFn.inv_img (get_source g) v)
                      (EVFn.inv_img (get_target g) v)
 
+fun get_adj_vertices g v =
+  V.NSet.empty |> E.NSet.fold (fn e =>
+                   (let val v1 = get_edge_source g e
+                    in if V.name_eq (v,v1) then I else V.NSet.add v1 end)) (get_in_edges g v)
+               |> E.NSet.fold (fn e =>
+                   (let val v1 = get_edge_target g e
+                    in if V.name_eq (v,v1) then I else V.NSet.add v1 end)) (get_out_edges g v)
+
+fun get_adj_vertices_to_set g vset =
+  V.NSet.subtract (V.NSet.fold (V.NSet.union_merge o get_adj_vertices g) vset V.NSet.empty) vset
+
 fun get_in_dir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Directed) o get_in_edges g
 fun get_out_dir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Directed) o get_out_edges g
 fun get_adj_undir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Undirected) o get_adj_edges g
@@ -232,11 +243,6 @@ fun adj_edge_classes g v = (
   get_out_dir_edges g v,
   get_adj_undir_edges g v
 )
-
-fun get_adj_vertices g v = E.NSet.fold
-  (fn e => let val v1 = edge_get_other_vertex g e v
-           in if V.name_eq(v,v1) then I else V.NSet.add v1
-           end) (get_adj_edges g v) V.NSet.empty
 
 fun get_vertices_in_bbox g = BVRel.img (get_bbox_rel g)
 fun get_bboxes_containing_vertex g = BVRel.inv_img (get_bbox_rel g)
