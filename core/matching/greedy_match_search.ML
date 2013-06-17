@@ -21,48 +21,40 @@ struct
   structure BGMatchState = BGMatchState
   structure BG = BGMatchState.BG
   structure MatchState = InnerMatchSearch.MatchState
-  structure G = InnerMatchSearch.G
+  structure Graph = InnerMatchSearch.Graph
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
         (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
-  val log_graph = log_p G.pretty
+  val log_graph = log_p Graph.pretty
   val log_v_nset = log_p V.NSet.pretty
 
   (* TODO: it is probably worth optimising this some more *)
   fun doomedf ms pv = let
     val pat = BGMatchState.get_pat ms
     val tgt = BGMatchState.get_tgt ms
-    val tv = VInjEndo.domf (BGMatchState.get_vmap ms) pv
-    val parity = BG.get_arity pat pv
-    val tarity = BG.get_arity tgt tv
-    fun has_bbox es = let
-      fun other_end_in_bbox e =
-        BG.is_bboxed pat (BG.edge_get_other_vertex pat e pv)
-    in
-      E.NSet.exists other_end_in_bbox es
-    end
-    val need_more_ins = Arity.get_in parity < Arity.get_in tarity
-    val need_more_outs = Arity.get_out parity < Arity.get_out tarity
-    val need_more_undir = Arity.get_undir parity < Arity.get_undir tarity
-    fun chk_bbox (inctyp,v,(e,(dirtyp,_))) (nmins,nmouts,nmundir) =
-      (* we can ignore selfloops, as the graph is normalised *)
-      case (inctyp,dirtyp)
-        of (BG.SelfLoop,_) => raise ERROR ("Unexpected self-loop in normed graph ("^
-                V.string_of_name pv^","^E.string_of_name e^")")
-         | (_,BG.UnDirected) => (nmins,nmouts,nmundir andalso not (BG.is_bboxed pat v))
-         | (BG.Incoming,BG.Directed) => (nmins andalso not (BG.is_bboxed pat v),nmouts,nmundir)
-         | (BG.Outgoing,BG.Directed) => (nmins,nmouts andalso not (BG.is_bboxed pat v),nmundir)
+    val tv = VVInj.get (BGMatchState.get_vmap ms) pv
+    val p_arity = BG.get_arity pat pv
+    val t_arity = BG.get_arity tgt tv
   in
-    (need_more_ins orelse need_more_outs orelse need_more_undir)
-    andalso
-    (let val (nmins,nmouts,nmundir) =
-      BG.fold_adj chk_bbox pat pv (need_more_ins,need_more_outs,need_more_undir)
-     in nmins orelse nmouts orelse nmundir end)
+    (
+      (Arity.get_in p_arity < Arity.get_in t_arity) andalso
+      not (V.NSet.exists (BG.is_bboxed pat) (BG.get_predecessor_vertices pat pv))
+    )
+    orelse
+    (
+      (Arity.get_out p_arity < Arity.get_out t_arity) andalso
+      not (V.NSet.exists (BG.is_bboxed pat) (BG.get_successor_vertices pat pv))
+    )
+    orelse
+    (
+      (Arity.get_undir p_arity < Arity.get_undir t_arity) andalso
+      not (V.NSet.exists (BG.is_bboxed pat) (BG.get_sibling_vertices pat pv))
+    )
   end
 
   fun get_next_bbox g =
-    B.NSet.get_exists (not o (BG.bbox_has_parent g)) (BG.get_bboxes g)
+    B.NSet.get_exists (not o (BG.bbox_has_parents g)) (BG.get_bboxes g)
 
   fun finish_match ms =
       Seq.filter BGMatchState.is_total
@@ -110,8 +102,8 @@ struct
     match_loop ms
   end
   fun match_avoiding_tracking at pat tgt = let
-    val pat' = G.normalise pat
-    val tgt' = G.normalise tgt
+    val pat' = Graph.normalise pat
+    val tgt' = Graph.normalise tgt
   in match_normalised_avoiding_tracking at pat' tgt' end
 
   fun match_subgraph_normalised_avoiding_tracking (avoid,track) pat tgt tgt_verts = let
@@ -127,8 +119,8 @@ struct
     match_loop ms
   end
   fun match_subgraph_avoiding_tracking at pat tgt = let
-    val pat' = G.normalise pat
-    val tgt' = G.normalise tgt
+    val pat' = Graph.normalise pat
+    val tgt' = Graph.normalise tgt
   in match_subgraph_normalised_avoiding_tracking at pat' tgt' end
 
   val match = match_avoiding_tracking (V.NSet.empty, V.NSet.empty)
@@ -138,7 +130,7 @@ struct
 
   structure Sharing =
   struct
-    structure G = G.SharingOGraph
+    structure Graph = Graph.Sharing
     structure MatchState = MatchState.Sharing
   end
 end

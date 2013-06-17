@@ -6,7 +6,7 @@ functor SimpleInnerMatchSearch(
 = struct
   structure Log : LOG = Log(val init_level = 0);
 
-  structure G = MatchState.G
+  structure Graph = MatchState.Graph
   structure MatchState = MatchState
   
   exception InnerMatchError of string
@@ -15,9 +15,9 @@ functor SimpleInnerMatchSearch(
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
         (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
-  val log_graph = log_p G.pretty
+  val log_graph = log_p Graph.pretty
   val log_vset = log_p V.NSet.pretty
-  val log_vmap = log_p VInjEndo.pretty
+  val log_vmap = log_p VVInj.pretty
 
   fun ind 0 str = str
     | ind n str = ind (n-1) (" "^str)
@@ -61,10 +61,10 @@ functor SimpleInnerMatchSearch(
   fun u_circles_in_tgt ms = let
     val tgt = MatchState.get_tgt ms
   in fold (fn (s,t,_,_) =>
-       if G.is_wire_vertex tgt s andalso V.name_eq (s,t) andalso      (* is a circle *)
-       not (VInjEndo.cod_contains (MatchState.get_vmap ms) s) andalso (* not matched *)
-       not (VInjEndo.cod_contains (MatchState.get_vmap ms) s)         (* in target *)
-       then V.NSet.add s else I) (G.get_wire_list tgt) V.NSet.empty
+       if Graph.is_wire_vertex tgt s andalso V.name_eq (s,t) andalso      (* is a circle *)
+       not (VVInj.cod_contains (MatchState.get_vmap ms) s) andalso (* not matched *)
+       not (VVInj.cod_contains (MatchState.get_vmap ms) s)         (* in target *)
+       then V.NSet.add s else I) (Graph.get_wire_list tgt) V.NSet.empty
   end
 
   fun match_circles' lvl ms = let
@@ -73,27 +73,27 @@ functor SimpleInnerMatchSearch(
     case V.NSet.get_min (MatchState.get_u_circles ms)
       of SOME cp => let
            val (pat,tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms)
-           val cpdata = G.get_vertex_data pat cp
-           val ep = (the o E.NSet.tryget_singleton) (G.get_in_edges pat cp)
-           val ((epdir,epdata),_) = G.get_edge pat ep
-           val subst = MatchState.get_match_subst ms
+           val cpdata = Graph.get_vertex_data pat cp
+           val ep = (the o E.NSet.tryget_singleton) (Graph.get_in_edges pat cp)
+           val (epdir,epdata) = Graph.get_edge_dir_and_data pat ep
+           val subst = MatchState.get_match_psubst ms
            fun m_circ ct = let
-             val ctdata = G.get_vertex_data tgt ct
-             val et = (the o E.NSet.tryget_singleton) (G.get_in_edges tgt ct)
+             val ctdata = Graph.get_vertex_data tgt ct
+             val et = (the o E.NSet.tryget_singleton) (Graph.get_in_edges tgt ct)
              val _ = Log.logf 4 (fn () => ind lvl "Attempting to match circle ("^
                 (V.string_of_name cp)^ ","^(E.string_of_name ep)^") against ("^
                 (V.string_of_name ct)^","^(E.string_of_name et)^")") ()
-             val ((etdir,etdata),_) = G.get_edge tgt et
+             val (etdir,etdata) = Graph.get_edge_dir_and_data tgt et
            in case (epdir = etdir,
                     Option.composePartial
-                      (G.Param.try_match_vertex cpdata ctdata,
-                       G.Param.try_match_edge epdata etdata)
+                      (Graph.match_vdata (cpdata, ctdata),
+                       Graph.match_edata (epdata, etdata))
                       subst)
                 of (true, SOME subst') =>
                       match_circles' (lvl+1)
                           (ms |> MatchState.update_u_circles (V.NSet.delete cp)
                               |> add_circle_to_match lvl (cp,ct)
-                              |> MatchState.set_match_subst subst')
+                              |> MatchState.set_match_psubst subst')
                  | (false, _) =>
                      (log_match_fail_e2' lvl "Circle directedness mismatch" ep et;
                       Seq.empty)
@@ -123,54 +123,54 @@ functor SimpleInnerMatchSearch(
                        (V.string_of_name vt)^","^(E.string_of_name et)^")") ()
     val (pat, tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms)
     val e_subst_maybe = let (* check edge compatibilty and update subst *)
-      val ((dir_p,data_p), _) = G.get_edge pat ep
-      val ((dir_t,data_t), _) = G.get_edge tgt et
-      val pat_inedge = V.name_eq (G.get_edge_target pat ep, vp)
-      val tgt_inedge = V.name_eq (G.get_edge_target tgt et, vt)
+      val (dir_p,data_p) = Graph.get_edge_dir_and_data pat ep
+      val (dir_t,data_t) = Graph.get_edge_dir_and_data tgt et
+      val pat_inedge = V.name_eq (Graph.get_edge_target pat ep, vp)
+      val tgt_inedge = V.name_eq (Graph.get_edge_target tgt et, vt)
     in if dir_p = dir_t andalso (            (* directedness must match and... *)
-            dir_p = G.UnDirected orelse      (* undirected or... *)
+            dir_p = Undirected orelse      (* undirected or... *)
             (pat_inedge = tgt_inedge))       (* directions match *)
-       then G.Param.try_match_edge data_p data_t (MatchState.get_match_subst ms)
+       then Graph.match_edata (data_p, data_t) (MatchState.get_match_psubst ms)
        else NONE
     end
   in
   case e_subst_maybe
     of SOME e_subst =>
     let
-      val new_vp = G.edge_get_other_vertex pat ep vp
-      val new_vt = G.edge_get_other_vertex tgt et vt
+      val new_vp = Graph.edge_get_other_vertex pat ep vp
+      val new_vt = Graph.edge_get_other_vertex tgt et vt
       val vmap = MatchState.get_vmap ms
     in
       if V.NSet.contains (MatchState.get_p_nodeverts ms) new_vp
       then
-        if VInjEndo.contains vmap (new_vp, new_vt)
+        if VVInj.is_mapped vmap (new_vp, new_vt)
         then SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
                       |> MatchState.update_ps_nodeverts (V.NSet.add new_vp)
-                      |> MatchState.set_match_subst e_subst)
+                      |> MatchState.set_match_psubst e_subst)
         else (log_match_fail_v2 lvl "Match conflict" new_vp new_vt; NONE)
       else
-        if VInjEndo.cod_contains vmap new_vt
+        if VVInj.cod_contains vmap new_vt
         then (* this is not a "valid wire matching" *)
-          if VInjEndo.contains vmap (new_vp, new_vt)
+          if VVInj.is_mapped vmap (new_vp, new_vt)
           then raise ERROR "Hit the same match twice; this should not happen"
           else (log_match_fail_v2 lvl "Wire endpoint already matched"
                                   new_vp new_vt;
                 NONE)
         else
-          case G.Param.try_match_vertex (G.get_vertex_data pat new_vp)
-                                   (G.get_vertex_data tgt new_vt)
+          case Graph.match_vdata (Graph.get_vertex_data pat new_vp,
+                                  Graph.get_vertex_data tgt new_vt)
                                   e_subst
             of SOME v_subst =>
               (* since data matched, new_vp is a node- or wire-vertex iff new_vt is *)
-              if G.is_wire_vertex pat new_vp
+              if Graph.is_wire_vertex pat new_vp
               then (* new_vp and new_vt are wire-vertices *)
-                case (G.wv_get_other_edge pat new_vp ep, G.wv_get_other_edge tgt new_vt et)
+                case (Graph.wv_get_other_edge pat new_vp ep, Graph.wv_get_other_edge tgt new_vt et)
                  (* pat and tgt are internal. add edge to match and recurse *)
                  of (SOME new_ep, SOME new_et) =>
                    tryadd_wire lvl
                       (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
                           |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
-                          |> MatchState.set_match_subst v_subst)
+                          |> MatchState.set_match_psubst v_subst)
                       (new_vp,new_ep) (new_vt,new_et)
                  (* pat is internal, tgt is bdry. fail *)
                   | (SOME _, NONE) =>
@@ -179,14 +179,14 @@ functor SimpleInnerMatchSearch(
                   | (NONE, _) =>
                     SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
                              |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
-                             |> MatchState.set_match_subst v_subst)
+                             |> MatchState.set_match_psubst v_subst)
               else (* new_vp and new_vt are node-vertices *)
                 if V.NSet.contains (MatchState.get_u_nodeverts ms) new_vp
                 then SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
                               |> MatchState.update_u_nodeverts (V.NSet.delete new_vp)
                               |> MatchState.update_p_nodeverts (V.NSet.add new_vp)
                               |> MatchState.update_ps_nodeverts (V.NSet.add new_vp)
-                              |> MatchState.set_match_subst v_subst)
+                              |> MatchState.set_match_psubst v_subst)
                 else (* if this node-vert isn't scheduled for matching, leave its wire alone *)
                      (log_match_fail_v1 lvl "Not scheduled" new_vp; NONE)
              | NONE => (* vertex data did not match: new_vp -> new_vt *)
@@ -219,14 +219,14 @@ functor SimpleInnerMatchSearch(
                      |> MatchState.update_p_nodeverts  (V.NSet.add nv)
                      |> MatchState.update_ps_nodeverts (V.NSet.add nv)
         val unm_nv_tgt = V.NSet.subtract
-          (G.get_node_vertices (MatchState.get_tgt ms'))
-          (VInjEndo.get_codset (MatchState.get_vmap ms'))
-        val nv_data = G.get_vertex_data (MatchState.get_pat ms') nv
+          (Graph.get_node_vertices (MatchState.get_tgt ms'))
+          (VVInj.get_cod_set (MatchState.get_vmap ms'))
+        val nv_data = Graph.get_vertex_data (MatchState.get_pat ms') nv
         fun m_nodevert tnv =
-          case G.Param.try_match_vertex nv_data (G.get_vertex_data (MatchState.get_tgt ms') tnv)
-                                  (MatchState.get_match_subst ms)
+          case Graph.match_vdata (nv_data, Graph.get_vertex_data (MatchState.get_tgt ms') tnv)
+                                  (MatchState.get_match_psubst ms)
             of SOME subst =>
-                match_main (lvl+1) (ms' |> MatchState.set_match_subst subst
+                match_main (lvl+1) (ms' |> MatchState.set_match_psubst subst
                                         |> add_vertex_to_match lvl (nv, tnv))
              | NONE => Seq.empty
       in Seq.maps m_nodevert (V.NSet.fold Seq.cons unm_nv_tgt Seq.empty)
@@ -237,19 +237,19 @@ functor SimpleInnerMatchSearch(
       fun match_nhd lvl ms nvp = let
         val _ = Log.logf 3 (fn () => ind lvl
               "== Matching nhd of "^(V.string_of_name nvp)) ()
-        val nvt = VInjEndo.domf (MatchState.get_vmap ms) nvp
+        val nvt = VVInj.get (MatchState.get_vmap ms) nvp
         val (pat, tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms)
             
         fun edge_sched e = V.NSet.contains (MatchState.get_u_wireverts ms)
-                                           (G.edge_get_other_vertex pat e nvp)
+                                           (Graph.edge_get_other_vertex pat e nvp)
         
         (* next wire in pattern that needs to be matched *)
-        val (_,(ins,outs)) = G.get_vertex pat nvp
+        val (ins,outs) = (Graph.get_in_edges pat nvp, Graph.get_out_edges pat nvp)
         val next_ep = E.NSet.get_exists edge_sched (E.NSet.union_merge ins outs)
         
         (* unmatched edges in target graph *)
-        val (_,(ins,outs)) = G.get_vertex tgt nvt
-        val unm_tgt = E.NSet.filter (not o (EInjEndo.cod_contains (MatchState.get_emap ms)))
+        val (ins,outs) = (Graph.get_in_edges tgt nvt, Graph.get_out_edges tgt nvt)
+        val unm_tgt = E.NSet.filter (not o (EEInj.cod_contains (MatchState.get_emap ms)))
                                     (E.NSet.union_merge ins outs)
       in case next_ep
            of SOME ep =>
@@ -302,21 +302,22 @@ functor SimpleInnerMatchSearch(
     val full_tgt = MatchState.get_full_tgt ms
     (* hackish way to avoid renaming issues: make sure new vnames
      * are not in pattern *)
-    val patvs = G.get_vnames (MatchState.get_pat ms)
-    val avoidvs = V.NSet.union_merge patvs (G.get_vnames full_tgt);
+    val patvs = Graph.get_vertices (MatchState.get_pat ms)
+    val avoidvs = V.NSet.union_merge patvs (Graph.get_vertices full_tgt);
     val (vn1,avoidvs') = V.NSet.add_new (V.default_name) avoidvs;
-    val (dd, (s,t)) = G.get_edge full_tgt e
+    val dd = Graph.get_edge_dir_and_data full_tgt e
+    val (s,t) = (Graph.get_edge_source full_tgt e, Graph.get_edge_target full_tgt e)
   in if V.name_eq (s,t) then
       let
-        val full_tgt = full_tgt |> G.delete_edge e
-                                |> G.add_named_vertex vn1 G.OVData.WVert
-        val (e1,full_tgt)     = full_tgt |> G.add_edge dd s vn1
-        val (mid_e, full_tgt) = full_tgt |> G.add_edge dd vn1 t
+        val full_tgt = full_tgt |> Graph.delete_edge e
+                                |> Graph.add_named_vertex vn1 Graph.WVert
+        val (e1,full_tgt)     = full_tgt |> Graph.add_edge dd s vn1
+        val (mid_e, full_tgt) = full_tgt |> Graph.add_edge dd vn1 t
         (* now repeat on tgt *)
-        val tgt = tgt |> G.delete_edge e
-                      |> G.add_named_vertex vn1 G.OVData.WVert
-                      |> G.add_named_edge e1 dd s vn1
-                      |> G.add_named_edge mid_e dd vn1 t
+        val tgt = tgt |> Graph.delete_edge e
+                      |> Graph.add_named_vertex vn1 Graph.WVert
+                      |> Graph.add_named_edge e1 dd s vn1
+                      |> Graph.add_named_edge mid_e dd vn1 t
       in ((vn1,mid_e,t),
           ms |> MatchState.set_tgt tgt
              |> MatchState.set_full_tgt full_tgt)
@@ -324,18 +325,18 @@ functor SimpleInnerMatchSearch(
     else
       let 
         val (vn2,_) = V.NSet.add_new (V.default_name) avoidvs';
-        val full_tgt = full_tgt |> G.delete_edge e
-                                |> G.add_named_vertex vn1 G.OVData.WVert
-                                |> G.add_named_vertex vn2 G.OVData.WVert
-        val (e1,full_tgt)    = full_tgt |> G.add_edge dd s vn1
-        val (mid_e,full_tgt) = full_tgt |> G.add_edge dd vn1 vn2
-        val (e2,full_tgt)    = full_tgt |> G.add_edge dd vn2 t
-        val tgt = tgt |> G.delete_edge e
-                      |> G.add_named_vertex vn1 G.OVData.WVert
-                      |> G.add_named_vertex vn2 G.OVData.WVert
-                      |> G.add_named_edge e1 dd s vn1
-                      |> G.add_named_edge mid_e dd vn1 vn2
-                      |> G.add_named_edge e2 dd vn2 t
+        val full_tgt = full_tgt |> Graph.delete_edge e
+                                |> Graph.add_named_vertex vn1 Graph.WVert
+                                |> Graph.add_named_vertex vn2 Graph.WVert
+        val (e1,full_tgt)    = full_tgt |> Graph.add_edge dd s vn1
+        val (mid_e,full_tgt) = full_tgt |> Graph.add_edge dd vn1 vn2
+        val (e2,full_tgt)    = full_tgt |> Graph.add_edge dd vn2 t
+        val tgt = tgt |> Graph.delete_edge e
+                      |> Graph.add_named_vertex vn1 Graph.WVert
+                      |> Graph.add_named_vertex vn2 Graph.WVert
+                      |> Graph.add_named_edge e1 dd s vn1
+                      |> Graph.add_named_edge mid_e dd vn1 vn2
+                      |> Graph.add_named_edge e2 dd vn2 t
       in ((vn1,mid_e,vn2),
           ms |> MatchState.set_tgt tgt
              |> MatchState.set_full_tgt full_tgt)
@@ -352,39 +353,41 @@ functor SimpleInnerMatchSearch(
       val (pat, tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms)
       (* for a normalised graph, this will always be the source end *)
       val bw = (the o E.NSet.get_min) (MatchState.get_u_bare_wires ms)
-      val ((bw_dir, bw_data), (bw_s, bw_t)) = G.get_edge pat bw
-      val (bw_sdata, bw_tdata) = (G.get_vertex_data pat bw_s, G.get_vertex_data pat bw_t)
+      val (bw_dir, bw_data) = Graph.get_edge_dir_and_data pat bw
+      val (bw_s, bw_t) = (Graph.get_edge_source pat bw, Graph.get_edge_target pat bw)
+      val (bw_sdata, bw_tdata) = (Graph.get_vertex_data pat bw_s, Graph.get_vertex_data pat bw_t)
       
       (* candidate edges for matching are:
            - the unique edge in a circle, bare wire, or boundary wire
            - the middle edge in an interior wire *)
       fun is_candidate_for_bw e = let
-        val ((d,_),(s,t)) = G.get_edge tgt e
-      in not (EInjEndo.cod_contains (MatchState.get_emap ms) e) andalso
+        val d = Graph.get_edge_dir tgt e
+        val (s,t) = (Graph.get_edge_source pat e, Graph.get_edge_target pat e)
+      in not (EEInj.cod_contains (MatchState.get_emap ms) e) andalso
          d = bw_dir andalso
-         (G.is_boundary tgt s orelse G.is_boundary tgt t orelse    (* bare and boundary wires *)
-          (G.is_wire_vertex tgt s andalso G.is_wire_vertex tgt t)) (* circles + middle edges *)
+         (Graph.is_boundary tgt s orelse Graph.is_boundary tgt t orelse    (* bare and boundary wires *)
+          (Graph.is_wire_vertex tgt s andalso Graph.is_wire_vertex tgt t)) (* circles + middle edges *)
       end
       
       (* sequence of all the edges of the right kind with matching dir_or_undir *)
       val edges = E.NSet.fold_rev
         (fn e => if is_candidate_for_bw e then Seq.cons e else I)
-        (G.get_enames tgt) Seq.empty
+        (Graph.get_edges tgt) Seq.empty
       fun match_bw e = let
         (* grow edge and grab relevant data *)
         val ((s,mid_e,t), ms') = grow_tgt_edge ms e
         val tgt' = MatchState.get_tgt ms'
-        val et_data = G.get_edge_data tgt' mid_e
-        val (tgt_sdata,tgt_tdata) = (G.get_vertex_data tgt' s, G.get_vertex_data tgt' t)
+        val et_data = Graph.get_edge_data tgt' mid_e
+        val (tgt_sdata,tgt_tdata) = (Graph.get_vertex_data tgt' s, Graph.get_vertex_data tgt' t)
         
         (* match data for edge, source, and target *)
         val fmatch_d = Option.composePartial
-                          (G.Param.try_match_edge bw_data et_data,
+                          (Graph.match_edata (bw_data, et_data),
                            Option.composePartial
-                              (G.Param.try_match_vertex bw_sdata tgt_sdata,
-                               G.Param.try_match_vertex bw_tdata tgt_tdata));
+                              (Graph.match_vdata (bw_sdata, tgt_sdata),
+                               Graph.match_vdata (bw_tdata, tgt_tdata)));
         fun add_bw new_subst = let
-          val ms' = ms' |> MatchState.set_match_subst new_subst
+          val ms' = ms' |> MatchState.set_match_psubst new_subst
                         |> MatchState.update_u_bare_wires (E.NSet.delete bw)
         in (fn (es,et) =>
              ms' |> add_vertex_to_match lvl (bw_s,es)
@@ -392,12 +395,12 @@ functor SimpleInnerMatchSearch(
            )
         end
       in
-        case fmatch_d (MatchState.get_match_subst ms')
+        case fmatch_d (MatchState.get_match_psubst ms')
           of SOME new_subst =>
                let val add_bw' = add_bw new_subst in
                   case bw_dir
-                    of G.Directed => match_bare_wires' (lvl+1) (add_bw' (s,t))
-                     | G.UnDirected =>
+                    of Directed => match_bare_wires' (lvl+1) (add_bw' (s,t))
+                     | Undirected =>
                          Seq.append (match_bare_wires' (lvl+1) (add_bw' (s,t)))
                                     (match_bare_wires' (lvl+1) (add_bw' (t,s)))
                end
@@ -410,7 +413,7 @@ functor SimpleInnerMatchSearch(
   
   structure Sharing =
   struct
-    structure G = G.SharingOGraph
+    structure Graph = Graph.Sharing
     structure MatchState = MatchState.Sharing
   end
 end

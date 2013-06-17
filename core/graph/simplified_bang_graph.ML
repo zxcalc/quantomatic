@@ -11,6 +11,12 @@ fun vdata_eq (NVert nv1, NVert nv2) = Data.nvdata_eq (nv1,nv2)
 
 val edata_eq = Data.edata_eq
 
+fun match_vdata (NVert nv1, NVert nv2) psubst = Data.match_nvdata (nv1,nv2) psubst
+  | match_vdata (WVert, WVert) psubst = SOME psubst
+  | match_vdata _ _ = NONE
+
+val match_edata = Data.match_edata
+
 fun pretty_vdata (NVert n) = Pretty.block[Pretty.str "N{", Data.pretty_nvdata n, Pretty.str "}"]
   | pretty_vdata (WVert)   = Pretty.str "W{}"
 val pretty_edata = Data.pretty_edata
@@ -203,6 +209,43 @@ fun get_out_edges g v =
 fun get_adj_edges g v =
   E.NSet.union_merge (EVFn.inv_img (get_source g) v)
                      (EVFn.inv_img (get_target g) v)
+
+fun get_successor_vertices g v =
+  E.NSet.fold (fn e => (
+    if is_dir_edge g e
+    then let val v1 = get_edge_source g e
+         in if V.name_eq (v,v1) then I else V.NSet.add v1
+         end
+    else I
+  )) (get_in_edges g v) V.NSet.empty
+
+(* vertices connected to a directed in-edge of the given one *)
+fun get_predecessor_vertices g v =
+  E.NSet.fold (fn e => (
+    if is_dir_edge g e
+    then let val v1 = get_edge_target g e
+         in if V.name_eq (v,v1) then I else V.NSet.add v1
+         end
+    else I
+  )) (get_out_edges g v) V.NSet.empty
+
+(* vertices connected to an undirected edge of the given one *)
+fun get_sibling_vertices g v =
+  V.NSet.empty
+    |> E.NSet.fold (fn e => (
+         if not (is_dir_edge g e)
+         then let val v1 = get_edge_target g e
+              in if V.name_eq (v,v1) then I else V.NSet.add v1
+              end
+         else I
+       )) (get_out_edges g v)
+    |> E.NSet.fold (fn e => (
+         if not (is_dir_edge g e)
+         then let val v1 = get_edge_source g e
+              in if V.name_eq (v,v1) then I else V.NSet.add v1
+              end
+         else I
+       )) (get_in_edges g v)
 
 fun get_adj_vertices g v =
   V.NSet.empty |> E.NSet.fold (fn e =>

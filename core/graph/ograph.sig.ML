@@ -25,9 +25,11 @@ type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, represent
 datatype vdata = NVert of Data.nvdata | WVert
 type edata = Data.edata
 val vdata_eq : vdata * vdata -> bool
-val edata_eq : edata * edata -> bool (* should be an alias for Data.edata_eq *)
+val edata_eq : edata * edata -> bool (* alias for Data.edata_eq *)
 val pretty_vdata : vdata -> Pretty.T
-val pretty_edata : edata -> Pretty.T (* should be an alias for Data.pretty_edata *) 
+val pretty_edata : edata -> Pretty.T (* alias for Data.pretty_edata *)
+val match_vdata  : vdata * vdata -> Data.psubst -> Data.psubst option
+val match_edata  : edata * edata -> Data.psubst -> Data.psubst option (* alias for Data.match_edata *)
 val pretty : T -> Pretty.T
 val print : T -> unit
 val empty : T
@@ -86,6 +88,15 @@ val get_adj_undir_edges : T -> V.name -> E.NSet.T
 (* get all adjacent vertices (not including the given vertex or vertices) *)
 val get_adj_vertices : T -> V.name -> V.NSet.T
 val get_adj_vertices_to_set : T -> V.NSet.T -> V.NSet.T
+
+(* vertices connected to a directed out-edge of the given one *)
+val get_successor_vertices : T -> V.name -> V.NSet.T
+
+(* vertices connected to a directed in-edge of the given one *)
+val get_predecessor_vertices : T -> V.name -> V.NSet.T
+
+(* vertices connected to an undirected edge of the given one *)
+val get_sibling_vertices : T -> V.name -> V.NSet.T
 
 (* get incoming, outgoing, undirected edges adjacent to vertex *)
 val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)

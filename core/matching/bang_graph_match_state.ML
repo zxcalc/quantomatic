@@ -243,9 +243,9 @@ functor BangGraphMatchState(
 
   fun schedule_new_concrete ms = let
     val new_vs = V.NSet.subtract (Graph.get_vertices (get_pat ms))
-                                 (VInjEndo.get_domset (get_vmap ms))
+                                 (VVInj.get_dom_set (get_vmap ms))
     val new_es = E.NSet.subtract (Graph.get_edges (get_pat ms))
-                                 (EInjEndo.get_domset (get_emap ms))
+                                 (EEInj.get_dom_set (get_emap ms))
   in
     schedule_concrete new_vs new_es ms
   end

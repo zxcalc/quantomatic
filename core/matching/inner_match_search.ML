@@ -2,16 +2,16 @@
 (* see docs/matching_algo for details *)
 signature INNER_MATCH_SEARCH_SHARING =
 sig
-  structure G : OGRAPH_SHARING
+  structure Graph : OGRAPH_SHARING
   structure MatchState : OGRAPH_MATCH_STATE_SHARING
-    sharing MatchState.G = G
+    sharing MatchState.Graph = Graph
 end
 
 signature INNER_MATCH_SEARCH =
 sig
   structure Log : LOG;
 
-  structure G : OGRAPH
+  structure Graph : OGRAPH
   structure MatchState : OGRAPH_MATCH_STATE
 
   (* Match all queued unmatched circles and node vertices, and extend the
@@ -46,6 +46,6 @@ sig
   (*val u_circles_in_tgt : MatchState.T -> V.NSet.T*)
 
   structure Sharing : INNER_MATCH_SEARCH_SHARING
-    sharing Sharing.G = G.SharingOGraph
+    sharing Sharing.Graph = Graph.Sharing
     sharing Sharing.MatchState = MatchState.Sharing
 end

@@ -12,7 +12,7 @@ sig
   val has_bbox : T -> B.name -> bool
   val get_bboxes : T -> B.NSet.T
   (* Does not contain empty !-boxes (or unboxed vertices) *)
-  val get_bbox_rel : T -> BVRel.T
+  (*val get_bbox_rel : T -> BVRel.T*)
   (* Return the "parent" function for nested bang-boxes *)
   (*val get_bbox_parent_map : T -> BBFn.T*)
   

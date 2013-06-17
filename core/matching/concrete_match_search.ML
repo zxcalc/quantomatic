@@ -9,7 +9,7 @@ struct
   structure Log : LOG = Log(val init_level = 0);
 
   structure MatchState = InnerMatchSearch.MatchState
-  structure G = InnerMatchSearch.G
+  structure Graph = InnerMatchSearch.Graph
   
   (* We can't provide any information that the inner match search
    * does not already know *)
@@ -26,7 +26,7 @@ struct
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
         (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
-  val log_graph = log_p G.pretty
+  val log_graph = log_p Graph.pretty
   val log_v_nset = log_p V.NSet.pretty
   
   fun match_normalised pat tgt = let
@@ -37,8 +37,8 @@ struct
     do_match ms
   end
   fun match pat tgt = let
-    val pat' = G.normalise pat
-    val tgt' = G.normalise tgt
+    val pat' = Graph.normalise pat
+    val tgt' = Graph.normalise tgt
   in match_normalised pat' tgt' end
   
   fun match_subgraph pat tgt tgt_verts = let
@@ -50,13 +50,13 @@ struct
     do_match ms
   end
   fun match_subgraph_normalised pat tgt = let
-    val pat = G.normalise pat
-    val tgt = G.normalise tgt
+    val pat = Graph.normalise pat
+    val tgt = Graph.normalise tgt
   in match_subgraph_normalised pat tgt end
   
   structure Sharing =
   struct
-    structure G = G.SharingOGraph
+    structure Graph = Graph.Sharing
     structure MatchState = MatchState.Sharing
   end
 end

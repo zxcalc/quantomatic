@@ -27,9 +27,9 @@ signature OGRAPH_MATCH_STATE
   (* this is carried around because of normalisation *)
   val get_full_tgt        : T -> Graph.T
   (* the vertex map so far (from pat verts to tgt verts *)
-  val get_vmap            : T -> VInjEndo.T
+  val get_vmap            : T -> VVInj.T
   (* the edge map so far (from pat edges to tgt edges *)
-  val get_emap            : T -> EInjEndo.T
+  val get_emap            : T -> EEInj.T
   (* circles waiting to be matched *)
   (* contains a representative vertex from each circle *)
   val get_u_circles       : T -> V.NSet.T
@@ -51,8 +51,8 @@ signature OGRAPH_MATCH_STATE
   val update_pat          : (Graph.T -> Graph.T) -> T -> T
   val update_tgt          : (Graph.T -> Graph.T) -> T -> T
   val update_full_tgt     : (Graph.T -> Graph.T) -> T -> T
-  val update_vmap         : (VInjEndo.T -> VInjEndo.T) -> T -> T
-  val update_emap         : (EInjEndo.T -> EInjEndo.T) -> T -> T
+  val update_vmap         : (VVInj.T -> VVInj.T) -> T -> T
+  val update_emap         : (EEInj.T -> EEInj.T) -> T -> T
   val update_u_circles    : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_u_nodeverts  : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_u_wireverts  : (V.NSet.T -> V.NSet.T) -> T -> T
@@ -64,8 +64,8 @@ signature OGRAPH_MATCH_STATE
   val set_pat             : Graph.T -> T -> T
   val set_tgt             : Graph.T -> T -> T
   val set_full_tgt        : Graph.T -> T -> T
-  val set_vmap            : VInjEndo.T -> T -> T
-  val set_emap            : EInjEndo.T -> T -> T
+  val set_vmap            : VVInj.T -> T -> T
+  val set_emap            : EEInj.T -> T -> T
   val set_u_circles       : V.NSet.T -> T -> T
   val set_u_nodeverts     : V.NSet.T -> T -> T
   val set_u_wireverts     : V.NSet.T -> T -> T
@@ -154,9 +154,9 @@ functor OGraphMatchState(
     tgt          : Graph.T,
     full_tgt     : Graph.T,
     (* vertex mapping from pat to tgt *)
-    vmap         : VInjEndo.T,
+    vmap         : VVInj.T,
     (* edge mapping from pat to tgt *)
-    emap         : EInjEndo.T,
+    emap         : EEInj.T,
     (* circles, node-vertices, and wire-vertices to be matched *)
     u_circles    : V.NSet.T,
     u_nodeverts  : V.NSet.T,
@@ -174,8 +174,8 @@ functor OGraphMatchState(
     pat          = Graph.empty,
     tgt          = Graph.empty,
     full_tgt     = Graph.empty,
-    vmap         = VInjEndo.empty,
-    emap         = EInjEndo.empty,
+    vmap         = VVInj.empty,
+    emap         = EEInj.empty,
     u_circles    = V.NSet.empty,
     u_nodeverts  = V.NSet.empty,
     u_wireverts  = V.NSet.empty,
@@ -190,8 +190,8 @@ functor OGraphMatchState(
     pat          = pat,
     tgt          = tgt,
     full_tgt     = tgt,
-    vmap         = VInjEndo.empty,
-    emap         = EInjEndo.empty,
+    vmap         = VVInj.empty,
+    emap         = EEInj.empty,
     u_circles    = V.NSet.empty,
     u_nodeverts  = V.NSet.empty,
     u_wireverts  = V.NSet.empty,
@@ -206,8 +206,8 @@ functor OGraphMatchState(
     pat          = pat,
     tgt          = Graph.get_open_subgraph tgt tgt_verts,
     full_tgt     = tgt,
-    vmap         = VInjEndo.empty,
-    emap         = EInjEndo.empty,
+    vmap         = VVInj.empty,
+    emap         = EEInj.empty,
     u_circles    = V.NSet.empty,
     u_nodeverts  = V.NSet.empty,
     u_wireverts  = V.NSet.empty,
@@ -463,29 +463,29 @@ functor OGraphMatchState(
   val extend_ps_nodeverts = update_ps_nodeverts o V.NSet.union_merge
 
   fun add_edge_to_match (ep, vp) (et, vt) ms = let
-  in ms |> update_vmap (VInjEndo.add vp vt)
-        |> update_emap (EInjEndo.add ep et)
+  in ms |> update_vmap (VVInj.add (vp, vt))
+        |> update_emap (EEInj.add (ep, et))
   end
   
   fun add_circle_to_match (cp, ct) ms = let
     val ep = (the o E.NSet.tryget_singleton) (Graph.get_in_edges (get_pat ms) cp)
     val et = (the o E.NSet.tryget_singleton) (Graph.get_in_edges (get_tgt ms) ct)
-  in ms |> update_vmap (VInjEndo.add cp ct)
-        |> update_emap (EInjEndo.add ep et)
+  in ms |> update_vmap (VVInj.add (cp, ct))
+        |> update_emap (EEInj.add (ep, et))
   end
   
-  fun add_vertex_to_match (vp, vt) ms = ms |> update_vmap (VInjEndo.add vp vt)
+  fun add_vertex_to_match (vp, vt) ms = ms |> update_vmap (VVInj.add (vp, vt))
 
   fun get_complete_nodeverts ms = let
     val node_vs = V.NSet.filter (Graph.is_node_vertex (get_pat ms))
-                  (VInjEndo.get_domset (get_vmap ms))
+                  (VVInj.get_dom_set (get_vmap ms))
   in
     V.NSet.subtract node_vs (get_p_nodeverts ms)
   end
   
   fun is_total ms =
-    V.NSet.eq (VInjEndo.get_domset (get_vmap ms)) (Graph.get_vertices (get_pat ms)) andalso
-    E.NSet.eq (EInjEndo.get_domset (get_emap ms)) (Graph.get_edges (get_pat ms)) andalso
+    V.NSet.eq (VVInj.get_dom_set (get_vmap ms)) (Graph.get_vertices (get_pat ms)) andalso
+    E.NSet.eq (EEInj.get_dom_set (get_emap ms)) (Graph.get_edges (get_pat ms)) andalso
     V.NSet.is_empty (get_p_nodeverts ms)
   
   fun schedule_all ms = let
@@ -541,11 +541,11 @@ functor OGraphMatchState(
           ],
           Pretty.block [
             Pretty.str "VMap: ",
-            VInjEndo.pretty (get_vmap ms)
+            VVInj.pretty (get_vmap ms)
           ],
           Pretty.block [
             Pretty.str "EMap: ",
-            EInjEndo.pretty (get_emap ms)
+            EEInj.pretty (get_emap ms)
           ]
         ]
         @ (pretty_vset "U_Cicles" (get_u_circles ms))
