@@ -159,6 +159,22 @@ local
   val _ = Testing.test "differing !-box parents"
                        test_mk_bad_rule (lhs,rhs);
 
+  (* Rule.symmetric *)
+
+
+  val lhs = G.empty |> add_wv "in1"
+                    |> add_vunit1 "n1"
+                    |> add_dir_eunit1 "e1" "in1" "n1"
+  val rhs = G.empty |> add_wv "in1"
+                    |> add_vunit2 "n1"
+                    |> add_vunit2 "n2"
+                    |> add_dir_eunit1 "e1" "in1" "n1"
+                    |> add_dir_eunit1 "e2" "n1" "n2"
+  val rule = Rule.mk (lhs,rhs)
+  val rule' = Rule.symmetric rule
+  val _ = assert_iso_graph "new RHS iso to old LHS" lhs (Rule.get_rhs rule')
+  val _ = assert_iso_graph "new LHS iso to old RHS" rhs (Rule.get_lhs rule')
+
 in
   val _ = Testing.assert_no_failed_tests();
 end;

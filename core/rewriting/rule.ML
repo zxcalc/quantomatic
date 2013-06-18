@@ -255,7 +255,7 @@ fun update_boundary_vertices f (Rule rep) =
     Rule { lhs = #lhs rep, rhs = #rhs rep, boundary_vertices = f (#boundary_vertices rep) };
 
 (* swap lhs and rhs of a rule *)
-fun symmetric r = mk (get_lhs r, get_rhs r);
+fun symmetric r = mk (get_rhs r, get_lhs r);
 
 fun get_xnames rule =
     X.NSet.union_merge
