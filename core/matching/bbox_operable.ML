@@ -1,7 +1,7 @@
 signature BBOX_OPERABLE_GRAPH_SHARING =
 sig
   type T;
-  structure G : OGRAPH_SHARING;
+  structure Graph : OGRAPH_SHARING;
 end;
 
 (* Used by !-graph matching to apply !-box operations to the pattern.
@@ -11,17 +11,17 @@ end;
 signature BBOX_OPERABLE_GRAPH =
 sig
   type T;
-  structure G : BANG_GRAPH;
+  structure Graph : BANG_GRAPH;
   structure Sharing : BBOX_OPERABLE_GRAPH_SHARING
     sharing type Sharing.T = T
-    sharing Sharing.G = G.SharingOGraph
+    sharing Sharing.Graph = Graph.Sharing
 
   val normalise : T -> T;
   val expand_bbox : B.name -> T -> T;
   val kill_bbox : B.name -> T -> T;
 
   (* the graph so far, with all the operations applied *)
-  val get_current_graph : T -> G.T;
+  val get_current_graph : T -> Graph.T;
 
   val empty : T;
 
@@ -47,7 +47,7 @@ sig
    * Third arg: a set of vertex names to keep track of when copying bboxes;
    *            typically the boundary of the graph
    *)
-  val init : G.T -> V.NSet.T -> V.NSet.T -> T;
+  val init : Graph.T -> V.NSet.T -> V.NSet.T -> T;
 
   (* Replays the !-box operations on another graph.
    *
@@ -61,32 +61,33 @@ sig
    * It is also required that any vertex names in the graph were part
    * of the avoids set, otherwise a name clash could occur.
    *)
-  val replay_bbox_ops : T -> G.T -> G.T
+  val replay_bbox_ops : T -> Graph.T -> Graph.T
 end;
 
-functor ReplayableBBoxOperableGraph(G: BANG_GRAPH) : REPLAYABLE_BBOX_OPERABLE_GRAPH =
-struct
-  datatype BBoxOp = BBKill of B.name
-                  | BBCopy of {
+datatype bbox_op = BBKill of B.name
+                 | BBCopy of {
                       bbox : B.name,
-                      vmap : V.name V.NTab.T,
-                      bmap : B.name B.NTab.T
-                    };
+                      vmap : VSub.T,
+                      bmap : BSub.T }
 
-  structure G = G;
+functor ReplayableBBoxOperableGraph(structure Graph: BANG_GRAPH) : REPLAYABLE_BBOX_OPERABLE_GRAPH =
+struct
+  
+
+  structure Graph = Graph;
   type T = {
     (* current graph *)
-    graph    : G.T,
+    graph    : Graph.T,
     (* names context for fresh names when copying bboxes *)
     avoids   : V.NSet.T,
     (* names context for fresh names when copying bboxes *)
     tracked  : V.NSet.T,
     (* !-box operation sequence *)
-    bbox_ops : BBoxOp list
+    bbox_ops : bbox_op list
   };
 
   val empty = {
-    graph = G.empty,
+    graph = Graph.empty,
     avoids = V.NSet.empty,
     tracked = V.NSet.empty,
     bbox_ops = []
@@ -104,7 +105,7 @@ struct
 
   fun normalise (oper:T) =
     {
-      graph = G.normalise (get_current_graph oper),
+      graph = Graph.normalise (get_current_graph oper),
       avoids = #avoids oper,
       tracked = #tracked oper,
       bbox_ops = #bbox_ops oper
@@ -113,22 +114,22 @@ struct
   fun expand_bbox b (oper:T) = let
     val g = get_current_graph oper
     val v_avoid = get_avoids oper
-    val v_avoid = v_avoid |> V.NSet.union_merge (G.get_vnames g)
-    val vrn = V.Rnm.mk_from_avoids v_avoid
-    val ern = E.Rnm.mk_from_avoids (G.get_enames g)
-    val brn = B.Rnm.mk_from_avoids (G.get_bboxes g)
-    val ((vrn',_,brn'),g') = G.expand1_bbox b ((vrn,ern,brn),g)
-    val vmap = V.Rnm.get_nmap vrn'
+    val v_avoid = v_avoid |> V.NSet.union_merge (Graph.get_vertices g)
+    val vrn = VSub.mk_from_avoids v_avoid
+    val ern = ESub.mk_from_avoids (Graph.get_edges g)
+    val brn = BSub.mk_from_avoids (Graph.get_bboxes g)
+    val ((vrn',_,brn'),g') = Graph.expand_bbox b ((vrn,ern,brn),g)
     val tracked = #tracked oper
     (* only keep track of the names of the vertices we care about *)
-    val vmap' = V.NSet.fold (fn v =>
-        case V.NTab.lookup vmap v of
+    val vmap = V.NSet.fold (fn v =>
+        case VSub.get_opt vrn' v of
              NONE => (fn x => x)
-           | SOME v' => V.NTab.ins (v,v')) tracked V.NTab.empty
+           | SOME v' => VSub.add (v,v')) tracked VSub.empty
+    val bmap = brn' |> BSub.clear_avoids
     val bbop = BBCopy {
         bbox = b,
-        vmap = vmap',
-        bmap = B.Rnm.get_nmap brn'
+        vmap = vmap,
+        bmap = bmap
       }
   in
     {
@@ -141,26 +142,26 @@ struct
 
   fun kill_bbox b (oper:T) =
     {
-      graph = G.kill_bbox b (get_current_graph oper),
+      graph = Graph.kill_bbox b (get_current_graph oper),
       avoids = #avoids oper,
       tracked = #tracked oper,
       bbox_ops = (BBKill b)::(#bbox_ops oper)
     };
 
-  fun replay_bbox_op _ (BBKill b) g = G.kill_bbox b g
+  fun replay_bbox_op _ (BBKill b) g = Graph.kill_bbox b g
     | replay_bbox_op v_avoid (BBCopy {bbox,vmap,bmap}) g = let
-        val v_avoid = v_avoid |> V.NSet.union_merge (G.get_vnames g)
-        val vrn = V.Rnm.mk V.NSet.empty v_avoid vmap
-        val ern = E.Rnm.mk_from_avoids (G.get_enames g)
-        val brn = B.Rnm.mk B.NSet.empty (G.get_bboxes g) bmap
-        val (_,g') = G.expand1_bbox bbox ((vrn,ern,brn),g)
+        val v_avoid = v_avoid |> V.NSet.union_merge (Graph.get_vertices g)
+        val vrn = vmap |> VSub.avoid_set_in_cod v_avoid
+        val ern = ESub.mk_from_avoids (Graph.get_edges g)
+        val brn = bmap |> BSub.avoid_set_in_cod (Graph.get_bboxes g)
+        val (_,g') = Graph.expand_bbox bbox ((vrn,ern,brn),g)
       in g' end;
 
   fun replay_bbox_ops (oper:T) = let
     val bbops  = #bbox_ops oper
     val avoids = #avoids oper
     val g      = #graph oper
-    val avoids = V.NSet.union_merge (G.get_vnames g)
+    val avoids = V.NSet.union_merge (Graph.get_vertices g)
                                     (#avoids oper)
   in
     fold_rev (replay_bbox_op avoids) bbops
@@ -174,7 +175,7 @@ struct
         Pretty.chunks [
           Pretty.block [
             Pretty.str "Current Graph: ",
-            G.pretty (get_current_graph oper)
+            Graph.pretty (get_current_graph oper)
           ]
         ]
       ],
@@ -185,6 +186,6 @@ struct
   structure Sharing =
   struct
     type T = T
-    structure G = G.SharingOGraph
+    structure Graph = Graph.Sharing
   end;
 end;

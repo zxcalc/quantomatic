@@ -154,7 +154,7 @@ PolyML.Project.make "io/ruleset_annotations_json.ML";
  * Matching
  *)
 PolyML.Project.make "matching/bbox_operable.ML";
-PolyML.Project.make "matching/match.ML";
+(*PolyML.Project.make "matching/match.ML";
 PolyML.Project.make "matching/bg_match.ML";
 PolyML.Project.make "matching/match_state.ML";
 
@@ -169,7 +169,7 @@ PolyML.Project.make "matching/concrete_match_search.ML";
 (* naive pattern-graph wrapper *)
 PolyML.Project.make "matching/greedy_match_search.ML";
 
-Testing.make_test "matching/test/test-matching-setup.ML";
+Testing.make_test "matching/test/test-matching-setup.ML";*)
 (*Testing.make_test "matching/test/test-bang-match-state.ML";
 Testing.make_test "matching/test/test-string-graph-matching.ML";
 Testing.make_test "matching/test/test-bang-graph-matching.ML";*)
