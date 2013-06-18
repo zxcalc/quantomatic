@@ -154,6 +154,7 @@ PolyML.Project.make "io/ruleset_annotations_json.ML";
  * Matching
  *)
 PolyML.Project.make "matching/match_state.ML";
+PolyML.Project.make "matching/match.ML";
 PolyML.Project.make "matching/bang_graph_match_state.ML";
 (* signature for inner (concrete) matching *)
 PolyML.Project.make "matching/inner_match_search.ML";
