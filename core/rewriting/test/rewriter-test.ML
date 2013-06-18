@@ -1,6 +1,7 @@
 structure Test_BangGraphRewriter = BangGraphRewriter(
   structure Rule = Test_BG_Rule
   structure Matcher = Test_GreedyMatcher
+  structure BBoxOperableGraph = Test_BBoxOperableGraph
 );
 (* set to 4 for really detailed messages *)
 (* Test_BangGraphRewriter.Log.level_ref := 2; *)

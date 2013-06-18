@@ -27,6 +27,7 @@ val edge_get_other_vertex : T -> E.name -> V.name -> V.name
 
 val get_in_edges  : T -> V.name -> E.NSet.T
 val get_out_edges : T -> V.name -> E.NSet.T
+val get_incident_edges : T -> V.name -> E.NSet.T
 
 val get_vertex_data : T -> V.name -> VData.data
 val get_edge_data : T -> E.name -> EData.data
@@ -197,6 +198,10 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   
   val get_in_edges  = (fst o snd) oo get_vertex
   val get_out_edges = (snd o snd) oo get_vertex
+  fun get_incident_edges g v =
+    let val (_,(ins,outs)) = get_vertex g v in
+      (E.NSet.union_merge ins outs)
+    end;
   
   val get_vertex_data = fst oo get_vertex;
   val get_edge_data = (snd o fst) oo get_edge;

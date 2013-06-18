@@ -74,17 +74,20 @@ end;
 functor BangGraphRewriter(
   structure Rule : BANG_GRAPH_RULE
   structure Matcher : BG_MATCH_SEARCH
+  structure BBoxOperableGraph : REPLAYABLE_BBOX_OPERABLE_GRAPH
   sharing Matcher.Sharing.G = Rule.Sharing.Graph
+  sharing Matcher.Match.BBoxOperableGraph.Sharing = BBoxOperableGraph.Sharing
 ) : REWRITER =
 struct
   structure Log : LOG = Log(val init_level = 0)
 
   structure Rule = Rule;
   structure Graph = Rule.BangGraph;
-  type match = Matcher.BGMatchState.T;
+  type match = Matcher.Match.T;
 
   structure G = Graph;
-  structure MatchState = Matcher.BGMatchState;
+  structure Match = Matcher.Match;
+  structure BBOp = BBoxOperableGraph;
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
@@ -109,40 +112,43 @@ struct
         val rhs = G.normalise (Rule.get_rhs rule);
         val avoid = V.NSet.union_merge (G.get_vnames g_norm) (G.get_vnames rhs);
         val track = Rule.get_boundary_vertices rule;
-      in (Rule.mk (lhs,rhs),(avoid,track),g_norm) end;
+      in
+        (Rule.mk (lhs,rhs),
+         BBOp.init lhs avoid track,
+         g_norm)
+      end;
 
   fun find_matches r g =
       let
-        val (rule,avd_trk,graph) = prepare_rule r g;
-        val lhs = Rule.get_lhs rule;
+        val (rule,oper,graph) = prepare_rule r g;
       in
         (rule,
-         Matcher.match_normalised_avoiding_tracking avd_trk lhs graph)
+         Matcher.match_normalised oper graph)
       end;
 
   fun find_matches_in_subgraph r g vset =
       let
-        val (rule,avd_trk,graph) = prepare_rule r g;
-        val lhs = Rule.get_lhs rule;
+        val (rule,oper,graph) = prepare_rule r g;
       in
         (rule,
-         Matcher.match_subgraph_normalised_avoiding_tracking avd_trk lhs graph vset)
+         Matcher.match_subgraph_normalised oper graph vset)
       end;
 
   fun sg_rewrite_at m rhs =
     let
-      val g = MatchState.get_full_tgt m
-      val pat = MatchState.get_pat m
-      val subst_data = G.apply_data_subst (MatchState.get_match_subst m)
+      val g = Match.get_tgt m
+      val pat_oper = Match.get_pat m
+      val pat = BBoxOperableGraph.get_current_graph pat_oper
+      val subst_data = G.apply_data_subst (Match.get_subst m)
       val shared_boundary = G.get_boundary pat;
-      val vmap = MatchState.get_vmap m
+      val vmap = Match.get_vmap m
       val vmapf = VInjEndo.domf vmap
       val matched = VInjEndo.get_codset vmap;
           (* remove the matched part *)
       val interior = V.NSet.fold (V.NSet.delete o vmapf)
                                  shared_boundary
                                  matched
-      val interior_edges = EInjEndo.get_codset (MatchState.get_emap m);
+      val interior_edges = EInjEndo.get_codset (Match.get_emap m);
       (* h is g with LHS cut out; note that we need to delete edges explicitly,
          in case of bare wire matches *)
       val h = g |> E.NSet.fold G.delete_edge interior_edges
@@ -197,7 +203,8 @@ struct
 
   fun rewrite_at rule m = let
     val rhs = Rule.get_rhs rule
-    val sg_rhs = MatchState.replay_pat_bbox_ops m rhs
+    val oper = Match.get_pat m
+    val sg_rhs = BBOp.replay_bbox_ops oper rhs
     val (final_rule,g') = sg_rewrite_at m sg_rhs
   in
     (final_rule, G.minimise g')
@@ -215,7 +222,7 @@ struct
     Seq.map (rewrite_at r') mseq
   end
 
-  val print_match = Matcher.BGMatchState.print;
-  val pretty_match = Matcher.BGMatchState.pretty;
+  val print_match = Matcher.Match.print;
+  val pretty_match = Matcher.Match.pretty;
 end;
 

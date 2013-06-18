@@ -23,9 +23,6 @@ signature OGRAPH_MATCH_STATE
   val get_pat             : T -> Graph.T
   (* the graph to match onto *)
   val get_tgt             : T -> Graph.T
-  (* the full graph that tgt is contained in *)
-  (* this is carried around because of normalisation *)
-  val get_full_tgt        : T -> Graph.T
   (* the vertex map so far (from pat verts to tgt verts *)
   val get_vmap            : T -> VVInj.T
   (* the edge map so far (from pat edges to tgt edges *)
@@ -45,33 +42,38 @@ signature OGRAPH_MATCH_STATE
   (* those vertices in p_nodeverts that may have new matchings
    * of adjacent wires *)
   val get_ps_nodeverts    : T -> V.NSet.T
+  (* the vertices of tgt to be matched onto *)
+  val get_tgt_verts       : T -> V.NSet.T
   (* the vertex/edge data substitution for the matching *)
   val get_match_psubst    : T -> Graph.Data.psubst
 
   val update_pat          : (Graph.T -> Graph.T) -> T -> T
   val update_tgt          : (Graph.T -> Graph.T) -> T -> T
-  val update_full_tgt     : (Graph.T -> Graph.T) -> T -> T
   val update_vmap         : (VVInj.T -> VVInj.T) -> T -> T
   val update_emap         : (EEInj.T -> EEInj.T) -> T -> T
+
   val update_u_circles    : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_u_nodeverts  : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_u_wireverts  : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_u_bare_wires : (E.NSet.T -> E.NSet.T) -> T -> T
   val update_p_nodeverts  : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_ps_nodeverts : (V.NSet.T -> V.NSet.T) -> T -> T
+  val update_tgt_verts    : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_match_psubst : (Graph.Data.psubst -> Graph.Data.psubst) -> T -> T
-
+  
   val set_pat             : Graph.T -> T -> T
   val set_tgt             : Graph.T -> T -> T
   val set_full_tgt        : Graph.T -> T -> T
   val set_vmap            : VVInj.T -> T -> T
   val set_emap            : EEInj.T -> T -> T
+
   val set_u_circles       : V.NSet.T -> T -> T
   val set_u_nodeverts     : V.NSet.T -> T -> T
   val set_u_wireverts     : V.NSet.T -> T -> T
   val set_u_bare_wires    : E.NSet.T -> T -> T
   val set_p_nodeverts     : V.NSet.T -> T -> T
   val set_ps_nodeverts    : V.NSet.T -> T -> T
+  val set_tgt_verts       : V.NSet.T -> T -> T
   val set_match_psubst    : Graph.Data.psubst -> T -> T
 
   val extend_u_circles    : V.NSet.T -> T -> T
@@ -80,6 +82,7 @@ signature OGRAPH_MATCH_STATE
   val extend_u_bare_wires : E.NSet.T -> T -> T
   val extend_p_nodeverts  : V.NSet.T -> T -> T
   val extend_ps_nodeverts : V.NSet.T -> T -> T
+  val extend_tgt_verts    : V.NSet.T -> T -> T
 
   (*val empty : T*)
 
@@ -88,31 +91,32 @@ signature OGRAPH_MATCH_STATE
              Graph.T -> (* target *)
              T
 
-  (* initialise MatchState with nothing added *)
-  val init_subgraph : Graph.T -> (* pattern *)
-                      Graph.T -> (* target *)
-                      V.NSet.T -> (* node verts of subgraph *)
-                      T
-
   val get_complete_nodeverts : T -> V.NSet.T
   
   (* returns true if vmap and evap represent a total graph hm *)
   (* will only return true if p_nodeverts is empty (local isomorphism) *)
   val is_total : T -> bool
   
-  (* initialise MatchState and schedule all vertices in pattern to be matched *)
+
+  (* initialise MatchState and schedule all vertices in pattern and target to
+   * be matched; arguments are *normalised* graphs *)
   val init_and_schedule_all : Graph.T -> (* pattern *)
                               Graph.T -> (* target *)
                               T
   
-  (* initialise MatchState and schedule all vertices in pattern to be matched *)
-  val init_subgraph_and_schedule_all : Graph.T -> (* pattern *)
+  (* initialise MatchState and schedule all vertices in pattern to be matched,
+   * and the vertices from a subgraph of the target *)
+  val init_and_schedule_for_subgraph : Graph.T -> (* pattern *)
                                        Graph.T -> (* target *)
-                                       V.NSet.T -> (* node verts of subgraph *)
+                                       V.NSet.T -> (* node verts of target subgraph *)
                                        T
   
   (* schedule all vertices in pattern to be matched *)
-  val schedule_all : T -> T
+  val schedule_all_pat : T -> T
+  (* schedule all vertices in target to be matched *)
+  val schedule_all_tgt : T -> T
+  (* schedule the subgraph defined by the given node-vertices to be matched *)
+  val schedule_tgt_subgraph : V.NSet.T -> T -> T
   
   (* Convenience functions for adding things to match. Convention is these do NOT remove 
      vertices or edges from the u_*, p_*, or ps_* sets. The caller should do that. *)
@@ -128,31 +132,16 @@ signature OGRAPH_MATCH_STATE
 
   val pretty : T -> Pretty.T
   val print : T -> unit
-
-  (* extra data for match state, for extending the datatype cos ML can't do
-  it properly from the outside; this is basically a form of record
-  extensibility, allowing hidden types, but will doing the lazy
-  extension of data -- allows OOP style extension of signature/structure
-  by refining data. *)
-  type data
-  val get_data : T -> data;
-  val update_data : (data -> data) -> T -> T
 end
 
-functor OGraphMatchState(
-  structure Graph : OGRAPH
-  type data (* additional data *)
-  val empty_data : data
-) : OGRAPH_MATCH_STATE
+functor OGraphMatchState(Graph : OGRAPH) : OGRAPH_MATCH_STATE
 = struct
   structure Graph = Graph
-  type data = data
   
   datatype T = MatchState of {
     (* pattern and target graphs *)
     pat          : Graph.T,
     tgt          : Graph.T,
-    full_tgt     : Graph.T,
     (* vertex mapping from pat to tgt *)
     vmap         : VVInj.T,
     (* edge mapping from pat to tgt *)
@@ -166,30 +155,14 @@ functor OGraphMatchState(
     p_nodeverts  : V.NSet.T,
     (* partially matched node-vertices, scheduled for re-matching *)
     ps_nodeverts : V.NSet.T,
-    match_psubst : Graph.Data.psubst,
-    data         : data
+    tgt_verts    : V.NSet.T,
+    match_psubst : Graph.Data.psubst
   }
-  
-  (*val empty = MatchState {
-    pat          = Graph.empty,
-    tgt          = Graph.empty,
-    full_tgt     = Graph.empty,
-    vmap         = VVInj.empty,
-    emap         = EEInj.empty,
-    u_circles    = V.NSet.empty,
-    u_nodeverts  = V.NSet.empty,
-    u_wireverts  = V.NSet.empty,
-    u_bare_wires = E.NSet.empty,
-    p_nodeverts  = V.NSet.empty,
-    ps_nodeverts = V.NSet.empty,
-    match_subst  = Graph.Data.empty_subst,
-    data         = empty_data
-  }*)
+
 
   fun init pat tgt = MatchState {
     pat          = pat,
     tgt          = tgt,
-    full_tgt     = tgt,
     vmap         = VVInj.empty,
     emap         = EEInj.empty,
     u_circles    = V.NSet.empty,
@@ -198,239 +171,26 @@ functor OGraphMatchState(
     u_bare_wires = E.NSet.empty,
     p_nodeverts  = V.NSet.empty,
     ps_nodeverts = V.NSet.empty,
+    tgt_verts    = V.NSet.empty,
     match_psubst = Graph.Data.init_psubst (Graph.get_nvdata_tab tgt, Graph.get_edata_tab tgt),
-    data         = empty_data
-  }
-
-  fun init_subgraph pat tgt tgt_verts = MatchState {
-    pat          = pat,
-    tgt          = Graph.get_open_subgraph tgt tgt_verts,
-    full_tgt     = tgt,
-    vmap         = VVInj.empty,
-    emap         = EEInj.empty,
-    u_circles    = V.NSet.empty,
-    u_nodeverts  = V.NSet.empty,
-    u_wireverts  = V.NSet.empty,
-    u_bare_wires = E.NSet.empty,
-    p_nodeverts  = V.NSet.empty,
-    ps_nodeverts = V.NSet.empty,
-    match_psubst = Graph.Data.init_psubst (Graph.get_nvdata_tab tgt, Graph.get_edata_tab tgt),
-    data         = empty_data
   }
   
   (* getters and setters *)
-
-  fun update_pat f (MatchState r) = MatchState {
-    pat          = f(#pat r),
-    tgt          = #tgt r,
-    full_tgt     = #full_tgt r,
-    vmap         = #vmap r,
-    emap         = #emap r,
-    u_circles    = #u_circles r,
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = #ps_nodeverts r,
-    match_psubst = #match_psubst r,
-    data         = #data r
-  }
-
-  fun update_tgt f (MatchState r) = MatchState {
-    pat          = #pat r,
-    tgt          = f(#tgt r),
-    full_tgt     = #full_tgt r,
-    vmap         = #vmap r,
-    emap         = #emap r,
-    u_circles    = #u_circles r,
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = #ps_nodeverts r,
-    match_psubst = #match_psubst r,
-    data         = #data r
-  }
-
-  fun update_full_tgt f (MatchState r) = MatchState {
-    pat          = #pat r,
-    tgt          = #tgt r,
-    full_tgt     = f(#full_tgt r),
-    vmap         = #vmap r,
-    emap         = #emap r,
-    u_circles    = #u_circles r,
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = #ps_nodeverts r,
-    match_psubst = #match_psubst r,
-    data         = #data r
-  }
-
-  fun update_vmap f (MatchState r) = MatchState {
-    pat          = #pat r,
-    tgt          = #tgt r,
-    full_tgt     = #full_tgt r,
-    vmap         = f(#vmap r),
-    emap         = #emap r,
-    u_circles    = #u_circles r,
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = #ps_nodeverts r,
-    match_psubst = #match_psubst r,
-    data         = #data r
-  }
-
-  fun update_emap f (MatchState r) = MatchState {
-    pat          = #pat r,
-    tgt          = #tgt r,
-    full_tgt     = #full_tgt r,
-    vmap         = #vmap r,
-    emap         = f(#emap r),
-    u_circles    = #u_circles r,
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = #ps_nodeverts r,
-    match_psubst = #match_psubst r,
-    data         = #data r
-  }
-
-  fun update_u_circles f (MatchState r) = MatchState {
-    pat          = #pat r,
-    tgt          = #tgt r,
-    full_tgt     = #full_tgt r,
-    vmap         = #vmap r,
-    emap         = #emap r,
-    u_circles    = f(#u_circles r),
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = #ps_nodeverts r,
-    match_psubst = #match_psubst r,
-    data         = #data r
-  }
-
-  fun update_u_nodeverts f (MatchState r) = MatchState {
-    pat          = #pat r,
-    tgt          = #tgt r,
-    full_tgt     = #full_tgt r,
-    vmap         = #vmap r,
-    emap         = #emap r,
-    u_circles    = #u_circles r,
-    u_nodeverts  = f(#u_nodeverts r),
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = #ps_nodeverts r,
-    match_psubst = #match_psubst r,
-    data         = #data r
-  }
-
-  fun update_u_wireverts f (MatchState r) = MatchState {
-    pat          = #pat r,
-    tgt          = #tgt r,
-    full_tgt     = #full_tgt r,
-    vmap         = #vmap r,
-    emap         = #emap r,
-    u_circles    = #u_circles r,
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = f(#u_wireverts r),
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = #ps_nodeverts r,
-    match_psubst = #match_psubst r,
-    data         = #data r
-  }
-
-  fun update_u_bare_wires f (MatchState r) = MatchState {
-    pat          = #pat r,
-    tgt          = #tgt r,
-    full_tgt     = #full_tgt r,
-    vmap         = #vmap r,
-    emap         = #emap r,
-    u_circles    = #u_circles r,
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = f(#u_bare_wires r),
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = #ps_nodeverts r,
-    match_psubst = #match_psubst r,
-    data         = #data r
-  }
-
-  fun update_p_nodeverts f (MatchState r) = MatchState {
-    pat          = #pat r,
-    tgt          = #tgt r,
-    full_tgt     = #full_tgt r,
-    vmap         = #vmap r,
-    emap         = #emap r,
-    u_circles    = #u_circles r,
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = f(#p_nodeverts r),
-    ps_nodeverts = #ps_nodeverts r,
-    match_psubst = #match_psubst r,
-    data         = #data r
-  }
-
-  fun update_ps_nodeverts f (MatchState r) = MatchState {
-    pat          = #pat r,
-    tgt          = #tgt r,
-    full_tgt     = #full_tgt r,
-    vmap         = #vmap r,
-    emap         = #emap r,
-    u_circles    = #u_circles r,
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = f(#ps_nodeverts r),
-    match_psubst = #match_psubst r,
-    data         = #data r
-  }
-
-  fun update_match_psubst f (MatchState r) = MatchState {
-    pat          = #pat r,
-    tgt          = #tgt r,
-    full_tgt     = #full_tgt r,
-    vmap         = #vmap r,
-    emap         = #emap r,
-    u_circles    = #u_circles r,
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = #ps_nodeverts r,
-    match_psubst = f(#match_psubst r),
-    data         = #data r
-  }
-
-  fun update_data f (MatchState r) = MatchState {
-    pat          = #pat r,
-    tgt          = #tgt r,
-    full_tgt     = #full_tgt r,
-    vmap         = #vmap r,
-    emap         = #emap r,
-    u_circles    = #u_circles r,
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = #ps_nodeverts r,
-    match_psubst = #match_psubst r,
-    data         = f(#data r)
-  }
+  fun update_pat f (MatchState r) = MatchState {pat=f(#pat r),tgt= #tgt r,vmap= #vmap r,emap= #emap r,u_circles= #u_circles r,u_nodeverts= #u_nodeverts r,u_wireverts= #u_wireverts r,u_bare_wires= #u_bare_wires r,p_nodeverts= #p_nodeverts r,ps_nodeverts= #ps_nodeverts r,tgt_verts= #tgt_verts r,match_psubst= #match_psubst r}
+  fun update_tgt f (MatchState r) = MatchState {pat= #pat r,tgt=f(#tgt r),vmap= #vmap r,emap= #emap r,u_circles= #u_circles r,u_nodeverts= #u_nodeverts r,u_wireverts= #u_wireverts r,u_bare_wires= #u_bare_wires r,p_nodeverts= #p_nodeverts r,ps_nodeverts= #ps_nodeverts r,tgt_verts= #tgt_verts r,match_psubst= #match_psubst r}
+  fun update_vmap f (MatchState r) = MatchState {pat= #pat r,tgt= #tgt r,vmap=f(#vmap r),emap= #emap r,u_circles= #u_circles r,u_nodeverts= #u_nodeverts r,u_wireverts= #u_wireverts r,u_bare_wires= #u_bare_wires r,p_nodeverts= #p_nodeverts r,ps_nodeverts= #ps_nodeverts r,tgt_verts= #tgt_verts r,match_psubst= #match_psubst r}
+  fun update_emap f (MatchState r) = MatchState {pat= #pat r,tgt= #tgt r,vmap= #vmap r,emap=f(#emap r),u_circles= #u_circles r,u_nodeverts= #u_nodeverts r,u_wireverts= #u_wireverts r,u_bare_wires= #u_bare_wires r,p_nodeverts= #p_nodeverts r,ps_nodeverts= #ps_nodeverts r,tgt_verts= #tgt_verts r,match_psubst= #match_psubst r}
+  fun update_u_circles f (MatchState r) = MatchState {pat= #pat r,tgt= #tgt r,vmap= #vmap r,emap= #emap r,u_circles=f(#u_circles r),u_nodeverts= #u_nodeverts r,u_wireverts= #u_wireverts r,u_bare_wires= #u_bare_wires r,p_nodeverts= #p_nodeverts r,ps_nodeverts= #ps_nodeverts r,tgt_verts= #tgt_verts r,match_psubst= #match_psubst r}
+  fun update_u_nodeverts f (MatchState r) = MatchState {pat= #pat r,tgt= #tgt r,vmap= #vmap r,emap= #emap r,u_circles= #u_circles r,u_nodeverts=f(#u_nodeverts r),u_wireverts= #u_wireverts r,u_bare_wires= #u_bare_wires r,p_nodeverts= #p_nodeverts r,ps_nodeverts= #ps_nodeverts r,tgt_verts= #tgt_verts r,match_psubst= #match_psubst r}
+  fun update_u_wireverts f (MatchState r) = MatchState {pat= #pat r,tgt= #tgt r,vmap= #vmap r,emap= #emap r,u_circles= #u_circles r,u_nodeverts= #u_nodeverts r,u_wireverts=f(#u_wireverts r),u_bare_wires= #u_bare_wires r,p_nodeverts= #p_nodeverts r,ps_nodeverts= #ps_nodeverts r,tgt_verts= #tgt_verts r,match_psubst= #match_psubst r}
+  fun update_u_bare_wires f (MatchState r) = MatchState {pat= #pat r,tgt= #tgt r,vmap= #vmap r,emap= #emap r,u_circles= #u_circles r,u_nodeverts= #u_nodeverts r,u_wireverts= #u_wireverts r,u_bare_wires=f(#u_bare_wires r),p_nodeverts= #p_nodeverts r,ps_nodeverts= #ps_nodeverts r,tgt_verts= #tgt_verts r,match_psubst= #match_psubst r}
+  fun update_p_nodeverts f (MatchState r) = MatchState {pat= #pat r,tgt= #tgt r,vmap= #vmap r,emap= #emap r,u_circles= #u_circles r,u_nodeverts= #u_nodeverts r,u_wireverts= #u_wireverts r,u_bare_wires= #u_bare_wires r,p_nodeverts=f(#p_nodeverts r),ps_nodeverts= #ps_nodeverts r,tgt_verts= #tgt_verts r,match_psubst= #match_psubst r}
+  fun update_ps_nodeverts f (MatchState r) = MatchState {pat= #pat r,tgt= #tgt r,vmap= #vmap r,emap= #emap r,u_circles= #u_circles r,u_nodeverts= #u_nodeverts r,u_wireverts= #u_wireverts r,u_bare_wires= #u_bare_wires r,p_nodeverts= #p_nodeverts r,ps_nodeverts=f(#ps_nodeverts r),tgt_verts= #tgt_verts r,match_psubst= #match_psubst r}
+  fun update_tgt_verts f (MatchState r) = MatchState {pat= #pat r,tgt= #tgt r,vmap= #vmap r,emap= #emap r,u_circles= #u_circles r,u_nodeverts= #u_nodeverts r,u_wireverts= #u_wireverts r,u_bare_wires= #u_bare_wires r,p_nodeverts= #p_nodeverts r,ps_nodeverts= #ps_nodeverts r,tgt_verts=f(#tgt_verts r),match_psubst= #match_psubst r}
+  fun update_match_psubst f (MatchState r) = MatchState {pat= #pat r,tgt= #tgt r,vmap= #vmap r,emap= #emap r,u_circles= #u_circles r,u_nodeverts= #u_nodeverts r,u_wireverts= #u_wireverts r,u_bare_wires= #u_bare_wires r,p_nodeverts= #p_nodeverts r,ps_nodeverts= #ps_nodeverts r,tgt_verts= #tgt_verts r,match_psubst=f(#match_psubst r)}
 
   fun get_pat          (MatchState r) = #pat r
   fun get_tgt          (MatchState r) = #tgt r
-  fun get_full_tgt     (MatchState r) = #full_tgt r
   fun get_vmap         (MatchState r) = #vmap r
   fun get_emap         (MatchState r) = #emap r
   fun get_u_circles    (MatchState r) = #u_circles r
@@ -439,21 +199,23 @@ functor OGraphMatchState(
   fun get_u_bare_wires (MatchState r) = #u_bare_wires r
   fun get_p_nodeverts  (MatchState r) = #p_nodeverts r
   fun get_ps_nodeverts (MatchState r) = #ps_nodeverts r
+  fun get_tgt_verts    (MatchState r) = #tgt_verts r
   fun get_match_psubst (MatchState r) = #match_psubst r
-  fun get_data         (MatchState r) = #data r
 
-  val set_pat             = update_pat          o K
-  val set_tgt             = update_tgt          o K
-  val set_full_tgt        = update_full_tgt     o K
-  val set_vmap            = update_vmap         o K
-  val set_emap            = update_emap         o K
-  val set_u_circles       = update_u_circles    o K
-  val set_u_nodeverts     = update_u_nodeverts  o K
-  val set_u_wireverts     = update_u_wireverts  o K
-  val set_u_bare_wires    = update_u_bare_wires o K
-  val set_p_nodeverts     = update_p_nodeverts  o K
-  val set_ps_nodeverts    = update_ps_nodeverts o K
-  val set_match_psubst    = update_match_psubst o K
+  fun set_pat          x  = update_pat          (fn _ => x)
+  fun set_tgt          x  = update_tgt          (fn _ => x)
+  fun set_vmap         x  = update_vmap         (fn _ => x)
+  fun set_emap         x  = update_emap         (fn _ => x)
+  fun set_u_circles    x  = update_u_circles    (fn _ => x)
+  fun set_u_nodeverts  x  = update_u_nodeverts  (fn _ => x)
+  fun set_u_wireverts  x  = update_u_wireverts  (fn _ => x)
+  fun set_u_bare_wires x  = update_u_bare_wires (fn _ => x)
+  fun set_p_nodeverts  x  = update_p_nodeverts  (fn _ => x)
+  fun set_ps_nodeverts x  = update_ps_nodeverts (fn _ => x)
+  fun set_tgt_verts    x  = update_tgt_verts    (fn _ => x)
+  fun set_match_psubst x  = update_match_psubst (fn _ => x)
+
+
 
   val extend_u_circles    = update_u_circles o V.NSet.union_merge
   val extend_u_nodeverts  = update_u_nodeverts o V.NSet.union_merge
@@ -461,6 +223,7 @@ functor OGraphMatchState(
   val extend_u_bare_wires = update_u_bare_wires o E.NSet.union_merge
   val extend_p_nodeverts  = update_p_nodeverts o V.NSet.union_merge
   val extend_ps_nodeverts = update_ps_nodeverts o V.NSet.union_merge
+  val extend_tgt_verts    = update_tgt_verts o V.NSet.union_merge
 
   fun add_edge_to_match (ep, vp) (et, vt) ms = let
   in ms |> update_vmap (VVInj.add (vp, vt))
@@ -488,7 +251,7 @@ functor OGraphMatchState(
     E.NSet.eq (EEInj.get_dom_set (get_emap ms)) (Graph.get_edges (get_pat ms)) andalso
     V.NSet.is_empty (get_p_nodeverts ms)
   
-  fun schedule_all ms = let
+  fun schedule_all_pat ms = let
     val pat = get_pat ms
     val wires = Graph.get_wire_list pat
     fun delete_wvs_in_wire (s,t,wv,_) set =
@@ -509,8 +272,17 @@ functor OGraphMatchState(
        |> set_u_bare_wires bare_wire_es
   end
 
-  val init_and_schedule_all = schedule_all oo init
-  val init_subgraph_and_schedule_all = schedule_all ooo init_subgraph
+  fun schedule_all_tgt ms = set_tgt_verts (Graph.get_vnames (get_tgt ms)) ms;
+  fun schedule_tgt_subgraph vs ms = let
+    val tgt = get_tgt ms
+    val tgt_subg = Graph.get_open_subgraph vs tgt
+  in
+    set_tgt_verts (Graph.get_vnames tgt_subg) ms
+  end;
+
+  val init_and_schedule_all = schedule_all_tgt o schedule_all_pat oo init;
+  fun init_and_schedule_for_subgraph pat tgt vs =
+    schedule_tgt_subgraph vs (schedule_all_pat (init pat tgt));
   
   fun pretty ms = let
     fun pretty_vset prefix vs =
@@ -553,7 +325,8 @@ functor OGraphMatchState(
         @ (pretty_vset "U_WireVerts" (get_u_wireverts ms))
         @ (pretty_eset "U_BareWires" (get_u_bare_wires ms))
         @ (pretty_vset "P_NodeVerts" (get_p_nodeverts ms))
-        @ (pretty_vset "Ps_NodeVerts" (get_ps_nodeverts ms)))
+        @ (pretty_vset "Ps_NodeVerts" (get_ps_nodeverts ms))
+        @ (pretty_vset "Tgt Verts" (get_tgt_verts ms)))
       ],
       Pretty.str "}"
     ]
@@ -563,6 +336,6 @@ functor OGraphMatchState(
   structure Sharing : OGRAPH_MATCH_STATE_SHARING 
   = struct
     structure Graph = Graph.Sharing
-    type T = T;
+    type T = T
   end;
 end

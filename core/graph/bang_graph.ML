@@ -948,6 +948,27 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
     normalise_wire (get_wire_containing_edge g' e) g'
   end
   val do_plug_and_normalise = snd ooo plug_and_normalise
+  
+  fun split_edge e g = let
+    val (dd, (s,t)) = get_edge g e
+    val bboxes =
+      case get_vertex g s
+        of (OVData.WVert,_) => get_bboxes_of g s
+         | _ => (case get_vertex g t
+                   of (OVData.WVert,_) => get_bboxes_of g t
+                    | _ => B.NSet.union_merge (get_bboxes_of g s)
+                                              (get_bboxes_of g t))
+    val (sd,_) = get_vertex g s
+    val (td,_) = get_vertex g t
+    val g' = delete_edge e g
+    val (vn,g') = add_vertex OVData.WVert g'
+    val vset = V.NSet.single vn
+    val g' = B.NSet.fold (fn b => doadd_to_bbox b vset) bboxes g'
+    val (e1,g') = add_edge dd s vn g'
+    val (e2,g') = add_edge dd vn t g'
+  in
+    ((e1,vn,e2),g')
+  end
 
 end; (* BangGraphFun *)
 
