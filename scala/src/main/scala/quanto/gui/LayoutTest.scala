@@ -1,4 +1,4 @@
-package quanto.gui.test
+package quanto.gui
 
 import quanto.gui._
 import quanto.layout._
