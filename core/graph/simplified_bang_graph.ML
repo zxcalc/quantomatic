@@ -777,6 +777,16 @@ val do_normalise_wire = snd oo normalise_wire
 fun minimise g = g |> fold do_minimise_wire (get_wire_list g)
 fun normalise g = g |> fold do_normalise_wire (get_wire_list g)
 
+fun split_edge e g = let
+  val (dd, (s,t)) = get_edge_info g e
+  val g' = delete_edge e g
+  val (vn,g') = add_vertex WVert g'
+  val (e1,g') = add_edge dd s vn g'
+  val (e2,g') = add_edge dd vn t g'
+in
+  ((e1,vn,e2),g')
+end
+
 (********************************)
 (****** PLUGGING FUNCTIONS ******)
 (********************************)

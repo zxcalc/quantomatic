@@ -276,6 +276,9 @@ val get_wire_list : T -> wire list
  *)
 val normalise : T -> T
 
+(* Split an edge into two edges, connected by a wire-vertex *)
+val split_edge : E.name -> T -> (E.name * V.name * E.name) * T
+
 (* Return a graph that has no unnecessary edge points.
  *
  * Note that this function assumes there are no

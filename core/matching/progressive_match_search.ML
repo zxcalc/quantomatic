@@ -526,7 +526,7 @@ functor ProgressiveMatchSearch(
   
   structure Sharing =
   struct
-    structure G = Graph.Sharing
+    structure Graph = Graph.Sharing
     structure MatchState = MatchState.Sharing
   end
 end
