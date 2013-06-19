@@ -1,17 +1,47 @@
+structure RG_Data =
+struct
+  val pretty_theory_name = Pretty.str "red_green"
+  type psubst = LinratAngleExpr.match
+  type subst  = psubst
 
-(* *)
+  datatype nvdata = Xnd of LinratAngleExpr.T (* Red: defined using H of Z *) 
+                  | Znd of LinratAngleExpr.T (* Green *)
+                  | Hnd (* Hadamard node *)
 
-(* The RG theory, all in once place. *)
-structure DB_RG_Theory = GraphicalTheory(
-structure OParam = RG_OGraphParam
-structure VComponentData = RG_OVertexComponentData
-structure EComponentData = EmptyElementComponentData
-);
-structure RG_Theory : GRAPHICAL_THEORY = DB_RG_Theory;
+  val default_nvdata = Znd LinratAngleExpr.zero
+
+  fun nvdata_eq (Hnd, Hnd) = true
+    | nvdata_eq (Znd a, Znd b) = LinratAngleExpr.eq a b
+    | nvdata_eq (Xnd a, Xnd b) = LinratAngleExpr.eq a b
+    | nvdata_eq _ = false
+      
+  fun pretty_nvdata (Xnd a) = 
+      Pretty.block [Pretty.str "X(", LinratAngleExpr.pretty a, Pretty.str ")"]  
+    | pretty_nvdata (Znd a) = 
+      Pretty.block [Pretty.str "Z(", LinratAngleExpr.pretty a, Pretty.str ")"]
+    | pretty_nvdata Hnd = Pretty.str "H"
+  
+  fun match_nvdata (Hnd, Hnd) m = SOME m
+    | match_nvdata (Znd a1,Znd a2) m = LinratAngleExpr.match a1 a2 m
+    | match_nvdata (Xnd a1,Xnd a2) m = LinratAngleExpr.match a1 a2 m
+    | match_nvdata _ _ = NONE
+
+  fun subst_in_nvdata _ Hnd = Hnd
+    | subst_in_nvdata u (Xnd a) = Xnd (LinratAngleExpr.subst u a)
+    | subst_in_nvdata u (Znd a) = Znd (LinratAngleExpr.subst u a)
+
+  open EmptyEdgeData
+
+  fun init_psubst_from_data _ = LinratAngleExpr.empty_match
+  val solve_psubst = Seq.single
+end
+
+structure RG_Theory = GraphicalTheory(structure Data = RG_Data)
+
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* terms used within the RG theory. *)
-structure RGHilbTerm = TensorTermFun(
+(*structure RGHilbTerm = TensorTermFun(
 
 structure Graph = RG_Theory.Graph
 fun pretty_vertex fmt graph vert = let
@@ -35,4 +65,4 @@ in Pretty.block
 end
 
 )
-
+*)

@@ -232,10 +232,14 @@ Testing.make_test "rewriting/test/ruleset_rewriter-tests.ML";
 (* NB: currently relies on XML I/O stuff *)
 PolyML.Project.make "theories/graphical_theory.ML";
 PolyML.Project.make "io/graphical_theory_io.ML";
-(*
+
 (* red-green specific vertices, graphs and matching *)
 (* graph-derived expressions for R-G graphs *)
-PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
+PolyML.Project.make "theories/red_green/theory.ML";
+PolyML.Project.make "theories/red_green/io.ML";
+
+
+(*PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
 PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
 PolyML.Project.make "theories/red_green/vertex.ML";
 PolyML.Project.make "theories/red_green/graph.ML";

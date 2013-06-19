@@ -1,4 +1,4 @@
-
+(* DEPRECATED: separate vertex daata structure no longer used *)
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  node vertex data for red-green vertex (i.e. before Graph Vertex 

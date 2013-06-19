@@ -1,4 +1,4 @@
-
+(* DEPRECATED: GraphParam no longer used *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 structure RG_GraphParam
 : GRAPH_PARAM

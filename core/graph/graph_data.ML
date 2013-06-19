@@ -39,3 +39,14 @@ sig
   val subst_in_nvdata : subst -> nvdata -> nvdata
   val subst_in_edata : subst -> edata -> edata
 end
+
+(* Convenience structure for defining GRAPH_DATA with empty edge data *)
+structure EmptyEdgeData =
+struct
+  type edata = unit
+  val default_edata = ()
+  fun edata_eq ((),()) = true
+  fun match_edata ((),()) m = SOME m
+  fun subst_in_edata _ () = ()
+  fun pretty_edata () = Pretty.str "()"
+end
