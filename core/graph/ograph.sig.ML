@@ -8,28 +8,52 @@ fun dir_eq Directed Directed = true
 signature OGRAPH_SHARING =
 sig
   type T
-  structure Data : GRAPH_DATA
+  type nvdata
+  type edata
+  type psubst
+  type subst
 end
 
 signature OGRAPH =
 sig
 
 type T (* an open graph *)
-structure Data : GRAPH_DATA
+
+type nvdata (* node-vertex data *)
+type edata
+type psubst (* a partial substitution on data *)
+type subst  (* a complete (solved) substition on data *)
+datatype vdata = NVert of nvdata | WVert (* vertex data *)
+
 
 structure Sharing : OGRAPH_SHARING
 sharing type Sharing.T = T
-sharing Sharing.Data = Data
+sharing type Sharing.nvdata = nvdata
+sharing type Sharing.edata = edata
+sharing type Sharing.psubst = psubst
+sharing type Sharing.subst = subst
 
 type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
-datatype vdata = NVert of Data.nvdata | WVert
-type edata = Data.edata
+
+(* Thin wrappers to Graph.Data substructure *)
+val init_psubst : T -> psubst
+val match_vdata : vdata * vdata -> psubst -> psubst option
+val match_edata : edata * edata -> psubst -> psubst option
 val vdata_eq : vdata * vdata -> bool
-val edata_eq : edata * edata -> bool (* alias for Data.edata_eq *)
+val edata_eq : edata * edata -> bool
+val default_vdata : vdata
+val default_edata : edata
+
 val pretty_vdata : vdata -> Pretty.T
-val pretty_edata : edata -> Pretty.T (* alias for Data.pretty_edata *)
-val match_vdata  : vdata * vdata -> Data.psubst -> Data.psubst option
-val match_edata  : edata * edata -> Data.psubst -> Data.psubst option (* alias for Data.match_edata *)
+val pretty_edata : edata -> Pretty.T
+val solve_psubst : psubst -> subst Seq.seq
+
+(* Apply substitutions to data. *)
+val subst_in_vdata : subst -> vdata -> vdata
+val subst_in_edata : subst -> edata -> edata
+
+
+
 val pretty : T -> Pretty.T
 val print : T -> unit
 val empty : T
@@ -102,8 +126,8 @@ val get_sibling_vertices : T -> V.name -> V.NSet.T
 val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
 
 
-val get_nvdata_tab : T -> Data.nvdata VTab.T
-val get_edata_tab : T -> Data.edata ETab.T
+val get_vdata_tab : T -> vdata VTab.T
+val get_edata_tab : T -> edata ETab.T
 
 val get_vertex_data : T -> V.name -> vdata
 val get_edge_data : T -> E.name -> edata
@@ -143,10 +167,10 @@ val add_vertex_anon : vdata -> T -> T
 val add_named_vertex : V.name -> vdata -> T -> T  
 
 (* V.names must already exist, else raises: no_such_vname_exp *)
-val add_edge : dir_or_undir * Data.edata -> V.name -> V.name -> T -> E.name * T
-val add_edge_anon : dir_or_undir * Data.edata -> V.name -> V.name -> T -> T
+val add_edge : dir_or_undir * edata -> V.name -> V.name -> T -> E.name * T
+val add_edge_anon : dir_or_undir * edata -> V.name -> V.name -> T -> T
 val add_named_edge 
-    : E.name -> dir_or_undir * Data.edata -> V.name -> V.name -> T -> T (* can raise *)
+    : E.name -> dir_or_undir * edata -> V.name -> V.name -> T -> T (* can raise *)
 
 
 (* delete raises an exception if there is no such edge/vertex *)
@@ -258,7 +282,7 @@ val minimise : T -> T
 
 
 val get_plugging : T -> V.name -> V.name
-  -> ((dir_or_undir * Data.edata) * (V.name * V.name)) option
+  -> ((dir_or_undir * edata) * (V.name * V.name)) option
 
 (* True if and only if one of the given vertices is
  * an input and one an output with the same edge data *)

@@ -9,7 +9,7 @@ sig
    * variables. It is initialised by passing in a table containing node/edge
    * data from the target graph. This can be used e.g. to ensure that names
    * introduced in the pattern are fresh. *)
-  val init_psubst : nvdata VTab.T * edata ETab.T -> psubst
+  val init_psubst_from_data : nvdata VTab.T * edata ETab.T -> psubst
 
   (* The match_xxx functions update a psubst or return NONE if
    * no match is possible. *)

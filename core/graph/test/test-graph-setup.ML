@@ -61,7 +61,7 @@ struct
   (* matching and substitution *)
   type psubst = LinratAngleExpr.match
   type subst = psubst
-  fun init_psubst _ = LinratAngleExpr.empty_match
+  fun init_psubst_from_data _ = LinratAngleExpr.empty_match
   val solve_psubst = Seq.single
 
   fun match_nvdata ((VExpr1 a1),(VExpr1 a2)) m = 
@@ -97,16 +97,16 @@ end
  *)
 
 signature TEST_OGRAPH = OGRAPH
-    where type Data.nvdata = Test_Graph_Data.nvdata
-      and type Data.edata  = Test_Graph_Data.edata
-      and type Data.psubst = Test_Graph_Data.psubst
-      and type Data.subst  = Test_Graph_Data.subst
+    where type nvdata = Test_Graph_Data.nvdata
+      and type edata  = Test_Graph_Data.edata
+      and type psubst = Test_Graph_Data.psubst
+      and type subst  = Test_Graph_Data.subst
 
 signature TEST_BANG_GRAPH = BANG_GRAPH
-    where type Data.nvdata = Test_Graph_Data.nvdata
-      and type Data.edata  = Test_Graph_Data.edata
-      and type Data.psubst = Test_Graph_Data.psubst
-      and type Data.subst  = Test_Graph_Data.subst
+    where type nvdata = Test_Graph_Data.nvdata
+      and type edata  = Test_Graph_Data.edata
+      and type psubst = Test_Graph_Data.psubst
+      and type subst  = Test_Graph_Data.subst
 
 structure Test_Bang_Graph = BangGraph(structure Data = Test_Graph_Data)
 structure Test_OGraph = Test_Bang_Graph : OGRAPH
@@ -418,7 +418,7 @@ functor Test_OGraph_Tools(
           val _ = Testing.assert ("same dir for "^en)
                     (dir_eq dir dir')
           val _ = Testing.assert ("same data for "^en)
-                    (G.Data.edata_eq (ed,ed'))
+                    (G.edata_eq (ed,ed'))
           val _ = Testing.assert ("same source for "^en)
                     (V.name_eq ((V.mk src),src'))
           val _ = Testing.assert ("same target for "^en)

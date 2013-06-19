@@ -16,7 +16,7 @@ end
 functor OutputGraphDot(
   structure Graph : BANG_GRAPH
   structure DotStyle : DOT_STYLE
-  sharing type DotStyle.vdata = Graph.Data.nvdata
+  sharing type DotStyle.vdata = Graph.nvdata
 ) : OUTPUT_DOT =
 struct
   structure Graph = Graph;

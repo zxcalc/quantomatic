@@ -45,7 +45,7 @@ signature OGRAPH_MATCH_STATE
   (* the vertices of tgt to be matched onto *)
   val get_tgt_verts       : T -> V.NSet.T
   (* the vertex/edge data substitution for the matching *)
-  val get_match_psubst    : T -> Graph.Data.psubst
+  val get_match_psubst    : T -> Graph.psubst
 
   val update_pat          : (Graph.T -> Graph.T) -> T -> T
   val update_tgt          : (Graph.T -> Graph.T) -> T -> T
@@ -59,7 +59,7 @@ signature OGRAPH_MATCH_STATE
   val update_p_nodeverts  : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_ps_nodeverts : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_tgt_verts    : (V.NSet.T -> V.NSet.T) -> T -> T
-  val update_match_psubst : (Graph.Data.psubst -> Graph.Data.psubst) -> T -> T
+  val update_match_psubst : (Graph.psubst -> Graph.psubst) -> T -> T
   
   val set_pat             : Graph.T -> T -> T
   val set_tgt             : Graph.T -> T -> T
@@ -74,7 +74,7 @@ signature OGRAPH_MATCH_STATE
   val set_p_nodeverts     : V.NSet.T -> T -> T
   val set_ps_nodeverts    : V.NSet.T -> T -> T
   val set_tgt_verts       : V.NSet.T -> T -> T
-  val set_match_psubst    : Graph.Data.psubst -> T -> T
+  val set_match_psubst    : Graph.psubst -> T -> T
 
   val extend_u_circles    : V.NSet.T -> T -> T
   val extend_u_nodeverts  : V.NSet.T -> T -> T
@@ -156,7 +156,7 @@ functor OGraphMatchState(Graph : OGRAPH) : OGRAPH_MATCH_STATE
     (* partially matched node-vertices, scheduled for re-matching *)
     ps_nodeverts : V.NSet.T,
     tgt_verts    : V.NSet.T,
-    match_psubst : Graph.Data.psubst
+    match_psubst : Graph.psubst
   }
 
 
@@ -172,7 +172,7 @@ functor OGraphMatchState(Graph : OGRAPH) : OGRAPH_MATCH_STATE
     p_nodeverts  = V.NSet.empty,
     ps_nodeverts = V.NSet.empty,
     tgt_verts    = V.NSet.empty,
-    match_psubst = Graph.Data.init_psubst (Graph.get_nvdata_tab tgt, Graph.get_edata_tab tgt),
+    match_psubst = Graph.init_psubst (Graph.get_nvdata_tab tgt, Graph.get_edata_tab tgt),
   }
   
   (* getters and setters *)

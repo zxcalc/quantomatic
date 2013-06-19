@@ -2,24 +2,8 @@ functor BangGraph(structure Data: GRAPH_DATA) : BANG_GRAPH =
 struct
 
 structure Data = Data
+open Data
 datatype vdata = NVert of Data.nvdata | WVert
-type edata = Data.edata
-
-fun vdata_eq (NVert nv1, NVert nv2) = Data.nvdata_eq (nv1,nv2)
-  | vdata_eq (WVert, WVert) = true
-  | vdata_eq _ = false
-
-val edata_eq = Data.edata_eq
-
-fun match_vdata (NVert nv1, NVert nv2) psubst = Data.match_nvdata (nv1,nv2) psubst
-  | match_vdata (WVert, WVert) psubst = SOME psubst
-  | match_vdata _ _ = NONE
-
-val match_edata = Data.match_edata
-
-fun pretty_vdata (NVert n) = Pretty.block[Pretty.str "N{", Data.pretty_nvdata n, Pretty.str "}"]
-  | pretty_vdata (WVert)   = Pretty.str "W{}"
-val pretty_edata = Data.pretty_edata
 
 (* main bang-graph datatype *)
 datatype T = BG of {
@@ -36,7 +20,10 @@ datatype T = BG of {
 structure Sharing =
 struct
   type T = T
-  structure Data = Data
+  type nvdata = nvdata
+  type edata  = edata
+  type psubst = psubst
+  type subst  = subst
 end
 
 type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
@@ -115,6 +102,32 @@ val set_bboxes            = update_bboxes         o K
 val set_bbox_rel          = update_bbox_rel       o K
 val set_bbox_child_rel    = update_bbox_child_rel o K
 
+(**************************************)
+(***** EXTRA DATA/SUBST FUNCTIONS *****)
+(**************************************)
+
+fun get_nvdata_tab g = VTab.fold (fn (k,v) => case v of NVert nv => VTab.add (k, nv) | _ => I) (get_vdata g) VTab.empty
+val get_vdata_tab    = get_vdata
+fun get_edata_tab  g = ETab.fold (fn (k,v) => ETab.add (k, snd v)) (get_edata g) ETab.empty
+val default_vdata = WVert
+fun subst_in_vdata sub (NVert nv) = NVert (subst_in_nvdata sub nv)
+  | subst_in_vdata sub (WVert) = WVert
+
+fun vdata_eq (NVert nv1, NVert nv2) = Data.nvdata_eq (nv1,nv2)
+  | vdata_eq (WVert, WVert) = true
+  | vdata_eq _ = false
+
+fun match_vdata (NVert nv1, NVert nv2) psubst = Data.match_nvdata (nv1,nv2) psubst
+  | match_vdata (WVert, WVert) psubst = SOME psubst
+  | match_vdata _ _ = NONE
+
+fun pretty_vdata (NVert n) = Pretty.block[Pretty.str "N{", Data.pretty_nvdata n, Pretty.str "}"]
+  | pretty_vdata (WVert)   = Pretty.str "W{}"
+
+
+fun init_psubst g= init_psubst_from_data (get_nvdata_tab g, get_edata_tab g)
+
+
 (*********************************)
 (******* DERIVED ACCESSORS *******)
 (*********************************)
@@ -150,9 +163,6 @@ fun get_edge_source g e = EVFn.get (get_source g) e
 fun get_edge_target g e = EVFn.get (get_target g) e
   handle Map.no_such_elem_exp () =>
     raise no_such_ename_exp ("get_edge_target", e, g)
-
-fun get_nvdata_tab g = VTab.fold (fn (k,v) => case v of NVert nv => VTab.add (k, nv) | _ => I) (get_vdata g) VTab.empty
-fun get_edata_tab  g = ETab.fold (fn (k,v) => ETab.add (k, snd v)) (get_edata g) ETab.empty
 
 fun get_vertex_data g v = VTab.get (get_vdata g) v
   handle Map.no_such_elem_exp () =>

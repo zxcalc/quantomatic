@@ -84,7 +84,7 @@ functor Graph_Interface_Tests(
     val ((dir,ed),(src,tgt)) = (G.get_edge_dir_and_data g (E.mk "e"),
                                 (G.get_edge_source g      (E.mk "e"),
                                  G.get_edge_target g      (E.mk "e")))
-    val _ = Testing.assert "get_edge_dir_and_data correct data" (G.Data.edata_eq (ed,eunit1));
+    val _ = Testing.assert "get_edge_dir_and_data correct data" (G.edata_eq (ed,eunit1));
     val _ = Testing.assert "get_edge_dir_and_data correct direction"
               (case dir of Directed => false | Undirected => true);
     val _ = Testing.assert "get_edge_source correct" (V.name_eq (src,V.mk "a"));
@@ -92,7 +92,7 @@ functor Graph_Interface_Tests(
     val ((dir,ed),(src,tgt)) = (G.get_edge_dir_and_data g (E.mk "f"),
                                 (G.get_edge_source g      (E.mk "f"),
                                  G.get_edge_target g      (E.mk "f")))
-    val _ = Testing.assert "get_edge_dir_and_data correct data" (G.Data.edata_eq (ed,eunit2));
+    val _ = Testing.assert "get_edge_dir_and_data correct data" (G.edata_eq (ed,eunit2));
     val _ = Testing.assert "get_edge_dir_and_data correct direction"
               (case dir of Directed => true | Undirected => false);
     val _ = Testing.assert "get_edge_dir_and_data correct src" (V.name_eq (src,V.mk "b"));
@@ -511,9 +511,9 @@ functor Graph_Interface_Tests(
                     |> add_dir_eunit2 "f" "b" "b";
 
     val _ = Testing.assert "data of 'e' correct"
-            (G.Data.edata_eq (G.get_edge_data g (E.mk "e"),eunit1));
+            (G.edata_eq (G.get_edge_data g (E.mk "e"),eunit1));
     val _ = Testing.assert "data of 'f' correct"
-            (G.Data.edata_eq (G.get_edge_data g (E.mk "f"),eunit2));
+            (G.edata_eq (G.get_edge_data g (E.mk "f"),eunit2));
 
     val _ = (G.get_edge_data g (E.mk "c");
              raise ERROR "G.get_edge_data did not raise exception")
