@@ -104,8 +104,7 @@ functor OGraphMatch(Graph : OGRAPH) : OGRAPH_MATCH
       val pat_vdata = Graph.get_vertex_data pat v
       val tgt_vdata = Graph.get_vertex_data tgt v'
     in
-      Graph.Graph.vdata_eq (tgt_vdata,
-                             Graph.subst_in_vdata subst pat_vdata)
+      Graph.vdata_eq (tgt_vdata, Graph.subst_in_vdata subst pat_vdata)
     end;
 
     fun edata_matches e = let
@@ -113,23 +112,22 @@ functor OGraphMatch(Graph : OGRAPH) : OGRAPH_MATCH
       val pat_edata = Graph.get_edge_data pat e
       val tgt_edata = Graph.get_edge_data tgt e'
     in
-      Graph.EData.data_eq (tgt_edata,
-                             Graph.subst_in_edge subst pat_edata)
+      Graph.edata_eq (tgt_edata, Graph.subst_in_edata subst pat_edata)
     end;
   in
-    if not (V.NSet.eq (Graph.get_vnames pat) (VVInj.get_domset vmap))
+    if not (V.NSet.eq (Graph.get_vertices pat) (VVInj.get_dom_set vmap))
     then SOME "vmap is not total"
-    else if not (E.NSet.eq (Graph.get_enames pat) (EEInj.get_domset emap))
+    else if not (E.NSet.eq (Graph.get_edges pat) (EEInj.get_dom_set emap))
     then SOME "emap is not total"
-    else if not (V.NSet.sub_set (VVInj.get_codset vmap) (Graph.get_vnames tgt))
+    else if not (V.NSet.sub_set (VVInj.get_cod_set vmap) (Graph.get_vertices tgt))
     then SOME "vmap image is not in the target graph"
-    else if not (E.NSet.sub_set (EEInj.get_codset emap) (Graph.get_enames tgt))
+    else if not (E.NSet.sub_set (EEInj.get_cod_set emap) (Graph.get_edges tgt))
     then SOME "emap image is not in the target graph"
-    else if not (E.NSet.forall edge_coherent (EEInj.get_domset emap))
+    else if not (E.NSet.forall edge_coherent (EEInj.get_dom_set emap))
     then SOME "vmap and emap are not coherent"
-    else if not (V.NSet.forall vdata_matches (VVInj.get_domset vmap))
+    else if not (V.NSet.forall vdata_matches (VVInj.get_dom_set vmap))
     then SOME "vmap and subst do not give correct data"
-    else if not (E.NSet.forall edata_matches (EEInj.get_domset emap))
+    else if not (E.NSet.forall edata_matches (EEInj.get_dom_set emap))
     then SOME "emap and subst do not give correct data"
     else NONE
   end;
@@ -186,7 +184,7 @@ functor OGraphMatch(Graph : OGRAPH) : OGRAPH_MATCH
 
   structure Sharing : OGRAPH_MATCH_SHARING 
   = struct
-    structure G = Graph.SharingOGraph
+    structure Graph = Graph.Sharing
     type T = T;
   end;
 end

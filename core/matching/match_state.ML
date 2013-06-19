@@ -272,12 +272,12 @@ functor OGraphMatchState(Graph : OGRAPH) : OGRAPH_MATCH_STATE
        |> set_u_bare_wires bare_wire_es
   end
 
-  fun schedule_all_tgt ms = set_tgt_verts (Graph.get_vnames (get_tgt ms)) ms;
+  fun schedule_all_tgt ms = set_tgt_verts (Graph.get_vertices (get_tgt ms)) ms;
   fun schedule_tgt_subgraph vs ms = let
     val tgt = get_tgt ms
     val tgt_subg = Graph.get_open_subgraph vs tgt
   in
-    set_tgt_verts (Graph.get_vnames tgt_subg) ms
+    set_tgt_verts (Graph.get_vertices tgt_subg) ms
   end;
 
   val init_and_schedule_all = schedule_all_tgt o schedule_all_pat oo init;

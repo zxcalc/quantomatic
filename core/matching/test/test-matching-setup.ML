@@ -46,10 +46,10 @@ struct
     val _ = assert_iso_graph_up_to_wires "Target correct" orig_tgt tgt
     (* FIXME: normalisation
     val _ = Testing.assert "T subset of tgt verts"
-        (V.NSet.sub_set tgt_verts (G.get_vnames tgt))
+        (V.NSet.sub_set tgt_verts (G.get_vertices tgt))
     val _ = Testing.assert "T does not intersect cod vmap"
         (V.NSet.is_empty (V.NSet.intersect tgt_verts
-                                           (VInjEndo.get_codset vmap)))
+                                           (VVInj.get_cod_set vmap)))
     *)
 
   in m end;
@@ -68,7 +68,7 @@ struct
     assert_n_match n (M.match pat tgt) ();
 
   fun find_n_correct_matches n (pat,tgt) =
-    map (assert_match_correct pat tgt (G.get_vnames tgt))
+    map (assert_match_correct pat tgt (G.get_vertices tgt))
     (assert_n_match n (M.match pat tgt) ());
 end;
 
@@ -98,10 +98,10 @@ struct
     val _ = assert_iso_graph_up_to_wires "Target correct" orig_tgt tgt
     (* FIXME: normalisation
     val _ = Testing.assert "T subset of tgt verts"
-        (V.NSet.sub_set tgt_verts (G.get_vnames tgt))
+        (V.NSet.sub_set tgt_verts (G.get_vertices tgt))
     val _ = Testing.assert "T does not intersect cod vmap"
         (V.NSet.is_empty (V.NSet.intersect tgt_verts
-                                           (VInjEndo.get_codset vmap)))
+                                           (VVInj.get_cod_set vmap)))
     *)
   in m end;
 
@@ -130,7 +130,7 @@ struct
   fun find_n_correct_matches n (pat,tgt) = let
     val oper = Test_BBoxOperableGraph.init pat V.NSet.empty V.NSet.empty
   in
-    map (assert_match_correct pat tgt (G.get_vnames tgt))
+    map (assert_match_correct pat tgt (G.get_vertices tgt))
     (assert_n_match n (M.match oper tgt) ())
   end;
 end;

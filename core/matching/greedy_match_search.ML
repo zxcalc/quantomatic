@@ -112,17 +112,17 @@ struct
   fun schedule_new_concrete bms = let
     val ms = get_inner_state bms
     val pat = Inner.get_pat ms
-    val new_vs = V.NSet.subtract (G.get_vnames pat)
-                                 (VInjEndo.get_domset (Inner.get_vmap ms))
-    val new_es = E.NSet.subtract (G.get_enames pat)
-                                 (EInjEndo.get_domset (Inner.get_emap ms))
+    val new_vs = V.NSet.subtract (G.get_vertices pat)
+                                 (VVInj.get_dom_set (Inner.get_vmap ms))
+    val new_es = E.NSet.subtract (G.get_edges pat)
+                                 (EEInj.get_dom_set (Inner.get_emap ms))
   in
     schedule_concrete new_vs new_es bms
   end
   fun schedule_concrete_pat bms = let
     val pat = Inner.get_pat (get_inner_state bms)
-    val vs = G.get_vnames pat
-    val es = G.get_enames pat
+    val vs = G.get_vertices pat
+    val es = G.get_edges pat
   in
     schedule_concrete vs es bms
   end
@@ -259,7 +259,7 @@ struct
              (InnerMatchState.get_tgt ims)
              (InnerMatchState.get_vmap ims)
              (InnerMatchState.get_emap ims)
-             (BInjEndo.empty)
+             (BBInj.empty)
              (InnerMatchState.get_match_subst ims)
              (get_wild_bboxes ms)
   end;

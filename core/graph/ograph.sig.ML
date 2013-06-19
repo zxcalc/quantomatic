@@ -96,6 +96,8 @@ val has_edge : T -> E.name -> bool
 val get_edge_source : T -> E.name -> V.name
 val get_edge_target : T -> E.name -> V.name
 
+val get_edge_info : T -> E.name -> (dir_or_undir * edata) * (V.name * V.name)
+
 (* given an edge and vertex, get the other end *)
 val edge_get_other_vertex : T -> E.name -> V.name -> V.name
 

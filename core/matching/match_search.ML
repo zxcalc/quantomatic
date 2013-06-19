@@ -15,7 +15,7 @@ sig
   structure Match : OGRAPH_MATCH
   structure G : OGRAPH
   structure Sharing : MATCH_SEARCH_SHARING
-    sharing Sharing.G = G.SharingOGraph
+    sharing Sharing.G = G.Sharing
     sharing Sharing.Match = Match.Sharing
   
   val match : G.T      (* pattern graph *)
@@ -57,9 +57,9 @@ sig
   structure Match: BANG_GRAPH_MATCH;
   structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH;
   structure Sharing : MATCH_SEARCH_SHARING
-    sharing Sharing.G = G.SharingOGraph
+    sharing Sharing.G = G.Sharing
     sharing Sharing.Match = Match.Sharing
-    sharing G.SharingOGraph = BBoxOperableGraph.G.SharingOGraph
+    sharing G.Sharing = BBoxOperableGraph.G.Sharing
     sharing Match.BBoxOperableGraph.Sharing = BBoxOperableGraph.Sharing
   
   (* Searches for matches *)

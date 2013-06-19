@@ -32,7 +32,7 @@ local (* Test  functionality *)
           assert_boundary_coherent (spider_pat,spider_pat_plus_v4)
 
   val bbop = BBOp.init spider_pat
-                       (G.get_vnames spider_pat_plus_v4)
+                       (G.get_vertices spider_pat_plus_v4)
                        (V.NSet.of_list (map V.mk ["v1","v3"]))
 
   val bbop = bbop |> BBOp.expand_bbox (B.mk "B0")

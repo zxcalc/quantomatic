@@ -172,6 +172,8 @@ fun get_edge_dir_and_data g e = ETab.get (get_edata g) e
   handle Map.no_such_elem_exp () =>
     raise no_such_ename_exp ("get_edge_dir_and_data", e, g)
 
+fun get_edge_info g e = (get_edge_dir_and_data g e, (get_edge_source g e, get_edge_target g e))
+
 fun get_edge_dir g e  = #1 (get_edge_dir_and_data g e)
 fun get_edge_data g e = #2 (get_edge_dir_and_data g e)
 fun is_dir_edge g e = (get_edge_dir g e) = Directed
