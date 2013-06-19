@@ -69,7 +69,7 @@ functor DistanceMatrixFun(
   (* Calculate a distance matrix given a graph. *)
   fun calculate g = let
         (* Keep track of list of names = indexing set of matrix *)
-        val l = Graph.get_vnames g
+        val l = Graph.get_vertices g
         fun calc g v t = let
               val (_,(efrom,eto)) = Graph.get_vertex g v
               val gnext = g |> Graph.delete_vertex v
@@ -94,7 +94,7 @@ functor DistanceMatrixFun(
                  |> calc_edges efrom
                  |> calc_edges eto
                  |> (calc gnext (the (V.NSet.get_local_bot
-                                      (Graph.get_vnames gnext)))
+                                      (Graph.get_vertices gnext)))
                      handle Option => I)
             end;
       in calc g (the (V.NSet.get_local_bot l)) NTab.empty end;

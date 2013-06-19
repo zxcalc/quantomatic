@@ -49,9 +49,9 @@ val pretty_edata : edata -> Pretty.T
 val solve_psubst : psubst -> subst Seq.seq
 
 (* Apply substitutions to data. *)
-val subst_in_vdata : subst -> vdata -> vdata
-val subst_in_edata : subst -> edata -> edata
-
+val subst_in_vdata   : subst -> vdata -> vdata
+val subst_in_edata   : subst -> edata -> edata
+val apply_data_subst : subst -> T -> T
 
 
 val pretty : T -> Pretty.T

@@ -15,11 +15,11 @@ signature GRAPH_ISO
   type T
   
   val get : graph -> graph -> T Seq.seq
-  val get_with_endos : VInjEndo.T * EInjEndo.T -> graph -> graph -> T Seq.seq
+  val get_with_endos : VVInj.T * EEInj.T -> graph -> graph -> T Seq.seq
   val test : graph -> graph -> bool
   
-  val get_vmap : T -> VInjEndo.T
-  val get_emap : T -> EInjEndo.T
+  val get_vmap : T -> VVInj.T
+  val get_emap : T -> EEInj.T
   val get_subst : T -> subst
 
   structure Sharing : GRAPH_ISO_SHARING
@@ -37,7 +37,7 @@ functor GraphIsoFun(
   
   type graph = Graph.T;
   type subst = Param.subst;
-  type T = (VInjEndo.T * EInjEndo.T * subst);
+  type T = (VVInj.T * EEInj.T * subst);
   
   structure Sharing =
   struct
@@ -77,8 +77,8 @@ functor GraphIsoFun(
               if dir1 <> dir2 (* andalso EData.data_eq(d1,d2) *) 
               then NONE 
               else SOME
-                (v |> VInjEndo.add (otherend n1 g) (otherend n2 h),
-                 e |> EInjEndo.add n1 n2,
+                (v |> VVInj.add (otherend n1 g) (otherend n2 h),
+                 e |> EEInj.add n1 n2,
                  u |> match_edge_both_ways d1 d2,
                  Seq.append t  (* push match of the target vertex of
                                   this edge onto the match queue *)
@@ -86,7 +86,7 @@ functor GraphIsoFun(
                                 otherend n2 h)),
                  g |> Graph.delete_edge n1,
                  h |> Graph.delete_edge n2)
-                 handle VInjEndo.add_exp _ => NONE
+                 handle VVInj.add_exp _ => NONE
                       | Param.match_exp _ => NONE
              end)
           (E.NSet.seq_of hs))
@@ -125,7 +125,7 @@ functor GraphIsoFun(
                     E.NSet.is_empty hout) of
             (* no (more) edges; match up *)
             (true,true,true,true) =>
-              Seq.single (v |> VInjEndo.add vng vnh,
+              Seq.single (v |> VVInj.add vng vnh,
                           e,
                           u |> match_vertex_both_ways gd hd,
                           t',
@@ -145,7 +145,7 @@ functor GraphIsoFun(
                                             Vertex has already been successfully
                                             matched; skip. *)
                => get_isomorphisms_match_next (v,e,u,t',g,h)
-    ) handle VInjEndo.add_exp _ => Seq.empty
+    ) handle VVInj.add_exp _ => Seq.empty
            | Param.match_exp _  => Seq.empty
   
   (* v,e are working copies of the isomorphism to be constructed;
@@ -170,7 +170,7 @@ functor GraphIsoFun(
   (* in:  graphs g, h *)
   (* out: lazy list of (Vertex isomorphism*Edge isomorphism) containing all
           isomorphisms between g and h *)
-  val get = get_with_endos (VInjEndo.empty,EInjEndo.empty)
+  val get = get_with_endos (VVInj.empty,EEInj.empty)
   
   (* in:  graphs g, h *)
   (* out: true if g~=h, false otherwise *)

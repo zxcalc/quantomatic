@@ -536,7 +536,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
                         val (newv2,g2) = add_vertex OVData.WVert g1
                         val (_,g3) = add_edge d fromv newv2 g2
                     in
-                      (amorph |> VInjEndo.add newv1 newv2,
+                      (amorph |> VVInj.add newv1 newv2,
                        g3 |> update_edges (E.NTab.update (e, (d,(newv1,n))))
                           |> add_to_boundary newv1)
                     end
@@ -551,7 +551,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
                         val (newv2,g2) = add_vertex OVData.WVert g1
                         val (_,g3) = add_edge d newv2 tov g2
                     in
-                      (amorph |> VInjEndo.add newv1 newv2,
+                      (amorph |> VVInj.add newv1 newv2,
                        g3 |> update_edges (E.NTab.update (e, (d,(n,newv1))))
                           |> add_to_boundary newv1)
                     end
@@ -583,7 +583,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
       V.NSet.fold 
         (cut_around_vertex vns)
         vns
-        (VInjEndo.empty,g);
+        (VVInj.empty,g);
 
 
   (* make a subgraph from a node selection: any vertices with edges
@@ -594,7 +594,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
       |> (fn (amorph,g') => 
           (amorph, 
            g' |> V.NSet.fold delete_vertex (V.NSet.subtract (get_vnames g) vns)
-              |> V.NSet.fold delete_vertex (VInjEndo.get_codset amorph)))
+              |> V.NSet.fold delete_vertex (VVInj.get_codset amorph)))
   
   (* as above, but ignores gluing automorphism (introduced boundary => old vs) *)
   val matched_subgraph_within_vset = 

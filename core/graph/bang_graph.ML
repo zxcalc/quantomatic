@@ -362,7 +362,7 @@ functor BasicBangGraphFun(
     update_bbox_parent_rel (BMap.surj_del_dom b)
 
   fun bbox_has_parent g b =
-    case BMap.lookup_domf (get_bbox_parent_rel g) b
+    case BMap.lookup_get (get_bbox_parent_rel g) b
       of SOME _ => true | NONE => false
 
   fun add_bbox_named_like b g = let
@@ -578,7 +578,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   val doadd_to_bbox = snd ooo add_to_bbox
   val doremove_from_bbox = snd ooo remove_from_bbox
 
-  val lookup_bbox_parent = BMap.lookup_domf o get_bbox_parent_rel
+  val lookup_bbox_parent = BMap.lookup_get o get_bbox_parent_rel
 
   (* getters for bbox -> vert *)
   val get_bbox_list = B.NSet.list_of o get_bboxes;

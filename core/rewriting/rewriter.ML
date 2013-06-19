@@ -11,7 +11,7 @@ sig
   structure Log : LOG
 
   (* NB: we don't require the Rule.Graph and Graph to be the same *)
-  structure Rule : RULE;
+  structure Rule : OGRAPH_RULE;
   structure Graph : OGRAPH;
   type match;
 
@@ -75,17 +75,15 @@ functor BangGraphRewriter(
   structure Rule : BANG_GRAPH_RULE
   structure Matcher : BG_MATCH_SEARCH
   structure BBoxOperableGraph : REPLAYABLE_BBOX_OPERABLE_GRAPH
-  sharing Matcher.Sharing.G = Rule.Sharing.Graph
+  sharing Matcher.Sharing.Graph = Rule.Sharing.Graph
   sharing Matcher.Match.BBoxOperableGraph.Sharing = BBoxOperableGraph.Sharing
 ) : REWRITER =
 struct
   structure Log : LOG = Log(val init_level = 0)
 
   structure Rule = Rule;
-  structure Graph = Rule.BangGraph;
+  structure Graph = Rule.Graph;
   type match = Matcher.Match.T;
-
-  structure G = Graph;
   structure Match = Matcher.Match;
   structure BBOp = BBoxOperableGraph;
 
@@ -93,7 +91,7 @@ struct
     Log.logf lvl (fn g => Pretty.string_of
         (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
 
-  val log_graph = log_p G.pretty
+  val log_graph = log_p Graph.pretty
   val log_vrnm = log_p V.Rnm.pretty
   val log_ernm = log_p E.Rnm.pretty
 
@@ -103,14 +101,12 @@ struct
          * away from those in g, otherwise the rewriting will
          * fail (a quirk of the implementations of LinRatExpr
          * and V.CRnm) *)
-        val g_norm = G.normalise target
-        val rnms = (X.Rnm.mk_from_avoids (G.get_xnames g_norm),
-                    V.Rnm.mk_from_avoids (G.get_vnames g_norm),
-                    E.Rnm.empty, B.Rnm.empty)
-        val (_,rule) = Rule.rename4 rnms rule;
-        val lhs = G.normalise (Rule.get_lhs rule);
-        val rhs = G.normalise (Rule.get_rhs rule);
-        val avoid = V.NSet.union_merge (G.get_vnames g_norm) (G.get_vnames rhs);
+        val g_norm = Graph.normalise target
+        val rnms = (VSub.mk_from_avoids (Graph.get_vertices g_norm), ESub.empty, BSub.empty)
+        val (_,rule) = Rule.rename_bang_graph_rule rnms rule;
+        val lhs = Graph.normalise (Rule.get_lhs rule);
+        val rhs = Graph.normalise (Rule.get_rhs rule);
+        val avoid = V.NSet.union_merge (Graph.get_vertices g_norm) (Graph.get_vertices rhs);
         val track = Rule.get_boundary_vertices rule;
       in
         (Rule.mk (lhs,rhs),
@@ -134,72 +130,39 @@ struct
          Matcher.match_subgraph_normalised oper graph vset)
       end;
 
-  fun sg_rewrite_at m rhs =
-    let
-      val g = Match.get_tgt m
-      val pat_oper = Match.get_pat m
-      val pat = BBoxOperableGraph.get_current_graph pat_oper
-      val subst_data = G.apply_data_subst (Match.get_subst m)
-      val shared_boundary = G.get_boundary pat;
-      val vmap = Match.get_vmap m
-      val vmapf = VInjEndo.domf vmap
-      val matched = VInjEndo.get_codset vmap;
-          (* remove the matched part *)
-      val interior = V.NSet.fold (V.NSet.delete o vmapf)
-                                 shared_boundary
-                                 matched
-      val interior_edges = EInjEndo.get_codset (Match.get_emap m);
-      (* h is g with LHS cut out; note that we need to delete edges explicitly,
-         in case of bare wire matches *)
-      val h = g |> E.NSet.fold G.delete_edge interior_edges
-                |> V.NSet.fold G.delete_vertex interior
-                   (* apply the data substitution to what remains *)
-                |> subst_data;
-      val _ = log_graph 4 "OGraphSubst.rewrite: pattern graph" pat
-      val _ = log_graph 3 "OGraphSubst.rewrite: G" g
-      val _ = log_graph 3 "OGraphSubst.rewrite: G-pat" h
+  fun sg_rewrite_at m rhs = let
+    val g = Match.get_tgt m
+    val pat = BBoxOperableGraph.get_current_graph (Match.get_pat m)
+    val (vmap,emap) = (Match.get_vmap m, Match.get_emap m)
+    val rhs' = rhs |> Graph.apply_data_subst (Match.get_subst m)
 
-      (* Rename the RHS verts for merging.
-       *
-       * The aim is to have the boundary verts match where the
-       * LHS was cut out of g, and make all the other verts have
-       * names distinct from any verts in h.  Then
-       * G.merge_by_vertices will do the right thing.
-       *
-       * We actually make it avoid anything in g, so clients can
-       * tell what was replaced.
-       *
-       * It also does the data substitution.
-       *)
-      val g_pat_verts = V.NSet.union_merge (G.get_vnames g) (G.get_vnames pat);
-      val e_rnm = E.Rnm.mk_from_avoids (G.get_enames g);
-      (* first v rename makes all names except boundary verts fresh *)
-      (* this avoid clashes when doing the second rename *)
-      val v_rnm1 = V.Rnm.mk shared_boundary g_pat_verts V.NTab.empty;
-      (* second v rename sets the boundary verts to match the
-       * corresponding verts in h. *)
-      val v_rnm2 = V.Rnm.mk V.NSet.empty
-                            g_pat_verts
-                            (VInjEndo.get_domtab vmap);
-      val _ = log_vrnm 4 "OGraphSubst.rewrite: v_rnm1" v_rnm1
-      val _ = log_vrnm 4 "OGraphSubst.rewrite: v_rnm2" v_rnm2
-      val _ = log_ernm 4 "OGraphSubst.rewrite: e_rnm" e_rnm
+    val shared_boundary = Graph.get_boundary pat
+    val lhs_interior = V.NSet.subtract (Graph.get_vertices pat) shared_boundary
 
-      val prepare = snd o G.VertexCRnm.rename v_rnm2
-                  o snd o G.VertexCRnm.rename v_rnm1
-                  o snd o G.EdgeCRnm.rename e_rnm
-                  o subst_data
+    val shared_boundary_img = VVInj.img_of_set vmap shared_boundary
 
-      val _ = log_graph 4 "OGraphSubst.rewrite: RHS" rhs
-      val rhs' = prepare rhs
-      val _ = log_graph 4 "OGraphSubst.rewrite: RHS (prepared)" rhs'
-      val pat' = prepare pat
-      val _ = log_graph 4 "OGraphSubst.rewrite: LHS (prepared)" pat'
+    val h = g |> E.NSet.fold (Graph.delete_edge o EEInj.get emap) (Graph.get_edges pat)
+              |> V.NSet.fold (Graph.delete_vertex o VVInj.get vmap) lhs_interior
 
-      in
-        (Rule.mk (G.minimise pat',G.minimise rhs'),
-         G.merge_by_vertices rhs' h)
-      end;
+    val _ = log_graph 4 "OGraphSubst.rewrite: pattern graph" pat
+    val _ = log_graph 3 "OGraphSubst.rewrite: G" g
+    val _ = log_graph 3 "OGraphSubst.rewrite: G-pat" h
+    val _ = log_graph 4 "OGraphSubst.rewrite: RHS" rhs'
+
+    val rule = Rule.mk (Graph.minimise pat, Graph.minimise rhs')
+    val vrn = VSub.empty
+      |> V.NSet.fold (fn b => VSub.add (b, VVInj.get vmap b)) shared_boundary
+      |> VSub.avoid_set_in_cod (V.NSet.subtract (Graph.get_vertices h) shared_boundary_img)
+      |> VSub.extend_fresh (Rule.get_vertices rule)
+    val ern = ESub.mk_from_avoids (Graph.get_edges h) |> ESub.extend_fresh (Rule.get_edges rule)
+    val (_,rule') = rule |> Rule.rename_bang_graph_rule (vrn,ern,BSub.empty)
+
+    val _ = log_graph 4 "OGraphSubst.rewrite: RHS (prepared)" (Rule.get_rhs rule')
+    val _ = log_graph 4 "OGraphSubst.rewrite: LHS (prepared)" (Rule.get_lhs rule')
+
+  in
+    (rule', Graph.merge_by_vertices (Rule.get_rhs rule') h)
+  end;
 
   fun rewrite_at rule m = let
     val rhs = Rule.get_rhs rule
@@ -207,7 +170,7 @@ struct
     val sg_rhs = BBOp.replay_bbox_ops oper rhs
     val (final_rule,g') = sg_rewrite_at m sg_rhs
   in
-    (final_rule, G.minimise g')
+    (final_rule, Graph.minimise g')
   end
 
   fun find_rewrites r g = let

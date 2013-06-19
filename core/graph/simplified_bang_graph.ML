@@ -102,32 +102,6 @@ val set_bboxes            = update_bboxes         o K
 val set_bbox_rel          = update_bbox_rel       o K
 val set_bbox_child_rel    = update_bbox_child_rel o K
 
-(**************************************)
-(***** EXTRA DATA/SUBST FUNCTIONS *****)
-(**************************************)
-
-fun get_nvdata_tab g = VTab.fold (fn (k,v) => case v of NVert nv => VTab.add (k, nv) | _ => I) (get_vdata g) VTab.empty
-val get_vdata_tab    = get_vdata
-fun get_edata_tab  g = ETab.fold (fn (k,v) => ETab.add (k, snd v)) (get_edata g) ETab.empty
-val default_vdata = WVert
-fun subst_in_vdata sub (NVert nv) = NVert (subst_in_nvdata sub nv)
-  | subst_in_vdata sub (WVert) = WVert
-
-fun vdata_eq (NVert nv1, NVert nv2) = Data.nvdata_eq (nv1,nv2)
-  | vdata_eq (WVert, WVert) = true
-  | vdata_eq _ = false
-
-fun match_vdata (NVert nv1, NVert nv2) psubst = Data.match_nvdata (nv1,nv2) psubst
-  | match_vdata (WVert, WVert) psubst = SOME psubst
-  | match_vdata _ _ = NONE
-
-fun pretty_vdata (NVert n) = Pretty.block[Pretty.str "N{", Data.pretty_nvdata n, Pretty.str "}"]
-  | pretty_vdata (WVert)   = Pretty.str "W{}"
-
-
-fun init_psubst g= init_psubst_from_data (get_nvdata_tab g, get_edata_tab g)
-
-
 (*********************************)
 (******* DERIVED ACCESSORS *******)
 (*********************************)
@@ -197,6 +171,57 @@ fun update_edge_dir f e g =
 fun set_vertex_data d = update_vertex_data (K d)
 fun set_edge_data d = update_edge_data (K d)
 fun set_edge_dir dir = update_edge_dir (K dir)
+
+fun get_vertices_in_bbox g = BVRel.img (get_bbox_rel g)
+fun get_bboxes_containing_vertex g = BVRel.inv_img (get_bbox_rel g)
+fun get_bbox_parents g = BBRel.inv_img (get_bbox_child_rel g)
+fun get_bbox_children g = BBRel.img (get_bbox_child_rel g)
+fun bbox_has_parents g bb = BBRel.cod_contains (get_bbox_child_rel g) bb
+fun bbox_has_children g bb = BBRel.dom_contains (get_bbox_child_rel g) bb
+
+fun get_bboxed g = BVRel.get_cod_set (get_bbox_rel g)
+fun get_unbboxed g = V.NSet.subtract (get_vertices g) (get_bboxed g)
+fun get_empty_bboxes g = B.NSet.subtract (get_bboxes g) (BVRel.get_dom_set (get_bbox_rel g))
+
+fun is_bboxed g v = if has_vertex g v
+  then V.NSet.contains (BVRel.get_cod_set (get_bbox_rel g)) v
+  else raise no_such_vname_exp ("is_bboxed", v, g)
+
+
+(**************************************)
+(***** EXTRA DATA/SUBST FUNCTIONS *****)
+(**************************************)
+
+fun get_nvdata_tab g = VTab.fold (fn (k,v) => case v of NVert nv => VTab.add (k, nv) | _ => I) (get_vdata g) VTab.empty
+val get_vdata_tab    = get_vdata
+fun get_edata_tab  g = ETab.fold (fn (k,v) => ETab.add (k, snd v)) (get_edata g) ETab.empty
+val default_vdata = WVert
+fun subst_in_vdata sub (NVert nv) = NVert (subst_in_nvdata sub nv)
+  | subst_in_vdata sub (WVert) = WVert
+
+fun apply_data_subst sub g =
+  g |> V.NSet.fold (update_vertex_data (subst_in_vdata sub)) (get_vertices g)
+    |> E.NSet.fold (update_edge_data (subst_in_edata sub)) (get_edges g)
+
+fun vdata_eq (NVert nv1, NVert nv2) = Data.nvdata_eq (nv1,nv2)
+  | vdata_eq (WVert, WVert) = true
+  | vdata_eq _ = false
+
+fun match_vdata (NVert nv1, NVert nv2) psubst = Data.match_nvdata (nv1,nv2) psubst
+  | match_vdata (WVert, WVert) psubst = SOME psubst
+  | match_vdata _ _ = NONE
+
+fun pretty_vdata (NVert n) = Pretty.block[Pretty.str "N{", Data.pretty_nvdata n, Pretty.str "}"]
+  | pretty_vdata (WVert)   = Pretty.str "W{}"
+
+
+fun init_psubst g= init_psubst_from_data (get_nvdata_tab g, get_edata_tab g)
+
+
+
+(**************************************)
+(******** TRAVERSAL FUNCTIONS *********)
+(**************************************)
 
 (* given an edge and vertex, get the other end *)
 fun edge_get_other_vertex g e v1 = let
@@ -299,21 +324,10 @@ fun adj_edge_classes g v = (
   get_adj_undir_edges g v
 )
 
-fun get_vertices_in_bbox g = BVRel.img (get_bbox_rel g)
-fun get_bboxes_containing_vertex g = BVRel.inv_img (get_bbox_rel g)
-fun get_bbox_parents g = BBRel.inv_img (get_bbox_child_rel g)
-fun get_bbox_children g = BBRel.img (get_bbox_child_rel g)
-fun bbox_has_parents g bb = BBRel.cod_contains (get_bbox_child_rel g) bb
-fun bbox_has_children g bb = BBRel.dom_contains (get_bbox_child_rel g) bb
 
-fun get_bboxed g = BVRel.get_cod_set (get_bbox_rel g)
-fun get_unbboxed g = V.NSet.subtract (get_vertices g) (get_bboxed g)
-fun get_empty_bboxes g = B.NSet.subtract (get_bboxes g) (BVRel.get_dom_set (get_bbox_rel g))
-
-fun is_bboxed g v = if has_vertex g v
-  then V.NSet.contains (BVRel.get_cod_set (get_bbox_rel g)) v
-  else raise no_such_vname_exp ("is_bboxed", v, g)
-
+(*****************************************)
+(****** ADD/REMOVE/MODIFY FUNCTIONS ******)
+(*****************************************)
 
 
 (* TODO: should this throw an exception if invalid graph? *)
