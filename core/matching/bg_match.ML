@@ -51,8 +51,8 @@ signature BANG_GRAPH_MATCH
         -> VVInj.T
         -> EEInj.T
         -> BBInj.T
-        -> Graph.subst
         -> B.NSet.T
+        -> Graph.subst
         -> T;
 
   (* create a match; checks for correctness *)
@@ -62,8 +62,8 @@ signature BANG_GRAPH_MATCH
             -> VVInj.T
             -> EEInj.T
             -> BBInj.T
-            -> Graph.subst
             -> B.NSet.T
+            -> Graph.subst
             -> T option;
 
   val print : T -> unit;
@@ -163,7 +163,7 @@ functor BangGraphMatch(BBoxOperableGraph : BBOX_OPERABLE_GRAPH) : BANG_GRAPH_MAT
     else NONE
   end;
 
-  fun mk_opt pat tgt vmap emap bmap subst wild =
+  fun mk_opt pat tgt vmap emap bmap wild subst =
     case find_match_error pat tgt vmap emap bmap subst
       of SOME _ => NONE
        | NONE => SOME (Match {
@@ -176,7 +176,7 @@ functor BangGraphMatch(BBoxOperableGraph : BBOX_OPERABLE_GRAPH) : BANG_GRAPH_MAT
                    wild_bbs = wild
                  });
 
-  fun mk pat tgt vmap emap bmap subst wild =
+  fun mk pat tgt vmap emap bmap wild subst =
     case find_match_error pat tgt vmap emap bmap subst
       of SOME e => raise bad_match_exp (e,pat,tgt,vmap,emap,bmap,subst,wild)
        | NONE => Match {

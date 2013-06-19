@@ -160,7 +160,7 @@ PolyML.Project.make "matching/match_state.ML";
 
 (* piece-by-piece matching utility *)
 PolyML.Project.make "matching/progressive_match_search.ML";
-(*
+
 (* signature for outer (e.g. !-box) matching *)
 PolyML.Project.make "matching/match_search.ML";
 (* wrappers for inner_match_search *)
@@ -169,7 +169,7 @@ PolyML.Project.make "matching/concrete_match_search.ML";
 (* naive pattern-graph wrapper *)
 PolyML.Project.make "matching/greedy_match_search.ML";
 
-Testing.make_test "matching/test/test-matching-setup.ML";*)
+(*Testing.make_test "matching/test/test-matching-setup.ML";*)
 (*Testing.make_test "matching/test/test-bang-match-state.ML";
 Testing.make_test "matching/test/test-string-graph-matching.ML";
 Testing.make_test "matching/test/test-bang-graph-matching.ML";*)
@@ -185,6 +185,7 @@ PolyML.Project.make "io/reader.ML";
 PolyML.Project.make "io/writer.ML";
 
 PolyML.Project.make "io/linrat_xml.ML";
+
 
 (* Graph Component Data *)
 (* component data is a bit of a hack, and has I/O interdependencies *)
@@ -204,13 +205,13 @@ PolyML.Project.make "io/ruleset_xml_input.ML";
 PolyML.Project.make "io/ruleset_xml_output.ML";
 
 PolyML.Project.make "io/io_interface_xml.ML";
-
+*)
 
 (*
  * Rewriting
  *)
 (* substitution of a matched subgraph for another graph *)
-PolyML.Project.make "rewriting/rewriter.ML";
+(*PolyML.Project.make "rewriting/rewriter.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriter.ML";
 

@@ -2,7 +2,7 @@ structure Test_ConcreteMatcher =
   ConcreteMatchSearch(Test_OGraph);
 
 structure Test_BBoxOperableGraph =
-  ReplayableBBoxOperableGraph(Test_Bang_Graph);
+  ReplayableBBoxOperableGraph(structure Graph = Test_Bang_Graph);
 
 structure Test_GreedyMatcher =
   GreedyMatchSearch(Test_BBoxOperableGraph);
@@ -15,9 +15,7 @@ Test_GreedyMatcher.Log.level_ref := 2;
 
 signature MATCH_TESTER =
 sig
-  structure G : OGRAPH
-      where type EData.data = Test_Graph_Data.edata
-        and type OVData.IData.data = Test_Graph_Data.vdata
+  structure G : TEST_OGRAPH
   type match
   val find_n_matches : int -> (G.T * G.T)
                     -> match list;

@@ -1,33 +1,35 @@
 (* A wrapper for matching concrete graphs against concrete graphs *)
 (* see docs/matching_algo for details *)
 (* This wrapper is very simple, as the InnerMatchSearch does all the work *)
-functor ConcreteMatchSearch(G : OGRAPH) : MATCH_SEARCH =
+functor ConcreteMatchSearch(Graph : OGRAPH) : MATCH_SEARCH =
 struct
 
   structure Log : LOG = Log(val init_level = 0);
 
 
-  structure G = G;
-  structure MatchState = OGraphMatchState(G);
+  structure Graph = Graph;
+  structure MatchState = OGraphMatchState(Graph);
   structure InnerMatchSearch = ProgressiveMatchSearch(MatchState);
-  structure Match = OGraphMatch(G);
+  structure Match = OGraphMatch(Graph);
   
   (* We can't provide any information that the inner match search
    * does not already know *)
   fun concrete_doomedf _ _ = false
 
-  fun match_from_ms ms =
-    Match.mk (MatchState.get_pat ms)
-             (MatchState.get_tgt ms)
-             (MatchState.get_vmap ms)
-             (MatchState.get_emap ms)
-             (MatchState.get_match_psubst ms)
+  fun matches_from_ms ms = let
+    val (pat,tgt,vmap,emap) = (MatchState.get_pat ms,
+                               MatchState.get_tgt ms,
+                               MatchState.get_vmap ms,
+                               MatchState.get_emap ms)
+  in Seq.map (Match.mk pat tgt vmap emap)
+             (Graph.solve_psubst (MatchState.get_match_psubst ms))
+  end
 
   (* We just put everything in the match state, and for each match
    * provided by the inner loop, we match the bare wires, and discard any
    * incomplete matches (as we have nothing left to add to the pattern) *)
   fun do_match ms =
-    Seq.map match_from_ms
+    Seq.maps matches_from_ms
       (Seq.filter MatchState.is_total
        (Seq.maps InnerMatchSearch.match_bare_wires
         (InnerMatchSearch.match_pending concrete_doomedf ms)))
