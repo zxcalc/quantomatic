@@ -21,7 +21,7 @@ struct
              (MatchState.get_tgt ms)
              (MatchState.get_vmap ms)
              (MatchState.get_emap ms)
-             (MatchState.get_match_subst ms)
+             (MatchState.get_match_psubst ms)
 
   (* We just put everything in the match state, and for each match
    * provided by the inner loop, we match the bare wires, and discard any

@@ -557,9 +557,9 @@ in
     |> update_bbox_rel (fn m => BVRel.compose (rnm,m))
 end
 
-(*fun rename_vname n1 n2 g = rename_vertices (VSub.empty |> VSub.add (n1,n2)) g
-fun try_rename1_vname n1 n2 g = SOME (rename_vname n1 n2 g)
-  handle Map.duplicate_exp () => NONE*)
+fun rename_vertex n1 n2 g = rename_vertices (VSub.empty |> VSub.add (n1,n2)) g
+fun rename_vertex_opt n1 n2 g = SOME (rename_vertex n1 n2 g)
+  handle Map.duplicate_exp () => NONE
 
 (* rename edges using the given substitution *)
 fun rename_edges sub g = let
@@ -572,9 +572,9 @@ in
     |> update_target (fn m => EVFn.compose (m,rnmi))
 end
 
-(*fun rename_ename n1 n2 g = rename_edges (ESub.empty |> ESub.add (n1,n2)) g
-fun try_rename1_ename n1 n2 g = SOME (rename_ename n1 n2 g)
-  handle Map.duplicate_exp () => NONE*)
+fun rename_edge n1 n2 g = rename_edges (ESub.empty |> ESub.add (n1,n2)) g
+fun rename_edge_opt n1 n2 g = SOME (rename_edge n1 n2 g)
+  handle Map.duplicate_exp () => NONE
 
 fun rename_bboxes sub g = let
   (* this will fail with duplicate_exp if the renaming is bad *)
@@ -586,9 +586,9 @@ in
     |> update_bbox_child_rel (fn m => BBRel.compose3 (rnm, m, rnmi))
 end
 
-(*fun rename_bbox n1 n2 g = rename_bboxes (BSub.empty |> BSub.add (n1,n2)) g
-fun try_rename1_bbox n1 n2 g = SOME (rename_bbox n1 n2 g)
-  handle Map.duplicate_exp () => NONE*)
+fun rename_bbox n1 n2 g = rename_bboxes (BSub.empty |> BSub.add (n1,n2)) g
+fun rename_bbox_opt n1 n2 g = SOME (rename_bbox n1 n2 g)
+  handle Map.duplicate_exp () => NONE
 
 fun rename_bang_graph (vsub,esub,bsub) g = let
   val vrnm  = VSub.extend_fixed (get_vertices g) vsub
@@ -611,6 +611,11 @@ in
 end
 
 val rename_bang_graph_anon = snd oo rename_bang_graph
+fun rename_ograph (vsub,esub) g = let
+  val ((vsub',esub',_), g') = rename_bang_graph (vsub,esub,BSub.empty) g
+in ((vsub',esub'), g')
+end
+val rename_ograph_anon = snd oo rename_ograph
 
 
 fun edges_between g v1 v2 = E.NSet.intersect (get_adj_edges g v1) (get_adj_edges g v2)

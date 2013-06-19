@@ -260,7 +260,7 @@ struct
              (InnerMatchState.get_vmap ims)
              (InnerMatchState.get_emap ims)
              (BBInj.empty)
-             (InnerMatchState.get_match_subst ims)
+             (InnerMatchState.get_match_psubst ims)
              (get_wild_bboxes ms)
   end;
 

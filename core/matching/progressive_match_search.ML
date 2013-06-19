@@ -110,7 +110,8 @@ functor ProgressiveMatchSearch(
     val tgt = MatchState.get_tgt ms
     fun is_circle v =
       Graph.is_wire_vertex tgt v andalso
-      (let val (_,(ins,outs)) = Graph.get_vertex tgt v in
+      (let val (ins,outs) = (Graph.get_in_edges tgt v, Graph.get_out_edges tgt v)
+       in
         E.NSet.is_singleton ins andalso
         E.NSet.is_singleton outs andalso
         E.NSet.eq ins outs end);
@@ -132,7 +133,7 @@ functor ProgressiveMatchSearch(
            val cpdata = Graph.get_vertex_data pat cp
            val ep = (the o E.NSet.tryget_singleton) (Graph.get_in_edges pat cp)
            val (epdir,epdata) = Graph.get_edge_dir_and_data pat ep
-           val subst = MatchState.get_match_subst ms
+           val subst = MatchState.get_match_psubst ms
            fun m_circ ct = let
              val ctdata = Graph.get_vertex_data tgt ct
              val et = (the o E.NSet.tryget_singleton) (Graph.get_in_edges tgt ct)
@@ -142,15 +143,15 @@ functor ProgressiveMatchSearch(
               val (etdir,etdata) = Graph.get_edge_dir_and_data tgt et
            in case (epdir = etdir,
                     Option.composePartial
-                      (Graph.try_match_vertex cpdata ctdata,
-                       Graph.try_match_edge epdata etdata)
+                      (Graph.match_vdata (cpdata, ctdata),
+                       Graph.match_edata (epdata, etdata))
                       subst)
                 of (true, SOME subst') =>
                       match_circles' (lvl+1)
                           (ms |> MatchState.update_u_circles (V.NSet.delete cp)
                               |> MatchState.update_tgt_verts (V.NSet.delete ct)
                               |> add_circle_to_match lvl (cp,ct)
-                              |> MatchState.set_match_subst subst')
+                              |> MatchState.set_match_psubst subst')
                  | (false, _) =>
                      (log_match_fail_e2' lvl "Circle directedness mismatch" ep et;
                       Seq.empty)
@@ -195,7 +196,7 @@ functor ProgressiveMatchSearch(
         if dir_p = dir_t andalso (            (* directedness must match and... *)
              dir_p = Undirected orelse      (* undirected or... *)
              (pat_inedge = tgt_inedge))       (* directions match *)
-        then Graph.try_match_edge data_p data_t (MatchState.get_match_subst ms)
+        then Graph.match_edata (data_p, data_t) (MatchState.get_match_psubst ms)
         else NONE
       end
   in
@@ -209,11 +210,11 @@ functor ProgressiveMatchSearch(
           in
             if V.NSet.contains (MatchState.get_p_nodeverts ms) new_vp
             then
-              if VVInj.contains vmap (new_vp, new_vt)
+              if VVInj.is_mapped vmap (new_vp, new_vt)
               then
                 SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
                          |> MatchState.update_ps_nodeverts (V.NSet.add new_vp)
-                         |> MatchState.set_match_subst e_subst)
+                         |> MatchState.set_match_psubst e_subst)
               else
                 (log_match_fail_v2 lvl "Match conflict" new_vp new_vt; NONE)
             else
@@ -221,9 +222,9 @@ functor ProgressiveMatchSearch(
               then
                 (log_match_fail_v2 lvl "Vertex not in T" new_vp new_vt; NONE)
               else
-                case Graph.try_match_vertex (Graph.get_vertex_data pat new_vp)
-                                              (Graph.get_vertex_data tgt new_vt)
-                                              e_subst
+                case Graph.match_vdata (Graph.get_vertex_data pat new_vp,
+                                        Graph.get_vertex_data tgt new_vt)
+                                       e_subst
                   of NONE =>
                       (log_match_fail_v2 lvl "Vertex data does not match"
                                          new_vp new_vt;
@@ -239,7 +240,7 @@ functor ProgressiveMatchSearch(
                                 (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
                                     |> MatchState.update_tgt_verts (V.NSet.delete new_vt)
                                     |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
-                                    |> MatchState.set_match_subst v_subst)
+                                    |> MatchState.set_match_psubst v_subst)
                                 (new_vp,new_ep) (new_vt,new_et)
                            | (SOME _, NONE) =>
                               (* pat is internal, tgt is bdry. fail *)
@@ -249,7 +250,7 @@ functor ProgressiveMatchSearch(
                               SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
                                        |> MatchState.update_tgt_verts (V.NSet.delete new_vt)
                                        |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
-                                       |> MatchState.set_match_subst v_subst)
+                                       |> MatchState.set_match_psubst v_subst)
                       else
                         if V.NSet.contains (MatchState.get_u_nodeverts ms) new_vp
                         then
@@ -258,7 +259,7 @@ functor ProgressiveMatchSearch(
                                    |> MatchState.update_u_nodeverts (V.NSet.delete new_vp)
                                    |> MatchState.update_p_nodeverts (V.NSet.add new_vp)
                                    |> MatchState.update_ps_nodeverts (V.NSet.add new_vp)
-                                   |> MatchState.set_match_subst v_subst)
+                                   |> MatchState.set_match_psubst v_subst)
                         else
                           (* if this node-vert isn't scheduled for matching, leave its wire alone *)
                           (* NB: this shouldn't happen if Uw, Un set up correctly? *)
@@ -316,17 +317,17 @@ functor ProgressiveMatchSearch(
           let
             val edge_matched = EEInj.cod_contains (MatchState.get_emap ms)
           in
-            if E.NSet.forall edge_matched (Graph.get_incident_edges tgt nvt)
+            if E.NSet.forall edge_matched (Graph.get_adj_edges tgt nvt)
             then MatchState.update_p_nodeverts (V.NSet.delete nvp) ms
             else ms
           end
       in
-        case E.NSet.get_exists edge_end_in_Uw (Graph.get_incident_edges pat nvp)
+        case E.NSet.get_exists edge_end_in_Uw (Graph.get_adj_edges pat nvp)
           of SOME ep =>
                let
                  val candidate_tgt_edges =
                       E.NSet.filter edge_end_in_T
-                                    (Graph.get_incident_edges tgt nvt)
+                                    (Graph.get_adj_edges tgt nvt)
                in
                  E.NSet.fold (add_branch_if_wire_matches ep)
                              candidate_tgt_edges
@@ -357,12 +358,12 @@ functor ProgressiveMatchSearch(
                      |> MatchState.update_ps_nodeverts (V.NSet.add nv)
         val nv_data = Graph.get_vertex_data (MatchState.get_pat ms') nv
         fun match_nv_and_continue tnv =
-          case Graph.try_match_vertex nv_data
-                                        (Graph.get_vertex_data (MatchState.get_tgt ms') tnv)
-                                        (MatchState.get_match_subst ms')
+          case Graph.match_vdata (nv_data,
+                                  Graph.get_vertex_data (MatchState.get_tgt ms') tnv)
+                                 (MatchState.get_match_psubst ms')
             of SOME subst =>
                  match_main (lvl+1)
-                            (ms' |> MatchState.set_match_subst subst
+                            (ms' |> MatchState.set_match_psubst subst
                                  |> add_vertex_to_match lvl (nv, tnv)
                                  |> MatchState.update_tgt_verts (V.NSet.delete tnv))
              | NONE => Seq.empty
@@ -415,7 +416,7 @@ functor ProgressiveMatchSearch(
     val ((e1,v1,e2),tgt') = Graph.split_edge e tgt
     val (v1',avoidvs') = V.NSet.add_new v1 avoidvs
     val tgt' = if V.name_eq (v1,v1') then tgt'
-               else Graph.rename_vname v1 v1' tgt'
+               else Graph.rename_vertex v1 v1' tgt'
   in
     if V.name_eq (s,t) then
       (* circles get special treatment; s/t cannot be in cod vmap if e is not in
@@ -435,7 +436,7 @@ functor ProgressiveMatchSearch(
         val ((e2,v2,e3),tgt') = Graph.split_edge e2 tgt'
         val (v2',_) = V.NSet.add_new v2 avoidvs'
         val tgt' = if V.name_eq (v2,v2') then tgt'
-                   else Graph.rename_vname v2 v2' tgt'
+                   else Graph.rename_vertex v2 v2' tgt'
         val _ = Log.logf 2 (fn () => ind lvl
           ">> Split edge "^(E.string_of_name e)^" into ("^
             (E.string_of_name e1)^","^(V.string_of_name v1')^","^
@@ -462,14 +463,14 @@ functor ProgressiveMatchSearch(
       val (vmap, emap) = (MatchState.get_vmap ms, MatchState.get_emap ms)
       (* for a normalised graph, this will always be the source end *)
       val bw = (the o E.NSet.get_min) (MatchState.get_u_bare_wires ms)
-      val ((bw_dir, bw_data), (bw_s, bw_t)) = Graph.get_edge pat bw
+      val ((bw_dir, bw_data), (bw_s, bw_t)) = Graph.get_edge_info pat bw
       val (bw_sdata, bw_tdata) = (Graph.get_vertex_data pat bw_s, Graph.get_vertex_data pat bw_t)
       
       (* candidate edges for matching are:
            - the unique edge in a circle, bare wire, or boundary wire
            - the middle edge in an interior wire *)
       fun is_candidate_for_bw e = let
-        val ((d,_),(s,t)) = Graph.get_edge tgt e
+        val ((d,_),(s,t)) = Graph.get_edge_info tgt e
         fun vertex_matchable v =
           (V.NSet.contains tgt_verts v) orelse (VVInj.cod_contains vmap v)
       in
@@ -492,12 +493,12 @@ functor ProgressiveMatchSearch(
         
         (* match data for edge, source, and target *)
         val fmatch_d = Option.composePartial
-                          (Graph.try_match_edge bw_data et_data,
+                          (Graph.match_edata (bw_data, et_data),
                            Option.composePartial
-                              (Graph.try_match_vertex bw_sdata tgt_sdata,
-                               Graph.try_match_vertex bw_tdata tgt_tdata));
+                              (Graph.match_vdata (bw_sdata, tgt_sdata),
+                               Graph.match_vdata (bw_tdata, tgt_tdata)));
         fun add_bw new_subst = let
-          val ms' = ms' |> MatchState.set_match_subst new_subst
+          val ms' = ms' |> MatchState.set_match_psubst new_subst
                         |> MatchState.update_tgt_verts (V.NSet.delete s)
                         |> MatchState.update_tgt_verts (V.NSet.delete t)
                         |> MatchState.update_u_bare_wires (E.NSet.delete bw)
@@ -507,7 +508,7 @@ functor ProgressiveMatchSearch(
            )
         end
       in
-        case fmatch_d (MatchState.get_match_subst ms')
+        case fmatch_d (MatchState.get_match_psubst ms')
           of SOME new_subst =>
                let val add_bw' = add_bw new_subst in
                   case bw_dir

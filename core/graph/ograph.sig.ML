@@ -209,15 +209,18 @@ val dir_edges_between : T -> V.name -> V.name
 
 
 
-(*
-(* TODO: renaming *)
 
+(* Renaming *)
 
-val rename : (X.renaming * V.renaming * E.renaming) -> T 
-    -> (X.renaming * V.renaming * E.renaming) * T 
-(* rename the 2nd graph to avoid all names in the first one *)
-val rename_apart : T -> T -> (X.renaming * V.renaming * E.renaming) * T 
-*)
+val rename_ograph      : (VSub.T * ESub.T) -> T -> (VSub.T * ESub.T) * T
+val rename_ograph_anon : (VSub.T * ESub.T) -> T -> T
+val rename_vertices    : VSub.T -> T -> T
+val rename_vertex      : V.name -> V.name -> T -> T
+val rename_vertex_opt  : V.name -> V.name -> T -> T option
+val rename_edges       : ESub.T -> T -> T
+val rename_edge        : E.name -> E.name -> T -> T
+val rename_edge_opt    : E.name -> E.name -> T -> T option
+
 
 
 (*******************************)

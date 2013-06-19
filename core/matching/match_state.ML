@@ -63,7 +63,6 @@ signature OGRAPH_MATCH_STATE
   
   val set_pat             : Graph.T -> T -> T
   val set_tgt             : Graph.T -> T -> T
-  val set_full_tgt        : Graph.T -> T -> T
   val set_vmap            : VVInj.T -> T -> T
   val set_emap            : EEInj.T -> T -> T
 
@@ -172,7 +171,7 @@ functor OGraphMatchState(Graph : OGRAPH) : OGRAPH_MATCH_STATE
     p_nodeverts  = V.NSet.empty,
     ps_nodeverts = V.NSet.empty,
     tgt_verts    = V.NSet.empty,
-    match_psubst = Graph.init_psubst (Graph.get_nvdata_tab tgt, Graph.get_edata_tab tgt),
+    match_psubst = Graph.init_psubst tgt
   }
   
   (* getters and setters *)
@@ -275,7 +274,7 @@ functor OGraphMatchState(Graph : OGRAPH) : OGRAPH_MATCH_STATE
   fun schedule_all_tgt ms = set_tgt_verts (Graph.get_vertices (get_tgt ms)) ms;
   fun schedule_tgt_subgraph vs ms = let
     val tgt = get_tgt ms
-    val tgt_subg = Graph.get_open_subgraph vs tgt
+    val tgt_subg = Graph.get_open_subgraph tgt vs
   in
     set_tgt_verts (Graph.get_vertices tgt_subg) ms
   end;
