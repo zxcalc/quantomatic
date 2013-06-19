@@ -213,17 +213,17 @@ PolyML.Project.make "io/io_interface_xml.ML";
 (* substitution of a matched subgraph for another graph *)
 PolyML.Project.make "rewriting/rewriter.ML";
 (* substitution used to provide rewriting with rulesets *)
-(*PolyML.Project.make "rewriting/ruleset_rewriter.ML";
-
+PolyML.Project.make "rewriting/ruleset_rewriter.ML";
+(*
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
-
+*)
 (* I/O *)
 PolyML.Project.make "io/rewrite_json.ML";
-
+(*
 Testing.make_test "rewriting/test/rewriter-test.ML";
 Testing.make_test "rewriting/test/ruleset_rewriter-tests.ML";
-
+*)
 
 (*
  * Theories
@@ -232,7 +232,7 @@ Testing.make_test "rewriting/test/ruleset_rewriter-tests.ML";
 (* NB: currently relies on XML I/O stuff *)
 PolyML.Project.make "theories/graphical_theory.ML";
 PolyML.Project.make "io/graphical_theory_io.ML";
-
+(*
 (* red-green specific vertices, graphs and matching *)
 (* graph-derived expressions for R-G graphs *)
 PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
@@ -282,7 +282,7 @@ PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
 
 
 (*
- * Decisions nets
+ * Descrimination nets
  *)
 PolyML.Project.make "dnets/DNetsLib.ML";
 PolyML.Project.make "dnets/Literal.ML";

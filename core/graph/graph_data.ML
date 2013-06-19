@@ -5,6 +5,8 @@ sig
   type nvdata  (* node-vertex data *)
   type edata   (* edge data *)
 
+  val pretty_theory_name : Pretty.T
+
   (* A partial substitution contains a collection of constraints on pattern
    * variables. It is initialised by passing in a table containing node/edge
    * data from the target graph. This can be used e.g. to ensure that names

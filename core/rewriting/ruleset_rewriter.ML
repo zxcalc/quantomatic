@@ -62,7 +62,7 @@ functor RulesetRewriter(
   structure Ruleset : BANG_GRAPH_RULESET
   structure Rewriter : REWRITER
   sharing Rewriter.Rule.Sharing = Ruleset.Rule.Sharing
-  sharing Rewriter.Graph.SharingOGraph = Ruleset.Rule.Graph.SharingOGraph
+  sharing Rewriter.Graph.Sharing = Ruleset.Rule.Graph.Sharing
 ) : RULESET_REWRITER =
 struct
   structure Log : LOG = Log(val init_level = 0)
@@ -71,13 +71,13 @@ struct
   type match = Rewriter.match;
 
   structure Rule = Ruleset.BangGraphRule;
-  structure G = Rule.BangGraph;
+  structure Graph = Rule.Graph
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
         (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
 
-  val log_graph = log_p G.pretty
+  val log_graph = log_p Graph.pretty
   val log_rule = log_p Rule.pretty
   
   (* apply rules to whole graph *)

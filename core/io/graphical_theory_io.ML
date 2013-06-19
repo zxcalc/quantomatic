@@ -1,25 +1,25 @@
 signature GRAPH_COMPONENT_DATA_IO =
 sig
-  type vdata;
+  type nvdata;
   type edata;
 
   structure IVDataInputJSON : INPUT_JSON
-    where type data = vdata;
+    where type data = nvdata;
   structure IVDataOutputJSON : OUTPUT_JSON
-    where type data = vdata;
+    where type data = nvdata;
   structure EDataInputJSON : INPUT_JSON
     where type data = edata;
   structure EDataOutputJSON : OUTPUT_JSON
     where type data = edata;
   structure DotStyle : DOT_STYLE
-    where type vdata = vdata;
+    where type nvdata = nvdata;
 end;
 
 functor StringTableAnnotatedGraphicalTheoryIO (
   structure Theory : GRAPHICAL_THEORY
   structure GraphComponentDataIO : GRAPH_COMPONENT_DATA_IO
-  sharing type Theory.OVData.IData.data = GraphComponentDataIO.vdata
-  sharing type Theory.EData.data = GraphComponentDataIO.edata
+  sharing type Theory.Graph.nvdata = GraphComponentDataIO.nvdata
+  sharing type Theory.Graph.edata = GraphComponentDataIO.edata
 ) =
 struct
   structure Theory = Theory;
@@ -29,12 +29,12 @@ struct
   structure VDataOutputJSON : OUTPUT_JSON =
   struct
     open JsonOutputUtils;
-    type data = Theory.OVData.data;
-    fun output Theory.OVData.WVert =
+    type data = Theory.Graph.vdata;
+    fun output Theory.Graph.WVert =
           Json.Object (
             Json.empty_obj |> update ("is_wire_vertex",Json.Bool true)
           )
-      | output (Theory.OVData.NVert d) =
+      | output (Theory.Graph.NVert d) =
           Json.Object (
             Json.empty_obj |> update ("is_wire_vertex",Json.Bool true)
                            |> update ("data",IVDataOutputJSON.output d)
@@ -97,8 +97,8 @@ end;
 functor GraphicalTheoryIO (
   structure Theory : GRAPHICAL_THEORY
   structure GraphComponentDataIO : GRAPH_COMPONENT_DATA_IO
-  sharing type Theory.OVData.IData.data = GraphComponentDataIO.vdata
-  sharing type Theory.EData.data = GraphComponentDataIO.edata
+  sharing type Theory.Graph.nvdata = GraphComponentDataIO.nvdata
+  sharing type Theory.Graph.edata = GraphComponentDataIO.edata
 ) =
 struct
   structure Theory = Theory;
@@ -108,12 +108,12 @@ struct
   structure VDataOutputJSON : OUTPUT_JSON =
   struct
     open JsonOutputUtils;
-    type data = Theory.OVData.data;
-    fun output Theory.OVData.WVert =
+    type data = Theory.Graph.vdata;
+    fun output Theory.Graph.WVert =
           Json.Object (
             Json.empty_obj |> update ("is_wire_vertex",Json.Bool true)
           )
-      | output (Theory.OVData.NVert d) =
+      | output (Theory.Graph.NVert d) =
           Json.Object (
             Json.empty_obj |> update ("is_wire_vertex",Json.Bool false)
                            |> update ("data",IVDataOutputJSON.output d)

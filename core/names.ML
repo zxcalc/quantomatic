@@ -160,4 +160,18 @@ in
 (* Put opaque Quanto names and name maps into the top-level *)
 open QuantoNames
 
+(* install pretty printers *)
+local
+    fun prettyVertex _ _ x =
+      PolyML.PrettyString("\"" ^ V.string_of_name x ^ "\"");
+    fun prettyEdge _ _ x =
+      PolyML.PrettyString("\"" ^ E.string_of_name x ^ "\"");
+    fun prettyBBox _ _ x =
+      PolyML.PrettyString("\"" ^ B.string_of_name x ^ "\"");
+in
+    val () = PolyML.addPrettyPrinter prettyVertex;
+    val () = PolyML.addPrettyPrinter prettyEdge;
+    val () = PolyML.addPrettyPrinter prettyBBox;
+end
+
 end

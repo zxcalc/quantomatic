@@ -9,14 +9,14 @@ end;
 
 signature DOT_STYLE =
 sig
-  type vdata;
-  val style_for_ivertex_data : vdata -> string
+  type nvdata;
+  val style_for_ivertex_data : nvdata -> string
 end
 
 functor OutputGraphDot(
   structure Graph : BANG_GRAPH
   structure DotStyle : DOT_STYLE
-  sharing type DotStyle.vdata = Graph.nvdata
+  sharing type DotStyle.nvdata = Graph.nvdata
 ) : OUTPUT_DOT =
 struct
   structure Graph = Graph;

@@ -2,6 +2,8 @@
 
 structure Test_Graph_Data =
 struct
+  val pretty_theory_name = Pretty.str "test_graph"
+
   datatype nvdata = VUnit1
                   | VUnit2
                   | VExpr1 of LinratAngleExpr.T
