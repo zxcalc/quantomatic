@@ -310,12 +310,13 @@ PolyML.Project.make "interface/controller_registry.ML"; (* theory lists *)
 
 (* interface protocol/console *)
 PolyML.Project.make "interface/control_interface.ML"; (* generic interface for run_in_textstreams *)
-(*PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
+
 PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
 PolyML.Project.make "interface/console_lexer.ML"; (* lexer for quanto console *)
 PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *)
 PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
-
+PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
+(*
 
 (*
  * Top-level testing
