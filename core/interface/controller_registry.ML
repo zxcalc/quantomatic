@@ -3,6 +3,9 @@ structure RG_Controller = Controller(
   structure Theory = RG_Theory
   structure GraphComponentDataIO = RG_ComponentDataIO
 );
+
+(*
+(*TODO: re-implement these in the new format*)
 structure GHZW_Controller = Controller(
   structure Theory = GHZW_Theory
   structure GraphComponentDataIO = GHZW_ComponentDataIO
@@ -26,7 +29,7 @@ structure Str_Controller = Controller(
 structure RTechn_Controller = Controller(
   structure Theory = RTechn_Theory
   structure GraphComponentDataIO = RTechn_ComponentDataIO
-);
+);*)
 
 signature CONTROLLER_REGISTRY
 = sig
@@ -58,7 +61,7 @@ structure ControllerRegistry : CONTROLLER_REGISTRY
     Symtab.empty |> (register_eval_func
                       RG_Controller.theoryName
                       RG_Controller.serviceRequest)
-                 |> (register_eval_func
+                 (*|> (register_eval_func
                       GHZW_Controller.theoryName
                       GHZW_Controller.serviceRequest)
                  |> (register_eval_func
@@ -75,7 +78,7 @@ structure ControllerRegistry : CONTROLLER_REGISTRY
                       Str_Controller.serviceRequest)
                  |> (register_eval_func
                       RTechn_Controller.theoryName
-                      RTechn_Controller.serviceRequest)
+                      RTechn_Controller.serviceRequest)*)
 end;
 
 
