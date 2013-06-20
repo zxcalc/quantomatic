@@ -47,8 +47,8 @@ struct
     type data = Theory.Graph.vdata;
     fun input (json as Json.Object obj) = (
           case Json.lookup obj "is_wire_vertex"
-            of SOME (Json.Bool false) => Theory.Graph.NVert (IVDataInputJSON.input json)
-             | _ => Theory.Graph.WVert
+            of SOME (Json.Bool true) => Theory.Graph.WVert
+             | _ => Theory.Graph.NVert (IVDataInputJSON.input json)
         )
       | input _ = raise bad_input_exp ("expected: JSON object","0")
   end;
