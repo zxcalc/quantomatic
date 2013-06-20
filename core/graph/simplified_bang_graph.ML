@@ -196,6 +196,11 @@ fun get_nvdata_tab g = VTab.fold (fn (k,v) => case v of NVert nv => VTab.add (k,
 val get_vdata_tab    = get_vdata
 fun get_edata_tab  g = ETab.fold (fn (k,v) => ETab.add (k, snd v)) (get_edata g) ETab.empty
 val default_vdata = WVert
+fun default_vdata_of_typestring "wire-vertex" = WVert
+  | default_vdata_of_typestring s = NVert (default_nvdata_of_typestring s)
+fun typestring_of_vdata WVert = "wire-vertex"
+  | typestring_of_vdata (NVert d) = typestring_of_nvdata d
+
 fun subst_in_vdata sub (NVert nv) = NVert (subst_in_nvdata sub nv)
   | subst_in_vdata sub (WVert) = WVert
 
@@ -927,6 +932,9 @@ fun remove_from_bbox b vs g =
     end
 
 val remove_from_bbox_anon = snd ooo remove_from_bbox
+fun remove_from_all_bboxes vset g =
+  g |> B.NSet.fold (fn b => remove_vertices_from_bbox b vset) (get_bboxes g)
+
 
 fun kill_bbox bb g =
   if not (has_bbox g bb) then raise no_such_bbox_exp ("kill_bbox",bb,g)
@@ -989,14 +997,30 @@ end
 
 fun copy_bbox bb ((vsub,esub,bsub),g) = let
   val bsub' = BSub.extend_fresh (B.NSet.single bb) bsub
-  val ((vsub',esub',bsub'),g') = expand_bbox bb ((vsub,esub,bsub),g)
-  val new_bb = BSub.get bsub bb
+  val ((vsub',esub',bsub'),g') = expand_bbox bb ((vsub,esub,bsub'),g)
+  val new_bb = BSub.get bsub' bb
   val new_children = BSub.img_of_set bsub (get_bbox_children g bb)
   val new_vertices = VSub.img_of_set vsub (get_vertices_in_bbox g bb)
 in ((vsub',esub',bsub'),
     g |> add_named_bbox new_bb
       |> add_children_to_bbox new_bb new_children
       |> add_vertices_to_bbox new_bb new_vertices)
+end
+
+fun fresh_copy_bbox bb g = let
+  val vrn = VSub.mk_from_avoids (get_vertices g)
+  val ern = ESub.mk_from_avoids (get_edges g)
+  val brn = BSub.mk_from_avoids (get_bboxes g)
+  val ((_,_,brn'),g') = copy_bbox bb ((vrn,ern,brn),g)
+in (BSub.get brn' bb, g')
+end
+
+fun fresh_copy_bbox_anon bb g = let
+  val vrn = VSub.mk_from_avoids (get_vertices g)
+  val ern = ESub.mk_from_avoids (get_edges g)
+  val brn = BSub.mk_from_avoids (get_bboxes g)
+  val ((_,_,brn'),g') = copy_bbox bb ((vrn,ern,brn),g)
+in snd (copy_bbox bb ((vrn,ern,brn),g))
 end
 
 fun pretty_edge_desc g e =

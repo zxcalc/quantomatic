@@ -16,7 +16,7 @@ sig
   val get_rule_lhs_annotation : T -> R.name -> GraphAnnotations.T;
   val get_rule_rhs_annotation : T -> R.name -> GraphAnnotations.T;
 
-  val get_rule_annotation_tab : T -> (data*(GraphAnnotations.T*GraphAnnotations.T)) R.NTab.T;
+  val get_rule_annotation_tab : T -> (data*(GraphAnnotations.T*GraphAnnotations.T)) RTab.T;
 
   val set_ruleset_annotation : data -> T -> T;
   val set_rule_annotation : R.name -> data -> T -> T;
@@ -50,77 +50,70 @@ struct
   structure GraphAnnotations = GraphAnnotations;
   type data = GraphAnnotations.data;
   structure GA = GraphAnnotations;
-  type T = (data * ((data * (GA.T * GA.T)) R.NTab.T));
+  type T = (data * ((data * (GA.T * GA.T)) RTab.T));
 
-  val init = (GA.empty_data,R.NTab.empty);
+  val init = (GA.empty_data,RTab.empty);
 
   fun get_ruleset_annotation (rsa,_) = rsa;
   fun get_rule_annotation (_,ratab) r =
-    case R.NTab.lookup ratab r
+    case RTab.get_opt ratab r
       of SOME (ra,_) => ra
        | NONE => GA.empty_data;
   fun get_rule_lhs_annotation (_,ratab) r =
-    case R.NTab.lookup ratab r
+    case RTab.get_opt ratab r
       of SOME (_,(ga,_)) => ga
        | NONE => GA.init;
   fun get_rule_rhs_annotation (_,ratab) r =
-    case R.NTab.lookup ratab r
+    case RTab.get_opt ratab r
       of SOME (_,(_,ga)) => ga
        | NONE => GA.init;
 
   fun get_rule_annotation_tab (_,ratab) = ratab;
 
-  fun set_ruleset_annotation d (_,ratab) = (d,ratab);
-  fun set_rule_annotation r d (rsa,ratab) =
-    (rsa,
-     R.NTab.map_entry (fn (_,gas) => (d,gas)) r ratab
-     handle R.NTab.Tab.UNDEF _ =>
-       R.NTab.update_new (r,(d,(GA.init,GA.init))) ratab);
-  fun set_rule_lhs_annotation r ann (rsa,ratab) =
-    (rsa,
-     R.NTab.map_entry (fn (ra,(_,rhs)) => (ra,(ann,rhs))) r ratab
-     handle R.NTab.Tab.UNDEF _ =>
-       R.NTab.update_new (r,(GA.empty_data,(ann,GA.init))) ratab);
-  fun set_rule_rhs_annotation r ann (rsa,ratab) =
-    (rsa,
-     R.NTab.map_entry (fn (ra,(lhs,_)) => (ra,(lhs,ann))) r ratab
-     handle R.NTab.Tab.UNDEF _ =>
-       R.NTab.update_new (r,(GA.empty_data,(GA.init,ann))) ratab);
-
   val update_ruleset_annotation = apfst;
   fun update_rule_annotation r f (rsa,rtab) =
-    (rsa,
-     R.NTab.map_entry (fn (rann,gas) => (f rann,gas)) r rtab
-     handle R.NTab.Tab.UNDEF _ =>
-       R.NTab.update_new (r,(f GA.empty_data,(GA.init,GA.init))) rtab);
+    (
+      rsa,
+      RTab.map_default
+        (fn (rann,gas) => (f rann,gas))
+        (GA.empty_data,(GA.init,GA.init)) r rtab
+    )
+
   fun update_rule_lhs_annotation r f (rsa,rtab) =
-    (rsa,
-     R.NTab.map_entry (fn (rann,(lhs,rhs)) => (rann,(f lhs,rhs))) r rtab
-     handle R.NTab.Tab.UNDEF _ =>
-       R.NTab.update_new (r,(GA.empty_data,(f GA.init,GA.init))) rtab);
+    (
+      rsa,
+      RTab.map_default
+        (fn (rann,(lhs,rhs)) => (rann,(f lhs,rhs)))
+        (GA.empty_data,(GA.init,GA.init)) r rtab
+    )
+
   fun update_rule_rhs_annotation r f (rsa,rtab) =
-    (rsa,
-     R.NTab.map_entry (fn (rann,(lhs,rhs)) => (rann,(lhs,f rhs))) r rtab
-     handle R.NTab.Tab.UNDEF _ =>
-       R.NTab.update_new (r,(GA.empty_data,(GA.init,f GA.init))) rtab);
+    (
+      rsa,
+      RTab.map_default
+        (fn (rann,(lhs,rhs)) => (rann,(lhs,f rhs)))
+        (GA.empty_data,(GA.init,GA.init)) r rtab
+    )
+
+  fun set_ruleset_annotation ann (_,ratab) = (ann,ratab)
+  fun set_rule_annotation r ann = update_rule_annotation r (K ann)
+  fun set_rule_lhs_annotation r ann = update_rule_lhs_annotation r (K ann)
+  fun set_rule_rhs_annotation r ann = update_rule_rhs_annotation r (K ann)
 
   fun merge (rsa,rtab1) (_,rtab2) =
-    (rsa, R.NTab.merge_joint (K true) rtab2 rtab1);
-  fun remove_rule_annotation r (rsa,rtab) = (rsa, R.NTab.delete r rtab);
+    (rsa, RTab.fold RTab.set rtab2 rtab1);
+  fun remove_rule_annotation r (rsa,rtab) = (rsa, RTab.delete r rtab);
   fun rename_rule old new (rsa,rtab) =
-    case R.NTab.try_rename1 old new rtab
-      of SOME rtab' => (rsa,rtab')
-       | NONE =>
-           let
-             val rtab1 = R.NTab.delete new rtab
-             val rtab2 = the (R.NTab.try_rename1 old new rtab1)
-           in
-             (rsa,rtab2)
-           end;
+    if not (R.name_eq (old,new)) then
+      let
+        val ann = RTab.get rtab old
+      in (rsa, rtab |> RTab.delete old |> RTab.add (new,ann))
+      end
+    else (rsa,rtab)
 
   fun cleanup rset (ras,rtab) =
-    (ras, R.NTab.fold
-          (fn (k,_) => if R.NSet.contains rset k then I else R.NTab.delete k)
+    (ras, RTab.fold
+          (fn (k,_) => if R.NSet.contains rset k then I else RTab.delete k)
           rtab rtab);
 
   val pretty_data = GraphAnnotations.pretty_data;
@@ -151,7 +144,7 @@ struct
            pretty_data (get_ruleset_annotation ann)],
           Pretty.block
           [Pretty.str "Rule Annotations: ",
-          R.NTab.pretty pretty_rule (get_rule_annotation_tab ann)]]],
+          RTab.pretty pretty_rule (get_rule_annotation_tab ann)]]],
        Pretty.str "}"];
   val print = Pretty.writeln o pretty;
 end;
@@ -165,8 +158,8 @@ signature RULESET_STRING_TABLE_ANNOTATIONS =
 sig
   include RULESET_ANNOTATIONS where type data = string Symtab.table;
 
-  val lookup_ruleset_property : T -> string -> string option;
-  val lookup_rule_property : T -> R.name -> string -> string option;
+  val get_ruleset_property_opt : T -> string -> string option;
+  val get_rule_property_opt : T -> R.name -> string -> string option;
 
   val set_ruleset_property : (string * string) -> T -> T;
   val set_rule_property : R.name -> (string * string) -> T -> T;
@@ -182,8 +175,8 @@ struct
   );
   open Ann;
 
-  val lookup_ruleset_property = Symtab.lookup o Ann.get_ruleset_annotation;
-  val lookup_rule_property = Symtab.lookup oo Ann.get_rule_annotation;
+  val get_ruleset_property_opt = Symtab.lookup o Ann.get_ruleset_annotation;
+  val get_rule_property_opt = Symtab.lookup oo Ann.get_rule_annotation;
 
   val set_ruleset_property = Ann.update_ruleset_annotation o Symtab.update;
   fun set_rule_property r = (Ann.update_rule_annotation r) o Symtab.update;

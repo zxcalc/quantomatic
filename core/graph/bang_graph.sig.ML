@@ -46,7 +46,8 @@ sig
    *)
   val add_to_bbox : B.name -> V.NSet.T -> T -> (V.NSet.T * T)
   val add_to_bbox_anon : B.name -> V.NSet.T -> T -> T
-  
+  val remove_from_all_bboxes : V.NSet.T -> T -> T
+
   (* no_such_bbox_exp if !-box does not exist *)
   (* does not raise if verts are not in !-box *)
   (* Does not remove any vertices that are
@@ -57,6 +58,7 @@ sig
    *)
   val remove_from_bbox : B.name -> V.NSet.T -> T -> (V.NSet.T * T)
   val remove_from_bbox_anon : B.name -> V.NSet.T -> T -> T
+
   
   
   (* Set parent of the first bbox to be the second bbox, or clears
@@ -96,8 +98,10 @@ sig
 
   val copy_bbox : B.name -> (VSub.T * ESub.T * BSub.T) * T
                          -> (VSub.T * ESub.T * BSub.T) * T
+
   
-  
+  val fresh_copy_bbox : B.name -> T -> (B.name * T)
+  val fresh_copy_bbox_anon : B.name -> T -> T  
 
   val rename_bang_graph      : (VSub.T * ESub.T * BSub.T) -> T ->
                                (VSub.T * ESub.T * BSub.T) * T
@@ -106,8 +110,6 @@ sig
   val rename_bbox            : B.name -> B.name -> T -> T
   val rename_bbox_opt        : B.name -> B.name -> T -> T option
 
-  (*val fresh_copy_bbox : B.name -> T -> (B.name * T)
-  val fresh_copy_bbox_anon : B.name -> T -> T*)
   
   (*
 

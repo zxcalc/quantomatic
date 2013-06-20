@@ -13,8 +13,8 @@
 
 structure Commands =
 struct
-  type vertexDesc = { name: string, vType: string, data: ComponentData.T, userData: string };
-  type edgeDesc = { name: string, eType: string, sourceName: string, targetName: string, directed: bool, data: ComponentData.T, userData: string };
+  type vertexDesc = { name: string, vType: string, data: string, userData: string };
+  type edgeDesc = { name: string, eType: string, sourceName: string, targetName: string, directed: bool, data: string, userData: string };
   type bangBoxDesc = { name: string, vertexNames: string list };
   type graphDesc = { name: string, vertices: vertexDesc list, edges: edgeDesc list, bangBoxen: bangBoxDesc list };
   type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
@@ -27,7 +27,6 @@ struct
                         | DescriptionFormat;
   datatype componentData = StringCData of string
                          | XmlCData of (XML.tree list)
-                         | DescriptionCData of ComponentData.T;
 
                      (* A dummy request does not change the state, and simply produces the given response *)
   datatype request = DummyRequest of { response: response }
@@ -257,7 +256,6 @@ struct
                     | VertexDescriptionResponse of { vertex: vertexDesc }
                     | EdgeDescriptionResponse of { edge: edgeDesc }
                     | BangBoxDescriptionResponse of { bangBox: bangBoxDesc }
-                    | ComponentDataResponse of { data: ComponentData.T }
                     | RewriteListResponse of { rewrites: rewriteDesc list }
 
                     | UnknownResponse of { code: string }

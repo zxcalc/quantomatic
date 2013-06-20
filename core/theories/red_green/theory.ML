@@ -8,6 +8,16 @@ struct
                   | Znd of LinratAngleExpr.T (* Green *)
                   | Hnd (* Hadamard node *)
 
+  val nvdata_typestrings = ["X","Z","hadamard"]
+  fun default_nvdata_of_typestring s =
+    case s of "X" => Xnd LinratAngleExpr.zero
+            | "Z" => Znd LinratAngleExpr.zero
+            | "hadamard" => Hnd
+  fun typestring_of_nvdata d =
+    case d of Xnd _ => "X"
+            | Znd _ => "Z"
+            | Hnd => "hadamard"
+  
   val default_nvdata = Znd LinratAngleExpr.zero
 
   fun nvdata_eq (Hnd, Hnd) = true

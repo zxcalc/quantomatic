@@ -9,7 +9,6 @@ sig
   structure MetController : METRICS;
 
   type rewrite = (R.name * Theory.Rule.T) * Theory.Graph.T
-  type vertex = (Theory.Graph.vdata * (E.NSet.T * E.NSet.T));
   type edge = ((dir_or_undir * Theory.Graph.edata) * (V.name * V.name));
   datatype undo_block = RWR of (Theory.Graph.T * GraphUserData.T)
                       | UA of (Theory.Graph.T * GraphUserData.T)
@@ -21,7 +20,7 @@ sig
   exception no_such_graph_user_data_exp of (GraphName.name * string);
   exception no_such_vertex_user_data_exp of (V.name * string);
   exception no_such_edge_user_data_exp of (E.name * string);
-  exception no_such_bangbox_user_data_exp of (B.name * string);
+  exception no_such_bbox_user_data_exp of (B.name * string);
   exception no_such_rule_user_data_exp of (R.name * string);
   exception no_such_vertex_exp of (V.name * GraphName.name);
   exception no_such_vertex_type_exp of string;
@@ -119,7 +118,7 @@ sig
   val add_graph : GraphName.name -> Theory.Graph.T -> T -> GraphName.name * T
   val copy_subgraph : GraphName.name -> GraphName.name -> V.name list -> T -> T
 
-  val add_vertex : string -> GraphName.name -> T -> (V.name * vertex) * T
+  val add_vertex : string -> GraphName.name -> T -> (V.name * Theory.Graph.vdata) * T
   val add_edge : string -> dir_or_undir  -> V.name -> V.name -> GraphName.name -> T -> (E.name * edge) * T
   val add_bang : GraphName.name -> T -> B.name * T
 
@@ -142,25 +141,25 @@ sig
 
   (* UI Data getters/setters *)
   (* rules *)
-  val lookup_rule_ud_property : T -> R.name -> string -> string option
+  val get_rule_ud_property_opt : T -> R.name -> string -> string option
   val set_rule_ud_property : string -> string -> R.name -> T -> T
   val delete_rule_ud_property : string -> R.name -> T -> T
   (* Graph userdata *)
-  val lookup_graph_ud_property : T -> GraphName.name -> string -> string option
+  val get_graph_ud_property_opt : T -> GraphName.name -> string -> string option
   val set_graph_ud_property : string -> string ->  GraphName.name -> T -> T
   val delete_graph_ud_property : string -> GraphName.name -> T -> T
   (* Vertex userdata *)
-  val lookup_vertex_ud_property : T -> GraphName.name -> V.name -> string -> string option
+  val get_vertex_ud_property_opt : T -> GraphName.name -> V.name -> string -> string option
   val set_vertex_ud_property : string -> string -> V.name -> GraphName.name -> T -> T
   val delete_vertex_ud_property : string -> V.name -> GraphName.name -> T -> T
   (* Edge userdata *)
-  val lookup_edge_ud_property : T -> GraphName.name -> E.name -> string -> string option
+  val get_edge_ud_property_opt : T -> GraphName.name -> E.name -> string -> string option
   val set_edge_ud_property : string -> string -> E.name -> GraphName.name -> T -> T
   val delete_edge_ud_property : string -> E.name -> GraphName.name -> T -> T
   (* !-box userdata *)
-  val lookup_bangbox_ud_property : T -> GraphName.name -> B.name -> string -> string option
-  val set_bangbox_ud_property : string -> string -> B.name -> GraphName.name -> T -> T
-  val delete_bangbox_ud_property : string -> B.name -> GraphName.name -> T -> T
+  val get_bbox_ud_property_opt : T -> GraphName.name -> B.name -> string -> string option
+  val set_bbox_ud_property : string -> string -> B.name -> GraphName.name -> T -> T
+  val delete_bbox_ud_property : string -> B.name -> GraphName.name -> T -> T
 
   (* Functions for metrics *)
   val set_metric : string -> T -> T;
@@ -193,7 +192,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
   exception no_such_graph_user_data_exp of (GraphName.name * string);
   exception no_such_vertex_user_data_exp of (V.name * string);
   exception no_such_edge_user_data_exp of (E.name * string);
-  exception no_such_bangbox_user_data_exp of (B.name * string);
+  exception no_such_bbox_user_data_exp of (B.name * string);
   exception no_such_rule_user_data_exp of (R.name * string);
   exception no_such_vertex_exp of (V.name * GraphName.name);
   exception no_such_vertex_type_exp of string;
@@ -216,7 +215,6 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
   exception not_an_int_exp of string;
   exception duplicate_name_exp of unit;
   type rewrite = (R.name * Rule.T) * Graph.T (* rule, and graph to be rewritten to *)
-  type vertex =  (Graph.vdata * (E.NSet.T * E.NSet.T));
   type edge = ((dir_or_undir * Graph.edata) * (V.name * V.name));
   datatype undo_block = RWR of (Theory.Graph.T * GraphUserData.T)
                       | UA of (Theory.Graph.T * GraphUserData.T)
@@ -566,22 +564,23 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
 
 
   fun add_vertex_internal vt graph =
-      (let val (n,g) = graph |> Graph.add_vertex (Theory.VertexComponentData.default_data vt) in
-          ((n,Graph.get_vertex g n), g)
+      (let val (n,g) = graph |> Graph.add_vertex (Theory.Graph.default_vdata_of_typestring vt) in
+          ((n,Graph.get_vertex_data g n), g)
        end
-       handle Theory.VertexComponentData.unknown_type_exp _ => raise no_such_vertex_type_exp vt)
+       handle unknown_typestring_exp _ => raise no_such_vertex_type_exp vt)
   fun add_vertex vt gname state = lift_graph_mutator (add_vertex_internal vt) gname state
 
   fun add_edge_internal et dir_or_undir v1 v2 graph = let
-    val data = Theory.EdgeComponentData.default_data et
-               handle Theory.EdgeComponentData.unknown_type_exp _
+    val data = Theory.Graph.default_edata_of_typestring et
+               handle unknown_typestring_exp _
                         => raise no_such_edge_type_exp et
-    val _ = case Graph.tryget_bbox_extended_by_edge v1 v2 graph
+    (*val _ = case Graph.tryget_bbox_extended_by_edge v1 v2 graph
               of NONE => ()
-               | SOME b => raise Graph.bbox_not_open_exp ((v1,v2),b,graph)
+               | SOME b => raise Graph.bbox_not_open_exp ((v1,v2),b,graph)*)
+    (* TODO: add_edge should throw exception if it breaks open-ness. handle this appropriately *)
     val (n,g) = graph |> Graph.add_edge (dir_or_undir,data) v1 v2
   in
-    ((n,Graph.get_edge g n), g)
+    ((n,Graph.get_edge_info g n), g)
   end
 
   fun add_edge et dir_or_undir v1 v2 gname state =
@@ -600,7 +599,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
     lift_graph_mutator_no_result (fold Graph.delete_edge es)
 
   fun rename_vertex_internal old new graph =
-    ((new,NONE),graph |> Graph.rename_vname old new)
+    ((new,NONE),graph |> Graph.rename_vertex old new)
     handle Graph.vname_already_exists_exp _ =>
       (* Rename apart the old vertex *)
       let
@@ -608,8 +607,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
          * to generate a fresh name, but how?*)
         val ((frshN,_),_) = add_vertex_internal "edge-point" graph
       in
-        ((new,SOME frshN),graph |> Graph.rename_vname new (frshN)
-                           |> Graph.rename_vname old new)
+        ((new,SOME frshN),graph |> Graph.rename_vertex new (frshN)
+                           |> Graph.rename_vertex old new)
       end;
  
   (* There was no conflict *) 
@@ -648,7 +647,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
       state |> set_graph_ud ud' graphName
     end;
 
-  fun rename_edge_internal old new graph = (graph |> Graph.rename_ename old new)
+  fun rename_edge_internal old new graph = (graph |> Graph.rename_edge old new)
   fun rename_edge old new graph state = 
       let
         val state' = lift_graph_mutator_no_result (rename_edge_internal old new) graph state
@@ -661,7 +660,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
     let
       val state' = lift_graph_mutator_no_result (rename_bang_internal old new) graph state
     in
-      state' |> rename_edge_or_bb_uidata GraphUserData.rename_bangbox old new graph
+      state' |> rename_edge_or_bb_uidata GraphUserData.rename_bbox old new graph
     end;
 
   fun undo_rewrite gname state = 
@@ -858,9 +857,18 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
       val _ = map (assert_vertex_exists state source) vs
       val vset = V.NSet.of_list vs
                  handle V.NSet.duplicate_exp _ => raise duplicate_name_exp ()
-      val clip = Graph.delete_subgraph_outside_vset
-                   vset
-                   (get_graph state source)
+      val source_graph = get_graph state source
+      val keep_vertex = V.NSet.contains vset
+      fun keep_bbox b = not (V.NSet.is_empty (V.NSet.intersect
+          (Graph.get_vertices_in_bbox source_graph b)
+          vset
+        ))
+      val clip = source_graph
+        |> V.NSet.fold (fn v => if keep_vertex v then I else Graph.delete_vertex v)
+                       (Graph.get_vertices source_graph)
+        |> B.NSet.fold (fn b => if keep_bbox b then I else Graph.delete_bbox b)
+                       (Graph.get_bboxes source_graph)
+                   
       fun add_v_ud ud n =
         let
           val v_ud = GraphUserData.get_vertex_annotation ud n
@@ -877,16 +885,16 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
         end
       fun add_b_ud ud n =
         let
-          val b_ud = GraphUserData.get_bangbox_annotation ud n
+          val b_ud = GraphUserData.get_bbox_annotation ud n
           val b_ud_with_src = Symtab.update ("copy_of", B.dest n) b_ud
         in
-          GraphUserData.set_bangbox_annotation n b_ud_with_src
+          GraphUserData.set_bbox_annotation n b_ud_with_src
         end
       val ud  = get_graph_ud state source
       val ud' = GraphUserData.init
            |> fold (add_v_ud ud) (V.NSet.list_of (Graph.get_vertices clip))
            |> fold (add_e_ud ud) (E.NSet.list_of (Graph.get_edges clip))
-           |> fold (add_b_ud ud) (Graph.get_bbox_list clip)
+           |> fold (add_b_ud ud) (B.NSet.list_of (Graph.get_bboxes clip))
            |> GraphUserData.set_graph_annotation (GraphUserData.get_graph_annotation ud)
   in
     state |> set_graph clip target
@@ -898,20 +906,23 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
       let
         val sarg = get_graph state sname
         val targ = get_graph state tname
-        val ((_,vrn,ern), source) = Graph.rename_apart targ sarg
+        val vrn = VSub.mk_from_avoids (Graph.get_vertices targ)
+        val ern = ESub.mk_from_avoids (Graph.get_edges targ)
+        val brn = BSub.mk_from_avoids (Graph.get_bboxes targ)
+        val ((vrn,ern,_), source) = Graph.rename_bang_graph (vrn,ern,brn) sarg
         (* Rename the ud and insert it on the new graph  *)
         val ud_s = get_graph_ud state sname
         val ud_t = get_graph_ud state tname
-        val ud_s' = GraphUserData.apply_renaming (vrn,ern,B.Rnm.empty) ud_s
-        val ud' = ud_t |> V.NTab.fold
+        val ud_s' = GraphUserData.apply_renaming (vrn,ern,BSub.empty) ud_s
+        val ud' = ud_t |> VTab.fold
                           (fn (k,v) => GraphUserData.set_vertex_annotation k v)
                           (GraphUserData.get_vertex_annotation_tab ud_s')
-                       |> E.NTab.fold
+                       |> ETab.fold
                           (fn (k,v) => GraphUserData.set_edge_annotation k v)
                           (GraphUserData.get_edge_annotation_tab ud_s')
-                       |> B.NTab.fold
-                          (fn (k,v) => GraphUserData.set_bangbox_annotation k v)
-                          (GraphUserData.get_bangbox_annotation_tab ud_s')
+                       |> BTab.fold
+                          (fn (k,v) => GraphUserData.set_bbox_annotation k v)
+                          (GraphUserData.get_bbox_annotation_tab ud_s')
       in state |> push_hist tname UA
                |> set_graph (Graph.merge_by_vertices targ source) tname
                |> set_graph_ud ud' tname
@@ -936,9 +947,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
   (* Set, delete and get the user data  *)
 
   (* rules *)
-  fun lookup_rule_ud_property state rn prop =
+  fun get_rule_ud_property_opt state rn prop =
     let val () = assert_rule_exists state rn in
-      RulesetUserData.lookup_rule_property (get_rset_ud state) rn prop
+      RulesetUserData.get_rule_property_opt (get_rset_ud state) rn prop
     end
   fun set_rule_ud_property dn ud rn =
     update_rset_ud (RulesetUserData.set_rule_property rn (dn,ud))
@@ -946,17 +957,17 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
     update_rset_ud (RulesetUserData.remove_rule_property rn dn)
 
   (* On Graphs:  *)
-  fun lookup_graph_ud_property state gn prop =
-    GraphUserData.lookup_graph_property (get_graph_ud state gn) prop
+  fun get_graph_ud_property_opt state gn prop =
+    GraphUserData.get_graph_property_opt (get_graph_ud state gn) prop
   fun set_graph_ud_property dn ud = lift_ud_mutator_no_result
     (GraphUserData.set_graph_property (dn,ud))
   fun delete_graph_ud_property dn = lift_ud_mutator_no_result
     (GraphUserData.remove_graph_property dn)
 
   (* On Vertices:  *)
-  fun lookup_vertex_ud_property state gn vn prop =
+  fun get_vertex_ud_property_opt state gn vn prop =
     let val () = assert_vertex_exists state gn vn in
-      GraphUserData.lookup_vertex_property (get_graph_ud state gn) vn prop
+      GraphUserData.get_vertex_property_opt (get_graph_ud state gn) vn prop
     end
   fun set_vertex_ud_property dn ud vn = lift_ud_mutator_no_result
     (GraphUserData.set_vertex_property vn (dn,ud))
@@ -964,9 +975,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
     (GraphUserData.remove_vertex_property vn dn)
 
   (* On Edges:  *)
-  fun lookup_edge_ud_property state gn en prop =
+  fun get_edge_ud_property_opt state gn en prop =
     let val () = assert_edge_exists state gn en in
-      GraphUserData.lookup_edge_property (get_graph_ud state gn) en prop
+      GraphUserData.get_edge_property_opt (get_graph_ud state gn) en prop
     end
   fun set_edge_ud_property dn ud en = lift_ud_mutator_no_result
     (GraphUserData.set_edge_property en (dn,ud))
@@ -974,14 +985,14 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
     (GraphUserData.remove_edge_property en dn)
 
   (* On Bang Boxes:  *)
-  fun lookup_bangbox_ud_property state gn bn prop =
+  fun get_bbox_ud_property_opt state gn bn prop =
     let val () = assert_bbox_exists state gn bn in
-      GraphUserData.lookup_bangbox_property (get_graph_ud state gn) bn prop
+      GraphUserData.get_bbox_property_opt (get_graph_ud state gn) bn prop
     end
-  fun set_bangbox_ud_property dn ud bn = lift_ud_mutator_no_result
-    (GraphUserData.set_bangbox_property bn (dn,ud))
-  fun delete_bangbox_ud_property dn bn = lift_ud_mutator_no_result
-    (GraphUserData.remove_bangbox_property bn dn)
+  fun set_bbox_ud_property dn ud bn = lift_ud_mutator_no_result
+    (GraphUserData.set_bbox_property bn (dn,ud))
+  fun delete_bbox_ud_property dn bn = lift_ud_mutator_no_result
+    (GraphUserData.remove_bbox_property bn dn)
 
   fun start_undo_group gname state =
     state |> update_merge_changes (GraphName.NTab.update (gname,true))

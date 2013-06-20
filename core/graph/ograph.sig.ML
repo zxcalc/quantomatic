@@ -43,6 +43,10 @@ val vdata_eq : vdata * vdata -> bool
 val edata_eq : edata * edata -> bool
 val default_vdata : vdata
 val default_edata : edata
+val default_vdata_of_typestring : string -> vdata
+val default_edata_of_typestring : string -> edata
+val typestring_of_vdata : vdata -> string
+val typestring_of_edata : edata -> string
 
 val pretty_vdata : vdata -> Pretty.T
 val pretty_edata : edata -> Pretty.T
