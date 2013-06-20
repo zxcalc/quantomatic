@@ -9,8 +9,8 @@ sig
   structure MetController : METRICS;
 
   type rewrite = (R.name * Theory.Rule.T) * Theory.Graph.T
-  type vertex = (Theory.OVData.data * (E.NSet.T * E.NSet.T));
-  type edge = ((Theory.Graph.dir_or_undir * Theory.EData.data) * (V.name * V.name));
+  type vertex = (Theory.Graph.vdata * (E.NSet.T * E.NSet.T));
+  type edge = ((dir_or_undir * Theory.Graph.edata) * (V.name * V.name));
   datatype undo_block = RWR of (Theory.Graph.T * GraphUserData.T)
                       | UA of (Theory.Graph.T * GraphUserData.T)
   type history = ((undo_block) list * 
@@ -120,11 +120,11 @@ sig
   val copy_subgraph : GraphName.name -> GraphName.name -> V.name list -> T -> T
 
   val add_vertex : string -> GraphName.name -> T -> (V.name * vertex) * T
-  val add_edge : string -> Theory.Graph.dir_or_undir  -> V.name -> V.name -> GraphName.name -> T -> (E.name * edge) * T
+  val add_edge : string -> dir_or_undir  -> V.name -> V.name -> GraphName.name -> T -> (E.name * edge) * T
   val add_bang : GraphName.name -> T -> B.name * T
 
-  val update_vertex_data : (Theory.OVData.data -> Theory.OVData.data) -> V.name -> GraphName.name -> T -> T
-  val update_edge_data : (Theory.EData.data -> Theory.EData.data) -> E.name -> GraphName.name -> T -> T
+  val update_vertex_data : (Theory.Graph.vdata -> Theory.Graph.vdata) -> V.name -> GraphName.name -> T -> T
+  val update_edge_data : (Theory.Graph.edata -> Theory.Graph.edata) -> E.name -> GraphName.name -> T -> T
   val rename_vertex : V.name -> V.name -> GraphName.name -> T -> (V.name*(V.name option)) * T
   val rename_edge : E.name -> E.name -> GraphName.name -> T -> T
   val rename_bang : B.name -> B.name -> GraphName.name -> T -> T
@@ -185,8 +185,6 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
   structure Ruleset = Theory.Ruleset;
   structure Rule = Theory.Rule;
   structure Graph = Theory.Graph;
-  structure OVData = Graph.OVData;
-  structure EData = Graph.EData;
   structure GraphUserData = GraphStringTableAnnotations;
   structure RulesetUserData = RulesetStringTableAnnotations;
   structure MetController = MetricsController(structure Graph = Graph);
@@ -218,8 +216,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
   exception not_an_int_exp of string;
   exception duplicate_name_exp of unit;
   type rewrite = (R.name * Rule.T) * Graph.T (* rule, and graph to be rewritten to *)
-  type vertex =  (OVData.data * (E.NSet.T * E.NSet.T));
-  type edge = ((Graph.dir_or_undir * EData.data) * (V.name * V.name));
+  type vertex =  (Graph.vdata * (E.NSet.T * E.NSet.T));
+  type edge = ((dir_or_undir * Graph.edata) * (V.name * V.name));
   datatype undo_block = RWR of (Theory.Graph.T * GraphUserData.T)
                       | UA of (Theory.Graph.T * GraphUserData.T)
   type history = ((undo_block) list * 
@@ -349,22 +347,22 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
       else ();
 
   fun assert_vertex_exists state gname vname =
-        if Graph.has_vname (get_graph state gname) vname then ()
+        if Graph.has_vertex (get_graph state gname) vname then ()
         else raise no_such_vertex_exp (vname, gname);
 
   fun assert_vertex_exists_gr graph vname =
-        if Graph.has_vname graph vname then ()
+        if Graph.has_vertex graph vname then ()
         else raise Graph.no_such_vname_exp ("ASSERT", vname, graph);
 
   fun assert_vertices_exist state gname vs =
         fold (fn v => fn () => assert_vertex_exists state gname v) vs ();
 
   fun assert_edge_exists state gname ename =
-        if Graph.has_ename (get_graph state gname) ename then ()
+        if Graph.has_edge (get_graph state gname) ename then ()
         else raise no_such_edge_exp (ename, gname);
 
   fun assert_edge_exists_gr graph ename =
-        if Graph.has_ename graph ename then ()
+        if Graph.has_edge graph ename then ()
         else raise Graph.no_such_ename_exp ("ASSERT", ename, graph);
 
   fun assert_bbox_exists state gname bname =
@@ -375,14 +373,14 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
   (* Internal function: takes the state and updates the rset_uidata
    * against the current ruleset: removes dead user data  *)
   fun update_rset_uidata_against state = let
-    val rulenames = (R.NTab.get_nameset o Ruleset.get_allrules o get_rset) state
+    val rulenames = (RTab.get_dom_set o Ruleset.get_allrules o get_rset) state
   in
     update_rset_ud (RulesetUserData.cleanup rulenames) state
   end;
 
   (* basic stuff on rule tags *)
   val list_allrules =
-      R.NSet.list_of o R.NTab.get_nameset o Ruleset.get_allrules o get_rset
+      R.NSet.list_of o RTab.get_dom_set o Ruleset.get_allrules o get_rset
 
   val list_active_rules =
       R.NSet.list_of o Ruleset.get_active o get_rset
@@ -394,7 +392,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
     if Ruleset.tag_exists (get_rset state) tag_name
     then
       let
-        val rule_name_set = TagRel.codf (Ruleset.get_tagrel (get_rset state)) tag_name
+        val rule_name_set = RTagRel.inv_img (Ruleset.get_tagrel (get_rset state)) tag_name
       in
         R.NSet.list_of rule_name_set
       end
@@ -432,7 +430,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
         val (rule,(vrn,ern)) = Ruleset.Rule.mk_with_renamings (lgr, rgr)
         val lgr_ud = get_graph_ud state lhs
         val rgr_ud = GraphUserData.apply_renaming
-                      (vrn,ern,B.Rnm.empty)
+                      (vrn,ern,BSub.empty)
                       (get_graph_ud state rhs)
         val upd_ud = (RulesetUserData.set_rule_lhs_annotation rule_name lgr_ud)
                      o (RulesetUserData.set_rule_rhs_annotation rule_name rgr_ud)
@@ -501,8 +499,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
       handle GraphName.NTab.Tab.UNDEF _ => raise no_such_graph_exp oldname)
 
   fun cleanup_graph_userdata gname newg state = let
-    val vs = Graph.get_vnames newg
-    val es = Graph.get_enames newg
+    val vs = Graph.get_vertices newg
+    val es = Graph.get_edges newg
     val bs = Graph.get_bboxes newg
     val cleanup = GraphUserData.cleanup (vs,es,bs)
     val old_ud = get_graph_ud state gname
@@ -761,7 +759,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
   fun apply_first_rewrite gname state = 
       let
         val graph = get_graph state gname 
-        val (n,state') = attach_with apply_first_in gname (V.NSet.list_of (Graph.get_vnames graph)) state
+        val (n,state') = attach_with apply_first_in gname (V.NSet.list_of (Graph.get_vertices graph)) state
       in if n = 0 then raise bad_state_exp "No more rewrites."
          else apply_rewrite gname 0 state'
       end
@@ -811,7 +809,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
 
   fun duplicate_bang bb gname state =
       let val _ = assert_bbox_exists state gname bb in
-        lift_graph_mutator (Graph.fresh_copy1_bbox bb) gname state
+        lift_graph_mutator (Graph.fresh_copy_bbox bb) gname state
       end
 
   fun bang_vertices box verts gname state =
@@ -886,8 +884,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
         end
       val ud  = get_graph_ud state source
       val ud' = GraphUserData.init
-           |> fold (add_v_ud ud) (V.NSet.list_of (Graph.get_vnames clip))
-           |> fold (add_e_ud ud) (E.NSet.list_of (Graph.get_enames clip))
+           |> fold (add_v_ud ud) (V.NSet.list_of (Graph.get_vertices clip))
+           |> fold (add_e_ud ud) (E.NSet.list_of (Graph.get_edges clip))
            |> fold (add_b_ud ud) (Graph.get_bbox_list clip)
            |> GraphUserData.set_graph_annotation (GraphUserData.get_graph_annotation ud)
   in
@@ -922,7 +920,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
   fun graph_of_rule getter ann_getter label state rulename =
       let
         val rset = get_rset state
-        val r = case R.NTab.lookup (Ruleset.get_allrules rset) rulename
+        val r = case RTab.get_opt (Ruleset.get_allrules rset) rulename
                      of SOME v => v
                     | NONE => raise no_such_rule_exp rulename
         val (name, graphs) = GraphName.NTab.add (GraphName.mk ((R.dest rulename)^"_"^label), getter r) (get_graphs state)

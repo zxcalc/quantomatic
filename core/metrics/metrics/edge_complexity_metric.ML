@@ -19,13 +19,13 @@ struct
   fun compute graph = let
     fun vert_weight v = let
       val edges = E.NSet.cardinality (E.NSet.union_merge 
-                                      (Graph.in_enames graph v)
-                                      (Graph.out_enames graph v))
+                                      (Graph.get_in_edges graph v)
+                                      (Graph.get_out_edges graph v))
       in if edges > 2 then edges else 0
       end
     fun vfld v (ec,count) = (ec + vert_weight v, count+1)
-    val (ec,verts) = V.NSet.fold vfld (Graph.get_vnames graph) (0,0)
-    val edges = (E.NSet.cardinality o Graph.get_enames) graph
+    val (ec,verts) = V.NSet.fold vfld (Graph.get_vertices graph) (0,0)
+    val edges = (E.NSet.cardinality o Graph.get_edges) graph
   in SOME (Tup3 (ec, verts, edges))
   end
   

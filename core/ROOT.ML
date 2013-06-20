@@ -117,14 +117,14 @@ PolyML.Project.make "stub_run.ML";
 (*
  * Metrics
  *)
-(*
+
 PolyML.Project.make "metrics/metric_type.ML"; (* Utils to handle int tuples *)
 PolyML.Project.make "metrics/metrics/metric.ML"; (* METRIC signature *)
 PolyML.Project.make "metrics/metrics/edge_complexity_metric.ML";
 PolyML.Project.make "metrics/metrics/weighted_arity_metric.ML";
 PolyML.Project.make "metrics/metrics/sets_cardinals_metric.ML";
 PolyML.Project.make "metrics/metrics.ML"; (* Metrics on graphs *)
-*)
+
 
 (*
  * Rules
@@ -298,14 +298,14 @@ Testing.make_test "dnets/test.ML";
 
 (* Performance tests for dnets *)
 (* Testing.make_test "dnets/perf.ML"; *)
-
+*)
 
 (*
  * Controller / Interface
  *)
 (* Overall controller for theories *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
-PolyML.Project.make "interface/controller.ML"; (* commands *)
+(*PolyML.Project.make "interface/controller.ML"; (* commands *)
 PolyML.Project.make "interface/controller_registry.ML"; (* theory lists *)
 
 (* interface protocol/console *)

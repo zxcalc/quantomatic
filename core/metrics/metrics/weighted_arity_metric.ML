@@ -1,6 +1,6 @@
 functor WeightedArityMetric(
   structure MT : METRIC_TYPE
-  val weight_for_data : MT.Graph.VData.data -> int
+  val weight_for_data : MT.Graph.vdata -> int
 ) : METRIC =
 struct
   structure MT = MT;
@@ -50,13 +50,13 @@ struct
   
   fun compute graph = let
     fun vert_weights v tot = let
-      val loops = E.NTab.cardinality (Graph.get_self_loops graph v)
-      val ins = E.NSet.cardinality (Graph.in_enames graph v) - loops
-      val outs = E.NSet.cardinality (Graph.out_enames graph v) - loops
-      val dat = fst (Graph.get_vertex graph v)
+      val loops = E.NSet.cardinality (Graph.get_self_loops graph v)
+      val ins = E.NSet.cardinality (Graph.get_in_edges graph v) - loops
+      val outs = E.NSet.cardinality (Graph.get_out_edges graph v) - loops
+      val dat = Graph.get_vertex_data graph v
     in (weight_for_data dat * weight_for_arity ins outs loops) + tot
     end
-  in SOME (Tup1 (V.NSet.fold vert_weights (Graph.get_vnames graph) 0))
+  in SOME (Tup1 (V.NSet.fold vert_weights (Graph.get_vertices graph) 0))
   end
 
   fun internal_ord ((SOME a), (SOME b)) = ord (a,b)

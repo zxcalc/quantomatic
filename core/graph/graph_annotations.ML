@@ -18,33 +18,33 @@ sig
   val get_graph_annotation : T -> data;
   val get_vertex_annotation : T -> V.name -> data;
   val get_edge_annotation : T -> E.name -> data;
-  val get_bangbox_annotation : T -> B.name -> data;
+  val get_bbox_annotation : T -> B.name -> data;
 
-  val get_vertex_annotation_tab : T -> data V.NTab.T;
-  val get_edge_annotation_tab : T -> data E.NTab.T;
-  val get_bangbox_annotation_tab : T -> data B.NTab.T;
+  val get_vertex_annotation_tab : T -> data VTab.T;
+  val get_edge_annotation_tab : T -> data ETab.T;
+  val get_bbox_annotation_tab : T -> data BTab.T;
 
   val set_graph_annotation : data -> T -> T;
   val set_vertex_annotation : V.name -> data -> T -> T;
   val set_edge_annotation : E.name -> data -> T -> T;
-  val set_bangbox_annotation : B.name -> data -> T -> T;
+  val set_bbox_annotation : B.name -> data -> T -> T;
 
   val update_graph_annotation : (data -> data) -> T -> T;
   val update_vertex_annotation : V.name -> (data -> data) -> T -> T;
   val update_edge_annotation : E.name -> (data -> data) -> T -> T;
-  val update_bangbox_annotation : B.name -> (data -> data) -> T -> T;
+  val update_bbox_annotation : B.name -> (data -> data) -> T -> T;
 
   val remove_vertex_annotation : V.name -> T -> T;
   val remove_edge_annotation : E.name -> T -> T;
-  val remove_bangbox_annotation : B.name -> T -> T;
+  val remove_bbox_annotation : B.name -> T -> T;
 
   val rename_vertex : V.name -> V.name -> T -> T;
   val rename_edge : E.name -> E.name -> T -> T;
-  val rename_bangbox : B.name -> B.name -> T -> T;
+  val rename_bbox : B.name -> B.name -> T -> T;
 
   (* Arg1 is components to retain *)
   val cleanup : (V.NSet.T * E.NSet.T * B.NSet.T) -> T -> T;
-  val apply_renaming : (V.Rnm.T * E.Rnm.T * B.Rnm.T) -> T -> T;
+  val apply_renaming : (VSub.T * ESub.T * BSub.T) -> T -> T;
 
   val pretty : T -> Pretty.T;
   val print : T -> unit;
@@ -64,135 +64,122 @@ struct
   datatype T = GraphAnn of
     {
       graph_annotation    : data,
-      vertex_annotation_tab  : data V.NTab.T,
-      edge_annotation_tab    : data E.NTab.T,
-      bangbox_annotation_tab : data B.NTab.T
+      vertex_annotation_tab  : data VTab.T,
+      edge_annotation_tab    : data ETab.T,
+      bbox_annotation_tab : data BTab.T
     };
 
   val init = GraphAnn
     {
       graph_annotation    = data_init,
-      vertex_annotation_tab  = V.NTab.empty,
-      edge_annotation_tab    = E.NTab.empty,
-      bangbox_annotation_tab = B.NTab.empty
+      vertex_annotation_tab  = VTab.empty,
+      edge_annotation_tab    = ETab.empty,
+      bbox_annotation_tab = BTab.empty
     };
 
   fun update_graph_annotation f (GraphAnn r) = GraphAnn {
     graph_annotation    = f(#graph_annotation r),
     vertex_annotation_tab  = #vertex_annotation_tab r,
     edge_annotation_tab    = #edge_annotation_tab r,
-    bangbox_annotation_tab = #bangbox_annotation_tab r
+    bbox_annotation_tab = #bbox_annotation_tab r
   }
 
   fun update_vertex_annotation_tab f (GraphAnn r) = GraphAnn {
     graph_annotation    = #graph_annotation r,
     vertex_annotation_tab  = f(#vertex_annotation_tab r),
     edge_annotation_tab    = #edge_annotation_tab r,
-    bangbox_annotation_tab = #bangbox_annotation_tab r
+    bbox_annotation_tab = #bbox_annotation_tab r
   }
 
   fun update_edge_annotation_tab f (GraphAnn r) = GraphAnn {
     graph_annotation    = #graph_annotation r,
     vertex_annotation_tab  = #vertex_annotation_tab r,
     edge_annotation_tab    = f(#edge_annotation_tab r),
-    bangbox_annotation_tab = #bangbox_annotation_tab r
+    bbox_annotation_tab = #bbox_annotation_tab r
   }
 
-  fun update_bangbox_annotation_tab f (GraphAnn r) = GraphAnn {
+  fun update_bbox_annotation_tab f (GraphAnn r) = GraphAnn {
     graph_annotation    = #graph_annotation r,
     vertex_annotation_tab  = #vertex_annotation_tab r,
     edge_annotation_tab    = #edge_annotation_tab r,
-    bangbox_annotation_tab = f(#bangbox_annotation_tab r)
+    bbox_annotation_tab = f(#bbox_annotation_tab r)
   }
 
-  fun get_graph_annotation    (GraphAnn r) = #graph_annotation r
+  fun get_graph_annotation       (GraphAnn r) = #graph_annotation r
   fun get_vertex_annotation_tab  (GraphAnn r) = #vertex_annotation_tab r
   fun get_edge_annotation_tab    (GraphAnn r) = #edge_annotation_tab r
-  fun get_bangbox_annotation_tab (GraphAnn r) = #bangbox_annotation_tab r
+  fun get_bbox_annotation_tab (GraphAnn r) = #bbox_annotation_tab r
 
   fun set_graph_annotation    x  = update_graph_annotation    (fn _ => x)
 
   fun get_vertex_annotation ann v =
-    case V.NTab.lookup (get_vertex_annotation_tab ann) v
+    case VTab.get_opt (get_vertex_annotation_tab ann) v
       of SOME x => x
        | NONE => data_init;
 
   fun get_edge_annotation ann e =
-    case E.NTab.lookup (get_edge_annotation_tab ann) e
+    case ETab.get_opt (get_edge_annotation_tab ann) e
       of SOME x => x
        | NONE => data_init;
 
-  fun get_bangbox_annotation ann e =
-    case B.NTab.lookup (get_bangbox_annotation_tab ann) e
+  fun get_bbox_annotation ann e =
+    case BTab.get_opt (get_bbox_annotation_tab ann) e
       of SOME x => x
        | NONE => data_init;
 
   fun set_vertex_annotation v d =
-    update_vertex_annotation_tab (V.NTab.update (v,d));
+    update_vertex_annotation_tab (VTab.set (v,d));
   fun set_edge_annotation e d =
-    update_edge_annotation_tab (E.NTab.update (e,d));
-  fun set_bangbox_annotation b d =
-    update_bangbox_annotation_tab (B.NTab.update (b,d));
+    update_edge_annotation_tab (ETab.set (e,d));
+  fun set_bbox_annotation b d =
+    update_bbox_annotation_tab (BTab.set (b,d));
 
   fun update_vertex_annotation v f ann =
-    update_vertex_annotation_tab (V.NTab.map_entry f v) ann
-    handle V.NTab.Tab.UNDEF _ => set_vertex_annotation v (f data_init) ann;
+    update_vertex_annotation_tab (VTab.map_default f data_init v) ann
   fun update_edge_annotation e f ann =
-    update_edge_annotation_tab (E.NTab.map_entry f e) ann
-    handle E.NTab.Tab.UNDEF _ => set_edge_annotation e (f data_init) ann;
-  fun update_bangbox_annotation b f ann =
-    update_bangbox_annotation_tab (B.NTab.map_entry f b) ann
-    handle B.NTab.Tab.UNDEF _ => set_bangbox_annotation b (f data_init) ann;
+    update_edge_annotation_tab (ETab.map_default f data_init e) ann
+  fun update_bbox_annotation b f ann =
+    update_bbox_annotation_tab (BTab.map_default f data_init b) ann
 
-  val remove_vertex_annotation = update_vertex_annotation_tab o V.NTab.delete;
-  val remove_edge_annotation = update_edge_annotation_tab o E.NTab.delete;
-  val remove_bangbox_annotation = update_bangbox_annotation_tab o B.NTab.delete;
-
-  fun rename_vertex old new = let
-    fun force_rnm tab =
-          case V.NTab.try_rename1 old new tab
-            of SOME tab' => tab'
-             | NONE => the (V.NTab.try_rename1 old new (V.NTab.delete new tab));
-  in
-    update_vertex_annotation_tab force_rnm
-  end;
-  fun rename_edge old new = let
-    fun force_rnm tab =
-          case E.NTab.try_rename1 old new tab
-            of SOME tab' => tab'
-             | NONE => the (E.NTab.try_rename1 old new (E.NTab.delete new tab));
-  in
-    update_edge_annotation_tab force_rnm
-  end;
-  fun rename_bangbox old new = let
-    fun force_rnm tab =
-          case B.NTab.try_rename1 old new tab
-            of SOME tab' => tab'
-             | NONE => the (B.NTab.try_rename1 old new (B.NTab.delete new tab));
-  in
-    update_bangbox_annotation_tab force_rnm
-  end;
+  val remove_vertex_annotation = update_vertex_annotation_tab o VTab.delete;
+  val remove_edge_annotation = update_edge_annotation_tab o ETab.delete;
+  val remove_bbox_annotation = update_bbox_annotation_tab o BTab.delete;
 
   fun cleanup (vs,es,bs) = let
-    fun upd_vtab vtab = V.NTab.fold
-          (fn (k,_) => if V.NSet.contains vs k then I else V.NTab.delete k)
+    fun upd_vtab vtab = VTab.fold
+          (fn (k,_) => if V.NSet.contains vs k then I else VTab.delete k)
           vtab vtab
-    fun upd_etab etab = E.NTab.fold
-          (fn (k,_) => if E.NSet.contains es k then I else E.NTab.delete k)
+    fun upd_etab etab = ETab.fold
+          (fn (k,_) => if E.NSet.contains es k then I else ETab.delete k)
           etab etab
-    fun upd_btab btab = B.NTab.fold
-          (fn (k,_) => if B.NSet.contains bs k then I else B.NTab.delete k)
+    fun upd_btab btab = BTab.fold
+          (fn (k,_) => if B.NSet.contains bs k then I else BTab.delete k)
           btab btab
   in
     (update_vertex_annotation_tab upd_vtab)
     o (update_edge_annotation_tab upd_etab)
-    o (update_bangbox_annotation_tab upd_btab)
+    o (update_bbox_annotation_tab upd_btab)
   end;
 
-  fun apply_renaming (vrnm,ernm,brnm) =
-    (update_vertex_annotation_tab ((snd oo V.NTab.rename) vrnm))
-    o (update_edge_annotation_tab ((snd oo E.NTab.rename) ernm))
-    o (update_bangbox_annotation_tab ((snd oo B.NTab.rename) brnm));
+  fun apply_renaming (vrn,ern,brn) ann =
+  let
+    val vrni = vrn |> VSub.extend_fixed (VTab.get_dom_set (get_vertex_annotation_tab ann)) |> VSub.inverse_of
+    val erni = ern |> ESub.extend_fixed (ETab.get_dom_set (get_edge_annotation_tab ann)) |> ESub.inverse_of
+    val brni = brn |> BSub.extend_fixed (BTab.get_dom_set (get_bbox_annotation_tab ann)) |> BSub.inverse_of
+  in
+    ann |> update_vertex_annotation_tab (fn m => VTab.compose (m,vrni))
+        |> update_edge_annotation_tab   (fn m => ETab.compose (m,erni))
+        |> update_bbox_annotation_tab   (fn m => BTab.compose (m,brni))
+  end
+
+  fun rename_vertex old new =
+    apply_renaming (VSub.empty |> VSub.add (old,new), ESub.empty, BSub.empty)
+
+  fun rename_edge old new =
+    apply_renaming (VSub.empty, ESub.empty |> ESub.add (old,new), BSub.empty)
+
+  fun rename_bbox old new = 
+    apply_renaming (VSub.empty, ESub.empty, BSub.empty |> BSub.add (old,new))
 
   fun pretty ann =
     Pretty.chunks
@@ -205,13 +192,13 @@ struct
            data_pretty (get_graph_annotation ann)],
           Pretty.block
           [Pretty.str "Vertex Annotations: ",
-            V.NTab.pretty data_pretty (get_vertex_annotation_tab ann)],
+            VTab.pretty data_pretty (get_vertex_annotation_tab ann)],
            Pretty.block
           [Pretty.str "Edge Annotations: ",
-           E.NTab.pretty data_pretty (get_edge_annotation_tab ann)],
+           ETab.pretty data_pretty (get_edge_annotation_tab ann)],
             Pretty.block
           [Pretty.str "!-Box Annotations: ",
-          B.NTab.pretty data_pretty (get_bangbox_annotation_tab ann)]]],
+          BTab.pretty data_pretty (get_bbox_annotation_tab ann)]]],
        Pretty.str "}"];
 
   val print = Pretty.writeln o pretty;
@@ -228,20 +215,20 @@ signature GRAPH_STRING_TABLE_ANNOTATIONS =
 sig
   include GRAPH_ANNOTATIONS where type data = string Symtab.table;
 
-  val lookup_graph_property : T -> string -> string option;
-  val lookup_vertex_property : T -> V.name -> string -> string option;
-  val lookup_edge_property : T -> E.name -> string -> string option;
-  val lookup_bangbox_property : T -> B.name -> string -> string option;
+  val get_graph_property_opt  : T -> string -> string option;
+  val get_vertex_property_opt : T -> V.name -> string -> string option;
+  val get_edge_property_opt   : T -> E.name -> string -> string option;
+  val get_bbox_property_opt   : T -> B.name -> string -> string option;
 
-  val set_graph_property : (string * string) -> T -> T;
-  val set_vertex_property : V.name -> (string * string) -> T -> T;
-  val set_edge_property : E.name -> (string * string) -> T -> T;
-  val set_bangbox_property : B.name -> (string * string) -> T -> T;
+  val set_graph_property   : (string * string) -> T -> T;
+  val set_vertex_property  : V.name -> (string * string) -> T -> T;
+  val set_edge_property    : E.name -> (string * string) -> T -> T;
+  val set_bbox_property : B.name -> (string * string) -> T -> T;
 
-  val remove_graph_property : string -> T -> T;
+  val remove_graph_property  : string -> T -> T;
   val remove_vertex_property : V.name -> string -> T -> T;
-  val remove_edge_property : E.name -> string -> T -> T;
-  val remove_bangbox_property : B.name -> string -> T -> T;
+  val remove_edge_property   : E.name -> string -> T -> T;
+  val remove_bbox_property   : B.name -> string -> T -> T;
 end;
 
 structure GraphStringTableAnnotations : GRAPH_STRING_TABLE_ANNOTATIONS =
@@ -259,20 +246,20 @@ struct
   );
   open Ann;
 
-  val lookup_graph_property = Symtab.lookup o Ann.get_graph_annotation;
-  val lookup_vertex_property = Symtab.lookup oo Ann.get_vertex_annotation;
-  val lookup_edge_property = Symtab.lookup oo Ann.get_edge_annotation;
-  val lookup_bangbox_property = Symtab.lookup oo Ann.get_bangbox_annotation;
+  val get_graph_property_opt = Symtab.lookup o Ann.get_graph_annotation;
+  val get_vertex_property_opt = Symtab.lookup oo Ann.get_vertex_annotation;
+  val get_edge_property_opt = Symtab.lookup oo Ann.get_edge_annotation;
+  val get_bbox_property_opt = Symtab.lookup oo Ann.get_bbox_annotation;
 
   val set_graph_property = Ann.update_graph_annotation o Symtab.update;
   fun set_vertex_property v = (Ann.update_vertex_annotation v) o Symtab.update;
   fun set_edge_property e = (Ann.update_edge_annotation e) o Symtab.update;
-  fun set_bangbox_property b = (Ann.update_bangbox_annotation b) o Symtab.update;
+  fun set_bbox_property b = (Ann.update_bbox_annotation b) o Symtab.update;
 
   val remove_graph_property = Ann.update_graph_annotation o Symtab.delete;
   fun remove_vertex_property v = (Ann.update_vertex_annotation v) o Symtab.delete;
   fun remove_edge_property e = (Ann.update_edge_annotation e) o Symtab.delete;
-  fun remove_bangbox_property b = (Ann.update_bangbox_annotation b) o Symtab.delete;
+  fun remove_bbox_property b = (Ann.update_bbox_annotation b) o Symtab.delete;
 end;
 
 

@@ -284,7 +284,7 @@ functor Controller(
   structure Theory : GRAPHICAL_THEORY
   structure GraphComponentDataIO : GRAPH_COMPONENT_DATA_IO
   sharing type Theory.OVData.IData.data = GraphComponentDataIO.vdata
-  sharing type Theory.EData.data = GraphComponentDataIO.edata
+  sharing type Theory.Graph.edata = GraphComponentDataIO.edata
 ) : CONTROLLER =
 struct
   structure State = ControllerState(Theory);
@@ -613,11 +613,11 @@ fun hilb ([format], graph) =
                     end
                | ListVertices =>
                     StringListResponse {
-                      data = (map V.dest (V.NSet.list_of (G.get_vnames graph)))
+                      data = (map V.dest (V.NSet.list_of (G.get_vertices graph)))
                     }
                | ListEdges =>
                     StringListResponse {
-                      data = (map E.dest (E.NSet.list_of (G.get_enames graph)))
+                      data = (map E.dest (E.NSet.list_of (G.get_edges graph)))
                     }
                | ListBangBoxes =>
                     StringListResponse {
@@ -1097,7 +1097,7 @@ fun hilb ([format], graph) =
           val verts = if vertexNames <> [] then
                         map V.mk vertexNames
                       else
-                        (V.NSet.list_of (G.get_vnames graph))
+                        (V.NSet.list_of (G.get_vertices graph))
           val (count,state') = State.attach_rewrites gname verts state
         in
           (CountResponse { count = count }, state')
@@ -1110,7 +1110,7 @@ fun hilb ([format], graph) =
           val verts = if vertexNames <> [] then
                         map V.mk vertexNames
                       else
-                        (V.NSet.list_of (G.get_vnames graph))
+                        (V.NSet.list_of (G.get_vertices graph))
           val (count,state') = State.attach_first_rewrite gname verts state
         in
           (CountResponse { count = count }, state')

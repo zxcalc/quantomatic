@@ -43,7 +43,7 @@
  *   of EDATA
  * - a null value is the same as omitting the element
  *
- * output_vertex, output_edge and output_bangbox produce the following outputs:
+ * output_vertex, output_edge and output_bbox produce the following outputs:
  * VERTEX ::=
  * {
  *   "name": NAME,
@@ -91,7 +91,7 @@ signature GRAPH_ANN_INPUT_JSON
   val empty_annotation : data
   val input_vertex_annotation : V.name -> Json.json -> data -> data
   val input_edge_annotation : E.name -> Json.json -> data -> data
-  val input_bangbox_annotation : B.name -> Json.json -> data -> data
+  val input_bbox_annotation : B.name -> Json.json -> data -> data
   val input_graph_annotation : Json.json -> data -> data
 end
 
@@ -103,7 +103,7 @@ structure EmptyGraphAnnotationInputJson
   val empty_annotation = ()
   fun input_vertex_annotation _ _ = I
   fun input_edge_annotation _ _ = I
-  fun input_bangbox_annotation _ _ = I
+  fun input_bbox_annotation _ _ = I
   fun input_graph_annotation _ = I
 end
 
@@ -113,7 +113,7 @@ signature GRAPH_ANN_OUTPUT_JSON
   val empty_annotation : data
   val output_vertex_annotation : data -> V.name -> Json.json
   val output_edge_annotation : data -> E.name -> Json.json
-  val output_bangbox_annotation : data -> B.name -> Json.json
+  val output_bbox_annotation : data -> B.name -> Json.json
   val output_graph_annotation : data -> Json.json
 end
 
@@ -124,7 +124,7 @@ structure EmptyGraphAnnotationOutputJson
   val empty_annotation = ()
   fun output_vertex_annotation _ _ = Json.Null
   fun output_edge_annotation _ _ = Json.Null
-  fun output_bangbox_annotation _ _ = Json.Null
+  fun output_bbox_annotation _ _ = Json.Null
   fun output_graph_annotation _ = Json.Null
 end
 
@@ -235,7 +235,7 @@ functor InputAnnotatedGraphJSON(
       | set_bbox_parent _ g = g
     fun add_bbox (bn,Json.Null) (g,ann) =
           (Graph.add_named_bbox (B.mk bn) g,
-           IA.input_bangbox_annotation (B.mk bn) Json.Null ann)
+           IA.input_bbox_annotation (B.mk bn) Json.Null ann)
       | add_bbox (bn,Json.Object obj') (g,ann) =
           (let
              val b = B.mk bn
@@ -249,7 +249,7 @@ functor InputAnnotatedGraphJSON(
            handle Graph.no_such_vname_exp (_,vn,_) =>
              raise bad_input_exp ("Vertex "^(V.dest vn)^" does not exist",
                                   "contents"),
-           IA.input_bangbox_annotation (B.mk bn) (get_easy Json.Null obj' "annotation") ann
+           IA.input_bbox_annotation (B.mk bn) (get_easy Json.Null obj' "annotation") ann
              handle IA.bad_input_exp (m,l) =>
                raise bad_input_exp (m,prepend_prop "annotation" l))
       | add_bbox (bn,_) _ = raise bad_input_exp ("Expected object",bn)
@@ -303,7 +303,7 @@ signature OUTPUT_GRAPH_JSON
   include OUTPUT_JSON
   val output_vertex : data -> V.name -> T
   val output_edge : data -> E.name -> T
-  val output_bangbox : data -> B.name -> T
+  val output_bbox : data -> B.name -> T
 end
 
 functor OutputAnnotatedGraphJSON(
@@ -348,7 +348,7 @@ functor OutputAnnotatedGraphJSON(
     )
   end
 
-  fun output_bangbox (g,ann) b = let
+  fun output_bbox (g,ann) b = let
     val add_parent =
       case B.NSet.get_local_bot (Graph.get_bbox_parents g b) (* TODO: handle multiple parents *)
         of SOME bp => update ("parent",Json.String (B.dest bp))
@@ -360,7 +360,7 @@ functor OutputAnnotatedGraphJSON(
       Json.empty_obj |> update ("name",Json.String (B.dest b))
                      |> add_parent
                      |> update ("contents",Json.Array jvs)
-                     |> update ("annotation",OA.output_bangbox_annotation ann b)
+                     |> update ("annotation",OA.output_bbox_annotation ann b)
     )
   end
 
@@ -416,7 +416,7 @@ functor OutputAnnotatedGraphJSON(
                       (V.NSet.list_of (Graph.get_vertices_in_bbox g b))
         val obj = Json.empty_obj |> add_parent
                                  |> update ("contents",Json.Array jvs)
-                                 |> update ("annotation",OA.output_bangbox_annotation ann b)
+                                 |> update ("annotation",OA.output_bbox_annotation ann b)
       in
         update (B.dest b, Json.Object obj)
       end
@@ -458,6 +458,6 @@ functor OutputGraphJSON(
   fun output g = SubOutput.output (g,())
   fun output_vertex g = SubOutput.output_vertex (g,())
   fun output_edge g = SubOutput.output_edge (g,())
-  fun output_bangbox g = SubOutput.output_bangbox (g,())
+  fun output_bbox g = SubOutput.output_bbox (g,())
 end
 
