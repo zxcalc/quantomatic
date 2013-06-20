@@ -1026,35 +1026,14 @@ struct
     fun printIntList s = printList (List.map (Int.toString) s)
     fun printWrappedString ch str = (printEsc ch; printString str; printEsc (Char.toLower ch))
     fun printWrappedData ch data = (printEsc ch; printDataChunk data; printEsc (Char.toLower ch))
-    fun printComponentData ch ComponentData.Unit =
-          (printEsc ch; printEsc (Char.toLower ch))
-      | printComponentData ch (ComponentData.String str) = (
+    fun printComponentData ch (Commands.StringCData str) = (
           printEsc ch;
           printWrappedString #"S" str;
           printEsc (Char.toLower ch))
-      | printComponentData ch (ComponentData.LinratAngleExpr (expr as (c,varTab))) = (
-          let
-            val as_string = Pretty.string_of (LinratAngleExpr.pretty expr)
-            fun printWrappedFrac ch (n,d) = (
-                  printEsc ch;
-                  printWrappedString #"N" (Int.toString n);
-                  printWrappedString #"D" (Int.toString d);
-                  printEsc (Char.toLower ch))
-            fun printVar ch (var, coeff) _ = (
-                  printEsc ch;
-                  printWrappedString #"N" (X.string_of_name var);
-                  printWrappedFrac #"C" coeff;
-                  printEsc (Char.toLower ch))
-          in
-            printEsc ch;
-            printEsc #"A";
-              printWrappedString #"S" as_string;
-              if LinratAngleExpr.Coeff.is_zero c then () else
-                printWrappedFrac #"K" c;
-              X.NTab.fold (printVar #"V") varTab ();
-            printEsc #"a";
-            printEsc (Char.toLower ch)
-          end)
+      | printComponentData ch (Commands.JsonCData json) = (
+          printEsc ch;
+          printWrappedString #"S" (Json.string_of json);
+          printEsc (Char.toLower ch))
     fun printVertexDesc { name, vType, data, userData } = (
           printEsc #"V";
           printWrappedString #"N" name;
@@ -1121,12 +1100,6 @@ struct
           let val s = Pretty.string_of data in
             printOpen #"P" requestId;
             printDataChunk s;
-            printClose ()
-          end
-      | outputResponse (requestId, XmlResponse { data }) =
-          let val xml = XML.string_of data in
-            printOpen #"X" requestId;
-            printDataChunk xml;
             printClose ()
           end
       | outputResponse (requestId, JsonResponse { data }) =
@@ -1303,10 +1276,7 @@ struct
         val mode = readEscapedChar ()
       in
         case mode
-          of #"X" =>
-            let val data = readDataChunk () in
-              (SOME (XmlCData [XMLReader.read_from_string data]))
-            end
+          of #"J" => SOME (JsonCData (Json.of_string (readDataChunk ())))
            | #"N" => SOME (StringCData (readDataChunk ()))
            | _    => NONE
       end
@@ -1396,7 +1366,6 @@ struct
                         val formatName = readToEnd ()
                         val format     = case formatName
                                            of "native"      => SOME NativeGraphFormat
-                                            | "xml"         => SOME XmlGraphFormat
                                             | "json"        => SOME JsonGraphFormat
                                             | "pretty"      => SOME PrettyGraphFormat
                                             | "hilb"        => SOME HilbertSpaceGraphFormat
@@ -1453,8 +1422,7 @@ struct
                         val graphName  = readToDelim ()
                         val vertexName  = readToDelim ()
                         val format = case readToEnd ()
-                                       of "xml"    => SOME XmlFormat
-                                        | "json"   => SOME JsonFormat
+                                       of "json"   => SOME JsonFormat
                                         (*| "native" => SOME DescriptionFormat*)
                                         | "pretty" => SOME PrettyFormat
                                         | _        => NONE
@@ -1493,8 +1461,7 @@ struct
                         val graphName = readToDelim ()
                         val edgeName  = readToDelim ()
                         val format = case readToEnd ()
-                                       of "xml"    => SOME XmlFormat
-                                        | "json"   => SOME JsonFormat
+                                       of "json"   => SOME JsonFormat
                                         (*| "native" => SOME DescriptionFormat*)
                                         | "pretty" => SOME PrettyFormat
                                         | _        => NONE
@@ -1623,8 +1590,7 @@ struct
                         val graphName = readToDelim ()
                         val vertexType = readToDelim ()
                         val format = case readToEnd ()
-                                       of "xml"    => SOME XmlFormat
-                                        | "json"   => SOME JsonFormat
+                                       of "json"   => SOME JsonFormat
                                         | "native" => SOME DescriptionFormat
                                         | "pretty" => SOME PrettyFormat
                                         | "name"   => SOME BasicFormat
@@ -1697,11 +1663,11 @@ struct
                                 }
                               }
                       end
-                      handle XMLReader.bad_input_exp msg =>
+                      handle Json.parse_exn msg =>
                               DummyRequest { response =
                                 ErrorResponse {
                                   errorCode = "BADDATA",
-                                  message = ("Malformed XML ("^msg^")")
+                                  message = ("Malformed JSON ("^msg^")")
                                 }
                               })
 
@@ -1746,8 +1712,7 @@ struct
                         val source = readToDelim ()
                         val target = readToDelim ()
                         val format = case readToEnd ()
-                                       of "xml"    => SOME XmlFormat
-                                        | "json"   => SOME JsonFormat
+                                       of "json"   => SOME JsonFormat
                                         | "native" => SOME DescriptionFormat
                                         | "pretty" => SOME PrettyFormat
                                         | "name"   => SOME BasicFormat
@@ -1823,11 +1788,11 @@ struct
                                 }
                               }
                       end
-                      handle XMLReader.bad_input_exp msg =>
+                      handle Json.parse_exn msg =>
                               DummyRequest { response =
                                 ErrorResponse {
                                   errorCode = "BADDATA",
-                                  message = ("Malformed XML ("^msg^")")
+                                  message = ("Malformed JSON ("^msg^")")
                                 }
                               })
 
@@ -1866,8 +1831,7 @@ struct
                         val graphName = readToDelim ()
                         val vertexNames = readListToDelim ()
                         val format = case readToEnd ()
-                                       of "xml"    => SOME XmlFormat
-                                        | "json"   => SOME JsonFormat
+                                       of "json"   => SOME JsonFormat
                                         | "native" => SOME DescriptionFormat
                                         | "pretty" => SOME PrettyFormat
                                         | "name"   => SOME BasicFormat
@@ -2183,8 +2147,7 @@ struct
          | "WL" =>    let
                         val graphName = readToDelim ()
                         val format = case readToEnd ()
-                                       of "xml"    => SOME XmlFormat
-                                        | "json"   => SOME JsonFormat
+                                       of "json"   => SOME JsonFormat
                                         | "native" => SOME DescriptionFormat
                                         | "pretty" => SOME PrettyFormat
                                         | "name"   => SOME BasicFormat
@@ -2210,7 +2173,6 @@ struct
                         val index = readInt #";"
                         val format = case readToEnd ()
                                        of "native"      => SOME NativeGraphFormat
-                                        | "xml"         => SOME XmlGraphFormat
                                         | "json"        => SOME JsonGraphFormat
                                         | "pretty"      => SOME PrettyGraphFormat
                                         | _             => NONE
