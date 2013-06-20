@@ -118,7 +118,7 @@ sig
   val add_graph : GraphName.name -> Theory.Graph.T -> T -> GraphName.name * T
   val copy_subgraph : GraphName.name -> GraphName.name -> V.name list -> T -> T
 
-  val add_vertex : string -> GraphName.name -> T -> (V.name * Theory.Graph.vdata) * T
+  val add_vertex : string -> GraphName.name -> T -> (V.name * (Theory.Graph.vdata * (E.NSet.T * E.NSet.T))) * T
   val add_edge : string -> dir_or_undir  -> V.name -> V.name -> GraphName.name -> T -> (E.name * edge) * T
   val add_bang : GraphName.name -> T -> B.name * T
 
@@ -565,7 +565,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
 
   fun add_vertex_internal vt graph =
       (let val (n,g) = graph |> Graph.add_vertex (Theory.Graph.default_vdata_of_typestring vt) in
-          ((n,Graph.get_vertex_data g n), g)
+          ((n,(Graph.get_vertex_data g n, (Graph.get_in_edges g n, Graph.get_out_edges g n))), g)
        end
        handle unknown_typestring_exp _ => raise no_such_vertex_type_exp vt)
   fun add_vertex vt gname state = lift_graph_mutator (add_vertex_internal vt) gname state

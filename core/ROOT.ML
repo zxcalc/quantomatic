@@ -305,8 +305,8 @@ Testing.make_test "dnets/test.ML";
  *)
 (* Overall controller for theories *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
-(*PolyML.Project.make "interface/controller.ML"; (* commands *)
-PolyML.Project.make "interface/controller_registry.ML"; (* theory lists *)
+PolyML.Project.make "interface/controller.ML"; (* commands *)
+(*PolyML.Project.make "interface/controller_registry.ML"; (* theory lists *)
 
 (* interface protocol/console *)
 PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
