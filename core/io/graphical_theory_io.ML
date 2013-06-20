@@ -40,6 +40,9 @@ struct
                            |> update ("data",IVDataOutputJSON.output d)
           )
   end;
+  (* This structure is only used when vertices are input/output in isolation, as it
+   * makes use of the optional extra field is_wire_vertex, which is normally determined
+   * by context. *)
   structure VDataInputJSON : INPUT_JSON =
   struct
     type T = Json.json
