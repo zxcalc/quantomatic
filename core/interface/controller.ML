@@ -738,13 +738,18 @@ fun hilb ([format], graph) =
            (let
               val updater =
                 case vertexData
-                  of (StringCData s)      => I (* TODO: implement me!!! *)
+                  of StringCData s => K (TheoryIO.VDataInputJSON.input (Json.of_string s))
+                   | JsonCData json => K (TheoryIO.VDataInputJSON.input json)
             in
               (OkResponse,
                State.update_vertex_data updater (V.mk vertexName) (GraphName.mk graphName) state)
             end
-            handle (e) =>
-                      (ErrorResponse { errorCode = "BADDATA", message = "Error updating component data" }, state))
+            handle TheoryIO.VDataInputJSON.bad_input_exp (m,_) =>
+                      (ErrorResponse { errorCode = "BADFORMAT",
+                        message = ("Error setting vertex data: " ^ m) }, state)
+                 | Json.parse_exn m =>
+                      (ErrorResponse { errorCode = "BADFORMAT",
+                        message = ("JSON parse error while setting vertex data: " ^ m) }, state))
         | SetVertexUserDataAction { vertexName, dataName, userData } =>
             (OkResponse,
               State.set_vertex_ud_property dataName userData (V.mk vertexName) (GraphName.mk graphName) state)
@@ -781,13 +786,17 @@ fun hilb ([format], graph) =
            (let
               val updater =
                 case edgeData
-                  of (StringCData s)      => I (* TODO: implement me!!! *)
+                  of (StringCData s)      => K (TheoryIO.EDataInputJSON.input (Json.of_string s))
             in
               (OkResponse,
                State.update_edge_data updater (E.mk edgeName) (GraphName.mk graphName) state)
             end
-            handle (e) =>
-                      (ErrorResponse { errorCode = "BADFORMAT", message = "Error updating component data" }, state))
+            handle TheoryIO.EDataInputJSON.bad_input_exp (m,_) =>
+                      (ErrorResponse { errorCode = "BADFORMAT",
+                        message = ("Error setting edge data: " ^ m) }, state)
+                 | Json.parse_exn m =>
+                      (ErrorResponse { errorCode = "BADFORMAT",
+                        message = ("JSON parse error while setting edge data: " ^ m) }, state))
         | SetEdgeUserDataAction { edgeName, dataName, userData } =>
             (OkResponse,
               State.set_edge_ud_property dataName userData (E.mk edgeName) (GraphName.mk graphName) state)
