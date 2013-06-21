@@ -767,17 +767,26 @@ fun is_wire_normalised g (s,t,wvs,_) =
   else
     V.NSet.is_empty wvs
 
-fun normalise_wire' (wire as (s,t,_,es)) g =
+fun normalise_wire' (wire as (s,t,wvs,es)) g =
   if is_wire_vertex g s orelse is_wire_vertex g t then
     (* add no extra wire-verts on boundary wires, bare wires, or circles *)
     minimise_wire' wire g
   else
     (* add two extra wire verts on internal wires *)
     let
+      (* bboxes to add the newly-created wv's to *)
+      val bboxes = B.NSet.empty
+        |> B.NSet.union_merge (get_bboxes_containing_vertex g s)
+        |> B.NSet.union_merge (get_bboxes_containing_vertex g t)
+        |> (case V.NSet.get_local_bot wvs
+              of SOME wv => B.NSet.union_merge (get_bboxes_containing_vertex g wv)
+               | NONE    => I)
       val dir_and_data = get_edge_dir_and_data g ((the o E.NSet.get_local_bot) es)
       val g      = g |> delete_wire wire
       val (b1,g) = g |> add_vertex WVert
       val (b2,g) = g |> add_vertex WVert
+      val g      = g |> B.NSet.fold (fn b => add_vertex_to_bbox b s o 
+                                             add_vertex_to_bbox b t) bboxes
       val (e1,g) = g |> add_edge dir_and_data s b1
       val (e2,g) = g |> add_edge dir_and_data b1 b2
       val (e3,g) = g |> add_edge dir_and_data b2 t
