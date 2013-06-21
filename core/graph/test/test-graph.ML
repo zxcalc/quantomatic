@@ -1,12 +1,10 @@
 (* Test functions in Graph *)
 
 functor Graph_Interface_Tests(
-  structure G : TEST_OGRAPH
+  G : TEST_OGRAPH
 )
 = struct
-  structure Tools = Test_OGraph_Tools(
-    structure G  = G
-  )
+  structure Tools = Test_OGraph_Tools(G)
   open Tools
 
   (*
@@ -1022,9 +1020,7 @@ functor Graph_Interface_Tests(
 end;
 
 local
-  structure G_Tests = Graph_Interface_Tests(
-    structure G = Test_OGraph
-  )
+  structure G_Tests = Graph_Interface_Tests(Test_OGraph)
 in val _ = () end;
 
 

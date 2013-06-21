@@ -1028,16 +1028,19 @@ fun fresh_copy_bbox bb g = let
   val ern = ESub.mk_from_avoids (get_edges g)
   val brn = BSub.mk_from_avoids (get_bboxes g)
   val ((_,_,brn'),g') = copy_bbox bb ((vrn,ern,brn),g)
-in (BSub.get brn' bb, g')
+in copy_bbox bb ((vrn,ern,brn),g)
 end
 
-fun fresh_copy_bbox_anon bb g = let
+val fresh_copy_bbox_anon = snd oo fresh_copy_bbox
+
+fun fresh_expand_bbox bb g = let
   val vrn = VSub.mk_from_avoids (get_vertices g)
   val ern = ESub.mk_from_avoids (get_edges g)
   val brn = BSub.mk_from_avoids (get_bboxes g)
-  val ((_,_,brn'),g') = copy_bbox bb ((vrn,ern,brn),g)
-in snd (copy_bbox bb ((vrn,ern,brn),g))
+in expand_bbox bb ((vrn,ern,brn),g)
 end
+
+val fresh_expand_bbox_anon = snd oo fresh_expand_bbox
 
 fun pretty_edge_desc g e =
   Pretty.block[E.pretty_name e,

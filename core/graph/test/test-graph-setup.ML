@@ -318,7 +318,7 @@ end
 
 
 functor Test_OGraph_Tools(
-  structure G : TEST_OGRAPH
+  G : TEST_OGRAPH
 )
 = struct
   structure G    = G
@@ -514,7 +514,7 @@ end
 
 (* Some helpful tools for creating graphs *)
 functor Test_Bang_Graph_Tools(
-  structure BG : TEST_BANG_GRAPH
+  BG : TEST_BANG_GRAPH
 ) =
 struct
   structure BG = BG
@@ -524,7 +524,7 @@ struct
   val nv = BG.NVert*)
   fun add_wv n = BG.add_named_vertex (V.mk n) BG.WVert
 
-  structure Test_OG_Tools = Test_OGraph_Tools(structure G = BG)
+  structure Test_OG_Tools = Test_OGraph_Tools(BG)
   open Test_OG_Tools
 
   structure G = BG

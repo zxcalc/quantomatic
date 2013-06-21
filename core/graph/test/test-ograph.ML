@@ -2,14 +2,10 @@ functor OGraph_Interface_Tests(
   G : TEST_OGRAPH
 )
 = struct
-  structure Tools = Test_OGraph_Tools(structure G = G);
+  structure Tools = Test_OGraph_Tools(G);
 
   (* start by testing that things in the GRAPH interface still work *)
-  structure Graph_Interface_Tests_OGraph = Graph_Interface_Tests(
-    structure G = Tools.G
-    val vert = Tools.nv
-    val unwrap_vert = Tools.unwrap_nv
-  );
+  structure Graph_Interface_Tests_OGraph = Graph_Interface_Tests(Tools.G);
 
   open Tools;
 

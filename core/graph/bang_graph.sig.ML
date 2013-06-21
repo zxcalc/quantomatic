@@ -100,8 +100,10 @@ sig
                          -> (VSub.T * ESub.T * BSub.T) * T
 
   
-  val fresh_copy_bbox : B.name -> T -> (B.name * T)
+  val fresh_copy_bbox : B.name -> T -> (VSub.T * ESub.T * BSub.T) * T
   val fresh_copy_bbox_anon : B.name -> T -> T  
+  val fresh_expand_bbox : B.name -> T -> (VSub.T * ESub.T * BSub.T) * T
+  val fresh_expand_bbox_anon : B.name -> T -> T  
 
   val rename_bang_graph      : (VSub.T * ESub.T * BSub.T) -> T ->
                                (VSub.T * ESub.T * BSub.T) * T
