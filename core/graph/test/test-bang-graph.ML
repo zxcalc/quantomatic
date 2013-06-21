@@ -1379,7 +1379,9 @@ local
         val new_bboxes = B.NSet.subtract (G.get_bboxes g) (G.get_bboxes oldg)
         val b2' = (the o B.NSet.tryget_singleton) (B.NSet.delete b1' new_bboxes)
       in
-        Testing.assert "b1' looks right"
+        Testing.assert ("b1' looks right" ^
+          Int.toString (V.NSet.cardinality (G.get_vertices_in_bbox g b1)) ^ " = " ^
+          Int.toString (V.NSet.cardinality (G.get_vertices_in_bbox g b1')))
           (V.NSet.cardinality (G.get_vertices_in_bbox g b1) =
            V.NSet.cardinality (G.get_vertices_in_bbox g b1'));
         Testing.assert "b2' looks right"
