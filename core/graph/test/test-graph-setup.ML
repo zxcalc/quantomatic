@@ -470,6 +470,11 @@ functor Test_OGraph_Tools(
          NONE => raise Testing.failed_tests_exp (!Testing.tests_failed_ref)
        | SOME x => x
 
+  fun unwrap_nv G.WVert = raise ERROR "wire vertex"
+    | unwrap_nv (G.NVert vd) = vd
+  val nv = G.NVert
+  fun add_wv n = G.add_named_vertex (V.mk n) G.WVert
+
   (* TODO: re-introduce tests requiring iso checks *)
   (*fun assert_iso_graph msg exp actual =
     if GIso.test exp actual

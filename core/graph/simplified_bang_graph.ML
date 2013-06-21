@@ -872,7 +872,7 @@ in
   V.NSet.fold absorb vset vset
 end*)
 
-fun find_open_subgraph g vset = let
+(*fun find_open_subgraph g vset = let
   fun add_if_wv v = if is_wire_vertex g v then V.NSet.add v else I
   fun add_incoming_wire e = let
     val (s,_,wvs,_) = get_wire_containing_edge g e
@@ -892,6 +892,22 @@ fun find_open_subgraph g vset = let
   end
 in
   V.NSet.fold absorb vset vset
+end*)
+
+fun find_open_subgraph g vset = let
+  fun absorb new accum =
+    if V.NSet.is_empty new then accum
+    else
+      let
+        val new' =
+          V.NSet.fold (fn v => (
+            if is_wire_vertex g v andalso not (V.NSet.contains accum v)
+            then V.NSet.add v
+            else I
+          )) (get_adj_vertices_to_set g new) V.NSet.empty
+      in absorb new' (V.NSet.union_merge new' accum)
+      end
+in absorb vset vset
 end
 
 fun get_open_subgraph g vset = let
