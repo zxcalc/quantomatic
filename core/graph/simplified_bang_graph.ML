@@ -620,9 +620,13 @@ in
     |> update_bbox_child_rel (fn m => BBRel.compose3 (rnm, m, rnmi))
 end
 
-fun rename_bbox n1 n2 g = rename_bboxes (BSub.empty |> BSub.add (n1,n2)) g
+fun rename_bbox n1 n2 g =
+  if has_bbox g n1
+  then rename_bboxes (BSub.empty |> BSub.add (n1,n2)) g
+  else raise no_such_bbox_exp ("rename_bbox", n1, g)
+
 fun rename_bbox_opt n1 n2 g = SOME (rename_bbox n1 n2 g)
-  handle Map.duplicate_exp () => NONE
+  handle BSub.name_clash_exp _ => NONE
 
 fun rename_bang_graph (vsub,esub,bsub) g = let
   val vrnm  = VSub.extend_fixed (get_vertices g) vsub
@@ -653,7 +657,7 @@ val rename_ograph_anon = snd oo rename_ograph
 
 
 fun edges_between g v1 v2 = E.NSet.intersect (get_adj_edges g v1) (get_adj_edges g v2)
-fun has_edges_between g v1 v2 = E.NSet.is_empty (edges_between g v1 v2)
+fun has_edges_between g v1 v2 = not (E.NSet.is_empty (edges_between g v1 v2))
 
 fun dir_edges_between g v1 v2 =
   (
@@ -1015,16 +1019,19 @@ fun expand_bbox bb ((vsub,esub,bsub),g) = let
   in
     g |> add_named_vertex v' (get_vertex_data g v)
       |> B.NSet.fold
-           (fn b => add_vertex_to_bbox (if B.NSet.contains old_children b
-                                        then BSub.get bsub' b else b) v')
+           (fn b => (
+             if B.name_eq (bb,b) then I
+             else add_vertex_to_bbox (if B.NSet.contains old_children b
+                                      then BSub.get bsub' b else b) v'
+           ))
            (get_bboxes_containing_vertex g v)
   end
 
   fun cp_edge e g = let
     val e' = ESub.get esub' e
     val (old_s,old_t) = (get_edge_source g e, get_edge_target g e)
-    val s = if V.NSet.contains old_vertices old_s then VSub.get vsub' old_s else old_s
-    val t = if V.NSet.contains old_vertices old_t then VSub.get vsub' old_t else old_t
+    val s = case VSub.get_opt vsub' old_s of SOME s' => s' | NONE => old_s
+    val t = case VSub.get_opt vsub' old_t of SOME t' => t' | NONE => old_t
   in
     g |> add_named_edge e' (get_edge_dir_and_data g e) s t
   end
@@ -1033,7 +1040,9 @@ in ((vsub',esub',bsub'),
     g |> B.NSet.fold (add_named_bbox o BSub.get bsub') old_children
       |> B.NSet.fold (fn b => add_children_to_bbox (BSub.get bsub' b)
                                (BSub.img_of_set bsub' (get_bbox_children g b))) old_children
-      |> V.NSet.fold cp_vert (get_vertices_in_bbox g bb))
+      |> V.NSet.fold cp_vert old_vertices
+      |> E.NSet.fold cp_edge old_edges
+   )
 end
 
 fun copy_bbox bb ((vsub,esub,bsub),g) = let

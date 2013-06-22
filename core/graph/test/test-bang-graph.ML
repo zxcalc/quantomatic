@@ -62,13 +62,10 @@ local
               handle G.no_such_vertex_exp _ => I) ()
 
     val _ = Testing.test "G.rename_bbox - empty"
-      (fn () => let
-                  val g' = G.rename_bbox (B.mk "B0") (B.mk "B1") G.empty
-                in
-                  (* no effect *)
-                  if B.NSet.is_empty (G.get_bboxes g') then I
-                  else raise ERROR "rename_bbox (empty) incorrect"
-                end) ()
+      (fn () => (
+        G.rename_bbox (B.mk "B0") (B.mk "B1") G.empty;
+        raise ERROR "rename_bbox - empty should raise"
+        ) handle G.no_such_bbox_exp _ => I) ()
 
     (*val _ = Testing.test "G.try_rename1_bbox - empty"
       (fn () =>
@@ -211,33 +208,12 @@ local
                       else g'
           end) gnv
 
-    val _ = Testing.test "G.rename_bbox (no such bb; new tgt)"
-          (fn g =>
-          let
-            val bfrom = (B.mk "B8")
-            val bto = (B.mk "B9")
-            val bs_old = G.get_bboxes g
-            val g' = G.rename_bbox bfrom bto g
-            val bs_new = G.get_bboxes g'
-          in
-            if not (B.NSet.eq bs_old bs_new) then
-              raise ERROR "rename_bbox changed the graph"
-            else g'
-          end) gnv
-
-    val _ = Testing.test "G.rename_bbox (no such bb; existing tgt)"
-          (fn g =>
-          let
-            val bfrom = (B.mk "B8")
-            val bto = b0
-            val bs_old = G.get_bboxes g
-            val g' = G.rename_bbox bfrom bto g
-            val bs_new = G.get_bboxes g'
-          in
-            if not (B.NSet.eq bs_old bs_new) then
-              raise ERROR "rename_bbox changed the graph"
-            else g'
-          end) gnv
+    
+    val _ = Testing.test "G.rename_bbox (no such bb)"
+      (fn () => (
+        gnv |> G.rename_bbox (B.mk "FOO") (B.mk "B10");
+        raise ERROR "rename_bbox (no such bb) should raise"
+        ) handle G.no_such_bbox_exp _ => I) ()
 
     val _ = Testing.test "G.add_to_bbox_anon (no such verts)"
           (fn g => (G.add_to_bbox_anon b0 (V.NSet.single V.default_name) g;
@@ -532,7 +508,7 @@ local
     val _ = Testing.test "G.rename_bbox (disjoint; existing !-box)"
           (fn g => (G.rename_bbox b0 b1 g;
                     raise error "rename_bbox (name clash) did not throw exception")
-                   handle G.duplicate_bbox_exp _ => I) g_disjoint
+                   handle BSub.name_clash_exp _ => I) g_disjoint
 
     val _ = Testing.test "G.rename_bbox (disjoint)"
           (fn g =>
