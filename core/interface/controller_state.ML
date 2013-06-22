@@ -350,7 +350,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
 
   fun assert_vertex_exists_gr graph vname =
         if Graph.has_vertex graph vname then ()
-        else raise Graph.no_such_vname_exp ("ASSERT", vname, graph);
+        else raise Graph.no_such_vertex_exp ("ASSERT", vname, graph);
 
   fun assert_vertices_exist state gname vs =
         fold (fn v => fn () => assert_vertex_exists state gname v) vs ();
@@ -361,7 +361,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
 
   fun assert_edge_exists_gr graph ename =
         if Graph.has_edge graph ename then ()
-        else raise Graph.no_such_ename_exp ("ASSERT", ename, graph);
+        else raise Graph.no_such_edge_exp ("ASSERT", ename, graph);
 
   fun assert_bbox_exists state gname bname =
         if Graph.has_bbox (get_graph state gname) bname then ()
@@ -514,9 +514,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
                     |> set_graph g' gname
                     |> cleanup_graph_userdata gname g')
       end
-      handle Graph.no_such_vname_exp (_,vname,_) =>
+      handle Graph.no_such_vertex_exp (_,vname,_) =>
                raise no_such_vertex_exp (vname,gname)
-           | Graph.no_such_ename_exp (_,ename,_) =>
+           | Graph.no_such_edge_exp (_,ename,_) =>
                raise no_such_edge_exp (ename,gname)
            | Graph.vname_already_exists_exp (vname,_) =>
                 raise vertex_name_exists_exp (vname,gname)
@@ -537,9 +537,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
               |> set_graph g' gname
               |> cleanup_graph_userdata gname g'
       end
-      handle Graph.no_such_vname_exp (_,vname,_) =>
+      handle Graph.no_such_vertex_exp (_,vname,_) =>
                raise no_such_vertex_exp (vname,gname)
-           | Graph.no_such_ename_exp (_,ename,_) =>
+           | Graph.no_such_edge_exp (_,ename,_) =>
                raise no_such_edge_exp (ename,gname)
            | Graph.vname_already_exists_exp (vname,_) =>
                 raise vertex_name_exists_exp (vname,gname)
@@ -557,9 +557,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
         state |> push_hist gname UA
               |> set_graph_ud u' gname
       end
-      handle Graph.no_such_vname_exp (_,vname,_) =>
+      handle Graph.no_such_vertex_exp (_,vname,_) =>
                raise no_such_vertex_exp (vname,gname)
-           | Graph.no_such_ename_exp (_,ename,_) =>
+           | Graph.no_such_edge_exp (_,ename,_) =>
                raise no_such_edge_exp (ename,gname);
 
 
@@ -807,8 +807,15 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
       end
 
   fun duplicate_bang bb gname state =
-      let val _ = assert_bbox_exists state gname bb in
-        lift_graph_mutator (Graph.fresh_copy_bbox bb) gname state
+      let
+        val _ = assert_bbox_exists state gname bb
+        fun cp_bbox g = let
+          val ((_,_,bsub),g') = Graph.fresh_copy_bbox bb g
+          val bb' = BSub.get bsub bb
+        in (bb',g')
+        end
+      in
+        lift_graph_mutator cp_bbox gname state
       end
 
   fun bang_vertices box verts gname state =

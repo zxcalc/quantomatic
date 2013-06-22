@@ -140,7 +140,7 @@ functor GraphIsoFun(
             (* edge mismatch *)
           | _ => Seq.empty
          else Seq.empty (* Mismatching vertex data *)
-       end handle Graph.no_such_vname_exp(_,_,_)
+       end handle Graph.no_such_vertex_exp(_,_,_)
                                          (* consequence of multiple edges. 
                                             Vertex has already been successfully
                                             matched; skip. *)

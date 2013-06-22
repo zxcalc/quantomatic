@@ -203,7 +203,7 @@ functor InputAnnotatedGraphJSON(
                             (V.mk (get_string obj' "src"))
                             (V.mk (get_string obj' "tgt"))
                             g
-             handle Graph.no_such_vname_exp (_,vn,_) =>
+             handle Graph.no_such_vertex_exp (_,vn,_) =>
                raise bad_input_exp ("Vertex "^(V.dest vn)^" does not exist",""),
            IA.input_edge_annotation (E.mk en) (get_easy Json.Null obj' "annotation") ann
              handle IA.bad_input_exp (m,l) =>
@@ -246,7 +246,7 @@ functor InputAnnotatedGraphJSON(
              g |> (Graph.add_named_bbox b)
                |> (Graph.add_to_bbox_anon b (V.NSet.of_list vs))
            end
-           handle Graph.no_such_vname_exp (_,vn,_) =>
+           handle Graph.no_such_vertex_exp (_,vn,_) =>
              raise bad_input_exp ("Vertex "^(V.dest vn)^" does not exist",
                                   "contents"),
            IA.input_bbox_annotation (B.mk bn) (get_easy Json.Null obj' "annotation") ann

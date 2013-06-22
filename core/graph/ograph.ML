@@ -424,7 +424,7 @@ functor BasicOGraphFun(
            g |> G.delete_edge en
              |> update_point_kind_from_del_edge src
              |> update_point_kind_from_del_edge tgt
-       | NONE => raise no_such_ename_exp ("delete_edge",en,g);
+       | NONE => raise no_such_edge_exp ("delete_edge",en,g);
 
   (* vname = suggested name *)
   (* rename all occurances of old name (1st arg) with new name (2nd arg) 

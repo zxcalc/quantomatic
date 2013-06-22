@@ -44,16 +44,16 @@ val empty : T = BG {
 (********** EXCEPTIONS ***********)
 (*********************************)
 
-exception no_such_vname_exp of string * V.name * T
+exception no_such_vertex_exp of string * V.name * T
 (*exception no_such_vnames_exp of string * V.NSet.T * T*)
 exception vname_already_exists_exp of V.name * T
 
 exception bad_graph_merge_exp of T * T * T
 
-exception no_such_ename_exp of string * E.name * T
+exception no_such_edge_exp of string * E.name * T
 exception ename_already_exists_exp of E.name * T
 
-exception no_such_bbname_exp of string * B.name * T
+exception no_such_bbox_exp of string * B.name * T
 exception bbname_already_exists_exp of B.name * T
 
 exception not_an_endpoint_exp of string * E.name * V.name * T
@@ -66,7 +66,6 @@ exception plugging_exp of T * V.name * V.name
 (* !-graph exceptions *)
 exception bbox_not_open_exp of (V.name * V.name) * B.name * T
 exception bbox_already_exists_exp of B.name * T
-exception no_such_bbox_exp of string * B.name * T
 exception bbox_bad_parent_exp of B.name * B.name * T
 exception merge_bbox_exp of string
 
@@ -132,19 +131,19 @@ val num_bboxes = B.NSet.cardinality o get_bboxes
 
 fun get_edge_source g e = EVFn.get (get_source g) e
   handle Map.no_such_elem_exp () =>
-    raise no_such_ename_exp ("get_edge_source", e, g)
+    raise no_such_edge_exp ("get_edge_source", e, g)
 
 fun get_edge_target g e = EVFn.get (get_target g) e
   handle Map.no_such_elem_exp () =>
-    raise no_such_ename_exp ("get_edge_target", e, g)
+    raise no_such_edge_exp ("get_edge_target", e, g)
 
 fun get_vertex_data g v = VTab.get (get_vdata g) v
   handle Map.no_such_elem_exp () =>
-    raise no_such_vname_exp ("get_vertex_data", v, g)
+    raise no_such_vertex_exp ("get_vertex_data", v, g)
 
 fun get_edge_dir_and_data g e = ETab.get (get_edata g) e
   handle Map.no_such_elem_exp () =>
-    raise no_such_ename_exp ("get_edge_dir_and_data", e, g)
+    raise no_such_edge_exp ("get_edge_dir_and_data", e, g)
 
 fun get_edge_info g e = (get_edge_dir_and_data g e, (get_edge_source g e, get_edge_target g e))
 
@@ -154,30 +153,47 @@ fun is_dir_edge g e = (get_edge_dir g e) = Directed
 
 fun update_vertex_data f v g =
   if has_vertex g v then g |> update_vdata (VTab.map_entry f v)
-  else raise no_such_vname_exp ("update_vertex_data", v, g)
+  else raise no_such_vertex_exp ("update_vertex_data", v, g)
 
 fun update_edge_data f e g =
   if has_edge g e then
     g |> update_edata (ETab.map_entry (fn (dir,d) => (dir, f d)) e)
   else
-    raise no_such_ename_exp ("update_edge_data", e, g)
+    raise no_such_edge_exp ("update_edge_data", e, g)
 
 fun update_edge_dir f e g =
   if has_edge g e then
     g |> update_edata (ETab.map_entry (fn (dir,d) => (f dir, d)) e)
   else
-    raise no_such_ename_exp ("update_edge_dir", e, g)
+    raise no_such_edge_exp ("update_edge_dir", e, g)
 
 fun set_vertex_data d = update_vertex_data (K d)
 fun set_edge_data d = update_edge_data (K d)
 fun set_edge_dir dir = update_edge_dir (K dir)
 
-fun get_vertices_in_bbox g = BVRel.img (get_bbox_rel g)
-fun get_bboxes_containing_vertex g = BVRel.inv_img (get_bbox_rel g)
-fun get_bbox_parents g = BBRel.inv_img (get_bbox_child_rel g)
-fun get_bbox_children g = BBRel.img (get_bbox_child_rel g)
-fun bbox_has_parents g bb = BBRel.cod_contains (get_bbox_child_rel g) bb
-fun bbox_has_children g bb = BBRel.dom_contains (get_bbox_child_rel g) bb
+fun get_vertices_in_bbox g bb = 
+  if has_bbox g bb then BVRel.img (get_bbox_rel g) bb
+  else raise no_such_bbox_exp ("get_vertices_in_bbox", bb, g)
+
+fun get_bboxes_containing_vertex g v =
+  if has_vertex g v then BVRel.inv_img (get_bbox_rel g) v
+  else raise no_such_vertex_exp ("get_bboxes_containing_vertex", v, g)
+
+fun get_bbox_parents g bb =
+  if has_bbox g bb then  BBRel.inv_img (get_bbox_child_rel g) bb
+  else raise no_such_bbox_exp ("get_bbox_parents", bb, g)
+
+fun get_bbox_children g bb =
+  if has_bbox g bb then  BBRel.img (get_bbox_child_rel g) bb
+  else raise no_such_bbox_exp ("get_bbox_children", bb, g)
+
+fun bbox_has_parents g bb =
+  if has_bbox g bb then  BBRel.cod_contains (get_bbox_child_rel g) bb
+  else raise no_such_bbox_exp ("bbox_has_parents", bb, g)
+
+fun bbox_has_children g bb =
+  if has_bbox g bb then  BBRel.dom_contains (get_bbox_child_rel g) bb
+  else raise no_such_bbox_exp ("bbox_has_children", bb, g)
 
 fun get_bboxed g = BVRel.get_cod_set (get_bbox_rel g)
 fun get_unbboxed g = V.NSet.subtract (get_vertices g) (get_bboxed g)
@@ -185,7 +201,7 @@ fun get_empty_bboxes g = B.NSet.subtract (get_bboxes g) (BVRel.get_dom_set (get_
 
 fun is_bboxed g v = if has_vertex g v
   then V.NSet.contains (BVRel.get_cod_set (get_bbox_rel g)) v
-  else raise no_such_vname_exp ("is_bboxed", v, g)
+  else raise no_such_vertex_exp ("is_bboxed", v, g)
 
 
 (**************************************)
@@ -241,12 +257,12 @@ end
 (* note these ignore direction *)
 fun get_in_edges g v =
   if has_vertex g v then EVFn.inv_img (get_target g) v
-  else raise no_such_vname_exp ("get_in_edges", v, g)
+  else raise no_such_vertex_exp ("get_in_edges", v, g)
 
 
 fun get_out_edges g v =
   if has_vertex g v then EVFn.inv_img (get_source g) v
-  else raise no_such_vname_exp ("get_out_edges", v, g)
+  else raise no_such_vertex_exp ("get_out_edges", v, g)
 
 fun get_adj_edges g v =
   E.NSet.union_merge (EVFn.inv_img (get_source g) v)
@@ -341,9 +357,9 @@ fun add_named_edge e (dir,d) s t g =
   else
     let
       val () = if has_vertex g s then ()
-               else raise no_such_vname_exp ("add_named_edge", s, g)
+               else raise no_such_vertex_exp ("add_named_edge", s, g)
       val () = if has_vertex g t then ()
-               else raise no_such_vname_exp ("add_named_edge", t, g)
+               else raise no_such_vertex_exp ("add_named_edge", t, g)
     in g |> update_edata (ETab.add (e,(dir,d)))
          |> update_source (EVFn.add (e, s))
          |> update_target (EVFn.add (e, t))
@@ -396,37 +412,37 @@ fun delete_bbox bb g =
 
 fun add_vertex_to_bbox bb v g =
   if (has_bbox g bb) then g |> update_bbox_rel (BVRel.add (bb, v))
-  else raise no_such_bbname_exp ("add_vertex_to_bbox", bb, g)
+  else raise no_such_bbox_exp ("add_vertex_to_bbox", bb, g)
 
 fun add_vertices_to_bbox bb = V.NSet.fold (add_vertex_to_bbox bb)
 
 fun remove_vertex_from_bbox bb v g =
   if (has_bbox g bb) then g |> update_bbox_rel (BVRel.unmap (bb, v))
-  else raise no_such_bbname_exp ("remove_vertex_from_bbox", bb, g)
+  else raise no_such_bbox_exp ("remove_vertex_from_bbox", bb, g)
   
 fun remove_vertices_from_bbox bb = V.NSet.fold (remove_vertex_from_bbox bb)
 
 (* TODO: these functions need to enforce transitive closure! *)
 
 fun add_child_to_bbox' bb bb_child g =
-  if not (has_bbox g bb_child) then raise no_such_bbname_exp ("add_child_to_bbox'", bb_child, g)
+  if not (has_bbox g bb_child) then raise no_such_bbox_exp ("add_child_to_bbox'", bb_child, g)
   else g |> update_bbox_child_rel (BBRel.add (bb, bb_child))
 
 fun add_child_to_bbox bb bb_child g =
-  if not (has_bbox g bb) then raise no_such_bbname_exp ("add_child_to_bbox", bb, g)
+  if not (has_bbox g bb) then raise no_such_bbox_exp ("add_child_to_bbox", bb, g)
   else add_child_to_bbox' bb bb_child g
 
 fun add_children_to_bbox bb bb_children g =
-  if not (has_bbox g bb) then raise no_such_bbname_exp ("add_children_to_bbox", bb, g)
+  if not (has_bbox g bb) then raise no_such_bbox_exp ("add_children_to_bbox", bb, g)
   else B.NSet.fold (add_child_to_bbox' bb) bb_children g
 
 fun remove_child_from_bbox bb bb_child g =
-  if not (has_bbox g bb) then raise no_such_bbname_exp ("remove_child_from_bbox", bb, g)
-  else if not (has_bbox g bb_child) then raise no_such_bbname_exp ("remove_child_from_bbox", bb_child, g)
+  if not (has_bbox g bb) then raise no_such_bbox_exp ("remove_child_from_bbox", bb, g)
+  else if not (has_bbox g bb_child) then raise no_such_bbox_exp ("remove_child_from_bbox", bb_child, g)
   else g |> update_bbox_child_rel (BBRel.unmap (bb, bb_child))
 
 fun clear_bbox_children bb g = 
-  if not (has_bbox g bb) then raise no_such_bbname_exp ("clear_bbox_children", bb, g)
+  if not (has_bbox g bb) then raise no_such_bbox_exp ("clear_bbox_children", bb, g)
   else g |> update_bbox_child_rel (BBRel.delete bb)
 
 fun swap_edge_dir e g = let
@@ -936,7 +952,7 @@ fun add_to_bbox b vs g = let
            else raise no_such_bbox_exp ("add_to_bbox",b,g)
   val () = V.NSet.fold (fn v => K (
              if has_vertex g v then ()
-             else raise no_such_vname_exp ("add_to_bbox",v,g)
+             else raise no_such_vertex_exp ("add_to_bbox",v,g)
            )) vs ()
   val to_add = find_open_subgraph g vs
 in (to_add, g |> add_vertices_to_bbox b to_add)
@@ -987,6 +1003,7 @@ fun merge_bboxes bnset g =
           bnset2 g))
 
 fun expand_bbox bb ((vsub,esub,bsub),g) = let
+  val _ = if has_bbox g bb then () else raise no_such_bbox_exp ("expand_bbox", bb, g) 
   val old_children = get_bbox_children g bb
   val old_vertices = get_vertices_in_bbox g bb
   val old_edges = V.NSet.fold (E.NSet.union_merge o get_adj_edges g) old_vertices E.NSet.empty

@@ -48,7 +48,7 @@ val doadd_vertex : VData.data -> T -> T
 (* raises vname_already_exists_exp on clash *)
 val add_named_vertex : V.name -> VData.data -> T -> T  
 
-(* V.names must already exist, else raises: no_such_vname_exp *)
+(* V.names must already exist, else raises: no_such_vertex_exp *)
 val add_edge : dir_or_undir * EData.data -> V.name -> V.name -> T -> E.name * T
 val doadd_edge : dir_or_undir * EData.data -> V.name -> V.name -> T -> T
 val add_named_edge 
@@ -193,7 +193,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
     if V.name_eq(s,v) then t
     else
       if V.name_eq(t,v) then s
-      else raise no_such_vname_exp ("edge_get_other_vertex",v,g)
+      else raise no_such_vertex_exp ("edge_get_other_vertex",v,g)
   end
   
   val get_in_edges  = (fst o snd) oo get_vertex
@@ -678,14 +678,14 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   end
 
   (* assumes ern has all edge names of the graph in avoid set, 
-     else may raise no_such_ename_exp (when copying/renaming an 
+     else may raise no_such_edge_exp (when copying/renaming an 
      edge that is already the graph) *)
   fun copy1edge inctyp (e, dir_and_data) v v2 ((vrn,ern), g) =
       let 
         val (new_e_opt,ern') = E.Rnm.rename1 e ern;
         val (_,g') =
             (case new_e_opt of NONE => 
-               raise no_such_ename_exp ("renaming doesn't have edge in avoid set",e,g)
+               raise no_such_edge_exp ("renaming doesn't have edge in avoid set",e,g)
              | SOME e' => 
                (e', case inctyp of
                          Incoming => add_named_edge e' dir_and_data v2 v g
@@ -704,7 +704,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
             let
               val (new_v_opt,vrn') = V.Rnm.rename1 v vrn
               val (v',g') = (case new_v_opt of NONE => 
-                         raise no_such_vname_exp ("renaming doesn't have vertex in avoid set",v,g)
+                         raise no_such_vertex_exp ("renaming doesn't have vertex in avoid set",v,g)
                        | SOME v' => 
                          (v',add_named_vertex v' (get_vertex_data g v) g))
             in

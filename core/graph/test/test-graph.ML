@@ -33,7 +33,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.get_vertex_data" (fn () => let 
     val _ = (G.get_vertex_data G.empty (V.mk "a");
              raise ERROR "G.get_vertex_data did not raise exception")
-            handle G.no_such_vname_exp (_,vn,g) =>
+            handle G.no_such_vertex_exp (_,vn,g) =>
               (Testing.assert "correct vname in exp" ((V.string_of_name vn) = "a");
                Testing.assert "correct graph in exp" (G.exact_eq g G.empty));
 
@@ -59,7 +59,7 @@ functor Graph_Interface_Tests(
 
     val _ = (G.get_vertex_data g (V.mk "e");
              raise ERROR "G.get_vertex_data did not raise exception")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp" ((V.string_of_name vn) = "e");
                Testing.assert "correct graph in exp" (G.exact_eq g g'));
     in () end) ();
@@ -70,7 +70,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.get_edge_dir_and_data" (fn () => let 
     val _ = (G.get_edge_dir_and_data G.empty (E.mk "a");
              raise ERROR "G.get_edge_dir_and_data did not raise exception")
-            handle G.no_such_ename_exp (_,en,g') =>
+            handle G.no_such_edge_exp (_,en,g') =>
               (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
                Testing.assert "correct graph in exp" (G.exact_eq G.empty g'));
 
@@ -98,7 +98,7 @@ functor Graph_Interface_Tests(
 
     val _ = (G.get_edge_dir_and_data g (E.mk "a");
              raise ERROR "G.get_edge_dir_and_data did not raise exception")
-            handle G.no_such_ename_exp (_,en,g') =>
+            handle G.no_such_edge_exp (_,en,g') =>
               (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
                Testing.assert "correct graph in exp" (G.exact_eq g g'));
     in () end) ();
@@ -140,7 +140,7 @@ functor Graph_Interface_Tests(
 
     val _ = (G.add_named_edge ee (Directed,eunit1) va vb G.empty;
              raise ERROR "G.add_named_edge did not raise exception (1)")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp (1)"
                   ((V.name_eq (vn,va)) orelse (V.name_eq (vn,vb)));
                Testing.assert "correct graph in exp (1)" (G.exact_eq G.empty g'));
@@ -149,12 +149,12 @@ functor Graph_Interface_Tests(
 
     val _ = (G.add_named_edge ee (Directed,eunit1) va vb g;
              raise ERROR "G.add_named_edge did not raise exception (2)")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp (2)" (V.name_eq (vn,vb));
                Testing.assert "correct graph in exp (2)" (G.exact_eq g g'));
     val _ = (G.add_named_edge ee (Directed,eunit1) vb va g;
              raise ERROR "G.add_named_edge did not raise exception (3)")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp (3)" (V.name_eq (vn,vb));
                Testing.assert "correct graph in exp (3)" (G.exact_eq g g'));
     val g' = G.add_named_edge ee (Directed,eunit1) va va g;
@@ -240,7 +240,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.update_vertex_data" (fn () => let 
     val _ = (G.update_vertex_data I (V.mk "a") G.empty;
               raise ERROR "G.get_update_vertex_data did not raise exception")
-            handle G.no_such_vname_exp (_,vn,g) =>
+            handle G.no_such_vertex_exp (_,vn,g) =>
               (Testing.assert "correct vname in exp" ((V.string_of_name vn) = "a");
                Testing.assert "correct graph in exp" (G.is_empty g));
 
@@ -280,7 +280,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.update_edge_data" (fn () => let 
     val _ = (G.update_edge_data I (E.mk "a") G.empty;
               raise ERROR "G.get_update_edge_data did not raise exception")
-            handle G.no_such_ename_exp (_,en,g) =>
+            handle G.no_such_edge_exp (_,en,g) =>
               (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
                Testing.assert "correct graph in exp" (G.is_empty g));
 
@@ -329,7 +329,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.get_edge_source" (fn () => let 
     val _ = (G.get_edge_source G.empty (E.mk "a");
               raise ERROR "G.get_edge_source did not raise exception")
-            handle G.no_such_ename_exp (_,en,g) =>
+            handle G.no_such_edge_exp (_,en,g) =>
               (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
                Testing.assert "correct graph in exp" (G.is_empty g));
 
@@ -344,7 +344,7 @@ functor Graph_Interface_Tests(
             (V.name_eq (G.get_edge_source g (E.mk "f"),V.mk "b"));
     val _ = (G.get_edge_source g (E.mk "a");
               raise ERROR "G.get_edge_source did not raise exception")
-            handle G.no_such_ename_exp (_,en,g') =>
+            handle G.no_such_edge_exp (_,en,g') =>
               (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
                Testing.assert "correct graph in exp" (G.exact_eq g g'));
     in () end) ();
@@ -354,7 +354,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.get_edge_target" (fn () => let 
     val _ = (G.get_edge_target G.empty (E.mk "a");
               raise ERROR "G.get_edge_target did not raise exception")
-            handle G.no_such_ename_exp (_,en,g) =>
+            handle G.no_such_edge_exp (_,en,g) =>
               (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
                Testing.assert "correct graph in exp" (G.is_empty g));
 
@@ -369,7 +369,7 @@ functor Graph_Interface_Tests(
             (V.name_eq (G.get_edge_target g (E.mk "f"),V.mk "b"));
     val _ = (G.get_edge_target g (E.mk "a");
               raise ERROR "G.get_edge_target did not raise exception")
-            handle G.no_such_ename_exp (_,en,g') =>
+            handle G.no_such_edge_exp (_,en,g') =>
               (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
                Testing.assert "correct graph in exp" (G.exact_eq g g'));
     in () end) ();
@@ -379,7 +379,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.edge_get_other_vertex" (fn () => let 
     val _ = (G.edge_get_other_vertex G.empty (E.mk "a") (V.mk "a");
               raise ERROR "G.edge_get_other_vertex did not raise exception")
-            handle G.no_such_ename_exp (_,en,g) =>
+            handle G.no_such_edge_exp (_,en,g) =>
               (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
                Testing.assert "correct graph in exp" (G.is_empty g));
 
@@ -396,7 +396,7 @@ functor Graph_Interface_Tests(
             (V.name_eq (G.edge_get_other_vertex g (E.mk "f") (V.mk "b"), V.mk "b"));
     val _ = (G.edge_get_other_vertex g (E.mk "a") (V.mk "a");
               raise ERROR "G.edge_get_other_vertex did not raise exception")
-            handle G.no_such_ename_exp (_,en,g') =>
+            handle G.no_such_edge_exp (_,en,g') =>
               (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
                Testing.assert "correct graph in exp" (G.exact_eq g g'));
     val _ = (G.edge_get_other_vertex g (E.mk "e") (V.mk "c");
@@ -418,7 +418,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.get_in_edges" (fn () => let 
     val _ = (G.get_in_edges G.empty (V.mk "a");
               raise ERROR "G.get_in_edges did not raise exception")
-            handle G.no_such_vname_exp (_,vn,g) =>
+            handle G.no_such_vertex_exp (_,vn,g) =>
               (Testing.assert "correct vname in exp" ((V.string_of_name vn) = "a");
                Testing.assert "correct graph in exp" (G.is_empty g));
 
@@ -435,7 +435,7 @@ functor Graph_Interface_Tests(
 
     val _ = (G.get_in_edges g (V.mk "c");
              raise ERROR "G.get_in_edges did not raise exception")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp" (V.name_eq (vn,V.mk "c"));
                Testing.assert "correct graph in exp" (G.exact_eq g g'));
     in () end) ();
@@ -445,7 +445,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.get_out_edges" (fn () => let 
     val _ = (G.get_out_edges G.empty (V.mk "a");
               raise ERROR "G.get_out_edges did not raise exception")
-            handle G.no_such_vname_exp (_,vn,g) =>
+            handle G.no_such_vertex_exp (_,vn,g) =>
               (Testing.assert "correct vname in exp" ((V.string_of_name vn) = "a");
                Testing.assert "correct graph in exp" (G.is_empty g));
 
@@ -463,7 +463,7 @@ functor Graph_Interface_Tests(
 
     val _ = (G.get_out_edges g (V.mk "c");
              raise ERROR "G.get_out_edges did not raise exception")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp" (V.name_eq (vn,V.mk "c"));
                Testing.assert "correct graph in exp" (G.exact_eq g g'));
     in () end) ();
@@ -473,7 +473,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.get_vertex_data" (fn () => let 
     val _ = (G.get_vertex_data G.empty (V.mk "a");
               raise ERROR "G.get_vertex_data did not raise exception")
-            handle G.no_such_vname_exp (_,vn,g) =>
+            handle G.no_such_vertex_exp (_,vn,g) =>
               (Testing.assert "correct vname in exp" ((V.string_of_name vn) = "a");
                Testing.assert "correct graph in exp" (G.is_empty g));
 
@@ -489,7 +489,7 @@ functor Graph_Interface_Tests(
 
     val _ = (G.get_vertex_data g (V.mk "c");
              raise ERROR "G.get_vertex_data did not raise exception")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp" (V.name_eq (vn,V.mk "c"));
                Testing.assert "correct graph in exp" (G.exact_eq g g'));
     in () end) ();
@@ -499,7 +499,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.get_edge_data" (fn () => let 
     val _ = (G.get_edge_data G.empty (E.mk "a");
               raise ERROR "G.get_edge_data did not raise exception")
-            handle G.no_such_ename_exp (_,en,g) =>
+            handle G.no_such_edge_exp (_,en,g) =>
               (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
                Testing.assert "correct graph in exp" (G.is_empty g));
 
@@ -515,7 +515,7 @@ functor Graph_Interface_Tests(
 
     val _ = (G.get_edge_data g (E.mk "c");
              raise ERROR "G.get_edge_data did not raise exception")
-            handle G.no_such_ename_exp (_,en,g') =>
+            handle G.no_such_edge_exp (_,en,g') =>
               (Testing.assert "correct ename in exp" (E.name_eq (en,E.mk "c"));
                Testing.assert "correct graph in exp" (G.exact_eq g g'));
     in () end) ();
@@ -525,7 +525,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.set_vertex_data" (fn () => let 
     val _ = (G.set_vertex_data vunit1 (V.mk "a") G.empty;
               raise ERROR "G.set_vertex_data did not raise exception")
-            handle G.no_such_vname_exp (_,vn,g) =>
+            handle G.no_such_vertex_exp (_,vn,g) =>
               (Testing.assert "correct vname in exp" ((V.string_of_name vn) = "a");
                Testing.assert "correct graph in exp" (G.is_empty g));
 
@@ -556,7 +556,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.set_edge_data" (fn () => let 
     val _ = (G.set_edge_data eunit1 (E.mk "a") G.empty;
               raise ERROR "G.set_edge_data did not raise exception")
-            handle G.no_such_ename_exp (_,en,g) =>
+            handle G.no_such_edge_exp (_,en,g) =>
               (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
                Testing.assert "correct graph in exp" (G.is_empty g));
 
@@ -681,7 +681,7 @@ functor Graph_Interface_Tests(
 
     val _ = (G.add_edge (Directed,eunit1) va vb G.empty;
              raise ERROR "G.add_edge did not raise exception (1)")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp (1)"
                   ((V.name_eq (vn,va)) orelse (V.name_eq (vn,vb)));
                Testing.assert "correct graph in exp (1)" (G.exact_eq G.empty g'));
@@ -690,12 +690,12 @@ functor Graph_Interface_Tests(
 
     val _ = (G.add_edge (Directed,eunit1) va vb g;
              raise ERROR "G.add_edge did not raise exception (2)")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp (2)" (V.name_eq (vn,vb));
                Testing.assert "correct graph in exp (2)" (G.exact_eq g g'));
     val _ = (G.add_edge (Directed,eunit1) vb va g;
              raise ERROR "G.add_edge did not raise exception (3)")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp (3)" (V.name_eq (vn,vb));
                Testing.assert "correct graph in exp (3)" (G.exact_eq g g'));
     val (en,g') = G.add_edge (Directed,eunit1) va va g;
@@ -733,7 +733,7 @@ functor Graph_Interface_Tests(
 
     val _ = (G.add_named_edge ee (Directed,eunit1) va vb G.empty;
              raise ERROR "G.add_named_edge did not raise exception (1)")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp (1)"
                   ((V.name_eq (vn,va)) orelse (V.name_eq (vn,vb)));
                Testing.assert "correct graph in exp (1)" (G.exact_eq G.empty g'));
@@ -742,12 +742,12 @@ functor Graph_Interface_Tests(
 
     val _ = (G.add_named_edge ee (Directed,eunit1) va vb g;
              raise ERROR "G.add_named_edge did not raise exception (2)")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp (2)" (V.name_eq (vn,vb));
                Testing.assert "correct graph in exp (2)" (G.exact_eq g g'));
     val _ = (G.add_named_edge ee (Directed,eunit1) vb va g;
              raise ERROR "G.add_named_edge did not raise exception (3)")
-            handle G.no_such_vname_exp (_,vn,g') =>
+            handle G.no_such_vertex_exp (_,vn,g') =>
               (Testing.assert "correct vname in exp (3)" (V.name_eq (vn,vb));
                Testing.assert "correct graph in exp (3)" (G.exact_eq g g'));
     val g' = G.add_named_edge ee (Directed,eunit1) va va g;
@@ -785,7 +785,7 @@ functor Graph_Interface_Tests(
   val _ = Testing.test "G.swap_edge_dir" (fn () => let 
     val _ = (G.swap_edge_dir (E.mk "a") G.empty;
               raise ERROR "G.swap_edge_dir did not raise exception")
-            handle G.no_such_ename_exp (_,en,g) =>
+            handle G.no_such_edge_exp (_,en,g) =>
               (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
                Testing.assert "correct graph in exp" (G.is_empty g));
 

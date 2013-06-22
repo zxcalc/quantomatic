@@ -21,7 +21,7 @@ sig
   (* all vertices that are in at no !-boxes *)
   val get_unbboxed : T -> V.NSet.T
   
-  (* no_such_vname_exp if vertex does not exist *)
+  (* no_such_vertex_exp if vertex does not exist *)
   val is_bboxed : T -> V.name -> bool
   
   val get_empty_bboxes : T -> B.NSet.T
@@ -83,7 +83,7 @@ sig
   (* no_such_bbox_exp if bbox does not exist *)
   val get_vertices_in_bbox : T -> B.name -> V.NSet.T
   
-  (* no_such_vname_exp if vertex does not exist *)
+  (* no_such_vertex_exp if vertex does not exist *)
   val get_bboxes_containing_vertex : T -> V.name -> B.NSet.T
   
   (* no_such_bbox_exp *)
@@ -211,7 +211,7 @@ sig
   
   *** Now called get_bboxes_containing_vertex
   (* getters for vert -> bbox *)
-  (* no_such_vname_exp if vertex does not exist *)
+  (* no_such_vertex_exp if vertex does not exist *)
   val get_bboxes_of : T -> V.name -> B.NSet.T
   
   *** Now called add_bbox_anon

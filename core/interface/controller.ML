@@ -662,9 +662,9 @@ fun hilb ([format], graph) =
 
             ), state)
            end
-        handle G.no_such_vname_exp (_,vname,_) =>
+        handle G.no_such_vertex_exp (_,vname,_) =>
                 raise State.no_such_vertex_exp (vname,GraphName.mk graphName)
-             | G.no_such_ename_exp (_,ename,_) =>
+             | G.no_such_edge_exp (_,ename,_) =>
                 raise State.no_such_edge_exp (ename,GraphName.mk graphName)
         )
 

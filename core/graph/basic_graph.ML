@@ -40,11 +40,11 @@ exception bug_exp of string;
 exception no_such_xname_exp of string * X.name * T;
 exception xname_already_exists_exp of X.name * T;
 
-exception no_such_vname_exp of string * V.name * T;
+exception no_such_vertex_exp of string * V.name * T;
 exception no_such_vnames_exp of string * V.NSet.T * T;
 exception vname_already_exists_exp of V.name * T;
 
-exception no_such_ename_exp of string * E.name * T;
+exception no_such_edge_exp of string * E.name * T;
 exception ename_already_exists_exp of E.name * T;
 
 (* Making Graphs *)
@@ -61,7 +61,7 @@ val get_edge : T -> E.name -> ((dir_or_undir * EData.data)
 (* V.name = suggested name *)
 val add_vertex_named_like : V.name -> VData.data -> T -> V.name * T 
 
-(* V.names must already exist, else raises: no_such_vname_exp *)
+(* V.names must already exist, else raises: no_such_vertex_exp *)
 val add_edge_named_like : E.name -> (dir_or_undir * EData.data)
     -> V.name -> V.name -> T -> E.name * T 
 
@@ -213,19 +213,19 @@ val lookup_edge = E.NTab.lookup o get_edges
 
 exception no_such_xname_exp of string * X.name * T;
 exception xname_already_exists_exp of X.name * T;
-exception no_such_vname_exp of string * V.name * T;
+exception no_such_vertex_exp of string * V.name * T;
 exception no_such_vnames_exp of string * V.NSet.T * T;
 exception vname_already_exists_exp of V.name * T;
-exception no_such_ename_exp of string * E.name * T;
+exception no_such_edge_exp of string * E.name * T;
 exception ename_already_exists_exp of E.name * T;
 
 fun get_vertex g n = 
     case lookup_vertex g n 
-     of NONE => raise no_such_vname_exp ("get_vertex", n, g)
+     of NONE => raise no_such_vertex_exp ("get_vertex", n, g)
       | SOME x => x;
 fun get_edge g en = 
     case lookup_edge g en 
-     of NONE => raise no_such_ename_exp ("get_edge", en, g)
+     of NONE => raise no_such_edge_exp ("get_edge", en, g)
       | SOME x => x;
 
 (* implicit arg: g *)
@@ -261,8 +261,8 @@ fun add_edge_named_like en (e as (_,d)) n1 n2 g =
       (* make sure the vertices exist *) 
       val _ = if has_vname g n1 then
                 if has_vname g n2 then () 
-                else raise no_such_vname_exp ("add_edge_named_like", n2, g)
-              else raise no_such_vname_exp ("add_edge_named_like", n1, g);
+                else raise no_such_vertex_exp ("add_edge_named_like", n2, g)
+              else raise no_such_vertex_exp ("add_edge_named_like", n1, g);
       (* add the new egde *)
       val (en2,edges2) = E.NTab.add (en,(e,(n1,n2))) (get_edges g)
 
@@ -286,7 +286,7 @@ fun delete_edge en g =
       val edges = get_edges g
       val (_,(fromvn,tovn)) =
           case E.NTab.lookup edges en of 
-            NONE => raise no_such_ename_exp ("delete_edge", en, g)
+            NONE => raise no_such_edge_exp ("delete_edge", en, g)
           | SOME x => x;
 
       val edges2 = edges |> E.NTab.delete en
@@ -311,7 +311,7 @@ fun delete_vertex n g =
       val vertices = get_vertices g
       val (_,(ins,outs)) =
           case V.NTab.lookup vertices n of 
-            NONE => raise no_such_vname_exp ("delete_vertex", n, g)
+            NONE => raise no_such_vertex_exp ("delete_vertex", n, g)
           | SOME x => x;
 
       (* delete all edges going into or out of this vertex. *)
@@ -379,7 +379,7 @@ fun rename_vname n1 n2 g =
          |> set_edges edges2
          |> update_param (Param.rename_vname n1 n2)
     end handle rename_do_nothing_exp () => g;
-    (* raise no_such_vname_exp ("rename_vname", n1, g) *)
+    (* raise no_such_vertex_exp ("rename_vname", n1, g) *)
 
 fun rename_ename en1 en2 g = 
     let 
@@ -415,7 +415,7 @@ fun rename_ename en1 en2 g =
          |> set_edges edges2
          |> update_param (Param.rename_ename en1 en2)
     end handle rename_do_nothing_exp () => g;
-    (* no_such_ename_exp ("rename_vname", en1, g) *)
+    (* no_such_edge_exp ("rename_vname", en1, g) *)
 
 
 fun pretty_edge_connector Directed = Pretty.str "->"

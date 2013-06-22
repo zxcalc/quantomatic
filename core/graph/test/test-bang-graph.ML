@@ -54,12 +54,12 @@ local
     val _ = Testing.test "G.get_bboxes_containing_vertex - empty"
       (fn () => (G.get_bboxes_containing_vertex G.empty V.default_name;
               raise ERROR "get_bboxes_containing_vertex (empty) incorrect")
-              handle G.no_such_vname_exp _ => I) ()
+              handle G.no_such_vertex_exp _ => I) ()
 
     val _ = Testing.test "G.is_bboxed - empty"
       (fn () => (G.is_bboxed G.empty V.default_name;
               raise ERROR "is_bboxed (empty) incorrect")
-              handle G.no_such_vname_exp _ => I) ()
+              handle G.no_such_vertex_exp _ => I) ()
 
     val _ = Testing.test "G.rename_bbox - empty"
       (fn () => let
@@ -87,13 +87,13 @@ local
     val _ = Testing.test "g.add_to_bbox - empty"
       (fn () => (G.add_to_bbox B.default_name (V.NSet.single V.default_name) G.empty;
               raise error "add_to_bbox (empty) incorrect")
-              handle G.no_such_vname_exp _ => I
+              handle G.no_such_vertex_exp _ => I
                    | G.no_such_bbox_exp _ => I) ()
 
     val _ = Testing.test "G.remove_from_bbox - empty"
       (fn () => (G.remove_from_bbox B.default_name (V.NSet.single V.default_name) G.empty;
               raise ERROR "remove_from_bbox (empty) incorrect")
-              handle G.no_such_vname_exp _ => I
+              handle G.no_such_vertex_exp _ => I
                    | G.no_such_bbox_exp _ => I) ()
 
     val _ = Testing.test "G.kill_bbox - empty"
@@ -120,7 +120,7 @@ local
 
     val _ = Testing.test "G.fresh_copy_bbox_anon - empty"
       (fn () => (G.fresh_copy_bbox_anon B.default_name G.empty;
-              raise ERROR "fresh_copy_bbox_anon (empty) incorrect")
+              raise ERROR "fresh_copy_bbox_anon (empty) should throw exception")
               handle G.no_such_bbox_exp _ => I) ()
 
     (* FIXME: test rename_apart_incl_bboxes *)
@@ -242,7 +242,7 @@ local
     val _ = Testing.test "G.add_to_bbox_anon (no such verts)"
           (fn g => (G.add_to_bbox_anon b0 (V.NSet.single V.default_name) g;
                     raise error "add_to_bbox_anon (no such verts) incorrect")
-                   handle G.no_such_vname_exp _ => I) gnv
+                   handle G.no_such_vertex_exp _ => I) gnv
 
     val gv = gnv |> add_vunit1 "x1"
                  |> add_vunit1 "x2"

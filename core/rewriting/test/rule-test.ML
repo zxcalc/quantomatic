@@ -1,7 +1,7 @@
 structure Test_BG_Rule = BangGraphRule(Test_Bang_Graph);
 
 local
-  structure Tools = Test_Bang_Graph_Tools(structure BG = Test_Bang_Graph);
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
   open Tools;
   structure Rule = Test_BG_Rule;
 

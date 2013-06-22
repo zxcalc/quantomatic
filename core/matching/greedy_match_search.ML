@@ -194,7 +194,7 @@ struct
       val pat = Inner.get_pat (get_inner_state bms)
     in
       B.NSet.fold kill_pat_bbox (Graph.get_bboxes_containing_vertex pat v) bms
-      handle Graph.no_such_vname_exp _ => bms
+      handle Graph.no_such_vertex_exp _ => bms
     end
   in
     V.NSet.fold kill_all_bboxes touched bms

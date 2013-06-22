@@ -67,11 +67,11 @@ val empty : T
 (*********************************)
 
 (*exception bug_exp of string*)
-exception no_such_vname_exp of string * V.name * T
+exception no_such_vertex_exp of string * V.name * T
 (*exception no_such_vnames_exp of string * V.NSet.T * T*)
 exception vname_already_exists_exp of V.name * T
 
-exception no_such_ename_exp of string * E.name * T
+exception no_such_edge_exp of string * E.name * T
 exception ename_already_exists_exp of E.name * T
 
 exception bbname_already_exists_exp of B.name * T
@@ -172,7 +172,7 @@ val add_vertex_anon : vdata -> T -> T
 (* raises vname_already_exists_exp on clash *)
 val add_named_vertex : V.name -> vdata -> T -> T  
 
-(* V.names must already exist, else raises: no_such_vname_exp *)
+(* V.names must already exist, else raises: no_such_vertex_exp *)
 val add_edge : dir_or_undir * edata -> V.name -> V.name -> T -> E.name * T
 val add_edge_anon : dir_or_undir * edata -> V.name -> V.name -> T -> T
 val add_named_edge 

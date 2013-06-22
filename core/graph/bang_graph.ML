@@ -171,9 +171,9 @@ val has_bbox : T -> B.name -> bool
 val get_bbox_contents : T -> B.name -> V.NSet.T
 
 (* getters for vert -> bbox *)
-(* no_such_vname_exp if vertex does not exist *)
+(* no_such_vertex_exp if vertex does not exist *)
 val get_bboxes_of : T -> V.name -> B.NSet.T
-(* no_such_vname_exp if vertex does not exist *)
+(* no_such_vertex_exp if vertex does not exist *)
 val is_bboxed : T -> V.name -> bool
 
 (* bbox_already_exists_exp *)
@@ -596,14 +596,14 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   fun get_bboxes_of g v =
       case V.NTab.lookup (get_vertex_bbox_table g) v of
            NONE => (if not (V.NTab.contains_name (get_vertices g) v) then
-                      raise no_such_vname_exp ("get_bboxes_of", v, g)
+                      raise no_such_vertex_exp ("get_bboxes_of", v, g)
                     else B.NSet.empty)
          | SOME bs => bs;
   fun is_bboxed g v =
     if V.NSet.contains (get_vnames g) v then
       V.NSet.contains (get_bboxed g) v
     else
-      raise no_such_vname_exp ("is_bboxed", v, g)
+      raise no_such_vertex_exp ("is_bboxed", v, g)
 
   fun add_named_bbox b g = let
     val (b',g') = add_bbox_named_like b g
