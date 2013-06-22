@@ -159,7 +159,7 @@ local
     val _ = Testing.test "G.add_named_bbox (existing !-box)"
           (fn g => (G.add_named_bbox b0 g;
                     raise error "add_named_bbox (name clash) did not throw exception")
-                   handle G.bbox_already_exists_exp _ => I) gnv
+                   handle G.duplicate_bbox_exp _ => I) gnv
 
     val (b2,gnv) = test_force "G.add_bbox"
           (fn g =>
@@ -532,7 +532,7 @@ local
     val _ = Testing.test "G.rename_bbox (disjoint; existing !-box)"
           (fn g => (G.rename_bbox b0 b1 g;
                     raise error "rename_bbox (name clash) did not throw exception")
-                   handle G.bbox_already_exists_exp _ => I) g_disjoint
+                   handle G.duplicate_bbox_exp _ => I) g_disjoint
 
     val _ = Testing.test "G.rename_bbox (disjoint)"
           (fn g =>
@@ -605,7 +605,7 @@ local
     val _ = Testing.test "G.add_named_bbox (name clash)"
           (fn g => (G.add_named_bbox b0 g;
                     raise error "add_named_bbox (name clash) did not throw exception")
-                   handle G.bbox_already_exists_exp _ => I) gv
+                   handle G.duplicate_bbox_exp _ => I) gv
 
     val _ = Testing.test "G.add_named_bbox (new name)"
           (fn g =>

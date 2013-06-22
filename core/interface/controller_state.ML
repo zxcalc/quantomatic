@@ -518,11 +518,11 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
                raise no_such_vertex_exp (vname,gname)
            | Graph.no_such_edge_exp (_,ename,_) =>
                raise no_such_edge_exp (ename,gname)
-           | Graph.vname_already_exists_exp (vname,_) =>
+           | Graph.duplicate_vertex_exp (vname,_) =>
                 raise vertex_name_exists_exp (vname,gname)
-           | Graph.ename_already_exists_exp (ename,_) =>
+           | Graph.duplicate_edge_exp (ename,_) =>
                 raise edge_name_exists_exp (ename,gname)
-           | Graph.bbox_already_exists_exp (bname,_) =>
+           | Graph.duplicate_bbox_exp (bname,_) =>
                 raise bbox_name_exists_exp (bname,gname)
            | Graph.wire_vertex_exp (msg,_,v) =>
                 raise wire_vertex_exp (msg,gname,v)
@@ -541,11 +541,11 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
                raise no_such_vertex_exp (vname,gname)
            | Graph.no_such_edge_exp (_,ename,_) =>
                raise no_such_edge_exp (ename,gname)
-           | Graph.vname_already_exists_exp (vname,_) =>
+           | Graph.duplicate_vertex_exp (vname,_) =>
                 raise vertex_name_exists_exp (vname,gname)
-           | Graph.ename_already_exists_exp (ename,_) =>
+           | Graph.duplicate_edge_exp (ename,_) =>
                 raise edge_name_exists_exp (ename,gname)
-           | Graph.bbox_already_exists_exp (bname,_) =>
+           | Graph.duplicate_bbox_exp (bname,_) =>
                 raise bbox_name_exists_exp (bname,gname);
 
   fun lift_ud_mutator_no_result cmdf gname state =
@@ -600,7 +600,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
 
   fun rename_vertex_internal old new graph =
     ((new,NONE),graph |> Graph.rename_vertex old new)
-    handle Graph.vname_already_exists_exp _ =>
+    handle Graph.duplicate_vertex_exp _ =>
       (* Rename apart the old vertex *)
       let
         (*Ideally, we would just need to call the suc function in order

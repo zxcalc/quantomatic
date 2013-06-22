@@ -42,10 +42,10 @@ exception xname_already_exists_exp of X.name * T;
 
 exception no_such_vertex_exp of string * V.name * T;
 exception no_such_vnames_exp of string * V.NSet.T * T;
-exception vname_already_exists_exp of V.name * T;
+exception duplicate_vertex_exp of V.name * T;
 
 exception no_such_edge_exp of string * E.name * T;
-exception ename_already_exists_exp of E.name * T;
+exception duplicate_edge_exp of E.name * T;
 
 (* Making Graphs *)
 val empty : T
@@ -215,9 +215,9 @@ exception no_such_xname_exp of string * X.name * T;
 exception xname_already_exists_exp of X.name * T;
 exception no_such_vertex_exp of string * V.name * T;
 exception no_such_vnames_exp of string * V.NSet.T * T;
-exception vname_already_exists_exp of V.name * T;
+exception duplicate_vertex_exp of V.name * T;
 exception no_such_edge_exp of string * E.name * T;
-exception ename_already_exists_exp of E.name * T;
+exception duplicate_edge_exp of E.name * T;
 
 fun get_vertex g n = 
     case lookup_vertex g n 
@@ -363,7 +363,7 @@ fun rename_vname n1 n2 g =
           case (vertices |> V.NTab.delete n1
                          (* raises exception if n2 already exsists *)
                          |> V.NTab.try_ins (n2,(nd,(ins,outs))))
-           of NONE => raise vname_already_exists_exp (n2,g)
+           of NONE => raise duplicate_vertex_exp (n2,g)
             | SOME vertices2 => vertices2;
 
       (* update any edges to use the new name n1 instead of n1, using ins and outs lists *)
@@ -394,7 +394,7 @@ fun rename_ename en1 en2 g =
       val edges2 = 
           case (edges |> E.NTab.delete en1
                       |> E.NTab.try_ins (en2,(e,(from_n,to_n))))
-           of NONE => raise ename_already_exists_exp (en2,g)
+           of NONE => raise duplicate_edge_exp (en2,g)
             | SOME edges2 => edges2;
 
       (* update any edges to use the new name n1 instead of n1, using 

@@ -3,7 +3,7 @@ sig
   include OGRAPH
   
   exception bbox_not_open_exp of (V.name * V.name) * B.name * T
-  exception bbox_already_exists_exp of B.name * T
+  exception duplicate_bbox_exp of B.name * T
   exception no_such_bbox_exp of string * B.name * T
   exception bbox_bad_parent_exp of B.name * B.name * T
   exception merge_bbox_exp of string
@@ -160,7 +160,7 @@ sig
         -> T (* graph containing bbox name *)
         -> T (* new graph with bbox expanded *)
   
-  (* throws bbox_already_exists_exp on name clash *)
+  (* throws duplicate_bbox_exp on name clash *)
   (* identity if original name does not exist *)
   val rename_bbox : B.name -> B.name -> T -> T
   

@@ -45,12 +45,12 @@ structure Console : CONSOLE
   fun handle_bug_in_function f args = f args
       handle G.no_such_vertex_exp (s, v, g) => 
         raise ControllerState.user_exp ("BUG: G.no_such_vertex_exp")
-      | G.vname_already_exists_exp (v,g) =>
-        raise ControllerState.user_exp ("BUG: G.vname_already_exists_exp")
+      | G.duplicate_vertex_exp (v,g) =>
+        raise ControllerState.user_exp ("BUG: G.duplicate_vertex_exp")
       | G.no_such_edge_exp (s, e, g) =>
         raise ControllerState.user_exp ("BUG: G.no_such_edge_exp")
-      | G.ename_already_exists_exp (e,g) => 
-        raise ControllerState.user_exp ("BUG: G.ename_already_exists_exp")
+      | G.duplicate_edge_exp (e,g) => 
+        raise ControllerState.user_exp ("BUG: G.duplicate_edge_exp")
       | G.merge_bbox_exp s => 
         raise ControllerState.user_exp ("BUG: G.merge_bbox_exp")
       | G.overlapping_bbox_exp (vs,g) =>

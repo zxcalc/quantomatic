@@ -20,7 +20,7 @@ sig
 include BASIC_OGRAPH;
 
 exception bbox_not_open_exp of (V.name * V.name) * B.name * T;
-exception bbox_already_exists_exp of B.name * T;
+exception duplicate_bbox_exp of B.name * T;
 exception bbox_bad_parent_exp of B.name * B.name * T;
 exception no_such_bbox_exp of string * B.name * T;
 
@@ -45,7 +45,7 @@ val add_bbox_named_like : B.name -> T -> (B.name * T)
 (* identity if name does not exist *)
 val delete_bbox : B.name -> T -> T
 
-(* throws bbox_already_exists_exp on name clash *)
+(* throws duplicate_bbox_exp on name clash *)
 (* identity if original name does not exist *)
 val rename_bbox : B.name -> B.name -> T -> T
 
@@ -90,7 +90,7 @@ include OGRAPH;
    of include *** *)
 
 exception bbox_not_open_exp of (V.name * V.name) * B.name * T;
-exception bbox_already_exists_exp of B.name * T;
+exception duplicate_bbox_exp of B.name * T;
 exception no_such_bbox_exp of string * B.name * T;
 exception bbox_bad_parent_exp of B.name * B.name * T;
 
@@ -114,7 +114,7 @@ val add_bbox_named_like : B.name -> T -> (B.name * T)
 (* identity if name does not exist *)
 val delete_bbox : B.name -> T -> T
 
-(* throws bbox_already_exists_exp on name clash *)
+(* throws duplicate_bbox_exp on name clash *)
 (* identity if original name does not exist *)
 val rename_bbox : B.name -> B.name -> T -> T
 
@@ -176,7 +176,7 @@ val get_bboxes_of : T -> V.name -> B.NSet.T
 (* no_such_vertex_exp if vertex does not exist *)
 val is_bboxed : T -> V.name -> bool
 
-(* bbox_already_exists_exp *)
+(* duplicate_bbox_exp *)
 val add_named_bbox : B.name -> T -> T
 val add_bbox : T -> B.name * T
 val doadd_bbox : T -> T
@@ -311,7 +311,7 @@ functor BasicBangGraphFun(
   val update_data = G.update_data o update_data_of_hdata;
 
   exception bbox_not_open_exp of (V.name * V.name) * B.name * T;
-  exception bbox_already_exists_exp of B.name * T;
+  exception duplicate_bbox_exp of B.name * T;
   exception no_such_bbox_exp of string * B.name * T;
   exception bbox_bad_parent_exp of B.name * B.name * T;
 
@@ -379,11 +379,11 @@ functor BasicBangGraphFun(
           |> update_bboxes (B.NSet.delete bn)
           |> update_bbox_rel (BVBRel.del_dom bn)
 
-  (* raises bbbox_already_exists_exp if bbox name already exists *)
+  (* raises bduplicate_bbox_exp if bbox name already exists *)
   fun rename_bbox n1 n2 g =
       g |> update_bboxes (fn bxs =>
                              case B.NSet.try_rename1 n1 n2 bxs
-                               of NONE => raise bbox_already_exists_exp (n2,g)
+                               of NONE => raise duplicate_bbox_exp (n2,g)
                                 | SOME bxs2 => bxs2)
         |> update_bbox_rel (fn bxs =>
                              case BVBRel.try_rename1_dom n1 n2 bxs
@@ -609,13 +609,13 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
     val (b',g') = add_bbox_named_like b g
   in
     if B.name_eq (b,b') then g'
-    else raise bbox_already_exists_exp (b,g)
+    else raise duplicate_bbox_exp (b,g)
   end
   val add_bbox = add_bbox_named_like B.default_name
   val doadd_bbox = snd o add_bbox
 
   fun try_rename1_bbox n1 n2 g =
-      (SOME (rename_bbox n1 n2 g)) handle bbox_already_exists_exp _ => NONE;
+      (SOME (rename_bbox n1 n2 g)) handle duplicate_bbox_exp _ => NONE;
 
   fun remove_from_all_bboxes vs g =
     B.NSet.fold (fn b => doremove_from_bbox b vs) (get_bboxes g) g

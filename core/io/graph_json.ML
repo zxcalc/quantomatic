@@ -174,7 +174,7 @@ functor InputAnnotatedGraphJSON(
       | add_vert2 _ _ = raise bad_input_exp ("Expected object","")
   in
     fold_obj_or_arr_easy (add_vert2,add_vert1) obj prop
-    handle Graph.vname_already_exists_exp (vn,_) =>
+    handle Graph.duplicate_vertex_exp (vn,_) =>
              raise bad_input_exp ("Duplicate vertex ("^(V.dest vn)^")", prop)
   end
 
@@ -192,7 +192,7 @@ functor InputAnnotatedGraphJSON(
       | add_vert _ _ = raise bad_input_exp ("Expected object","")
   in
     fold_obj_or_arr_easy (add_vert,add_def_vert) obj prop
-    handle Graph.vname_already_exists_exp (vn,_) =>
+    handle Graph.duplicate_vertex_exp (vn,_) =>
              raise bad_input_exp ("Duplicate vertex ("^(V.dest vn)^")", prop)
   end
 
@@ -211,7 +211,7 @@ functor InputAnnotatedGraphJSON(
       | add_edge _ _ = raise bad_input_exp ("Expected object","")
   in
     fold_obj_easy add_edge obj prop
-    handle Graph.ename_already_exists_exp (en,_) =>
+    handle Graph.duplicate_edge_exp (en,_) =>
              raise bad_input_exp ("Duplicate edge ("^(E.dest en)^")", prop)
   end
 
@@ -258,7 +258,7 @@ functor InputAnnotatedGraphJSON(
     (fold_obj_easy set_bbox_parent obj prop)
     o
     (fold_obj_easy add_bbox obj prop)
-    handle Graph.bbox_already_exists_exp (bn,_) =>
+    handle Graph.duplicate_bbox_exp (bn,_) =>
              raise bad_input_exp ("Duplicate bang box ("^(B.dest bn)^")", prop)
   end
 

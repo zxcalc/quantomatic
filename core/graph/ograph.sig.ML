@@ -69,12 +69,10 @@ val empty : T
 (*exception bug_exp of string*)
 exception no_such_vertex_exp of string * V.name * T
 (*exception no_such_vnames_exp of string * V.NSet.T * T*)
-exception vname_already_exists_exp of V.name * T
+exception duplicate_vertex_exp of V.name * T
 
 exception no_such_edge_exp of string * E.name * T
-exception ename_already_exists_exp of E.name * T
-
-exception bbname_already_exists_exp of B.name * T
+exception duplicate_edge_exp of E.name * T
 
 exception bad_graph_merge_exp of T * T * T
 
@@ -169,7 +167,7 @@ val exact_eq : T -> T -> bool
 (* adding a vertex gives back unique name for it and the new graph *)
 val add_vertex : vdata -> T -> V.name * T 
 val add_vertex_anon : vdata -> T -> T
-(* raises vname_already_exists_exp on clash *)
+(* raises duplicate_vertex_exp on clash *)
 val add_named_vertex : V.name -> vdata -> T -> T  
 
 (* V.names must already exist, else raises: no_such_vertex_exp *)

@@ -666,7 +666,7 @@ functor Graph_Interface_Tests(
 
     val _ = (G.add_named_vertex v_a vunit1 g';
             raise ERROR "G.add_named_vertex did not raise exception")
-            handle G.vname_already_exists_exp (vn,gexp) =>
+            handle G.duplicate_vertex_exp (vn,gexp) =>
               (Testing.assert "correct vname in exp"
                               (V.name_eq (vn,v_a));
                Testing.assert "correct graph in exp"
@@ -773,7 +773,7 @@ functor Graph_Interface_Tests(
 
     val _ = (G.add_named_edge ee (Directed,eunit1) va vb g'';
              raise ERROR "G.add_named_edge did not raise exception (4)")
-            handle G.ename_already_exists_exp (en,gex) =>
+            handle G.duplicate_edge_exp (en,gex) =>
               (Testing.assert "correct ename in exp (2)" (E.name_eq (en,ee));
                Testing.assert "correct graph in exp (2)" (G.exact_eq g'' gex));
     in () end) ();

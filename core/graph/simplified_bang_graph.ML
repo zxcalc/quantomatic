@@ -46,15 +46,15 @@ val empty : T = BG {
 
 exception no_such_vertex_exp of string * V.name * T
 (*exception no_such_vnames_exp of string * V.NSet.T * T*)
-exception vname_already_exists_exp of V.name * T
+exception duplicate_vertex_exp of V.name * T
 
 exception bad_graph_merge_exp of T * T * T
 
 exception no_such_edge_exp of string * E.name * T
-exception ename_already_exists_exp of E.name * T
+exception duplicate_edge_exp of E.name * T
 
 exception no_such_bbox_exp of string * B.name * T
-exception bbname_already_exists_exp of B.name * T
+exception duplicate_bbox_exp of B.name * T
 
 exception not_an_endpoint_exp of string * E.name * V.name * T
 
@@ -65,7 +65,6 @@ exception plugging_exp of T * V.name * V.name
 
 (* !-graph exceptions *)
 exception bbox_not_open_exp of (V.name * V.name) * B.name * T
-exception bbox_already_exists_exp of B.name * T
 exception bbox_bad_parent_exp of B.name * B.name * T
 exception merge_bbox_exp of string
 
@@ -353,7 +352,7 @@ fun adj_edge_classes g v = (
 
 (* TODO: should this throw an exception if invalid graph? *)
 fun add_named_edge e (dir,d) s t g =
-  if (has_edge g e) then raise ename_already_exists_exp (e,g)
+  if (has_edge g e) then raise duplicate_edge_exp (e,g)
   else
     let
       val () = if has_vertex g s then ()
@@ -378,7 +377,7 @@ fun delete_edge e g =
     |> update_target (EVFn.delete e)
 
 fun add_named_vertex v d g =
-  if (has_vertex g v) then raise vname_already_exists_exp (v,g)
+  if (has_vertex g v) then raise duplicate_vertex_exp (v,g)
   else g |> update_vdata (VTab.add (v,d))
   
 fun add_vertex d g = let
@@ -394,7 +393,7 @@ fun delete_vertex v g =
     |> update_bbox_rel (BVRel.inv_delete v)
 
 fun add_named_bbox bb g =
-  if (has_bbox g bb) then raise bbname_already_exists_exp (bb,g)
+  if (has_bbox g bb) then raise duplicate_bbox_exp (bb,g)
   else g |> update_bboxes (B.NSet.add bb)
 
 fun add_bbox g = let

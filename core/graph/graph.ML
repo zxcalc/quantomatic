@@ -45,7 +45,7 @@ val exact_eq : T -> T -> bool
 (* adding a vertex gives back unique name for it and the new graph *)
 val add_vertex : VData.data -> T -> V.name * T 
 val doadd_vertex : VData.data -> T -> T
-(* raises vname_already_exists_exp on clash *)
+(* raises duplicate_vertex_exp on clash *)
 val add_named_vertex : V.name -> VData.data -> T -> T  
 
 (* V.names must already exist, else raises: no_such_vertex_exp *)
@@ -216,7 +216,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   fun add_named_vertex n nd g =
       let val (n2,g2) = add_vertex_named_like n nd g in
         if V.name_eq (n2, n) then g2 else 
-        raise vname_already_exists_exp (n, g)
+        raise duplicate_vertex_exp (n, g)
       end;
   
   (* implicit args: g n *)
@@ -229,7 +229,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   fun add_named_edge en e n1 n2 g =
       let val (en2,g2) = add_edge_named_like en e n1 n2 g in
         if E.name_eq (en2, en) then g2 else 
-        raise ename_already_exists_exp (en,g)
+        raise duplicate_edge_exp (en,g)
       end;
   
   
@@ -276,7 +276,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
          |> (E.NTab.fold 
                (fn (en,(d,(vn1,vn2))) => fn g3 => 
                    if has_ename g3 en then 
-                     raise ename_already_exists_exp (en, g3)
+                     raise duplicate_edge_exp (en, g3)
                    else add_named_edge en d vn1 vn2 g3)
                (get_edges g1));
 
@@ -296,11 +296,11 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
 
   fun try_rename1_vname en1 en2 g = 
       SOME (rename_vname en1 en2 g)
-      handle vname_already_exists_exp _ => NONE;
+      handle duplicate_vertex_exp _ => NONE;
   
   fun try_rename1_ename en1 en2 g = 
       SOME (rename_ename en1 en2 g)
-      handle ename_already_exists_exp _ => NONE;
+      handle duplicate_edge_exp _ => NONE;
   
   (* compound renamings: for renaming vertices/edges in a graph *)
   structure VertexCRnm = CompoundRenamingFun(
