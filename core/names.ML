@@ -111,6 +111,12 @@ signature QUANTO_NAME
       and type DomSet.T = E.NSet.T
       and type cod = E.name
       and type CodSet.T = E.NSet.T
+
+  structure BBInj : NAME_INJECTION
+    where type dom = B.name
+      and type DomSet.T = B.NSet.T
+      and type cod = B.name
+      and type CodSet.T = B.NSet.T
 end;
 
 local 
@@ -155,6 +161,7 @@ structure QuantoNames :> QUANTO_NAME
 
   structure VVInj = SStrInj
   structure EEInj = SStrInj
+  structure BBInj = SStrInj
 end
 in
 (* Put opaque Quanto names and name maps into the top-level *)
