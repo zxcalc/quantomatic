@@ -23,7 +23,8 @@ signature TEST_BG_MATCH_SEARCH = BG_MATCH_SEARCH
       and type Graph.edata  = Test_Graph_Data.edata
       and type Graph.psubst = Test_Graph_Data.psubst
       and type Graph.subst  = Test_Graph_Data.subst
-      and type BBoxOperableGraph.T = Test_BBoxOperableGraph.T
+      and type Match.BBoxOperableGraph.T = Test_BBoxOperableGraph.T
+      and type Match.BBoxOperableGraph.Graph.T = Test_BBoxOperableGraph.Graph.T
 
 
 signature MATCH_TESTER =

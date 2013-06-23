@@ -151,7 +151,7 @@ struct
   fun replay_bbox_op _ (BBKill b) g = Graph.kill_bbox b g
     | replay_bbox_op v_avoid (BBCopy {bbox,vmap,bmap}) g = let
         val v_avoid = v_avoid |> V.NSet.union_merge (Graph.get_vertices g)
-        val vrn = vmap |> VSub.avoid_set_in_cod v_avoid
+        val vrn = vmap |> VSub.avoid_set_in_cod (V.NSet.subtract v_avoid (VSub.get_cod_set vmap))
         val ern = ESub.mk_from_avoids (Graph.get_edges g)
         val brn = bmap |> BSub.avoid_set_in_cod (Graph.get_bboxes g)
         val (_,g') = Graph.expand_bbox bbox ((vrn,ern,brn),g)

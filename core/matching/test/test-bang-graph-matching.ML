@@ -2,11 +2,7 @@
  * Tests matching of !-graphs against string graphs
  *)
 functor Bang_Graph_Matching_Tests(
-  Matcher : BG_MATCH_SEARCH
-    where type G.EData.data = Test_Graph_Data.edata
-      and type G.OVData.IData.data = Test_Graph_Data.vdata
-      and type Match.BBoxOperableGraph.T = Test_BBoxOperableGraph.T
-      and type Match.BBoxOperableGraph.G.T = Test_BBoxOperableGraph.G.T
+  Matcher : TEST_BG_MATCH_SEARCH
 ) =
 struct
   structure Tools = Test_Bang_Match_Tools(Matcher);
@@ -156,7 +152,7 @@ struct
       |> add_bbox "B1" ["l2-a"];
 
   val arbitrary_tree_pat = balanced_tree_pat
-      |> G.set_bbox_parent (B.mk "B1") (B.mk "B0");
+      |> G.add_child_to_bbox (B.mk "B0") (B.mk "B1");
 
   val min_tree = G.empty
       |> add_vunit1 "l0";
