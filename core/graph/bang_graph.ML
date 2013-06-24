@@ -971,6 +971,15 @@ fun remove_from_bbox b vs g =
       val old_bvs = get_vertices_in_bbox g b
       val new_bvs = find_open_subgraph g (V.NSet.subtract old_bvs vs)
       val remove_bvs = V.NSet.subtract old_bvs new_bvs
+      fun raise_if_has_removed_verts bb = let
+        val contents = get_vertices_in_bbox g bb
+      in
+        if V.NSet.nonempty_intersect remove_bvs contents
+        then raise bbox_bad_parent_exp (b,bb,g)
+        else false
+      end
+      val children = get_bbox_children g b
+      val _ = B.NSet.exists raise_if_has_removed_verts children
     in
       (remove_bvs, g |> remove_vertices_from_bbox b remove_bvs)
     end

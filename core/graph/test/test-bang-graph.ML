@@ -573,7 +573,6 @@ functor Bang_Graph_Interface_Tests(
               (g_exp,["w3"])
               (g,"b1",["v3","w3"])
 
-    (* FIXME
     val _ = (G.remove_from_bbox (B.mk "b0")
                (V.NSet.of_list (map V.mk ["v3","w3"])) g;
              raise ERROR "remove_from_bbox (in child !-box) incorrect")
@@ -581,7 +580,6 @@ functor Bang_Graph_Interface_Tests(
               (Testing.assert "exception has correct graph" (G.exact_eq g_e g);
                Testing.assert "exception has correct !-box" (B.dest b_e = "b1");
                Testing.assert "exception has correct parent !-box" (B.dest bp_e = "b0"))
-    *)
     in () end) ()
 
 

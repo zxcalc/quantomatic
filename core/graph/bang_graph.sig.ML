@@ -49,6 +49,8 @@ sig
   val remove_from_all_bboxes : V.NSet.T -> T -> T
   
   (* no_such_bbox_exp if !-box does not exist *)
+  (* bbox_bad_parent_exp if any child !-box contains vertices that will be
+   * removed *)
   (* does not raise if verts are not in !-box *)
   (* Does not remove any vertices that are
    * necessary for the !-box to remain open
