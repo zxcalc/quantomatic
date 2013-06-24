@@ -78,7 +78,7 @@ PolyML.Project.make "graph/arity.ML"; (* arity of vertices (in,out,undir) *)
 PolyML.Project.make "graph/graph_data.ML";
 PolyML.Project.make "graph/ograph.sig.ML";
 PolyML.Project.make "graph/bang_graph.sig.ML";
-PolyML.Project.make "graph/simplified_bang_graph.ML";
+PolyML.Project.make "graph/bang_graph.ML";
 
 (*PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)*)
 
