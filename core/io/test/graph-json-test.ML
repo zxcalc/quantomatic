@@ -24,7 +24,7 @@ local
                   |> add_undir_eunit2 "e2" "n3" "n4"
                   |> add_dir_eexpr1_a "e3" "n5" "n5" expr_3
                   |> add_bbox "b1" ["w1","n1","n2"]
-                  |> add_child_bbox "b2" "b1" ["w1","n1"]
+                  |> add_bbox_with_parent "b2" "b1" ["w1","n1"]
                   |> add_bbox "b3" [];
   val g_json_1 =
   "{"^

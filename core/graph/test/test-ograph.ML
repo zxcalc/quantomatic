@@ -13,7 +13,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.empty" (fn () => let 
+  val _ = Testing.test "G.empty" (fn () => let
     val _ = assert_vnames [] (G.get_vertices G.empty)
     val _ = assert_enames [] (G.get_edges G.empty)
     in () end) ()
