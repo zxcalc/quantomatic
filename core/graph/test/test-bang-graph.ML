@@ -587,13 +587,200 @@ functor Bang_Graph_Interface_Tests(
 
 
   val _ = Testing.test "G.add_children_to_bbox" (fn () => let
-    (* TODO: val add_children_to_bbox : B.name -> B.NSet.T -> T -> T *)
+    val g_clean = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_wv "w1"
+        |> add_wv "w2"
+    val g = g_clean
+        |> add_bbox "b0" ["v1","v2","w1"]
+        |> add_bbox "b1" ["w1","w2"]
+        |> add_bbox_with_parent "b2" "b0" ["w1"]
+        |> add_bbox "b3" ["v2"]
+        |> add_bbox "b4" []
+        |> add_bbox_with_parent "b5" "b1" ["w1","w2"]
+
+    val _ = (G.add_children_to_bbox (B.mk "b9")
+                (B.NSet.of_list (map B.mk ["b0","b1"])) g;
+             raise ERROR "add_children_to_bbox (unknown parent !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (unknown parent !-box)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (unknown parent !-box)"
+                              (B.dest b_e = "b9"))
+    val _ = (G.add_children_to_bbox (B.mk "b0")
+                (B.NSet.of_list (map B.mk ["b3","b9"])) g;
+             raise ERROR "add_children_to_bbox (unknown child !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct !-box (unknown child !-box)"
+                              (B.dest b_e = "b9"))
+
+    val g_exp = g_clean
+        |> add_bbox "b0" ["v1","v2","w1"]
+        |> add_bbox "b1" ["w1","w2"]
+        |> add_bbox_with_parent "b2" "b0" ["w1"]
+        |> add_bbox_with_parent "b3" "b0" ["v2"]
+        |> add_bbox_with_parent "b4" "b0" []
+        |> add_bbox_with_parent "b5" "b1" ["w1","w2"]
+    val _ = assert_g_eq "G.add_children_to_bbox (b0:b3,b4)" g_exp
+              (G.add_children_to_bbox (B.mk "b0")
+               (B.NSet.of_list (map B.mk ["b3","b4"]))
+               g)
+
+    val g_exp = g_clean
+        |> add_bbox "b0" ["v1","v2","w1"]
+        |> add_bbox "b1" ["w1","w2"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["w1"]
+        |> add_bbox "b3" ["v2"]
+        |> add_bbox "b4" []
+        |> add_bbox_with_parent "b5" "b1" ["w1","w2"]
+    val _ = assert_g_eq "G.add_children_to_bbox (b1:b2)" g_exp
+              (G.add_children_to_bbox (B.mk "b1")
+               (B.NSet.of_list (map B.mk ["b2"]))
+               g)
+
+    val _ = (G.add_children_to_bbox (B.mk "b0")
+                (B.NSet.of_list (map B.mk ["b1","b2"])) g;
+             raise ERROR "add_children_to_bbox (not subgraph) incorrect")
+            handle G.bbox_bad_parent_exp (bp_e,b_e,g_e) =>
+              (Testing.assert "exception has correct !-box (not subgraph)"
+                              (B.dest b_e = "b1");
+               Testing.assert "exception has correct parent !-box (not subgraph)"
+                              (B.dest bp_e = "b0"))
+    val _ = (G.add_children_to_bbox (B.mk "b5")
+                (B.NSet.of_list (map B.mk ["b1","b4"])) g;
+             raise ERROR "add_children_to_bbox (breaks anti-symmetry) incorrect")
+            handle G.bbox_bad_parent_exp (bp_e,b_e,g_e) =>
+              (Testing.assert "exception has correct !-box (breaks anti-symmetry)"
+                              (B.dest b_e = "b1");
+               Testing.assert "exception has correct parent !-box (breaks anti-symmetry)"
+                              (B.dest bp_e = "b5"))
+
+    (* transitivity check *)
+    val g_clean = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit1 "v3"
+    val g = g_clean
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parents "b3" ["b0","b1","b2"] ["v1","v2"]
+        |> add_bbox "b4" ["v2","v3"]
+        |> add_bbox_with_parent "b5" "b4" ["v2"]
+        |> add_bbox_with_parents "b6" ["b4","b5"] ["v2"]
+        |> add_bbox_with_parents "b7" ["b4","b5","b6"] []
+    val g_exp = g_clean
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parents "b3" ["b0","b1","b2"] ["v1","v2"]
+        |> add_bbox "b4" ["v2","v3"]
+        |> add_bbox_with_parents "b5" ["b0","b1","b2","b4"] ["v2"]
+        |> add_bbox_with_parents "b6" ["b0","b1","b2","b4","b5"] ["v2"]
+        |> add_bbox_with_parents "b7" ["b0","b1","b2","b4","b5","b6"] []
+    val _ = assert_g_eq "G.add_children_to_bbox (b2:b5,b6)" g_exp
+              (G.add_children_to_bbox (B.mk "b2")
+               (B.NSet.of_list (map B.mk ["b5","b6"]))
+               g)
+
     in () end) ()
 
 
 
   val _ = Testing.test "G.add_child_to_bbox" (fn () => let
-    (* TODO: val add_child_to_bbox : B.name -> B.name -> T -> T *)
+    val g_clean = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_wv "w1"
+        |> add_wv "w2"
+    val g = g_clean
+        |> add_bbox "b0" ["v1","v2","w1"]
+        |> add_bbox "b1" ["w1","w2"]
+        |> add_bbox_with_parent "b2" "b0" ["w1"]
+        |> add_bbox "b3" ["v2"]
+        |> add_bbox "b4" []
+        |> add_bbox_with_parent "b5" "b1" ["w1","w2"]
+
+    val _ = (G.add_child_to_bbox (B.mk "b9") (B.mk "b0") g;
+             raise ERROR "add_child_to_bbox (unknown parent !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (unknown parent !-box)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (unknown parent !-box)"
+                              (B.dest b_e = "b9"))
+    val _ = (G.add_child_to_bbox (B.mk "b0") (B.mk "b9") g;
+             raise ERROR "add_child_to_bbox (unknown child !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (unknown child !-box)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (unknown child !-box)"
+                              (B.dest b_e = "b9"))
+
+    val g_exp = g_clean
+        |> add_bbox "b0" ["v1","v2","w1"]
+        |> add_bbox "b1" ["w1","w2"]
+        |> add_bbox_with_parent "b2" "b0" ["w1"]
+        |> add_bbox_with_parent "b3" "b0" ["v2"]
+        |> add_bbox "b4" []
+        |> add_bbox_with_parent "b5" "b1" ["w1","w2"]
+    val _ = assert_g_eq "G.add_child_to_bbox (b0:b3)" g_exp
+              (G.add_child_to_bbox (B.mk "b0") (B.mk "b3") g)
+
+    val g_exp = g_clean
+        |> add_bbox "b0" ["v1","v2","w1"]
+        |> add_bbox "b1" ["w1","w2"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["w1"]
+        |> add_bbox "b3" ["v2"]
+        |> add_bbox "b4" []
+        |> add_bbox_with_parent "b5" "b1" ["w1","w2"]
+    val _ = assert_g_eq "G.add_child_to_bbox (b1:b2)" g_exp
+              (G.add_child_to_bbox (B.mk "b1") (B.mk "b2") g)
+
+    val _ = (G.add_child_to_bbox (B.mk "b0") (B.mk "b1") g;
+             raise ERROR "add_child_to_bbox (not subgraph) incorrect")
+            handle G.bbox_bad_parent_exp (bp_e,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (not subgraph)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (not subgraph)"
+                              (B.dest b_e = "b1");
+               Testing.assert "exception has correct parent !-box (not subgraph)"
+                              (B.dest bp_e = "b0"))
+    val _ = (G.add_child_to_bbox (B.mk "b5") (B.mk "b1") g;
+             raise ERROR "add_child_to_bbox (breaks anti-symmetry) incorrect")
+            handle G.bbox_bad_parent_exp (bp_e,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (breaks anti-symmetry)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (breaks anti-symmetry)"
+                              (B.dest b_e = "b1");
+               Testing.assert "exception has correct parent (breaks anti-symmetry) !-box"
+                              (B.dest bp_e = "b5"))
+
+    (* transitivity check *)
+    val g_clean = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit1 "v3"
+    val g = g_clean
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parents "b3" ["b0","b1","b2"] ["v1","v2"]
+        |> add_bbox "b4" ["v2","v3"]
+        |> add_bbox_with_parent "b5" "b4" ["v2"]
+        |> add_bbox_with_parents "b6" ["b4","b5"] ["v2"]
+        |> add_bbox_with_parents "b7" ["b4","b5","b6"] []
+    val g_exp = g_clean
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parents "b3" ["b0","b1","b2"] ["v1","v2"]
+        |> add_bbox "b4" ["v2","v3"]
+        |> add_bbox_with_parents "b5" ["b0","b1","b2","b4"] ["v2"]
+        |> add_bbox_with_parents "b6" ["b0","b1","b2","b4","b5"] ["v2"]
+        |> add_bbox_with_parents "b7" ["b0","b1","b2","b4","b5","b6"] []
+    val _ = assert_g_eq "G.add_child_to_bbox (b2:b5)" g_exp
+              (G.add_child_to_bbox (B.mk "b2") (B.mk "b5") g)
     in () end) ()
 
 

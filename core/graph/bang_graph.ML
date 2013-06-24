@@ -421,11 +421,32 @@ fun remove_vertex_from_bbox bb v g =
   
 fun remove_vertices_from_bbox bb = V.NSet.fold (remove_vertex_from_bbox bb)
 
-(* TODO: these functions need to enforce transitive closure! *)
-
 fun add_child_to_bbox' bb bb_child g =
-  if not (has_bbox g bb_child) then raise no_such_bbox_exp ("add_child_to_bbox'", bb_child, g)
-  else g |> update_bbox_child_rel (BBRel.add (bb, bb_child))
+  if not (has_bbox g bb_child)
+  then raise no_such_bbox_exp ("add_child_to_bbox'", bb_child, g)
+  else if B.name_eq (bb,bb_child)
+  then g (* no-op *)
+  else if not (V.NSet.sub_set (get_vertices_in_bbox g bb_child)
+                              (get_vertices_in_bbox g bb))
+  then raise bbox_bad_parent_exp (bb,bb_child,g)
+  else
+    let
+      fun add_child rel =
+        if BBRel.is_mapped rel (bb_child,bb)
+        then raise bbox_bad_parent_exp (bb,bb_child,g)
+        else
+          let
+            val grandchildren = B.NSet.add bb_child (BBRel.img rel bb_child)
+            val grandparents = B.NSet.add bb (BBRel.inv_img rel bb)
+          in
+            B.NSet.fold (fn bp => B.NSet.fold (fn bc => BBRel.add (bp,bc))
+                                              grandchildren)
+                        grandparents
+                        rel
+          end
+    in
+      g |> update_bbox_child_rel add_child
+    end
 
 fun add_child_to_bbox bb bb_child g =
   if not (has_bbox g bb) then raise no_such_bbox_exp ("add_child_to_bbox", bb, g)
@@ -434,6 +455,8 @@ fun add_child_to_bbox bb bb_child g =
 fun add_children_to_bbox bb bb_children g =
   if not (has_bbox g bb) then raise no_such_bbox_exp ("add_children_to_bbox", bb, g)
   else B.NSet.fold (add_child_to_bbox' bb) bb_children g
+
+(* TODO: these functions need to enforce transitive closure! *)
 
 fun remove_child_from_bbox bb bb_child g =
   if not (has_bbox g bb) then raise no_such_bbox_exp ("remove_child_from_bbox", bb, g)
