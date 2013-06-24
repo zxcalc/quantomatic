@@ -376,7 +376,7 @@ functor OutputAnnotatedGraphJSON(
       )
     fun add_vert v (wvobj,nvobj) =
       case Graph.get_vertex_data g v
-        of Graph.NVert vd => (update (V.dest v, nv_info v vd) wvobj, nvobj)
+        of Graph.NVert vd => (wvobj, update (V.dest v, nv_info v vd) nvobj)
          | Graph.WVert => (update (V.dest v,wv_info v) wvobj, nvobj)
     val (wvobj,nvobj) = V.NSet.fold add_vert
                                     (Graph.get_vertices g)
