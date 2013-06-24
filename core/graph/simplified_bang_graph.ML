@@ -7,7 +7,7 @@ datatype vdata = NVert of Data.nvdata | WVert
 
 (* main bang-graph datatype *)
 datatype T = BG of {
-  vdata  : vdata VTab.T, 
+  vdata  : vdata VTab.T,
   edata  : (dir_or_undir * Data.edata) ETab.T,
   source : EVFn.T,
   target : EVFn.T,

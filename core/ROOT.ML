@@ -74,27 +74,13 @@ Testing.make_test "io/test/linrat-json-test.ML";
  * Graphs
  *)
 PolyML.Project.make "graph/arity.ML"; (* arity of vertices (in,out,undir) *)
-(*PolyML.Project.make "graph/graph_param.ML";*)
-
-(*PolyML.Project.make "graph/overtex.ML";*) (* open graphs *)
-(*PolyML.Project.make "graph/ograph_param.ML";*)
 
 PolyML.Project.make "graph/graph_data.ML";
 PolyML.Project.make "graph/ograph.sig.ML";
 PolyML.Project.make "graph/bang_graph.sig.ML";
 PolyML.Project.make "graph/simplified_bang_graph.ML";
 
-
-
-(*PolyML.Project.make "graph/basic_graph.ML"; (* basic graphs, just the data *)
-PolyML.Project.make "graph/graph.ML"; (* graphs with interesting functions *)
-PolyML.Project.make "graph/graph_iso.ML"; (* isomorphism between graphs *)
-PolyML.Project.make "graph/overtex.ML"; (* open graphs *)
-PolyML.Project.make "graph/ograph_param.ML";
-PolyML.Project.make "graph/ograph.ML";
-PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
-PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
-*)
+(*PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)*)
 
 PolyML.Project.make "graph/graph_annotations.ML"; (* graph annotations *)
 
