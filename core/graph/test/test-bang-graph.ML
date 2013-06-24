@@ -459,7 +459,6 @@ functor Bang_Graph_Interface_Tests(
               (G.remove_from_all_bboxes
                (V.NSet.of_list (map V.mk ["v3"]))
                g)
-    (* FIXME
     val g_exp = g_clean
         |> add_bbox "b0" ["w1","w4","v3","w3"]
         |> add_bbox_with_parent "b1" "b0" ["w1"]
@@ -469,7 +468,6 @@ functor Bang_Graph_Interface_Tests(
               (G.remove_from_all_bboxes
                (V.NSet.of_list (map V.mk ["w3"]))
                g)
-    *)
     val g_exp = g_clean
         |> add_bbox "b0" ["w1","w4"]
         |> add_bbox_with_parent "b1" "b0" ["w1"]

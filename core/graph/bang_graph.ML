@@ -974,10 +974,21 @@ fun remove_from_bbox b vs g =
     in
       (remove_bvs, g |> remove_vertices_from_bbox b remove_bvs)
     end
-
 val remove_from_bbox_anon = snd ooo remove_from_bbox
-fun remove_from_all_bboxes vset g =
-  g |> B.NSet.fold (fn b => remove_vertices_from_bbox b vset) (get_bboxes g)
+
+fun remove_from_all_bboxes vset g = let
+  (* no need to check parents or args *)
+  fun remove_from_bbox b vs g =
+    let
+      val old_bvs = get_vertices_in_bbox g b
+      val new_bvs = find_open_subgraph g (V.NSet.subtract old_bvs vs)
+      val remove_bvs = V.NSet.subtract old_bvs new_bvs
+    in
+      g |> remove_vertices_from_bbox b remove_bvs
+    end
+in
+  g |> B.NSet.fold (fn b => remove_from_bbox b vset) (get_bboxes g)
+end
 
 
 fun kill_bbox bb g =
