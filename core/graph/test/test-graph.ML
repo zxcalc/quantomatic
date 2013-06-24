@@ -16,19 +16,6 @@ functor Graph_Interface_Tests(
     val _ = assert_enames [] (G.get_edges G.empty);
     in () end) ();
 
-(*  val _ = Testing.test "G.get_xnames" (fn () => let 
-    val _ = Testing.assert "get_xnames empty"
-              (X.NSet.is_empty (G.get_xnames G.empty));
-    val g = G.empty |> add_vexpr1 "a" "2\\pi + w"
-                    |> add_vexpr1 "b" "2/3*x"
-                    |> add_vexpr2 "c" "3w - v"
-                    |> add_undir_eexpr1 "e" "a" "b" "v + y"
-                    |> add_undir_eexpr2 "f" "b" "c" "y + z";
-    val _ = assert_xnames ["v","w","x","y","z"] (G.get_xnames g);
-    in () end) ();
-*)
-
-
 
   val _ = Testing.test "G.get_vertex_data" (fn () => let 
     val _ = (G.get_vertex_data G.empty (V.mk "a");

@@ -413,16 +413,6 @@ functor Test_OGraph_Tools(
       else raise ERROR ("assert_enames: expected "^(pretty_set exp_ens)^
                         " but got "^(pretty_set actual_eset))
     end
-  (*fun assert_xnames exp_vs actual_vset =
-    let
-      val exp_vset = X.NSet.of_list (map X.mk exp_vs)
-      val pretty_set = Pretty.string_of o X.NSet.pretty
-    in
-      if X.NSet.eq exp_vset actual_vset
-      then ()
-      else raise ERROR ("assert_xnames: expected "^(pretty_set exp_vset)^
-                        " but got "^(pretty_set actual_vset))
-    end*)
   fun assert_vertices g exp_vs =
     let
       val actual_vset = G.get_vertices g
@@ -481,36 +471,11 @@ functor Test_OGraph_Tools(
     then actual
     else (writeln "Expected:" G.print exp
           writeln "Got:" G.print actual
-          raise Testing.assertion_failed_exp msg)*)
-end
-
-(*
-(* Some helpful tools for creating string graphs *)
-functor Test_OGraph_Tools(
-  G : OGRAPH where type EData.data = Test_Graph_Data.edata
-               and type OVData.IData.data = Test_Graph_Data.vdata
-)
-= struct
-  structure OG = G
-
-  fun unwrap_nv G.OVData.WVert = raise ERROR "wire vertex"
-    | unwrap_nv (G.OVData.NVert vd) = vd
-  val nv = G.OVData.NVert
-  fun add_wv n = G.add_named_vertex (V.mk n) G.OVData.WVert
-
-  structure GraphTools = Test_Graph_Tools(
-    structure G  = G
-    val vert = nv
-    val unwrap_vert = unwrap_nv
-  )
-  open GraphTools
-
-  structure G = OG
+          raise Testing.assertion_failed_exp msg)
 
   fun assert_iso_graph_up_to_wires msg exp actual =
-    assert_iso_graph msg (G.minimise exp) (G.minimise actual)
+    assert_iso_graph msg (G.minimise exp) (G.minimise actual)*)
 end
-*)
 
 (* Some helpful tools for creating graphs *)
 functor Test_Bang_Graph_Tools(
@@ -518,11 +483,6 @@ functor Test_Bang_Graph_Tools(
 ) =
 struct
   structure BG = BG
-
-  (*fun unwrap_nv BG.WVert = raise ERROR "wire vertex"
-    | unwrap_nv (BG.NVert vd) = vd
-  val nv = BG.NVert*)
-  fun add_wv n = BG.add_named_vertex (V.mk n) BG.WVert
 
   structure Test_OG_Tools = Test_OGraph_Tools(BG)
   open Test_OG_Tools
