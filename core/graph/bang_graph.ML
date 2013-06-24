@@ -778,7 +778,7 @@ in
   then (wire,g)
   else minimise_wire' wire g
 end
-val do_minimise_wire = snd oo minimise_wire
+val minimise_wire_anon = snd oo minimise_wire
 
 fun is_wire_normalised g (s,t,wvs,_) =
   if is_node_vertex g s andalso is_node_vertex g t then
@@ -819,10 +819,10 @@ in
   then (wire,g)
   else normalise_wire' wire g
 end
-val do_normalise_wire = snd oo normalise_wire
+val normalise_wire_anon = snd oo normalise_wire
 
-fun minimise g = g |> fold do_minimise_wire (get_wire_list g)
-fun normalise g = g |> fold do_normalise_wire (get_wire_list g)
+fun minimise g = g |> fold minimise_wire_anon (get_wire_list g)
+fun normalise g = g |> fold normalise_wire_anon (get_wire_list g)
 
 fun split_edge e g = let
   val (dd, (s,t)) = get_edge_info g e
@@ -863,19 +863,19 @@ fun plug v1 v2 g =
   case get_plugging g v1 v2 of
        NONE => raise plugging_exp (g,v1,v2)
      | SOME (ed,(v1',v2')) => add_edge ed v1' v2' g;
-val do_plug = snd ooo plug
+val plug_anon = snd ooo plug
 fun plug_and_minimise g v1 v2 = let
   val (e,g') = plug g v1 v2
 in
   minimise_wire (get_wire_containing_edge g' e) g'
 end
-val do_plug_and_minimise = snd ooo plug_and_minimise
+val plug_and_minimise_anon = snd ooo plug_and_minimise
 fun plug_and_normalise g v1 v2 = let
   val (e,g') = plug g v1 v2
 in
   normalise_wire (get_wire_containing_edge g' e) g'
 end
-val do_plug_and_normalise = snd ooo plug_and_normalise
+val plug_and_normalise_anon = snd ooo plug_and_normalise
 
 
 (* finds the open subgraph defined by a node-vertex set

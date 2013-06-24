@@ -1168,7 +1168,7 @@ functor OGraph_Interface_Tests(
       in () end) ()
 
 
-    (* TODO: do_plug *)
+    (* TODO: plug_anon *)
 
 
     val _ = Testing.test "G.plug_and_minimise (in1,out1)"
@@ -1215,7 +1215,7 @@ functor OGraph_Interface_Tests(
             ) ();
 
 
-    (* TODO: do_plug_and_minimise *)
+    (* TODO: plug_and_minimise_anon *)
 
 
     val _ = Testing.test "G.plug_and_normalise (in1,out1)"
@@ -1237,7 +1237,7 @@ functor OGraph_Interface_Tests(
             ) ()
 
 
-    (* TODO: do_plug_and_normalise *)
+    (* TODO: plug_and_normalise_anon *)
   end
 
 

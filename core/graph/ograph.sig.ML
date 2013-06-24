@@ -306,7 +306,7 @@ val are_pluggable : T -> V.name -> V.name -> bool
  *)
 val plug : V.name -> V.name -> T -> (E.name * T)
 (* Exactly like plug, but does not return the edge name. *)
-val do_plug : V.name -> V.name -> T -> T
+val plug_anon : V.name -> V.name -> T -> T
 
 (* Plug two boundary vertices together and minimises the
  * plugged wire (so all unnecessary wire vertices will be
@@ -318,7 +318,7 @@ val do_plug : V.name -> V.name -> T -> T
  *)
 val plug_and_minimise : V.name -> V.name -> T -> (wire * T)
 (* Exactly like plug_and_minimise, but does not return the wire. *)
-val do_plug_and_minimise : V.name -> V.name -> T -> T
+val plug_and_minimise_anon : V.name -> V.name -> T -> T
 (* Plug two boundary vertices together and normalises the
  * plugged wire.
  *
@@ -328,7 +328,7 @@ val do_plug_and_minimise : V.name -> V.name -> T -> T
  *)
 val plug_and_normalise : V.name -> V.name -> T -> (wire * T)
 (* Exactly like plug_and_normalise, but does not return the wire. *)
-val do_plug_and_normalise : V.name -> V.name -> T -> T
+val plug_and_normalise_anon : V.name -> V.name -> T -> T
 
 (* Returns the minimal subgraph containing the given node vertices,
  * with wires preserved.
