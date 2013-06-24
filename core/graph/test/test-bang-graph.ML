@@ -688,6 +688,18 @@ functor Bang_Graph_Interface_Tests(
 
 
 
+  val _ = Testing.test "G.remove_child_from_bbox" (fn () => let
+    (* TODO: val remove_child_from_bbox : B.name -> B.name -> T -> T *)
+    in () end) ()
+
+
+
+  val _ = Testing.test "G.clear_bbox_children" (fn () => let
+    (* TODO: val clear_bbox_children : B.name -> T -> T *)
+    in () end) ()
+
+
+
   val _ = Testing.test "G.add_child_to_bbox" (fn () => let
     val g_clean = G.empty
         |> add_vunit1 "v1"
@@ -1037,6 +1049,9 @@ functor Bang_Graph_Interface_Tests(
   val _ = Testing.test "G.rename_bang_graph" (fn () => let
     (* TODO: val rename_bbox_opt : B.name -> B.name -> T -> T option *)
     in () end) ()
+
+
+  (* TODO: tests for !-box openness preservation with add_edge *)
 
   val _ = Testing.assert_no_failed_tests()
 end;
