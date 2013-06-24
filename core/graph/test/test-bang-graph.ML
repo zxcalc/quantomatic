@@ -688,18 +688,6 @@ functor Bang_Graph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.remove_child_from_bbox" (fn () => let
-    (* TODO: val remove_child_from_bbox : B.name -> B.name -> T -> T *)
-    in () end) ()
-
-
-
-  val _ = Testing.test "G.clear_bbox_children" (fn () => let
-    (* TODO: val clear_bbox_children : B.name -> T -> T *)
-    in () end) ()
-
-
-
   val _ = Testing.test "G.add_child_to_bbox" (fn () => let
     val g_clean = G.empty
         |> add_vunit1 "v1"
@@ -793,6 +781,98 @@ functor Bang_Graph_Interface_Tests(
         |> add_bbox_with_parents "b7" ["b0","b1","b2","b4","b5","b6"] []
     val _ = assert_g_eq "G.add_child_to_bbox (b2:b5)" g_exp
               (G.add_child_to_bbox (B.mk "b2") (B.mk "b5") g)
+    in () end) ()
+
+
+
+  val _ = Testing.test "G.remove_child_from_bbox" (fn () => let
+    val g_clean = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit1 "v3"
+    val g = g_clean
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parent "b3" "b0" ["v2","v3"]
+        |> add_bbox_with_parents "b4" ["b0","b1","b2","b3"] ["v2"]
+
+    val _ = (G.remove_child_from_bbox (B.mk "b9") (B.mk "b0") g;
+             raise ERROR "remove_child_from_bbox (unknown parent !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (unknown parent !-box)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (unknown parent !-box)"
+                              (B.dest b_e = "b9"))
+    val _ = (G.remove_child_from_bbox (B.mk "b0") (B.mk "b9") g;
+             raise ERROR "remove_child_from_bbox (unknown child !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (unknown child !-box)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (unknown child !-box)"
+                              (B.dest b_e = "b9"))
+
+    (* not connected *)
+    val _ = assert_g_eq "G.remove_child_from_bbox (b1:b3)" g
+              (G.remove_child_from_bbox (B.mk "b1") (B.mk "b3") g)
+
+    (* would break transitivity *)
+    val _ = assert_g_eq "G.remove_child_from_bbox (b0:b2)" g
+              (G.remove_child_from_bbox (B.mk "b0") (B.mk "b2") g)
+
+    val g_exp = g_clean
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox "b1" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parent "b3" "b0" ["v2","v3"]
+        |> add_bbox_with_parents "b4" ["b0","b1","b2","b3"] ["v2"]
+    val _ = assert_g_eq "G.remove_child_from_bbox (b0:b4)" g_exp
+              (G.remove_child_from_bbox (B.mk "b0") (B.mk "b1") g)
+    in () end) ()
+
+
+
+  val _ = Testing.test "G.clear_bbox_children" (fn () => let
+    val g_clean = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit1 "v3"
+    val g = g_clean
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parent "b3" "b0" ["v2","v3"]
+        |> add_bbox_with_parents "b4" ["b0","b1","b2","b3"] ["v2"]
+
+    val _ = (G.clear_bbox_children (B.mk "b9") g;
+             raise ERROR "clear_bbox_children (unknown !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (unknown !-box)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (unknown !-box)"
+                              (B.dest b_e = "b9"))
+
+    (* leaf !-box *)
+    val _ = assert_g_eq "G.clear_bbox_children (b4)" g
+              (G.clear_bbox_children (B.mk "b4") g)
+
+    val g_exp = g_clean
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parent "b3" "b0" ["v2","v3"]
+        |> add_bbox_with_parents "b4" ["b0","b1","b2"] ["v2"]
+    val _ = assert_g_eq "G.clear_bbox_children (b3)" g_exp
+              (G.clear_bbox_children (B.mk "b3") g)
+
+    val g_exp = g_clean
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox "b1" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b1"] ["v1","v2"]
+        |> add_bbox "b3" ["v2","v3"]
+        |> add_bbox_with_parents "b4" ["b1","b2","b3"] ["v2"]
+    val _ = assert_g_eq "G.clear_bbox_children (b0)" g_exp
+              (G.clear_bbox_children (B.mk "b0") g)
     in () end) ()
 
 

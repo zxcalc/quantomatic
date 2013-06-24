@@ -461,9 +461,18 @@ fun add_children_to_bbox bb bb_children g =
 fun remove_child_from_bbox bb bb_child g =
   if not (has_bbox g bb) then raise no_such_bbox_exp ("remove_child_from_bbox", bb, g)
   else if not (has_bbox g bb_child) then raise no_such_bbox_exp ("remove_child_from_bbox", bb_child, g)
-  else g |> update_bbox_child_rel (BBRel.unmap (bb, bb_child))
+  else
+    let
+      fun remove_child rel =
+        if B.NSet.nonempty_intersect (BBRel.img rel bb)
+                                     (BBRel.inv_img rel bb_child)
+        then rel
+        else BBRel.unmap (bb,bb_child) rel
+    in
+      g |> update_bbox_child_rel remove_child
+    end
 
-fun clear_bbox_children bb g = 
+fun clear_bbox_children bb g =
   if not (has_bbox g bb) then raise no_such_bbox_exp ("clear_bbox_children", bb, g)
   else g |> update_bbox_child_rel (BBRel.delete bb)
 
