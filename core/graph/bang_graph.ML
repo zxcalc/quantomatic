@@ -958,6 +958,15 @@ fun add_to_bbox b vs g = let
              else raise no_such_vertex_exp ("add_to_bbox",v,g)
            )) vs ()
   val to_add = find_open_subgraph g vs
+  fun raise_if_not_has_added_verts bb = let
+    val contents = get_vertices_in_bbox g bb
+  in
+    if V.NSet.sub_set to_add contents
+    then true
+    else raise bbox_bad_parent_exp (bb,b,g)
+  end
+  val parents = get_bbox_parents g b
+  val _ = B.NSet.forall raise_if_not_has_added_verts parents
 in (to_add, g |> add_vertices_to_bbox b to_add)
 end
 

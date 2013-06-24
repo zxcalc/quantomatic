@@ -312,15 +312,13 @@ functor Bang_Graph_Interface_Tests(
     val _ = check_add "G.add_to_bbox (b2,v3)"
               (g',"b2",["v3"])
               (g_exp,["v3","w3"])
-    (* FIXME:
-    val g_exp = g_clean
-        |> add_bbox "b0" ["v4"]
-        |> add_bbox_with_parent "b1" "b0" ["v4"]
-        |> add_bbox "b2" []
-    val _ = check_add "G.add_to_bbox (b1,v4)"
-              (g,"b1",["v4"])
-              (g_exp,["v4"])
-    *)
+    val _ = (G.add_to_bbox (B.mk "b1")
+               (V.NSet.of_list (map V.mk ["v4"])) g;
+             raise ERROR "add_to_bbox (not in parent !-box) incorrect")
+            handle G.bbox_bad_parent_exp (bp_e,b_e,g_e) =>
+              (Testing.assert "exception has correct graph" (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box" (B.dest b_e = "b1");
+               Testing.assert "exception has correct parent !-box" (B.dest bp_e = "b0"))
     in () end) ()
 
 
