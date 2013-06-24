@@ -66,9 +66,7 @@ val empty : T
 (********** EXCEPTIONS ***********)
 (*********************************)
 
-(*exception bug_exp of string*)
 exception no_such_vertex_exp of string * V.name * T
-(*exception no_such_vnames_exp of string * V.NSet.T * T*)
 exception duplicate_vertex_exp of V.name * T
 
 exception no_such_edge_exp of string * E.name * T
@@ -155,10 +153,6 @@ val get_wire_vertices : T -> V.NSet.T
 val get_node_vertices : T -> V.NSet.T
 
 val get_edges         : T -> E.NSet.T
-
-
-(* TODO *)
-(*val apply_data_subst : Param.subst -> T -> T*)
 
 (* check if two graphs are exactly the same (names, data, and structure) *)
 val is_subgraph : T -> T -> bool
@@ -278,9 +272,6 @@ val get_wire_list : T -> wire list
  *)
 val normalise : T -> T
 
-(* Split an edge into two edges, connected by a wire-vertex *)
-val split_edge : E.name -> T -> (E.name * V.name * E.name) * T
-
 (* Return a graph that has no unnecessary edge points.
  *
  * Note that this function assumes there are no
@@ -290,20 +281,22 @@ val split_edge : E.name -> T -> (E.name * V.name * E.name) * T
  *)
 val minimise : T -> T
 
+(* Split an edge into two edges, connected by a wire-vertex *)
+val split_edge : E.name -> T -> (E.name * V.name * E.name) * T
 
+
+(* Get an edge that can join two boundary vertices, if
+ * there is such an edge.
+ *
+ * This will return NONE exactly when are_pluggable
+ * returns false
+ *)
 val get_plugging : T -> V.name -> V.name
   -> ((dir_or_undir * edata) * (V.name * V.name)) option
 
 (* True if and only if one of the given vertices is
  * an input and one an output with the same edge data *)
 val are_pluggable : T -> V.name -> V.name -> bool
-(* Get an edge that can join two boundary vertices, if
- * there is such an edge.
- *
- * This will return NONE exactly when are_verts_pluggable
- * returns false
- *)
-(* copied from BASIC_BANG_GRAPH *)
 
 (* Plug two boundary vertices together.
  *
@@ -363,6 +356,9 @@ val get_open_subgraph : T -> V.NSet.T -> T
 (************************)
 (****** DEPRECATED ******)
 (************************)
+
+(*exception bug_exp of string*)
+(*exception no_such_vnames_exp of string * V.NSet.T * T*)
 
 (*datatype incidence_type = Incoming | Outgoing | SelfLoop;
 (* Fold over the incident edges.
