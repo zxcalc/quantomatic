@@ -995,11 +995,20 @@ fun kill_bbox bb g =
   if not (has_bbox g bb) then raise no_such_bbox_exp ("kill_bbox",bb,g)
   else
     let
-      val g' = B.NSet.fold kill_bbox (get_bbox_children g bb) g
-      val bbox_vs = get_vertices_in_bbox g' bb
+      (* depending on naming, we may end up recursing to !-boxes later in the
+       * list, and then try to remove them again; hence no checks on recurse *)
+      fun kill_bbox' bb g =
+        if not (has_bbox g bb) then g
+        else
+          let
+            val g' = B.NSet.fold kill_bbox' (get_bbox_children g bb) g
+            val bbox_vs = get_vertices_in_bbox g' bb
+          in
+            g' |> V.NSet.fold delete_vertex bbox_vs
+               |> delete_bbox bb
+          end
     in
-      g' |> V.NSet.fold delete_vertex bbox_vs
-         |> delete_bbox bb
+      kill_bbox' bb g
     end
 
 fun drop_bbox bn g =

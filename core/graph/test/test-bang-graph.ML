@@ -663,7 +663,6 @@ functor Bang_Graph_Interface_Tests(
               (Testing.assert "exception has correct graph" (G.exact_eq g_e g);
                Testing.assert "exception has correct !-box" (B.dest b_e = "b9"))
 
-    (* FIXME
     val g_exp = G.empty
         |> add_vunit2 "v3"
         |> add_vunit2 "v4"
@@ -682,7 +681,6 @@ functor Bang_Graph_Interface_Tests(
         |> add_bbox "b5" ["v3"]
     val _ = assert_g_eq "G.kill_bbox (b1)"
                         g_exp (G.kill_bbox (B.mk "b1") g)
-    *)
     val g_exp = G.empty
         |> add_vunit1 "v1"
         |> add_vunit1 "v2"
