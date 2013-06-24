@@ -14,8 +14,8 @@ functor OGraph_Interface_Tests(
 
 
   val _ = Testing.test "G.empty" (fn () => let
-    val _ = assert_vnames [] (G.get_vertices G.empty)
-    val _ = assert_enames [] (G.get_edges G.empty)
+    val _ = assert_vertices "G.empty" [] (G.get_vertices G.empty)
+    val _ = assert_edges "G.empty" [] (G.get_edges G.empty)
     in () end) ()
 
 
@@ -239,15 +239,15 @@ functor OGraph_Interface_Tests(
                             G.get_out_edges g  (V.mk "a")))
     val _ = Testing.assert "get_vertex_data correct data"
               (G.vdata_eq (vd,vunit1));
-    val _ = assert_enames [] ins;
-    val _ = assert_enames ["e"] outs;
+    val _ = assert_edges "ins 1" [] ins;
+    val _ = assert_edges "outs 1" ["e"] outs;
 
     val (vd,(ins,outs)) = (G.get_vertex_data g (V.mk "b"),
                            (G.get_in_edges g   (V.mk "b"),
                             G.get_out_edges g  (V.mk "b")))
     val _ = Testing.assert "get_vertex_data correct data" (G.vdata_eq (vd,vunit2));
-    val _ = assert_enames ["e","f"] ins;
-    val _ = assert_enames ["f"] outs;
+    val _ = assert_edges "ins 2" ["e","f"] ins;
+    val _ = assert_edges "outs 2" ["f"] outs;
 
     val _ = (G.get_vertex_data g (V.mk "e");
              raise ERROR "G.get_vertex_data did not raise exception")
@@ -339,18 +339,18 @@ functor OGraph_Interface_Tests(
                     |> add_undir_eunit2 "f" "b" "a";
 
     val g' = G.set_vertex_data vunit2 (V.mk "a") g;
-    val _ = assert_vertices g'
+    val _ = assert_vertex_info "g'" g'
               [("a",(vunit2,(["f"],["e"]))),
                ("b",(vunit2,(["e"],["f"])))];
-    val _ = assert_edges g'
+    val _ = assert_edge_info "g'" g'
               [("e",((Directed,eunit1),("a","b"))),
                ("f",((Undirected,eunit2),("b","a")))];
 
     val g'' = G.set_vertex_data vunit2 (V.mk "b") g';
-    val _ = assert_vertices g''
+    val _ = assert_vertex_info "g''" g''
               [("a",(vunit2,(["f"],["e"]))),
                ("b",(vunit2,(["e"],["f"])))];
-    val _ = assert_edges g''
+    val _ = assert_edge_info "g''" g''
               [("e",((Directed,eunit1),("a","b"))),
                ("f",((Undirected,eunit2),("b","a")))];
     in () end) ();
@@ -370,18 +370,18 @@ functor OGraph_Interface_Tests(
                     |> add_undir_eunit2 "f" "b" "a";
 
     val g' = G.set_edge_data eunit2 (E.mk "e") g;
-    val _ = assert_vertices g'
+    val _ = assert_vertex_info "g'" g'
               [("a",(vunit1,(["f"],["e"]))),
                ("b",(vunit2,(["e"],["f"])))];
-    val _ = assert_edges g'
+    val _ = assert_edge_info "g'" g'
               [("e",((Directed,eunit2),("a","b"))),
                ("f",((Undirected,eunit2),("b","a")))];
 
     val g'' = G.set_edge_data eunit2 (E.mk "f") g';
-    val _ = assert_vertices g''
+    val _ = assert_vertex_info "g''" g''
               [("a",(vunit1,(["f"],["e"]))),
                ("b",(vunit2,(["e"],["f"])))];
-    val _ = assert_edges g''
+    val _ = assert_edge_info "g''" g''
               [("e",((Directed,eunit2),("a","b"))),
                ("f",((Undirected,eunit2),("b","a")))];
     in () end) ();
@@ -413,18 +413,18 @@ functor OGraph_Interface_Tests(
         else vd;
 
     val g' = G.update_vertex_data swap_vd (V.mk "a") g;
-    val _ = assert_vertices g'
+    val _ = assert_vertex_info "g'" g'
               [("a",(vunit2,(["f"],["e"]))),
                ("b",(vunit2,(["e"],["f"])))];
-    val _ = assert_edges g'
+    val _ = assert_edge_info "g'" g'
               [("e",((Directed,eunit1),("a","b"))),
                ("f",((Undirected,eunit2),("b","a")))];
 
     val g'' = G.update_vertex_data swap_vd (V.mk "b") g';
-    val _ = assert_vertices g''
+    val _ = assert_vertex_info "g''" g''
               [("a",(vunit2,(["f"],["e"]))),
                ("b",(vunit1,(["e"],["f"])))];
-    val _ = assert_edges g''
+    val _ = assert_edge_info "g''" g''
               [("e",((Directed,eunit1),("a","b"))),
                ("f",((Undirected,eunit2),("b","a")))];
     in () end) ();
@@ -449,18 +449,18 @@ functor OGraph_Interface_Tests(
       | swap_ed ed = ed;
 
     val g' = G.update_edge_data swap_ed (E.mk "e") g;
-    val _ = assert_vertices g'
+    val _ = assert_vertex_info "g'" g'
               [("a",(vunit1,(["f"],["e"]))),
                ("b",(vunit2,(["e"],["f"])))];
-    val _ = assert_edges g'
+    val _ = assert_edge_info "g'" g'
               [("e",((Directed,eunit2),("a","b"))),
                ("f",((Undirected,eunit2),("b","a")))];
 
     val g'' = G.update_edge_data swap_ed (E.mk "f") g';
-    val _ = assert_vertices g''
+    val _ = assert_vertex_info "g''" g''
               [("a",(vunit1,(["f"],["e"]))),
                ("b",(vunit2,(["e"],["f"])))];
-    val _ = assert_edges g''
+    val _ = assert_edge_info "g''" g''
               [("e",((Directed,eunit2),("a","b"))),
                ("f",((Undirected,eunit1),("b","a")))];
     in () end) ();
@@ -481,7 +481,7 @@ functor OGraph_Interface_Tests(
                     |> add_undir_eunit1 "e" "a" "b"
                     |> add_dir_eunit2 "f" "b" "b";
 
-    val _ = assert_vnames ["a","b"] (G.get_vertices g);
+    val _ = assert_vertices "G.get_vertices" ["a","b"] (G.get_vertices g);
   in () end) ();
 
 
@@ -499,7 +499,7 @@ functor OGraph_Interface_Tests(
                     |> add_undir_eunit1 "e" "a" "b"
                     |> add_dir_eunit2 "f" "b" "b";
 
-    val _ = assert_enames ["e","f"] (G.get_edges g);
+    val _ = assert_edges "G.get_edges" ["e","f"] (G.get_edges g);
   in () end) ();
 
 
@@ -552,14 +552,14 @@ functor OGraph_Interface_Tests(
 
   val _ = Testing.test "G.add_vertex" (fn () => let 
     val (vn,g) = G.add_vertex vunit1 G.empty;
-    val _ = assert_vertices g [(V.string_of_name vn,(vunit1,([],[])))];
-    val _ = assert_edges g [];
+    val _ = assert_vertex_info "g" g [(V.string_of_name vn,(vunit1,([],[])))];
+    val _ = assert_edge_info "g" g [];
 
     val (vn',g') = G.add_vertex vunit2 g;
     val _ = Testing.assert "new name" (not (V.name_eq (vn,vn')));
-    val _ = assert_vertices g' [(V.string_of_name vn,(vunit1,([],[]))),
+    val _ = assert_vertex_info "g'" g' [(V.string_of_name vn,(vunit1,([],[]))),
                                 (V.string_of_name vn',(vunit2,([],[])))];
-    val _ = assert_edges g' [];
+    val _ = assert_edge_info "g'" g' [];
     in () end) ();
 
 
@@ -573,22 +573,22 @@ functor OGraph_Interface_Tests(
     val v_b = V.mk "b";
 
     val g = G.add_named_vertex v_a vunit1 G.empty;
-    val _ = assert_vertices g [("a",(vunit1,([],[])))];
-    val _ = assert_enames [] (G.get_edges g);
+    val _ = assert_vertex_info "g" g [("a",(vunit1,([],[])))];
+    val _ = assert_edges "g" [] (G.get_edges g);
 
     val g' = G.add_named_vertex v_b vunit2 g;
-    val _ = assert_vertices g'
+    val _ = assert_vertex_info "g'" g'
               [("a",(vunit1,([],[]))),("b",(vunit2,([],[])))];
-    val _ = assert_enames [] (G.get_edges g');
+    val _ = assert_edges "g'" [] (G.get_edges g');
 
     val (vn, g'') = G.add_vertex vunit1 g';
     val _ = Testing.assert "correct name (!= a)" (not (V.name_eq (vn,v_a)));
     val _ = Testing.assert "correct name (!= b)" (not (V.name_eq (vn,v_b)));
-    val _ = assert_vertices g''
+    val _ = assert_vertex_info "g''" g''
               [("a",(vunit1,([],[]))),
                ("b",(vunit2,([],[]))),
                (V.string_of_name vn,(vunit1,([],[])))];
-    val _ = assert_enames [] (G.get_edges g'');
+    val _ = assert_edges "g''" [] (G.get_edges g'');
     in () end) ();
 
 
@@ -618,25 +618,25 @@ functor OGraph_Interface_Tests(
                Testing.assert "correct graph in exp (3)" (G.exact_eq g g'));
     val (en,g') = G.add_edge (Directed,eunit1) va va g;
     val enstr = E.string_of_name en;
-    val _ = assert_edges g' [(enstr,((Directed,eunit1),("a","a")))];
-    val _ = assert_vertices g' [("a",(vunit1,([enstr],[enstr])))];
+    val _ = assert_edge_info "g'" g' [(enstr,((Directed,eunit1),("a","a")))];
+    val _ = assert_vertex_info "g'" g' [("a",(vunit1,([enstr],[enstr])))];
 
     val g = g |> add_vunit2 "b";
 
     val (en,g') = G.add_edge (Directed,eunit1) va vb g;
     val enstr = E.string_of_name en;
-    val _ = assert_edges g'
+    val _ = assert_edge_info "g'" g'
               [(enstr,((Directed,eunit1),("a","b")))];
-    val _ = assert_vertices g'
+    val _ = assert_vertex_info "g'" g'
               [("a",(vunit1,([],[enstr]))),
                ("b",(vunit2,([enstr],[])))];
 
     val (en',g'') = G.add_edge (Undirected,eunit2) vb va g';
     val enstr' = E.string_of_name en';
-    val _ = assert_edges g''
+    val _ = assert_edge_info "g''" g''
               [(enstr,((Directed,eunit1),("a","b"))),
                (enstr',((Undirected,eunit2),("b","a")))];
-    val _ = assert_vertices g''
+    val _ = assert_vertex_info "g''" g''
               [("a",(vunit1,([enstr'],[enstr]))),
                ("b",(vunit2,([enstr],[enstr'])))];
     in () end) ();
@@ -673,35 +673,35 @@ functor OGraph_Interface_Tests(
               (Testing.assert "correct vname in exp (3)" (V.name_eq (vn,vb));
                Testing.assert "correct graph in exp (3)" (G.exact_eq g g'));
     val g' = G.add_named_edge ee (Directed,eunit1) va va g;
-    val _ = assert_edges g' [("e",((Directed,eunit1),("a","a")))];
-    val _ = assert_vertices g' [("a",(vunit1,(["e"],["e"])))];
+    val _ = assert_edge_info "g'" g' [("e",((Directed,eunit1),("a","a")))];
+    val _ = assert_vertex_info "g'" g' [("a",(vunit1,(["e"],["e"])))];
 
     val g = g |> add_vunit2 "b";
 
     val g' = G.add_named_edge ee (Directed,eunit1) va vb g;
-    val _ = assert_edges g'
+    val _ = assert_edge_info "g'" g'
               [("e",((Directed,eunit1),("a","b")))];
-    val _ = assert_vertices g'
+    val _ = assert_vertex_info "g'" g'
               [("a",(vunit1,([],["e"]))),
                ("b",(vunit2,(["e"],[])))];
 
     val g'' = G.add_named_edge ef (Undirected,eunit2) vb va g';
-    val _ = assert_edges g''
+    val _ = assert_edge_info "g''" g''
               [("e",((Directed,eunit1),("a","b"))),
                ("f",((Undirected,eunit2),("b","a")))];
-    val _ = assert_vertices g''
+    val _ = assert_vertex_info "g''" g''
               [("a",(vunit1,(["f"],["e"]))),
                ("b",(vunit2,(["e"],["f"])))];
 
     val (en,g''') = G.add_edge (Directed,eunit2) vb vb g'';
     val _ = Testing.assert "correct name (4) (new)"
               (not (E.name_eq (en,ee)) andalso not (E.name_eq (en,ef)));
-    val _ = assert_edges g'''
+    val _ = assert_edge_info "g'''" g'''
               [("e",((Directed,eunit1),("a","b"))),
                ("f",((Undirected,eunit2),("b","a"))),
                (E.string_of_name en,((Directed,eunit2),("b","b")))];
     val enstr = E.string_of_name en;
-    val _ = assert_vertices g'''
+    val _ = assert_vertex_info "g'''" g'''
               [("a",(vunit1,(["f"],["e"]))),
                ("b",(vunit2,(["e",enstr],["f",enstr])))];
     in () end) ();
@@ -717,10 +717,10 @@ functor OGraph_Interface_Tests(
                     |> add_dir_eunit2 "f" "b" "b";
 
     val g' = G.delete_edge (E.mk "e") g;
-    val _ = assert_vertices g'
+    val _ = assert_vertex_info "g'" g'
               [("a",(vunit1,([],[]))),
                ("b",(vunit2,(["f"],["f"])))];
-    val _ = assert_edges g'
+    val _ = assert_edge_info "g'" g'
               [("f",((Directed,eunit2),("b","b")))];
     in () end) ();
 
@@ -735,16 +735,16 @@ functor OGraph_Interface_Tests(
                     |> add_dir_eunit2 "f" "b" "b";
 
     val g' = G.delete_vertex (V.mk "a") g;
-    val _ = assert_vertices g' [("b",(vunit2,(["f"],["f"])))];
-    val _ = assert_edges g' [("f",((Directed,eunit2),("b","b")))];
+    val _ = assert_vertex_info "g'" g' [("b",(vunit2,(["f"],["f"])))];
+    val _ = assert_edge_info "g'" g' [("f",((Directed,eunit2),("b","b")))];
 
     val g' = G.delete_vertex (V.mk "b") g;
-    val _ = assert_vertices g' [("a",(vunit1,([],[])))];
-    val _ = assert_edges g' [];
+    val _ = assert_vertex_info "g'" g' [("a",(vunit1,([],[])))];
+    val _ = assert_edge_info "g'" g' [];
 
     val g' = G.delete_vertex (V.mk "a") g';
-    val _ = assert_vertices g' [];
-    val _ = assert_edges g' [];
+    val _ = assert_vertex_info "g'" g' [];
+    val _ = assert_edge_info "g'" g' [];
     in () end) ();
 
 
@@ -762,18 +762,18 @@ functor OGraph_Interface_Tests(
                     |> add_undir_eunit2 "f" "b" "a";
 
     val g' = G.swap_edge_dir (E.mk "e") g;
-    val _ = assert_vertices g'
+    val _ = assert_vertex_info "g'" g'
               [("a",(vunit1,(["e","f"],[]))),
                ("b",(vunit2,([],["e","f"])))];
-    val _ = assert_edges g'
+    val _ = assert_edge_info "g'" g'
               [("e",((Directed,eunit1),("b","a"))),
                ("f",((Undirected,eunit2),("b","a")))];
 
     val g' = G.swap_edge_dir (E.mk "f") g;
-    val _ = assert_vertices g'
+    val _ = assert_vertex_info "g'" g'
               [("a",(vunit1,([],["e","f"]))),
                ("b",(vunit2,(["e","f"],[])))];
-    val _ = assert_edges g'
+    val _ = assert_edge_info "g'" g'
               [("e",((Directed,eunit1),("a","b"))),
                ("f",((Undirected,eunit2),("a","b")))];
     in () end) ();

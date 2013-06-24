@@ -400,60 +400,60 @@ functor Test_OGraph_Tools(
           writeln "Actual:";
           G.print actual;
           raise ERROR (msg^": graphs differed"))
-  fun assert_vnames exp_vs actual_vset =
+  fun assert_vertices msg exp_vs actual_vset =
     let
       val exp_vset = V.NSet.of_list (map V.mk exp_vs)
       val pretty_set = Pretty.string_of o V.NSet.pretty
     in
       if V.NSet.eq exp_vset actual_vset
       then ()
-      else raise ERROR ("assert_vnames: expected "^(pretty_set exp_vset)^
+      else raise ERROR (msg^": expected "^(pretty_set exp_vset)^
                         " but got "^(pretty_set actual_vset))
     end
-  fun assert_enames exp_es actual_eset =
+  fun assert_edges msg exp_es actual_eset =
     let
       val exp_ens = E.NSet.of_list (map E.mk exp_es)
       val pretty_set = Pretty.string_of o E.NSet.pretty
     in
       if E.NSet.eq exp_ens actual_eset
       then ()
-      else raise ERROR ("assert_enames: expected "^(pretty_set exp_ens)^
+      else raise ERROR (msg^": expected "^(pretty_set exp_ens)^
                         " but got "^(pretty_set actual_eset))
     end
-  fun assert_vertices g exp_vs =
+  fun assert_vertex_info msg g exp_vs =
     let
       val actual_vset = G.get_vertices g
-      val _ = assert_vnames (map fst exp_vs) actual_vset
+      val _ = assert_vertices msg (map fst exp_vs) actual_vset
       fun check_verts ((vn,(vd,(ins,outs)))::vs) =
         let
           val (vd',(ins',outs')) = (G.get_vertex_data g (V.mk vn),
                                     (G.get_in_edges g (V.mk vn),
                                      G.get_out_edges g (V.mk vn)))
-          val _ = Testing.assert ("same data for "^vn)
+          val _ = Testing.assert (msg^": same data for "^vn)
                     (G.vdata_eq (vd,vd'))
-          val _ = Testing.assert ("same ins for "^vn)
+          val _ = Testing.assert (msg^": same ins for "^vn)
                     (E.NSet.eq ins' (E.NSet.of_list (map E.mk ins)))
-          val _ = Testing.assert ("same outs for "^vn)
+          val _ = Testing.assert (msg^": same outs for "^vn)
                     (E.NSet.eq outs' (E.NSet.of_list (map E.mk outs)))
         in check_verts vs end
         | check_verts [] = ()
     in check_verts exp_vs end
-  fun assert_edges g exp_es =
+  fun assert_edge_info msg g exp_es =
     let
       val actual_eset = G.get_edges g
-      val _ = assert_enames (map fst exp_es) actual_eset
+      val _ = assert_edges msg (map fst exp_es) actual_eset
       fun check_edges ((en,((dir,ed),(src,tgt)))::es) =
         let
           val ((dir',ed'),(src',tgt')) = (G.get_edge_dir_and_data g (E.mk en),
                                           (G.get_edge_source g (E.mk en),
                                            G.get_edge_target g (E.mk en)))
-          val _ = Testing.assert ("same dir for "^en)
+          val _ = Testing.assert (msg^": same dir for "^en)
                     (dir_eq dir dir')
-          val _ = Testing.assert ("same data for "^en)
+          val _ = Testing.assert (msg^": same data for "^en)
                     (G.edata_eq (ed,ed'))
-          val _ = Testing.assert ("same source for "^en)
+          val _ = Testing.assert (msg^": same source for "^en)
                     (V.name_eq ((V.mk src),src'))
-          val _ = Testing.assert ("same target for "^en)
+          val _ = Testing.assert (msg^": same target for "^en)
                     (V.name_eq ((V.mk tgt),tgt'))
         in check_edges es end
         | check_edges [] = ()
@@ -539,6 +539,18 @@ struct
 
   fun num_bboxes g = B.NSet.cardinality (G.get_bboxes g)
 
+  fun assert_bboxes msg exp_bs actual_bset =
+    let
+      val exp_bset = B.NSet.of_list (map B.mk exp_bs)
+      val pretty_set = Pretty.string_of o B.NSet.pretty
+    in
+      if B.NSet.eq exp_bset actual_bset
+      then ()
+      else raise ERROR (msg^": expected "^(pretty_set exp_bset)^
+                        " but got "^(pretty_set actual_bset))
+    end
+  fun assert_g_bboxes msg exp_bs =
+    (assert_bboxes msg exp_bs) o G.get_bboxes
   
   fun assert_n_bboxes g n () =
     if (num_bboxes g) = n

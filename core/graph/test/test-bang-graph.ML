@@ -878,38 +878,182 @@ functor Bang_Graph_Interface_Tests(
 
 
   val _ = Testing.test "G.get_bbox_parents" (fn () => let
-    (* TODO: val get_bbox_parents : T -> B.name -> B.NSet.T *)
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit1 "v3"
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parent "b3" "b0" ["v2","v3"]
+        |> add_bbox_with_parents "b4" ["b0","b1","b2","b3"] ["v2"]
+
+    val _ = (G.get_bbox_parents g (B.mk "b9");
+             raise ERROR "get_bbox_parents (unknown !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (unknown !-box)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (unknown !-box)"
+                              (B.dest b_e = "b9"))
+
+    val _ = assert_bboxes "b0" []
+                          (G.get_bbox_parents g (B.mk "b0"))
+    val _ = assert_bboxes "b3" ["b0"]
+                          (G.get_bbox_parents g (B.mk "b3"))
+    val _ = assert_bboxes "b4" ["b0","b1","b2","b3"]
+                          (G.get_bbox_parents g (B.mk "b4"))
     in () end) ()
 
 
 
   val _ = Testing.test "G.get_bbox_children" (fn () => let
-    (* TODO: val get_bbox_children : T -> B.name -> B.NSet.T *)
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit1 "v3"
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parent "b3" "b0" ["v2","v3"]
+        |> add_bbox_with_parents "b4" ["b0","b1","b2","b3"] ["v2"]
+
+    val _ = (G.get_bbox_children g (B.mk "b9");
+             raise ERROR "get_bbox_children (unknown !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (unknown !-box)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (unknown !-box)"
+                              (B.dest b_e = "b9"))
+
+    val _ = assert_bboxes "b0" ["b1","b2","b3","b4"]
+                          (G.get_bbox_children g (B.mk "b0"))
+    val _ = assert_bboxes "b3" ["b4"]
+                          (G.get_bbox_children g (B.mk "b3"))
+    val _ = assert_bboxes "b4" []
+                          (G.get_bbox_children g (B.mk "b4"))
     in () end) ()
 
 
 
   val _ = Testing.test "G.bbox_has_parents" (fn () => let
-    (* TODO: val bbox_has_parents : T -> B.name -> bool *)
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit1 "v3"
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parent "b3" "b0" ["v2","v3"]
+        |> add_bbox_with_parents "b4" ["b0","b1","b2","b3"] ["v2"]
+
+    val _ = (G.bbox_has_parents g (B.mk "b9");
+             raise ERROR "bbox_has_parents (unknown !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (unknown !-box)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (unknown !-box)"
+                              (B.dest b_e = "b9"))
+
+    val _ = Testing.assert "b0 has no parents"
+                          (not (G.bbox_has_parents g (B.mk "b0")))
+    val _ = Testing.assert "b3 has parents"
+                          (G.bbox_has_parents g (B.mk "b3"))
+    val _ = Testing.assert "b4 has parents"
+                          (G.bbox_has_parents g (B.mk "b4"))
     in () end) ()
 
 
 
   val _ = Testing.test "G.bbox_has_children" (fn () => let
-    (* TODO: val bbox_has_children : T -> B.name -> bool *)
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit1 "v3"
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parent "b3" "b0" ["v2","v3"]
+        |> add_bbox_with_parents "b4" ["b0","b1","b2","b3"] ["v2"]
+
+    val _ = (G.bbox_has_children g (B.mk "b9");
+             raise ERROR "bbox_has_children (unknown !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (unknown !-box)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (unknown !-box)"
+                              (B.dest b_e = "b9"))
+
+    val _ = Testing.assert "b0 has children"
+                          (G.bbox_has_children g (B.mk "b0"))
+    val _ = Testing.assert "b3 has children"
+                          (G.bbox_has_children g (B.mk "b3"))
+    val _ = Testing.assert "b4 has no children"
+                          (not (G.bbox_has_children g (B.mk "b4")))
     in () end) ()
 
 
 
   val _ = Testing.test "G.get_vertices_in_bbox" (fn () => let
-    (* TODO: val get_vertices_in_bbox : T -> B.name -> V.NSet.T *)
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit1 "v3"
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parent "b3" "b0" ["v2","v3"]
+        |> add_bbox_with_parents "b4" ["b0","b1","b2","b3"] ["v2"]
+        |> add_bbox "b5" []
+
+    val _ = (G.get_vertices_in_bbox g (B.mk "b9");
+             raise ERROR "get_vertices_in_bbox (unknown !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph (unknown !-box)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box (unknown !-box)"
+                              (B.dest b_e = "b9"))
+
+    val _ = assert_vertices "b0" ["v1","v2","v3"]
+                          (G.get_vertices_in_bbox g (B.mk "b0"))
+    val _ = assert_vertices "b3" ["v2","v3"]
+                          (G.get_vertices_in_bbox g (B.mk "b3"))
+    val _ = assert_vertices "b4" ["v2"]
+                          (G.get_vertices_in_bbox g (B.mk "b4"))
+    val _ = assert_vertices "b5" []
+                          (G.get_vertices_in_bbox g (B.mk "b5"))
     in () end) ()
 
 
 
   val _ = Testing.test "G.get_bboxes_containing_vertex" (fn () => let
-  (* no_such_vertex_exp if vertex does not exist *)
-    (* TODO: val get_bboxes_containing_vertex : T -> V.name -> B.NSet.T *)
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit1 "v3"
+        |> add_vunit1 "v4"
+        |> add_bbox "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parent "b1" "b0" ["v1","v2","v3"]
+        |> add_bbox_with_parents "b2" ["b0","b1"] ["v1","v2"]
+        |> add_bbox_with_parent "b3" "b0" ["v2","v3"]
+        |> add_bbox_with_parents "b4" ["b0","b1","b2","b3"] ["v2"]
+        |> add_bbox "b5" []
+
+    val _ = (G.get_bboxes_containing_vertex g (V.mk "v9");
+             raise ERROR "get_bboxes_containing_vertex (unknown vertex) incorrect")
+            handle G.no_such_vertex_exp (_,v_e,g_e) =>
+              (Testing.assert "exception has correct graph (unknown vertex)"
+                              (G.exact_eq g_e g);
+               Testing.assert "exception has correct vertex (unknown vertex)"
+                              (V.dest v_e = "v9"))
+
+    val _ = assert_bboxes "v1" ["b0","b1","b2"]
+                          (G.get_bboxes_containing_vertex g (V.mk "v1"))
+    val _ = assert_bboxes "v2" ["b0","b1","b2","b3","b4"]
+                          (G.get_bboxes_containing_vertex g (V.mk "v2"))
+    val _ = assert_bboxes "v3" ["b0","b1","b3"]
+                          (G.get_bboxes_containing_vertex g (V.mk "v3"))
+    val _ = assert_bboxes "v4" []
+                          (G.get_bboxes_containing_vertex g (V.mk "v4"))
     in () end) ()
 
 
