@@ -393,6 +393,13 @@ functor Test_OGraph_Tools(
         G.add_named_edge (E.mk n) (Undirected,(Data.EString2 str)) (V.mk s) (V.mk t)
 
   (* testing stuff *)
+  fun assert_g_eq msg exp actual =
+    if G.exact_eq exp actual then ()
+    else (writeln "Expected:";
+          G.print exp;
+          writeln "Actual:";
+          G.print actual;
+          raise ERROR (msg^": graphs differed"))
   fun assert_vnames exp_vs actual_vset =
     let
       val exp_vset = V.NSet.of_list (map V.mk exp_vs)
@@ -502,10 +509,17 @@ struct
           G.add_to_bbox_anon bn vset
         end
   fun add_bbox n vs = add_to_bbox n vs o G.add_named_bbox (B.mk n)
-  fun add_child_bbox n parent vs =
+  fun add_bbox_with_parent n parent vs =
           G.add_child_to_bbox (B.mk parent) (B.mk n) o
           add_to_bbox n vs o
           G.add_named_bbox (B.mk n)
+  (* compat *) val add_child_bbox = add_bbox_with_parent
+  fun add_bbox_with_parents n parents vs =
+        let val bn = B.mk n in
+          (fold (fn parent => G.add_child_to_bbox (B.mk parent) bn) parents) o
+          add_to_bbox n vs o
+          G.add_named_bbox bn
+        end
 
   local
     fun write_to_file file s = let
@@ -524,6 +538,7 @@ struct
   end
 
   fun num_bboxes g = B.NSet.cardinality (G.get_bboxes g)
+
   
   fun assert_n_bboxes g n () =
     if (num_bboxes g) = n
