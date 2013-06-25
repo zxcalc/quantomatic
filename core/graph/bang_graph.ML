@@ -598,7 +598,10 @@ fun exact_eq g1 g2 =
   (num_vertices g1 = num_vertices g2) andalso
   (num_edges g1 = num_edges g2) andalso
   (num_bboxes g1 = num_bboxes g2) andalso
-  is_subgraph g1 g2
+  is_subgraph g1 g2 andalso
+  (B.NSet.forall (fn bb =>
+    V.NSet.eq (get_vertices_in_bbox g1 bb) (get_vertices_in_bbox g2 bb)
+  ) (get_bboxes g1))
   
 
 fun is_intersection sub g1 g2 = let

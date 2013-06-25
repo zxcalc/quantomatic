@@ -1629,6 +1629,76 @@ functor Bang_Graph_Interface_Tests(
 
 
 
+  val _ = Testing.test "G.exact_eq (with !-boxes)" (fn () => let
+    val g_clean = G.empty
+        |> add_vunit1 "n1"
+        |> add_vunit1 "n2"
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_undir_eunit1 "e1" "n1" "w1"
+        |> add_undir_eunit1 "e2" "w2" "n2"
+    val g1 = g_clean
+        |> add_bbox "b1" ["n1","w1"]
+        |> add_bbox "b2" ["n2","w2"]
+    val _ = Testing.assert "g1 = g1" (G.exact_eq g1 g1)
+    val g2 = g_clean
+        |> add_bbox "b1" ["n1","w1"]
+        |> add_bbox "b3" ["n2","w2"]
+    val _ = Testing.assert "g1 <> g2" (not (G.exact_eq g1 g2))
+    val g3 = g_clean
+        |> add_bbox "b1" ["n1","w1","w2"]
+        |> add_bbox "b2" ["n2","w2"]
+    val _ = Testing.assert "g1 <> g3" (not (G.exact_eq g1 g3))
+    val g4 = g_clean
+        |> add_bbox "b1" ["n1","w1"]
+        |> add_bbox "b2" ["w1"]
+    val g5 = g_clean
+        |> add_bbox "b1" ["n1","w1"]
+        |> add_bbox_with_parent "b2" "b1" ["w1"]
+    val _ = Testing.assert "g4 = g5" (G.exact_eq g5 g5)
+    val _ = Testing.assert "g4 <> g5" (not (G.exact_eq g4 g5))
+    in () end) ()
+
+
+
+  val _ = Testing.test "G.is_subgraph (with !-boxes)" (fn () => let
+    val g_clean = G.empty
+        |> add_vunit1 "n1"
+        |> add_vunit1 "n2"
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_undir_eunit1 "e1" "n1" "w1"
+        |> add_undir_eunit1 "e2" "w2" "n2"
+    val g1 = g_clean
+        |> add_bbox "b1" ["n1","w1"]
+        |> add_bbox "b2" ["n2","w2"]
+    val _ = Testing.assert "g1 (= g1" (G.is_subgraph g1 g1)
+    val g2 = g_clean
+        |> add_bbox "b1" ["n1","w1"]
+        |> add_bbox "b3" ["n2","w2"]
+    val _ = Testing.assert "g1 (/= g2" (not (G.is_subgraph g1 g2))
+    val _ = Testing.assert "g2 (/= g1" (not (G.is_subgraph g2 g1))
+    val g3 = g_clean
+        |> add_bbox "b1" ["n1","w1","w2"]
+        |> add_bbox "b2" ["n2","w2"]
+    val _ = Testing.assert "g1 (= g3" (G.is_subgraph g1 g3)
+    val _ = Testing.assert "g3 (/= g1" (not (G.is_subgraph g3 g1))
+    val g4 = g_clean
+        |> add_bbox "b1" ["n1","w1"]
+    val _ = Testing.assert "g4 (= g1" (G.is_subgraph g4 g1)
+    val _ = Testing.assert "g1 (/= g4" (not (G.is_subgraph g1 g4))
+    val g4 = g_clean
+        |> add_bbox "b1" ["n1","w1"]
+        |> add_bbox "b2" ["w1"]
+        |> add_bbox "b3" ["n2","w2"]
+    val g5 = g_clean
+        |> add_bbox "b1" ["n1","w1"]
+        |> add_bbox_with_parent "b2" "b1" ["w1"]
+        |> add_bbox "b3" ["n2","w2"]
+    val _ = Testing.assert "g5 (= g5" (G.is_subgraph g5 g5)
+    val _ = Testing.assert "g4 (/= g5" (not (G.is_subgraph g4 g5))
+    val _ = Testing.assert "g5 (/= g4" (not (G.is_subgraph g5 g4))
+    in () end) ()
   (* TODO: tests for !-box openness preservation:
    * merge_by_subgraph
    * merge_by_vertices
@@ -1650,8 +1720,6 @@ functor Bang_Graph_Interface_Tests(
    * get_plugging
    * are_pluggable
    * get_open_subgraph (?)
-   * is_subgraph
-   * exact_eq
    *)
 
   val _ = Testing.assert_no_failed_tests()
