@@ -118,7 +118,11 @@ fun has_vertex g = V.NSet.contains (get_vertices g)
 fun has_edge g   = E.NSet.contains (get_edges g)
 fun has_bbox g   = B.NSet.contains (get_bboxes g)
 
-fun is_wire_vertex g v = case VTab.get (get_vdata g) v of WVert => true | _ => false
+fun is_wire_vertex g v =
+  case VTab.get_opt (get_vdata g) v
+    of SOME WVert => true
+     | SOME _ => false
+     | NONE => raise no_such_vertex_exp ("is_wire_vertex",v,g)
 fun is_node_vertex g v = not (is_wire_vertex g v)
 fun get_wire_vertices g = V.NSet.filter (is_wire_vertex g) (get_vertices g)
 fun get_node_vertices g = V.NSet.filter (is_node_vertex g) (get_vertices g)
@@ -274,21 +278,21 @@ fun get_adj_edges g v =
 fun get_successor_vertices g v =
   E.NSet.fold (fn e => (
     if is_dir_edge g e
-    then let val v1 = get_edge_source g e
-         in if V.name_eq (v,v1) then I else V.NSet.add v1
-         end
-    else I
-  )) (get_in_edges g v) V.NSet.empty
-
-(* vertices connected to a directed in-edge of the given one *)
-fun get_predecessor_vertices g v =
-  E.NSet.fold (fn e => (
-    if is_dir_edge g e
     then let val v1 = get_edge_target g e
          in if V.name_eq (v,v1) then I else V.NSet.add v1
          end
     else I
   )) (get_out_edges g v) V.NSet.empty
+
+(* vertices connected to a directed in-edge of the given one *)
+fun get_predecessor_vertices g v =
+  E.NSet.fold (fn e => (
+    if is_dir_edge g e
+    then let val v1 = get_edge_source g e
+         in if V.name_eq (v,v1) then I else V.NSet.add v1
+         end
+    else I
+  )) (get_in_edges g v) V.NSet.empty
 
 (* vertices connected to an undirected edge of the given one *)
 fun get_sibling_vertices g v =
@@ -321,7 +325,7 @@ fun get_adj_vertices_to_set g vset =
 
 fun get_in_dir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Directed) o get_in_edges g
 fun get_out_dir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Directed) o get_out_edges g
-fun get_adj_undir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Undirected) o get_adj_edges' g
+fun get_adj_undir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Undirected) o get_adj_edges g
 
 fun is_self_loop g e = V.name_eq (get_edge_source g e, get_edge_target g e)
 fun get_self_loops g v = E.NSet.filter (is_self_loop g) (get_adj_edges' g v)

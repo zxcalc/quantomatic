@@ -1361,6 +1361,8 @@ functor Bang_Graph_Interface_Tests(
    * get_plugging
    * are_pluggable
    * get_open_subgraph (?)
+   * is_subgraph
+   * exact_eq
    *)
 
   val _ = Testing.assert_no_failed_tests()
