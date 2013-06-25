@@ -1338,7 +1338,30 @@ functor Bang_Graph_Interface_Tests(
     in () end) ()
 
 
-  (* TODO: tests for !-box openness preservation with add_edge *)
+  (* TODO: tests for !-box openness preservation:
+   * add_edge(_anon)
+   * add_named_edge
+   * merge_by_subgraph
+   * merge_by_vertices
+   * normalise
+   * minimise
+   * split_edge
+   * plug(_anon)
+   * plug_and_normalise(_anon)
+   * plug_and_minimise(_anon)
+   *
+   * TODO: renamings don't muck up !-box containment relation:
+   * rename_ograph(_anon)
+   * rename_vertices
+   * rename_vertex
+   * rename_vertex_opt
+   *
+   * TODO: functions account for !-boxes:
+   * is_intersection (?)
+   * get_plugging
+   * are_pluggable
+   * get_open_subgraph (?)
+   *)
 
   val _ = Testing.assert_no_failed_tests()
 end;
