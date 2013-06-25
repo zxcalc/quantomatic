@@ -2163,49 +2163,404 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.rename_ograph" (fn () => let
-    (* TODO: val rename_ograph      : (VSub.T * ESub.T) -> T -> (VSub.T * ESub.T) * T *)
-    in () end) ();
+  local
+    val g = G.empty
+        |> add_vunit1 "n1"
+        |> add_vunit1 "n2"
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_dir_eunit1 "e1" "n1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "n2"
+        |> add_undir_eunit2 "e3" "n1" "w2"
+        |> add_undir_eunit2 "e4" "w2" "n2"
+  in
+    val _ = Testing.test "G.rename_ograph" (fn () => let
+      val vsub_clash = VSub.empty
+          |> VSub.add (V.mk "n1",V.mk "w1")
+          |> VSub.add (V.mk "n2",V.mk "n3")
+          |> VSub.add (V.mk "n7",V.mk "n8")
+      val esub_clash = ESub.empty
+          |> ESub.add (E.mk "e1",E.mk "e3")
+          |> ESub.add (E.mk "e2",E.mk "e5")
+          |> ESub.add (E.mk "e7",E.mk "e8")
+      val _ = (G.rename_ograph (vsub_clash,esub_clash) g;
+               raise ERROR "clashing names should raise exception")
+              handle VSub.name_clash_exp _ => ()
+                   | ESub.name_clash_exp _ => ()
+
+      val vsub_swap = VSub.empty
+          |> VSub.add (V.mk "n1",V.mk "n2")
+          |> VSub.add (V.mk "n2",V.mk "n1")
+          |> VSub.add (V.mk "n7",V.mk "n8")
+      val esub_swap = ESub.empty
+          |> ESub.add (E.mk "e1",E.mk "e2")
+          |> ESub.add (E.mk "e2",E.mk "e1")
+          |> ESub.add (E.mk "e7",E.mk "e8")
+      val g_exp = G.empty
+          |> add_vunit1 "n2"
+          |> add_vunit1 "n1"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e2" "n2" "w1"
+          |> add_dir_eunit1 "e1" "w1" "n1"
+          |> add_undir_eunit2 "e3" "n2" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n1"
+      val ((vsub',esub'),g') = G.rename_ograph (vsub_swap,esub_swap) g
+      val _ = assert_g_eq "rename swap" g_exp g'
+      val _ = Testing.assert "n1 in sub"
+              (V.dest (VSub.get vsub' (V.mk "n1")) = "n2")
+      val _ = Testing.assert "w1 in sub"
+              (V.dest (VSub.get vsub' (V.mk "w1")) = "w1")
+      val _ = Testing.assert "e1 in sub"
+              (E.dest (ESub.get esub' (E.mk "e1")) = "e2")
+      val _ = Testing.assert "e4 in sub"
+              (E.dest (ESub.get esub' (E.mk "e4")) = "e4")
+
+      val g_exp = G.empty
+          |> add_vunit1 "n2"
+          |> add_vunit1 "w1"
+          |> add_wv "n1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e2" "n2" "n1"
+          |> add_dir_eunit1 "e3" "n1" "w1"
+          |> add_undir_eunit2 "e1" "n2" "w2"
+          |> add_undir_eunit2 "e4" "w2" "w1"
+      val vsub_permute = VSub.empty
+          |> VSub.add (V.mk "n1",V.mk "n2")
+          |> VSub.add (V.mk "n2",V.mk "w1")
+          |> VSub.add (V.mk "w1",V.mk "n1")
+      val esub_permute = ESub.empty
+          |> ESub.add (E.mk "e1",E.mk "e2")
+          |> ESub.add (E.mk "e2",E.mk "e3")
+          |> ESub.add (E.mk "e3",E.mk "e1")
+          |> ESub.add (E.mk "e7",E.mk "e8")
+      val ((vsub',esub'),g') = G.rename_ograph (vsub_permute,esub_permute) g
+      val _ = assert_g_eq "rename permute" g_exp g'
+      val _ = Testing.assert "n1 in sub"
+              (V.dest (VSub.get vsub' (V.mk "n1")) = "n2")
+      val _ = Testing.assert "w2 in sub"
+              (V.dest (VSub.get vsub' (V.mk "w2")) = "w2")
+      val _ = Testing.assert "e1 in sub"
+              (E.dest (ESub.get esub' (E.mk "e1")) = "e2")
+      val _ = Testing.assert "e4 in sub"
+              (E.dest (ESub.get esub' (E.mk "e4")) = "e4")
+      in () end) ()
 
 
 
-  (* TODO: val rename_ograph_anon : (VSub.T * ESub.T) -> T -> T *)
+    val _ = Testing.test "G.rename_ograph_anon" (fn () => let
+      val vsub_clash = VSub.empty
+          |> VSub.add (V.mk "n1",V.mk "w1")
+          |> VSub.add (V.mk "n2",V.mk "n3")
+          |> VSub.add (V.mk "n7",V.mk "n8")
+      val esub_clash = ESub.empty
+          |> ESub.add (E.mk "e1",E.mk "e3")
+          |> ESub.add (E.mk "e2",E.mk "e5")
+          |> ESub.add (E.mk "e7",E.mk "e8")
+      val _ = (G.rename_ograph_anon (vsub_clash,esub_clash) g;
+               raise ERROR "clashing names should raise exception")
+              handle VSub.name_clash_exp _ => ()
+                   | ESub.name_clash_exp _ => ()
+
+      val vsub_swap = VSub.empty
+          |> VSub.add (V.mk "n1",V.mk "n2")
+          |> VSub.add (V.mk "n2",V.mk "n1")
+          |> VSub.add (V.mk "n7",V.mk "n8")
+      val esub_swap = ESub.empty
+          |> ESub.add (E.mk "e1",E.mk "e2")
+          |> ESub.add (E.mk "e2",E.mk "e1")
+          |> ESub.add (E.mk "e7",E.mk "e8")
+      val g_exp = G.empty
+          |> add_vunit1 "n2"
+          |> add_vunit1 "n1"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e2" "n2" "w1"
+          |> add_dir_eunit1 "e1" "w1" "n1"
+          |> add_undir_eunit2 "e3" "n2" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n1"
+      val _ = assert_g_eq "rename swap" g_exp
+              (G.rename_ograph_anon (vsub_swap,esub_swap) g)
+
+      val g_exp = G.empty
+          |> add_vunit1 "n2"
+          |> add_vunit1 "w1"
+          |> add_wv "n1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e2" "n2" "n1"
+          |> add_dir_eunit1 "e3" "n1" "w1"
+          |> add_undir_eunit2 "e1" "n2" "w2"
+          |> add_undir_eunit2 "e4" "w2" "w1"
+      val vsub_permute = VSub.empty
+          |> VSub.add (V.mk "n1",V.mk "n2")
+          |> VSub.add (V.mk "n2",V.mk "w1")
+          |> VSub.add (V.mk "w1",V.mk "n1")
+      val esub_permute = ESub.empty
+          |> ESub.add (E.mk "e1",E.mk "e2")
+          |> ESub.add (E.mk "e2",E.mk "e3")
+          |> ESub.add (E.mk "e3",E.mk "e1")
+          |> ESub.add (E.mk "e7",E.mk "e8")
+      val _ = assert_g_eq "rename permute" g_exp
+              (G.rename_ograph_anon (vsub_permute,esub_permute) g)
+      in () end) ()
 
 
 
-  val _ = Testing.test "G.rename_vertices" (fn () => let
-    (* TODO: val rename_vertices    : VSub.T -> T -> T *)
-    in () end) ();
+    val _ = Testing.test "G.rename_vertices" (fn () => let
+      val s_clash = VSub.empty
+          |> VSub.add (V.mk "n1",V.mk "w1")
+          |> VSub.add (V.mk "n2",V.mk "n3")
+          |> VSub.add (V.mk "n7",V.mk "n8")
+      val _ = (G.rename_vertices s_clash g;
+               raise ERROR "clashing names should raise exception (n1->w1)")
+              handle VSub.name_clash_exp _ => ()
+
+      val s_swap = VSub.empty
+          |> VSub.add (V.mk "n1",V.mk "n2")
+          |> VSub.add (V.mk "n2",V.mk "n1")
+          |> VSub.add (V.mk "n7",V.mk "n8")
+      val g_exp = G.empty
+          |> add_vunit1 "n2"
+          |> add_vunit1 "n1"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n2" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n1"
+          |> add_undir_eunit2 "e3" "n2" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n1"
+      val _ = assert_g_eq "rename swap" g_exp
+              (G.rename_vertices s_swap g)
+
+      val s_permute = VSub.empty
+          |> VSub.add (V.mk "n1",V.mk "n2")
+          |> VSub.add (V.mk "n2",V.mk "w1")
+          |> VSub.add (V.mk "w1",V.mk "n1")
+      val g_exp = G.empty
+          |> add_vunit1 "n2"
+          |> add_vunit1 "w1"
+          |> add_wv "n1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n2" "n1"
+          |> add_dir_eunit1 "e2" "n1" "w1"
+          |> add_undir_eunit2 "e3" "n2" "w2"
+          |> add_undir_eunit2 "e4" "w2" "w1"
+      val _ = assert_g_eq "rename permute" g_exp
+              (G.rename_vertices s_permute g)
+      in () end) ()
 
 
 
-  val _ = Testing.test "G.rename_vertex" (fn () => let
-    (* TODO: val rename_vertex      : V.name -> V.name -> T -> T *)
-    in () end) ();
+    val _ = Testing.test "G.rename_vertex" (fn () => let
+      val _ = assert_g_eq "rename empty" G.empty
+              (G.rename_vertex (V.mk "a") (V.mk "b") G.empty)
+      val _ = assert_g_eq "rename absent vertex" g
+              (G.rename_vertex (V.mk "a") (V.mk "b") g)
+      val _ = (G.rename_vertex (V.mk "n1") (V.mk "n2") g;
+               raise ERROR "clashing names should raise exception (n1->n2)")
+              handle G.duplicate_vertex_exp (v',g') =>
+                (Testing.assert "correct v (n1->n2)" (V.dest v' = "n2");
+                 Testing.assert "correct g (n1->n2)" (G.exact_eq g' g))
+      val _ = (G.rename_vertex (V.mk "w1") (V.mk "w2") g;
+               raise ERROR "clashing names should raise exception (w1->w2)")
+              handle G.duplicate_vertex_exp (v',g') =>
+                (Testing.assert "correct v (w1->w2)" (V.dest v' = "w2");
+                 Testing.assert "correct g (w1->w2)" (G.exact_eq g' g))
+
+      val g_exp = G.empty
+          |> add_vunit1 "n3"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n3" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+          |> add_undir_eunit2 "e3" "n3" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+      val _ = assert_g_eq "rename n1->n3" g_exp
+              (G.rename_vertex (V.mk "n1") (V.mk "n3") g)
+
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w3"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n1" "w3"
+          |> add_dir_eunit1 "e2" "w3" "n2"
+          |> add_undir_eunit2 "e3" "n1" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+      val _ = assert_g_eq "rename w1->w3" g_exp
+              (G.rename_vertex (V.mk "w1") (V.mk "w3") g)
+      in () end) ()
 
 
 
-  val _ = Testing.test "G.rename_vertex_opt" (fn () => let
-    (* TODO: val rename_vertex_opt  : V.name -> V.name -> T -> T option *)
-    in () end) ();
+    val _ = Testing.test "G.rename_vertex_opt" (fn () => let
+      val _ = case G.rename_vertex_opt (V.mk "a") (V.mk "b") G.empty
+                of SOME g' => assert_g_eq "rename empty" G.empty g'
+                 | NONE => raise ERROR "rename failed in empty graph"
+      val _ = case G.rename_vertex_opt (V.mk "a") (V.mk "b") g
+                of SOME g' => assert_g_eq "rename absent" g g'
+                 | NONE => raise ERROR "rename of absent vertex failed"
+      val _ = Testing.assert "clashing names (n1->n2)"
+              (is_none (G.rename_vertex_opt (V.mk "n1") (V.mk "n2") g))
+      val _ = Testing.assert "clashing names (w1->w2)"
+              (is_none (G.rename_vertex_opt (V.mk "w1") (V.mk "w2") g))
+
+      val g_exp = G.empty
+          |> add_vunit1 "n3"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n3" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+          |> add_undir_eunit2 "e3" "n3" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+      val _ = case G.rename_vertex_opt (V.mk "n1") (V.mk "n3") g
+                of SOME g' => assert_g_eq "rename n1->n3" g_exp g'
+                 | NONE => raise ERROR "rename n1->n3 returned NONE"
+
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w3"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n1" "w3"
+          |> add_dir_eunit1 "e2" "w3" "n2"
+          |> add_undir_eunit2 "e3" "n1" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+      val _ = case G.rename_vertex_opt (V.mk "w1") (V.mk "w3") g
+                of SOME g' => assert_g_eq "rename w1->w3" g_exp g'
+                 | NONE => raise ERROR "rename w1->w3 returned NONE"
+      in () end) ()
 
 
 
-  val _ = Testing.test "G.rename_edges" (fn () => let
-    (* TODO: val rename_edges       : ESub.T -> T -> T *)
-    in () end) ();
+    val _ = Testing.test "G.rename_edges" (fn () => let
+      val s_clash = ESub.empty
+          |> ESub.add (E.mk "e1",E.mk "e3")
+          |> ESub.add (E.mk "e2",E.mk "e5")
+          |> ESub.add (E.mk "e7",E.mk "e8")
+      val _ = (G.rename_edges s_clash g;
+               raise ERROR "clashing names should raise exception (n1->w1)")
+              handle ESub.name_clash_exp _ => ()
+
+      val s_swap = ESub.empty
+          |> ESub.add (E.mk "e1",E.mk "e2")
+          |> ESub.add (E.mk "e2",E.mk "e1")
+          |> ESub.add (E.mk "e7",E.mk "e8")
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e2" "n1" "w1"
+          |> add_dir_eunit1 "e1" "w1" "n2"
+          |> add_undir_eunit2 "e3" "n1" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+      val _ = assert_g_eq "rename swap" g_exp
+              (G.rename_edges s_swap g)
+
+      val s_permute = ESub.empty
+          |> ESub.add (E.mk "e1",E.mk "e2")
+          |> ESub.add (E.mk "e2",E.mk "e3")
+          |> ESub.add (E.mk "e3",E.mk "e1")
+          |> ESub.add (E.mk "e7",E.mk "e8")
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e2" "n1" "w1"
+          |> add_dir_eunit1 "e3" "w1" "n2"
+          |> add_undir_eunit2 "e1" "n1" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+      val _ = assert_g_eq "rename permute" g_exp
+              (G.rename_edges s_permute g)
+      in () end) ()
 
 
 
-  val _ = Testing.test "G.rename_edge" (fn () => let
-    (* TODO: val rename_edge        : E.name -> E.name -> T -> T *)
-    in () end) ();
+    val _ = Testing.test "G.rename_edge" (fn () => let
+      val _ = assert_g_eq "rename empty" G.empty
+              (G.rename_edge (E.mk "a") (E.mk "b") G.empty)
+      val _ = assert_g_eq "rename absent edge" g
+              (G.rename_edge (E.mk "a") (E.mk "b") g)
+      val _ = (G.rename_edge (E.mk "e1") (E.mk "e2") g;
+               raise ERROR "clashing names should raise exception (e1->e2)")
+              handle G.duplicate_edge_exp (e',g') =>
+                (Testing.assert "correct e (e1->e2)" (E.dest e' = "e2");
+                 Testing.assert "correct g (e1->e2)" (G.exact_eq g' g))
+      val _ = (G.rename_edge (E.mk "e3") (E.mk "e4") g;
+               raise ERROR "clashing names should raise exception (e3->e4)")
+              handle G.duplicate_edge_exp (e',g') =>
+                (Testing.assert "correct e (e3->e4)" (E.dest e' = "e4");
+                 Testing.assert "correct g (e3->e4)" (G.exact_eq g' g))
+
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e5" "n1" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+          |> add_undir_eunit2 "e3" "n1" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+      val _ = assert_g_eq "rename e1->e5" g_exp
+              (G.rename_edge (E.mk "e1") (E.mk "e5") g)
+
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n1" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+          |> add_undir_eunit2 "e5" "n1" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+      val _ = assert_g_eq "rename e3->e5" g_exp
+              (G.rename_edge (E.mk "e3") (E.mk "e5") g)
+      in () end) ()
 
 
 
-  val _ = Testing.test "G.rename_edge_opt" (fn () => let
-    (* TODO: val rename_edge_opt    : E.name -> E.name -> T -> T option *)
-    in () end) ();
+    val _ = Testing.test "G.rename_edge_opt" (fn () => let
+      val _ = case G.rename_edge_opt (E.mk "a") (E.mk "b") G.empty
+                of SOME g' => assert_g_eq "rename empty" G.empty g'
+                 | NONE => raise ERROR "rename failed in empty graph"
+      val _ = case G.rename_edge_opt (E.mk "a") (E.mk "b") g
+                of SOME g' => assert_g_eq "rename absent" g g'
+                 | NONE => raise ERROR "rename of absent edge failed"
+      val _ = Testing.assert "clashing names (e1->e2)"
+              (is_none (G.rename_edge_opt (E.mk "e1") (E.mk "e2") g))
+      val _ = Testing.assert "clashing names (e4->e3)"
+              (is_none (G.rename_edge_opt (E.mk "e4") (E.mk "e3") g))
+
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e5" "n1" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+          |> add_undir_eunit2 "e3" "n1" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+      val _ = case G.rename_edge_opt (E.mk "e1") (E.mk "e5") g
+                of SOME g' => assert_g_eq "rename e1->e5" g_exp g'
+                 | NONE => raise ERROR "rename e1->e5 returned NONE"
+
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n1" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+          |> add_undir_eunit2 "e5" "n1" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+      val _ = case G.rename_edge_opt (E.mk "e3") (E.mk "e5") g
+                of SOME g' => assert_g_eq "rename e3->e5" g_exp g'
+                 | NONE => raise ERROR "rename e3->e5 returned NONE"
+      in () end) ()
+  end
 
 
 

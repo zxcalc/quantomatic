@@ -212,14 +212,21 @@ val dir_edges_between : T -> V.name -> V.name
 
 
 (* Renaming *)
+(* Renames of non-existent items are successful, and have no effect *)
 
 val rename_ograph      : (VSub.T * ESub.T) -> T -> (VSub.T * ESub.T) * T
 val rename_ograph_anon : (VSub.T * ESub.T) -> T -> T
+(* rename a bunch of vertices; raises VSub.name_clash_exp if there is a clash *)
 val rename_vertices    : VSub.T -> T -> T
+(* rename a vertex; raises duplicate_vertex_exp if dest vertex name exists *)
 val rename_vertex      : V.name -> V.name -> T -> T
+(* rename a vertex; NONE if dest vertex name exists *)
 val rename_vertex_opt  : V.name -> V.name -> T -> T option
+(* rename a bunch of edges; raises ESub.name_clash_exp if there is a clash *)
 val rename_edges       : ESub.T -> T -> T
+(* rename an edge; raises duplicate_vertex_exp if dest edge name exists *)
 val rename_edge        : E.name -> E.name -> T -> T
+(* rename an edge; NONE if dest edge name exists *)
 val rename_edge_opt    : E.name -> E.name -> T -> T option
 
 

@@ -621,7 +621,7 @@ fun delete_subgraph sg g =
 
 (* rename vertices using the given substitution *)
 fun rename_vertices sub g = let
-  (* this will fail with duplicate_exp if the renaming is bad *)
+  (* this will fail with name_clash_exp if the renaming is bad *)
   val rnm = VSub.extend_fixed (get_vertices g) sub
   val rnmi = VSub.inverse_of rnm
 in
@@ -632,8 +632,9 @@ in
 end
 
 fun rename_vertex n1 n2 g = rename_vertices (VSub.empty |> VSub.add (n1,n2)) g
+  handle VSub.name_clash_exp _ => raise duplicate_vertex_exp (n2,g)
 fun rename_vertex_opt n1 n2 g = SOME (rename_vertex n1 n2 g)
-  handle Map.duplicate_exp () => NONE
+  handle duplicate_vertex_exp _ => NONE
 
 (* rename edges using the given substitution *)
 fun rename_edges sub g = let
@@ -647,8 +648,9 @@ in
 end
 
 fun rename_edge n1 n2 g = rename_edges (ESub.empty |> ESub.add (n1,n2)) g
+  handle ESub.name_clash_exp _ => raise duplicate_edge_exp (n2,g)
 fun rename_edge_opt n1 n2 g = SOME (rename_edge n1 n2 g)
-  handle Map.duplicate_exp () => NONE
+  handle duplicate_edge_exp _ => NONE
 
 fun rename_bboxes sub g = let
   (* this will fail with duplicate_exp if the renaming is bad *)
