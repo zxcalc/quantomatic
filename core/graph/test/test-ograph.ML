@@ -109,8 +109,48 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.edge_get_info" (fn () => let
-    (* TODO: val get_edge_info : T -> E.name -> (dir_or_undir * edata) * (V.name * V.name) *)
+  val _ = Testing.test "G.get_edge_info" (fn () => let
+    val _ = (G.get_edge_info G.empty (E.mk "a");
+              raise ERROR "G.get_edge_info (empty) did not raise exception")
+            handle G.no_such_edge_exp (_,en,g) =>
+              (Testing.assert "correct ename in exp (empty)"
+                              (E.string_of_name en = "a");
+               Testing.assert "correct graph in exp (empty)"
+                              (G.is_empty g))
+
+    val angle = Expr.parse "x + z"
+    val g = G.empty |> add_vunit1 "a"
+                    |> add_vunit2 "b"
+                    |> add_undir_eunit1 "e" "a" "b"
+                    |> add_dir_eexpr2_a "f" "b" "b" angle;
+
+    val _ = (G.get_edge_info g (E.mk "a");
+              raise ERROR "G.get_edge_info (unknown edge) did not raise exception")
+            handle G.no_such_edge_exp (_,en,g_e) =>
+              (Testing.assert "correct ename in exp (unknown edge)"
+                              (E.string_of_name en = "a");
+               Testing.assert "correct graph in exp (unknown edge)"
+                              (G.exact_eq g_e g))
+
+    val _ =
+      let
+        val ((dod,ed),(s,t)) = G.get_edge_info g (E.mk "e")
+      in
+        Testing.assert "e: correct dir_or_undir" (dod = Undirected);
+        Testing.assert "e: correct data" (G.edata_eq (ed,eunit1));
+        Testing.assert "e: correct source" (V.name_eq (V.mk "a",s));
+        Testing.assert "e: correct target" (V.name_eq (V.mk "b",t))
+      end
+
+    val _ =
+      let
+        val ((dod,ed),(s,t)) = G.get_edge_info g (E.mk "f")
+      in
+        Testing.assert "e: correct dir_or_undir" (dod = Directed);
+        Testing.assert "e: correct data" (G.edata_eq (ed,eexpr2_a angle));
+        Testing.assert "e: correct source" (V.name_eq (V.mk "b",s));
+        Testing.assert "e: correct target" (V.name_eq (V.mk "b",t))
+      end
     in () end) ();
 
 
