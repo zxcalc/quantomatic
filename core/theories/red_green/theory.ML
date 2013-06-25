@@ -13,6 +13,7 @@ struct
     case s of "X" => Xnd LinratAngleExpr.zero
             | "Z" => Znd LinratAngleExpr.zero
             | "hadamard" => Hnd
+            | _ => raise unknown_typestring_exp s
   fun typestring_of_nvdata d =
     case d of Xnd _ => "X"
             | Znd _ => "Z"

@@ -786,7 +786,8 @@ fun hilb ([format], graph) =
            (let
               val updater =
                 case edgeData
-                  of (StringCData s)      => K (TheoryIO.EDataInputJSON.input (Json.of_string s))
+                  of (StringCData s)  => K (TheoryIO.EDataInputJSON.input (Json.of_string s))
+                   | (JsonCData json) => K (TheoryIO.EDataInputJSON.input json)
             in
               (OkResponse,
                State.update_edge_data updater (E.mk edgeName) (GraphName.mk graphName) state)
