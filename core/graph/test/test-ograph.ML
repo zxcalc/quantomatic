@@ -29,7 +29,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.has_vertex" (fn () => let 
+  val _ = Testing.test "G.has_vertex" (fn () => let
     val _ = Testing.assert "empty" (not (G.has_vertex G.empty (V.mk "a")));
 
     val g = G.empty |> add_vunit1 "a"
@@ -44,7 +44,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.has_edge" (fn () => let 
+  val _ = Testing.test "G.has_edge" (fn () => let
     val _ = Testing.assert "empty" (not (G.has_edge G.empty (E.mk "a")));
 
     val g = G.empty |> add_vunit1 "a"
@@ -59,7 +59,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.get_edge_source" (fn () => let 
+  val _ = Testing.test "G.get_edge_source" (fn () => let
     val _ = (G.get_edge_source G.empty (E.mk "a");
               raise ERROR "G.get_edge_source did not raise exception")
             handle G.no_such_edge_exp (_,en,g) =>
@@ -84,7 +84,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.get_edge_target" (fn () => let 
+  val _ = Testing.test "G.get_edge_target" (fn () => let
     val _ = (G.get_edge_target G.empty (E.mk "a");
               raise ERROR "G.get_edge_target did not raise exception")
             handle G.no_such_edge_exp (_,en,g) =>
@@ -109,11 +109,13 @@ functor OGraph_Interface_Tests(
 
 
 
-  (* TODO: get_edge_info *)
+  val _ = Testing.test "G.edge_get_info" (fn () => let
+    (* TODO: val get_edge_info : T -> E.name -> (dir_or_undir * edata) * (V.name * V.name) *)
+    in () end) ();
 
 
 
-  val _ = Testing.test "G.edge_get_other_vertex" (fn () => let 
+  val _ = Testing.test "G.edge_get_other_vertex" (fn () => let
     val _ = (G.edge_get_other_vertex G.empty (E.mk "a") (V.mk "a");
               raise ERROR "G.edge_get_other_vertex did not raise exception")
             handle G.no_such_edge_exp (_,en,g) =>
@@ -152,7 +154,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.get_in_edges" (fn () => let 
+  val _ = Testing.test "G.get_in_edges" (fn () => let
     val _ = (G.get_in_edges G.empty (V.mk "a");
               raise ERROR "G.get_in_edges did not raise exception")
             handle G.no_such_vertex_exp (_,vn,g) =>
@@ -179,7 +181,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.get_out_edges" (fn () => let 
+  val _ = Testing.test "G.get_out_edges" (fn () => let
     val _ = (G.get_out_edges G.empty (V.mk "a");
               raise ERROR "G.get_out_edges did not raise exception")
             handle G.no_such_vertex_exp (_,vn,g) =>
@@ -207,18 +209,81 @@ functor OGraph_Interface_Tests(
 
 
 
-  (* TODO: get_adj_edges *)
-  (* TODO: get_in_dir_edges *)
-  (* TODO: get_out_dir_edges *)
-  (* TODO: get_adj_undir_edges *)
-  (* TODO: get_adj_vertices *)
-  (* TODO: get_adj_vertices_to_set *)
-  (* TODO: get_successor_vertices *)
-  (* TODO: get_predecessor_vertices *)
-  (* TODO: get_sibling_vertices *)
-  (* TODO: adj_edge_classes *)
-  (* TODO: get_vdata_tab *)
-  (* TODO: get_edata_tab *)
+  val _ = Testing.test "G.edge_adj_edges" (fn () => let
+    (* TODO: val get_adj_edges : T -> V.name -> E.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_in_dir_edges" (fn () => let
+    (* TODO: val get_in_dir_edges : T -> V.name -> E.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_out_dir_edges" (fn () => let
+    (* TODO: val get_out_dir_edges : T -> V.name -> E.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_adj_undir_edges" (fn () => let
+    (* TODO:
+val get_adj_undir_edges : T -> V.name -> E.NSet.T
+*)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_adj_vertices" (fn () => let
+    (* TODO: val get_adj_vertices : T -> V.name -> V.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_adj_vertices_to_set" (fn () => let
+    (* TODO: val get_adj_vertices_to_set : T -> V.NSet.T -> V.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_successor_vertices" (fn () => let
+    (* vertices connected to a directed out-edge of the given one *)
+    (* TODO: val get_successor_vertices : T -> V.name -> V.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_predecessor_vertices" (fn () => let
+    (* vertices connected to a directed in-edge of the given one *)
+    (* TODO: val get_predecessor_vertices : T -> V.name -> V.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_sibling_vertices" (fn () => let
+    (* vertices connected to an undirected edge of the given one *)
+    (* TODO: val get_sibling_vertices : T -> V.name -> V.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.adj_edge_classes" (fn () => let
+    (* get incoming, outgoing, undirected edges adjacent to vertex *)
+    (* TODO: val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T) *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_vdata_tab" (fn () => let
+    (* TODO: val get_vdata_tab : T -> vdata VTab.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_edata_tab" (fn () => let
+    (* TODO: val get_edata_tab : T -> edata ETab.T *)
+    in () end) ();
 
 
 
@@ -258,7 +323,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.get_edge_data" (fn () => let 
+  val _ = Testing.test "G.get_edge_data" (fn () => let
     val _ = (G.get_edge_data G.empty (E.mk "a");
               raise ERROR "G.get_edge_data did not raise exception")
             handle G.no_such_edge_exp (_,en,g) =>
@@ -284,11 +349,13 @@ functor OGraph_Interface_Tests(
 
 
 
-  (* TODO: get_edge_dir *)
+  val _ = Testing.test "G.get_edge_dir" (fn () => let
+    (* TODO: val get_edge_dir : T -> E.name -> dir_or_undir *)
+    in () end) ();
 
 
 
-  val _ = Testing.test "G.get_edge_dir_and_data" (fn () => let 
+  val _ = Testing.test "G.get_edge_dir_and_data" (fn () => let
     val _ = (G.get_edge_dir_and_data G.empty (E.mk "a");
              raise ERROR "G.get_edge_dir_and_data did not raise exception")
             handle G.no_such_edge_exp (_,en,g') =>
@@ -326,7 +393,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.set_vertex_data" (fn () => let 
+  val _ = Testing.test "G.set_vertex_data" (fn () => let
     val _ = (G.set_vertex_data vunit1 (V.mk "a") G.empty;
               raise ERROR "G.set_vertex_data did not raise exception")
             handle G.no_such_vertex_exp (_,vn,g) =>
@@ -357,7 +424,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.set_edge_data" (fn () => let 
+  val _ = Testing.test "G.set_edge_data" (fn () => let
     val _ = (G.set_edge_data eunit1 (E.mk "a") G.empty;
               raise ERROR "G.set_edge_data did not raise exception")
             handle G.no_such_edge_exp (_,en,g) =>
@@ -388,11 +455,13 @@ functor OGraph_Interface_Tests(
 
 
 
-  (* TODO: set_edge_dir *)
+  val _ = Testing.test "G.set_edge_dir" (fn () => let
+    (* TODO: val set_edge_dir    : dir_or_undir -> E.name -> T -> T *)
+    in () end) ();
 
 
 
-  val _ = Testing.test "G.update_vertex_data" (fn () => let 
+  val _ = Testing.test "G.update_vertex_data" (fn () => let
     val _ = (G.update_vertex_data I (V.mk "a") G.empty;
               raise ERROR "G.get_update_vertex_data did not raise exception")
             handle G.no_such_vertex_exp (_,vn,g) =>
@@ -432,7 +501,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.update_edge_data" (fn () => let 
+  val _ = Testing.test "G.update_edge_data" (fn () => let
     val _ = (G.update_edge_data I (E.mk "a") G.empty;
               raise ERROR "G.get_update_edge_data did not raise exception")
             handle G.no_such_edge_exp (_,en,g) =>
@@ -467,13 +536,24 @@ functor OGraph_Interface_Tests(
 
 
 
-  (* TODO: update_edge_dir *)
-  (* TODO: is_wire_vertex *)
-  (* TODO: is_node_vertex *)
+  val _ = Testing.test "G.update_edge_dir" (fn () => let
+    (* TODO: val update_edge_dir    : (dir_or_undir -> dir_or_undir) -> E.name -> T -> T *)
+    in () end) ();
 
 
 
-  val _ = Testing.test "G.get_vertices" (fn () => let 
+  val _ = Testing.test "G.is_wire_vertex" (fn () => let
+    (* TODO: val is_wire_vertex    : T -> V.name -> bool *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.is_node_vertex" (fn () => let
+    (* TODO: val is_node_vertex    : T -> V.name -> bool *)
+    in () end) ();
+
+
+  val _ = Testing.test "G.get_vertices" (fn () => let
     val _ = Testing.assert "empty" (V.NSet.is_empty (G.get_vertices G.empty));
 
     val g = G.empty |> add_vunit1 "a"
@@ -486,12 +566,19 @@ functor OGraph_Interface_Tests(
 
 
 
-  (* TODO: get_wire_vertices *)
-  (* TODO: get_node_vertices *)
+  val _ = Testing.test "G.get_wire_vertices" (fn () => let
+    (* TODO: val get_wire_vertices : T -> V.NSet.T *)
+    in () end) ();
 
 
 
-  val _ = Testing.test "G.get_edges" (fn () => let 
+  val _ = Testing.test "G.get_node_vertices" (fn () => let
+    (* TODO: val get_node_vertices : T -> V.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_edges" (fn () => let
     val _ = Testing.assert "empty" (E.NSet.is_empty (G.get_edges G.empty));
 
     val g = G.empty |> add_vunit1 "a"
@@ -504,11 +591,13 @@ functor OGraph_Interface_Tests(
 
 
 
-  (* TODO: is_subgraph *)
+  val _ = Testing.test "G.is_subgraph" (fn () => let
+    (* TODO: val is_subgraph : T -> T -> bool *)
+    in () end) ();
 
 
 
-  val _ = Testing.test "G.exact_eq" (fn () => let 
+  val _ = Testing.test "G.exact_eq" (fn () => let
     val _ = Testing.assert "empty = empty" (G.exact_eq G.empty G.empty)
 
     val g1 = G.empty |> add_vunit1 "a"
@@ -550,7 +639,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.add_vertex" (fn () => let 
+  val _ = Testing.test "G.add_vertex" (fn () => let
     val (vn,g) = G.add_vertex vunit1 G.empty;
     val _ = assert_vertex_info "g" g [(V.string_of_name vn,(vunit1,([],[])))];
     val _ = assert_edge_info "g" g [];
@@ -568,7 +657,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.add_named_vertex" (fn () => let 
+  val _ = Testing.test "G.add_named_vertex" (fn () => let
     val v_a = V.mk "a";
     val v_b = V.mk "b";
 
@@ -593,7 +682,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.add_edge" (fn () => let 
+  val _ = Testing.test "G.add_edge" (fn () => let
     val va = V.mk "a";
     val vb = V.mk "b";
 
@@ -647,7 +736,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.add_named_edge" (fn () => let 
+  val _ = Testing.test "G.add_named_edge" (fn () => let
     val va = V.mk "a";
     val vb = V.mk "b";
     val ee = E.mk "e";
@@ -749,7 +838,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.swap_edge_dir" (fn () => let 
+  val _ = Testing.test "G.swap_edge_dir" (fn () => let
     val _ = (G.swap_edge_dir (E.mk "a") G.empty;
               raise ERROR "G.swap_edge_dir did not raise exception")
             handle G.no_such_edge_exp (_,en,g) =>
@@ -780,32 +869,158 @@ functor OGraph_Interface_Tests(
 
 
 
-  (* TODO: is_intersection *)
-  (* TODO: merge_by_subgraph *)
-  (* TODO: merge_by_vertices *)
-  (* TODO: get_arity *)
-  (* TODO: get_self_loops *)
-  (* TODO: delete_subgraph *)
-  (* TODO: has_edges_between *)
-  (* TODO: edges_between *)
-  (* TODO: dir_edges_between *)
-  (* TODO: rename_ograph *)
-  (* TODO: rename_ograph_anon *)
-  (* TODO: rename_vertices *)
-  (* TODO: rename_vertex *)
-  (* TODO: rename_vertex_opt *)
-  (* TODO: rename_edges *)
-  (* TODO: rename_edge *)
-  (* TODO: rename_edge_opt *)
-  (* TODO: get_boundary *)
-  (* TODO: get_inputs *)
-  (* TODO: get_outputs *)
-  (* TODO: is_boundary *)
-  (* TODO: is_input *)
-  (* TODO: is_output *)
-  (* TODO: wv_get_other_edge *)
+  val _ = Testing.test "G.is_intersection" (fn () => let
+    (* TODO: val is_intersection : T -> T -> T -> bool *)
+    in () end) ();
 
 
+
+  val _ = Testing.test "G.merge_by_subgraph" (fn () => let
+    (* merge two graphs on a subgraph, which must be their intersection *)
+    (* TODO: val merge_by_subgraph : T -> T -> T -> T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.merge_by_vertices" (fn () => let
+    (* merge two graphs which have distinct egdes by shared vertices:
+       vertices with same name are kept only once, edges must be
+       distinct. *)
+    (* TODO: val merge_by_vertices : T -> T -> T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_arity" (fn () => let
+    (* TODO: val get_arity : T -> V.name -> Arity.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_self_loops" (fn () => let
+    (* TODO: val get_self_loops : T -> V.name -> E.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.delete_subgraph" (fn () => let
+    (* remove the first graph from the second, assumes first is a subgraph *)
+    (* TODO: val delete_subgraph : T -> T -> T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.has_edges_between" (fn () => let
+    (* edges between two vertices *)
+    (* TODO: val has_edges_between : T -> V.name -> V.name -> bool *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.edges_between" (fn () => let
+    (* TODO: val edges_between : T -> V.name -> V.name -> E.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.dir_edges_between" (fn () => let
+    (* TODO: val dir_edges_between : T -> V.name -> V.name -> E.NSet.T (* from fst to snd vertex *) 
+         * E.NSet.T (* from snd to fst vertex *)   
+*)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.rename_ograph" (fn () => let
+    (* TODO: val rename_ograph      : (VSub.T * ESub.T) -> T -> (VSub.T * ESub.T) * T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.rename_ograph_anon" (fn () => let
+    (* TODO: val rename_ograph_anon : (VSub.T * ESub.T) -> T -> T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.rename_vertices" (fn () => let
+    (* TODO: val rename_vertices    : VSub.T -> T -> T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.rename_vertex" (fn () => let
+    (* TODO: val rename_vertex      : V.name -> V.name -> T -> T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.rename_vertex_opt" (fn () => let
+    (* TODO: val rename_vertex_opt  : V.name -> V.name -> T -> T option *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.rename_edges" (fn () => let
+    (* TODO: val rename_edges       : ESub.T -> T -> T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.rename_edge" (fn () => let
+    (* TODO: val rename_edge        : E.name -> E.name -> T -> T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.rename_edge_opt" (fn () => let
+    (* TODO: val rename_edge_opt    : E.name -> E.name -> T -> T option *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_boundary" (fn () => let
+    (* TODO: val get_boundary : T -> V.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_inputs" (fn () => let
+    (* TODO: val get_inputs   : T -> V.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.get_outputs" (fn () => let
+    (* TODO: val get_outputs  : T -> V.NSet.T *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.is_boundary" (fn () => let
+    (* TODO: val is_boundary  : T -> V.name -> bool *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.is_input" (fn () => let
+    (* TODO: val is_input     : T -> V.name -> bool *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.is_output" (fn () => let
+    (* TODO: val is_output    : T -> V.name -> bool *)
+    in () end) ();
+
+
+
+  val _ = Testing.test "G.wv_get_other_edge" (fn () => let
+    (* Given a wire vertex and an edge, give the other connected edge, if it
+       exists. In the case of a wire-vertex with a single, given self-loop,
+       return NONE. *)
+    (* TODO: val wv_get_other_edge : T -> V.name -> E.name -> E.name option *)
+    in () end) ();
 
 
 
@@ -868,9 +1083,18 @@ functor OGraph_Interface_Tests(
     val exp_wire_f5 = wire "n2" "n3" ["w8"] ["f5","f6"];
     val exp_wire_f6 = exp_wire_f5;
   in
-    (* TODO: wire_eq *)
-    (* TODO: wire_ord *)
-    (* TODO: delete_wire *)
+    val _ = Testing.test "G.wire_eqwire_eq" (fn () => let
+      (* TODO: val wire_eq : wire -> wire -> bool *) in () end) ();
+
+
+    val _ = Testing.test "G.wire_ord" (fn () => let
+      (* TODO: val wire_ord : wire * wire -> order *)
+      in () end) ();
+
+
+    val _ = Testing.test "G.delete_wire" (fn () => let
+      (* TODO: val delete_wire : wire -> T -> T *)
+      in () end) ();
 
 
     val _ = Testing.test "G.get_wire_containing_edge"
@@ -913,7 +1137,9 @@ functor OGraph_Interface_Tests(
         in () end) ()
 
 
-    (* TODO: get_wires_for_edges *)
+    val _ = Testing.test "G.get_wires_for_edges" (fn () => let
+      (* TODO: val get_wires_for_edges : T -> E.NSet.T -> wire list *)
+      in () end) ();
 
 
     val _ = Testing.test "G.get_wire_list"
@@ -1015,7 +1241,9 @@ functor OGraph_Interface_Tests(
         end) ();*)
 
 
-    (* TODO: split_edge *)
+    val _ = Testing.test "G.split_edge" (fn () => let
+      (* TODO: val split_edge : E.name -> T -> (E.name * V.name * E.name) * T *)
+      in () end) ();
   end
 
 
