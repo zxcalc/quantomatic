@@ -582,7 +582,98 @@ functor Bang_Graph_Interface_Tests(
 
 
 
-  (* TODO: remove_from_bbox_anon *)
+  val _ = Testing.test "G.remove_from_bbox_anon" (fn () => let
+    val _ = (G.remove_from_bbox_anon B.default_name (V.NSet.single V.default_name) G.empty;
+             raise ERROR "remove_from_bbox_anon (empty) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph" (G.is_empty g_e);
+               Testing.assert "exception has correct !-box" (B.name_eq (b_e,B.default_name)))
+
+    val g_clean = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit2 "v3"
+        |> add_vunit2 "v4"
+        |> add_wv "w1"
+        |> add_wv "w2a"
+        |> add_wv "w2b"
+        |> add_wv "w3"
+        |> add_wv "w4"
+        |> add_dir_eunit1 "e1" "w1" "v1"
+        |> add_dir_eunit1 "e2" "v1" "w2a"
+        |> add_dir_eunit1 "e3" "w2a" "w2b"
+        |> add_dir_eunit1 "e4" "w2b" "v2"
+        |> add_dir_eunit1 "e5" "v3" "w3"
+        |> add_dir_eunit1 "e6" "w3" "v3"
+    val g = g_clean
+        |> add_bbox "b0" ["w1","w4","v3","w3"]
+        |> add_bbox_with_parent "b1" "b0" ["w1","w3"]
+        |> add_bbox "b2" ["v3","w3","v4"]
+
+    val _ = (G.remove_from_bbox_anon (B.mk "b9") (V.NSet.single (V.mk "v1")) g;
+             raise ERROR "remove_from_bbox_anon (unknown !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,g_e) =>
+              (Testing.assert "exception has correct graph" (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box" (B.dest b_e = "b9"))
+
+    fun check_remove msg g_exp (g,bn,vs) =
+      assert_g_eq msg g_exp
+                  (G.remove_from_bbox_anon (B.mk bn)
+                       (V.NSet.of_list (map V.mk vs))
+                       g)
+
+    val _ = check_remove "G.remove_from_bbox_anon (b3,v4)"
+              g
+              (g,"b0",["v9"])
+
+    val g_exp = g_clean
+        |> add_bbox "b0" ["w1","w4","v3","w3"]
+        |> add_bbox_with_parent "b1" "b0" ["w1","w3"]
+        |> add_bbox "b2" ["v3","w3"]
+    val _ = check_remove "G.remove_from_bbox_anon (b3,v4)"
+              g_exp
+              (g,"b2",["v4"])
+
+    val g_exp = g_clean
+        |> add_bbox "b0" ["w1","w4","v3","w3"]
+        |> add_bbox_with_parent "b1" "b0" ["w1","w3"]
+        |> add_bbox "b2" ["v3","w3","v4"]
+    val _ = check_remove "G.remove_from_bbox_anon (b2,w3)"
+              g_exp
+              (g,"b2",["w3"])
+
+    val g_exp = g_clean
+        |> add_bbox "b0" ["w1","w4","v3","w3"]
+        |> add_bbox_with_parent "b1" "b0" ["w1","w3"]
+        |> add_bbox "b2" ["v4"]
+    val _ = check_remove "G.remove_from_bbox_anon (b2,v3,w3)"
+              g_exp
+              (g,"b2",["v3","w3"])
+
+    val g_exp = g_clean
+        |> add_bbox "b0" ["w1","w3"]
+        |> add_bbox_with_parent "b1" "b0" ["w1","w3"]
+        |> add_bbox "b2" ["v3","w3","v4"]
+    val _ = check_remove "G.remove_from_bbox_anon (b0,v3,w4)"
+              g_exp
+              (g,"b0",["v3","w4"])
+
+    val g_exp = g_clean
+        |> add_bbox "b0" ["w1","w4","v3","w3"]
+        |> add_bbox_with_parent "b1" "b0" ["w1"]
+        |> add_bbox "b2" ["v3","w3","v4"]
+    val _ = check_remove "G.remove_from_bbox_anon (b1,v3,w3)"
+              g_exp
+              (g,"b1",["v3","w3"])
+
+    val _ = (G.remove_from_bbox_anon (B.mk "b0")
+               (V.NSet.of_list (map V.mk ["v3","w3"])) g;
+             raise ERROR "remove_from_bbox_anon (in child !-box) incorrect")
+            handle G.bbox_bad_parent_exp (bp_e,b_e,g_e) =>
+              (Testing.assert "exception has correct graph" (G.exact_eq g_e g);
+               Testing.assert "exception has correct !-box" (B.dest b_e = "b1");
+               Testing.assert "exception has correct parent !-box" (B.dest bp_e = "b0"))
+    in () end) ()
 
 
 
@@ -1308,39 +1399,237 @@ functor Bang_Graph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.rename_bang_graph" (fn () => let
-    (* TODO: val rename_bang_graph : (VSub.T * ESub.T * BSub.T) -> T ->
-                                     (VSub.T * ESub.T * BSub.T) * T *)
+  local
+    val g = G.empty
+        |> add_vunit1 "n1"
+        |> add_vunit1 "n2"
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_dir_eunit1 "e1" "n1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "n2"
+        |> add_undir_eunit2 "e3" "n1" "w2"
+        |> add_undir_eunit2 "e4" "w2" "n2"
+        |> add_bbox "b1" ["n1","w1","w2"]
+        |> add_bbox_with_parent "b2" "b1" ["n1","w1","w2"]
+        |> add_bbox_with_parent "b3" "b1" ["w1"]
+  in
+    val _ = Testing.test "G.rename_bang_graph/G.rename_bang_graph_anon" (fn () => let
+      val vsub_swap1 = VSub.empty
+          |> VSub.add (V.mk "n1",V.mk "n2")
+          |> VSub.add (V.mk "n2",V.mk "n1")
+          |> VSub.add (V.mk "n7",V.mk "n8")
+      val esub_swap = ESub.empty
+          |> ESub.add (E.mk "e1",E.mk "e2")
+          |> ESub.add (E.mk "e2",E.mk "e1")
+          |> ESub.add (E.mk "e7",E.mk "e8")
+      val vsub_swap2 = VSub.empty
+          |> VSub.add (V.mk "w1",V.mk "w2")
+          |> VSub.add (V.mk "w2",V.mk "w1")
+      val bsub_clash = BSub.empty
+          |> BSub.add (B.mk "b1",B.mk "b2")
+      val _ = (G.rename_bang_graph (vsub_swap1,esub_swap,bsub_clash) g;
+               raise ERROR "clashing names should raise exception")
+              handle BSub.name_clash_exp _ => ()
+      val _ = (G.rename_bang_graph_anon (vsub_swap1,esub_swap,bsub_clash) g;
+               raise ERROR "clashing names should raise exception (anon)")
+              handle BSub.name_clash_exp _ => ()
+
+      val bsub_swap = BSub.empty
+          |> BSub.add (B.mk "b1",B.mk "b2")
+          |> BSub.add (B.mk "b2",B.mk "b1")
+      val g_exp = G.empty
+          |> add_vunit1 "n2"
+          |> add_vunit1 "n1"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e2" "n2" "w1"
+          |> add_dir_eunit1 "e1" "w1" "n1"
+          |> add_undir_eunit2 "e3" "n2" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n1"
+          |> add_bbox "b2" ["n2","w1","w2"]
+          |> add_bbox_with_parent "b1" "b2" ["n2","w1","w2"]
+          |> add_bbox_with_parent "b3" "b2" ["w1"]
+      val ((vsub',esub',bsub'),g') =
+              G.rename_bang_graph (vsub_swap1,esub_swap,bsub_swap) g
+      val _ = assert_g_eq "rename swap" g_exp g'
+      val _ = Testing.assert "w1 in sub"
+              (V.dest (VSub.get vsub' (V.mk "w1")) = "w1")
+      val _ = Testing.assert "e4 in sub"
+              (E.dest (ESub.get esub' (E.mk "e4")) = "e4")
+      val _ = Testing.assert "b1 in sub"
+              (B.dest (BSub.get bsub' (B.mk "b1")) = "b2")
+      val _ = Testing.assert "b3 in sub"
+              (B.dest (BSub.get bsub' (B.mk "b3")) = "b3")
+      val _ = assert_g_eq "rename swap (anon)" g_exp
+              (G.rename_bang_graph_anon (vsub_swap1,esub_swap,bsub_swap) g)
+
+      val bsub_permute = BSub.empty
+          |> BSub.add (B.mk "b1",B.mk "b2")
+          |> BSub.add (B.mk "b2",B.mk "b3")
+          |> BSub.add (B.mk "b3",B.mk "b1")
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e2" "n1" "w2"
+          |> add_dir_eunit1 "e1" "w2" "n2"
+          |> add_undir_eunit2 "e3" "n1" "w1"
+          |> add_undir_eunit2 "e4" "w1" "n2"
+          |> add_bbox "b2" ["n1","w1","w2"]
+          |> add_bbox_with_parent "b3" "b2" ["n1","w1","w2"]
+          |> add_bbox_with_parent "b1" "b2" ["w2"]
+      val ((vsub',esub',bsub'),g') =
+              G.rename_bang_graph (vsub_swap2,esub_swap,bsub_permute) g
+      val _ = assert_g_eq "rename permute" g_exp g'
+      val _ = Testing.assert "n1 in sub"
+              (V.dest (VSub.get vsub' (V.mk "n1")) = "n1")
+      val _ = Testing.assert "e4 in sub"
+              (E.dest (ESub.get esub' (E.mk "e4")) = "e4")
+      val _ = Testing.assert "b1 in sub"
+              (B.dest (BSub.get bsub' (B.mk "b1")) = "b2")
+      val _ = assert_g_eq "rename permute (anon)" g_exp
+              (G.rename_bang_graph_anon (vsub_swap2,esub_swap,bsub_permute) g)
+      in () end) ()
+
+
+    val _ = Testing.test "G.rename_bboxes" (fn () => let
+      val bsub_clash = BSub.empty
+          |> BSub.add (B.mk "b1",B.mk "b2")
+      val _ = (G.rename_bboxes bsub_clash g;
+               raise ERROR "clashing names should raise exception")
+              handle BSub.name_clash_exp _ => ()
+
+      val bsub_swap = BSub.empty
+          |> BSub.add (B.mk "b1",B.mk "b2")
+          |> BSub.add (B.mk "b2",B.mk "b1")
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n1" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+          |> add_undir_eunit2 "e3" "n1" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+          |> add_bbox "b2" ["n1","w1","w2"]
+          |> add_bbox_with_parent "b1" "b2" ["n1","w1","w2"]
+          |> add_bbox_with_parent "b3" "b2" ["w1"]
+      val _ = assert_g_eq "rename swap" g_exp
+              (G.rename_bboxes bsub_swap g)
+
+      val bsub_permute = BSub.empty
+          |> BSub.add (B.mk "b1",B.mk "b2")
+          |> BSub.add (B.mk "b2",B.mk "b3")
+          |> BSub.add (B.mk "b3",B.mk "b1")
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n1" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+          |> add_undir_eunit2 "e3" "n1" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+          |> add_bbox "b2" ["n1","w1","w2"]
+          |> add_bbox_with_parent "b3" "b2" ["n1","w1","w2"]
+          |> add_bbox_with_parent "b1" "b2" ["w1"]
+      val _ = assert_g_eq "rename permute" g_exp
+              (G.rename_bboxes bsub_permute g)
+      in () end) ()
+
+
+    val _ = Testing.test "G.rename_bbox/G.rename_bbox_opt" (fn () => let
+      val _ = assert_g_eq "rename empty" G.empty
+              (G.rename_bbox (B.mk "a") (B.mk "b") G.empty)
+      val _ = assert_g_eq "rename absent bbox" g
+              (G.rename_bbox (B.mk "a") (B.mk "b") g)
+      val _ = case G.rename_bbox_opt (B.mk "a") (B.mk "b") G.empty
+                of SOME g' => assert_g_eq "rename empty" G.empty g'
+                 | NONE => raise ERROR "rename failed in empty graph"
+      val _ = case G.rename_bbox_opt (B.mk "a") (B.mk "b") g
+                of SOME g' => assert_g_eq "rename absent" g g'
+                 | NONE => raise ERROR "rename of absent bbox failed"
+
+      val _ = (G.rename_bbox (B.mk "b1") (B.mk "b2") g;
+               raise ERROR "clashing names should raise exception (b1->b2)")
+              handle G.duplicate_bbox_exp (b',g') =>
+                (Testing.assert "correct b (b1->b2)" (B.dest b' = "b2");
+                 Testing.assert "correct g (b1->b2)" (G.exact_eq g' g))
+      val _ = Testing.assert "clashing names (b1->b2)"
+              (is_none (G.rename_bbox_opt (B.mk "b1") (B.mk "b2") g))
+
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n1" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+          |> add_undir_eunit2 "e3" "n1" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+          |> add_bbox "b4" ["n1","w1","w2"]
+          |> add_bbox_with_parent "b2" "b4" ["n1","w1","w2"]
+          |> add_bbox_with_parent "b3" "b4" ["w1"]
+      val _ = assert_g_eq "rename b1->b4" g_exp
+              (G.rename_bbox (B.mk "b1") (B.mk "b4") g)
+      val _ = case G.rename_bbox_opt (B.mk "b1") (B.mk "b4") g
+                of SOME g' => assert_g_eq "rename b1->b4" g_exp g'
+                 | NONE => raise ERROR "rename b1->b4 returned NONE"
+
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n1" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+          |> add_undir_eunit2 "e3" "n1" "w2"
+          |> add_undir_eunit2 "e4" "w2" "n2"
+          |> add_bbox "b1" ["n1","w1","w2"]
+          |> add_bbox_with_parent "b2" "b1" ["n1","w1","w2"]
+          |> add_bbox_with_parent "b4" "b1" ["w1"]
+      val _ = assert_g_eq "rename b3->b4" g_exp
+              (G.rename_bbox (B.mk "b3") (B.mk "b4") g)
+      val _ = case G.rename_bbox_opt (B.mk "b3") (B.mk "b4") g
+                of SOME g' => assert_g_eq "rename b3->b4" g_exp g'
+                 | NONE => raise ERROR "rename b3->b4 returned NONE"
+      in () end) ()
+  end
+
+
+
+  (* TODO: add_edge_anon *)
+  val _ = Testing.test "G.add_edge/G.add_named_edge (with !-boxes)" (fn () => let
+    val g_clean = G.empty
+        |> add_vunit1 "n1"
+        |> add_vunit1 "n2"
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_undir_eunit1 "e1" "n1" "w1"
+        |> add_undir_eunit1 "e2" "w2" "n2"
+    val g = g_clean
+        |> add_bbox "b1" ["n1","w1"]
+        |> add_bbox "b2" ["n2","w2"]
+
+    val (e,g') = G.add_edge (Undirected,eunit1) (V.mk "w1") (V.mk "w2") g
+    val g_exp = g_clean
+        |> add_undir_eunit1 (E.dest e) "w1" "w2"
+        |> add_bbox "b1" ["n1","w1","w2"]
+        |> add_bbox "b2" ["n2","w1","w2"]
+    val _ = assert_g_eq "expanded bboxes (add_edge)" g_exp g'
+
+    val g_exp = g_clean
+        |> add_undir_eunit1 "x" "w1" "w2"
+        |> add_bbox "b1" ["n1","w1","w2"]
+        |> add_bbox "b2" ["n2","w1","w2"]
+    val _ = assert_g_eq "expanded bboxes (add_named_edge)" g_exp
+            (G.add_named_edge (E.mk "x") (Undirected,eunit1) (V.mk "w1") (V.mk "w2") g)
     in () end) ()
 
-
-
-  val _ = Testing.test "G.rename_bang_graph" (fn () => let
-    (* TODO: val rename_bang_graph_anon : (VSub.T * ESub.T * BSub.T) -> T -> T *)
-    in () end) ()
-
-
-
-  val _ = Testing.test "G.rename_bang_graph" (fn () => let
-    (* TODO: val rename_bboxes : BSub.T -> T -> T *)
-    in () end) ()
-
-
-
-  val _ = Testing.test "G.rename_bang_graph" (fn () => let
-    (* TODO: val rename_bbox : B.name -> B.name -> T -> T *)
-    in () end) ()
-
-
-
-  val _ = Testing.test "G.rename_bang_graph" (fn () => let
-    (* TODO: val rename_bbox_opt : B.name -> B.name -> T -> T option *)
-    in () end) ()
 
 
   (* TODO: tests for !-box openness preservation:
-   * add_edge(_anon)
-   * add_named_edge
    * merge_by_subgraph
    * merge_by_vertices
    * normalise

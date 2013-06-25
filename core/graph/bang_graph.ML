@@ -352,13 +352,49 @@ fun adj_edge_classes g v = (
   get_adj_undir_edges g v
 )
 
+fun get_only_edge g v = E.NSet.tryget_singleton (get_adj_edges' g v)
+
+(* need these here for add_named_edge *)
+fun wv_get_other_edge g wv e = E.NSet.tryget_singleton (E.NSet.delete e (get_adj_edges g wv))
+fun get_wire_containing_edge g e = let
+  (* proceed in the direction of v away from prev_e until we hit e, a boundary, or a
+     node-vertex. return endpoint and edges encountered *)
+  fun traverse v prev_e =
+    if is_node_vertex g v then (v, V.NSet.empty, E.NSet.empty)
+    else case wv_get_other_edge g v prev_e
+           of SOME new_e =>
+             if E.name_eq (e, new_e)  (* come back around, is a circle *)
+             then (get_edge_source g e, V.NSet.empty, E.NSet.empty) (* so we get the same node for both endpoints *)
+             else (* v is a wire vertex that is not an endpoint *)
+               let val (v', wvs, es) = traverse (edge_get_other_vertex g new_e v) new_e
+               in (v', wvs |> V.NSet.add v, es |> E.NSet.add new_e)
+               end
+            | NONE => (v, V.NSet.empty, E.NSet.empty)
+  val (s_end,s_wvs,s_es) = traverse (get_edge_source g e) e
+  val (t_end,t_wvs,t_es) = traverse (get_edge_target g e) e
+  val es = s_es |> E.NSet.union_merge t_es |> E.NSet.add e
+(* for circles, we take the minimum name to be s=t and the rest to be internal wire-vertices *)
+in if V.name_eq (s_end,t_end) andalso is_wire_vertex g s_end then
+     let
+       val wvs = s_wvs |> V.NSet.union_merge t_wvs |> V.NSet.add s_end
+       val min_wv = (the o V.NSet.get_min) wvs
+     in (min_wv, min_wv, wvs |> V.NSet.delete min_wv, es)
+     end
+   else (s_end, t_end, s_wvs |> V.NSet.union_merge t_wvs, es)
+end
+
 
 (*****************************************)
 (****** ADD/REMOVE/MODIFY FUNCTIONS ******)
 (*****************************************)
 
+fun add_vertex_to_bbox bb v g =
+  if (has_bbox g bb) then g |> update_bbox_rel (BVRel.add (bb, v))
+  else raise no_such_bbox_exp ("add_vertex_to_bbox", bb, g)
 
-(* TODO: should this throw an exception if invalid graph? *)
+fun add_vertices_to_bbox bb = V.NSet.fold (add_vertex_to_bbox bb)
+
+
 fun add_named_edge e (dir,d) s t g =
   if (has_edge g e) then raise duplicate_edge_exp (e,g)
   else
@@ -367,9 +403,44 @@ fun add_named_edge e (dir,d) s t g =
                else raise no_such_vertex_exp ("add_named_edge", s, g)
       val () = if has_vertex g t then ()
                else raise no_such_vertex_exp ("add_named_edge", t, g)
+      (* crazy long function to check that we don't add an incompatible
+       * edge to a wire vertex *)
+      fun can_link get_bad_edge_end v =
+        if not (is_wire_vertex g v) then ()
+        else let val v_es = get_adj_edges' g v in
+          if E.NSet.is_empty v_es then ()
+          else
+            case E.NSet.tryget_singleton v_es
+              of NONE => raise wire_vertex_exp ("too many edges",g,v)
+               | SOME e =>
+                  let val (dod,ed) = get_edge_dir_and_data g e in
+                    if dod <> dir
+                    then raise wire_vertex_exp ("directedness mismatch",g,v)
+                    else if not (edata_eq (ed,d))
+                    then raise wire_vertex_exp ("data mismatch",g,v)
+                    else if dir = Directed andalso
+                            V.name_eq (v,get_bad_edge_end g e)
+                    then raise wire_vertex_exp ("directed edges clash",g,v)
+                    else if dir = Undirected andalso
+                            V.name_eq (get_edge_source g e,get_edge_target g e)
+                    then raise wire_vertex_exp ("too many edges",g,v)
+                    else ()
+                  end
+        end
+      val _ = can_link get_edge_source s
+      val _ = can_link get_edge_target t
+      fun extend_bbs g = let
+        val (ws,wt,wvs,_) = get_wire_containing_edge g e
+        val ws_bbs = get_bboxes_containing_vertex g ws
+        val wt_bbs = get_bboxes_containing_vertex g wt
+        val wire_bbs = B.NSet.union_merge ws_bbs wt_bbs
+      in
+        B.NSet.fold (fn b => add_vertices_to_bbox b wvs) wire_bbs g
+      end
     in g |> update_edata (ETab.add (e,(dir,d)))
          |> update_source (EVFn.add (e, s))
          |> update_target (EVFn.add (e, t))
+         |> extend_bbs
     end
 
 fun add_edge dd s t g = let
@@ -416,12 +487,6 @@ fun delete_bbox bb g =
     |> update_bbox_rel (BVRel.delete bb)
     |> update_bbox_child_rel (BBRel.delete bb)
     |> update_bbox_child_rel (BBRel.inv_delete bb)
-
-fun add_vertex_to_bbox bb v g =
-  if (has_bbox g bb) then g |> update_bbox_rel (BVRel.add (bb, v))
-  else raise no_such_bbox_exp ("add_vertex_to_bbox", bb, g)
-
-fun add_vertices_to_bbox bb = V.NSet.fold (add_vertex_to_bbox bb)
 
 fun remove_vertex_from_bbox bb v g =
   if (has_bbox g bb) then g |> update_bbox_rel (BVRel.unmap (bb, v))
@@ -638,7 +703,7 @@ fun rename_vertex_opt n1 n2 g = SOME (rename_vertex n1 n2 g)
 
 (* rename edges using the given substitution *)
 fun rename_edges sub g = let
-  (* this will fail with duplicate_exp if the renaming is bad *)
+  (* this will fail with name_clash_exp if the renaming is bad *)
   val rnm = ESub.extend_fixed (get_edges g) sub
   val rnmi = ESub.inverse_of rnm
 in
@@ -653,7 +718,7 @@ fun rename_edge_opt n1 n2 g = SOME (rename_edge n1 n2 g)
   handle duplicate_edge_exp _ => NONE
 
 fun rename_bboxes sub g = let
-  (* this will fail with duplicate_exp if the renaming is bad *)
+  (* this will fail with name_clash_exp if the renaming is bad *)
   val rnm = BSub.extend_fixed (get_bboxes g) sub
   val rnmi = BSub.inverse_of rnm
 in
@@ -662,13 +727,10 @@ in
     |> update_bbox_child_rel (fn m => BBRel.compose3 (rnm, m, rnmi))
 end
 
-fun rename_bbox n1 n2 g =
-  if has_bbox g n1
-  then rename_bboxes (BSub.empty |> BSub.add (n1,n2)) g
-  else raise no_such_bbox_exp ("rename_bbox", n1, g)
-
+fun rename_bbox n1 n2 g = rename_bboxes (BSub.empty |> BSub.add (n1,n2)) g
+  handle BSub.name_clash_exp _ => raise duplicate_bbox_exp (n2,g)
 fun rename_bbox_opt n1 n2 g = SOME (rename_bbox n1 n2 g)
-  handle BSub.name_clash_exp _ => NONE
+  handle duplicate_bbox_exp _ => NONE
 
 fun rename_bang_graph (vsub,esub,bsub) g = let
   val vrnm  = VSub.extend_fixed (get_vertices g) vsub
@@ -732,22 +794,6 @@ fun get_inputs g   = V.NSet.filter (is_input' g)    (get_wire_vertices g)
 fun get_outputs g  = V.NSet.filter (is_output' g)   (get_wire_vertices g)
 
 
-fun wv_get_other_edge g wv e = E.NSet.tryget_singleton (E.NSet.delete e (get_adj_edges g wv))
-(*  let
-    val (in_e,out_e) = (get_in_edges g wv, get_out_edges g wv)
-  in
-    if is_dir_edge g e then
-      if E.NSet.contains in_e e
-      then
-        if E.NSet.contains out_e e
-        then NONE
-        else E.NSet.tryget_singleton out_e
-      else E.NSet.tryget_singleton in_e
-    else
-      let val edges = E.NSet.union_merge in_e out_e in
-        E.NSet.tryget_singleton (E.NSet.delete e edges)
-      end
-  end*)
 
 (********************************)
 (******** WIRE FUNCTIONS ********)
@@ -758,33 +804,6 @@ fun wire_ord ( (_,_,_,es) , (_,_,_,es') ) = E.NSet.ord (es,es')
 fun wire_eq w1 w2 = wire_ord (w1, w2) = EQUAL
 fun pretty_wire (s,t,w,e) = Pretty.list "wire(" ")" [V.pretty_name s, V.pretty_name t, V.NSet.pretty w, E.NSet.pretty e]
 fun delete_wire (_,_,wvs,es) h = V.NSet.fold delete_vertex wvs (E.NSet.fold delete_edge es h)
-
-fun get_wire_containing_edge g e = let
-  (* proceed in the direction of v away from prev_e until we hit e, a boundary, or a
-     node-vertex. return endpoint and edges encountered *)
-  fun traverse v prev_e =
-    if is_node_vertex g v then (v, V.NSet.empty, E.NSet.empty)
-    else case wv_get_other_edge g v prev_e
-           of SOME new_e =>
-             if E.name_eq (e, new_e)  (* come back around, is a circle *)
-             then (get_edge_source g e, V.NSet.empty, E.NSet.empty) (* so we get the same node for both endpoints *)
-             else (* v is a wire vertex that is not an endpoint *)
-               let val (v', wvs, es) = traverse (edge_get_other_vertex g new_e v) new_e
-               in (v', wvs |> V.NSet.add v, es |> E.NSet.add new_e)
-               end
-            | NONE => (v, V.NSet.empty, E.NSet.empty)
-  val (s_end,s_wvs,s_es) = traverse (get_edge_source g e) e
-  val (t_end,t_wvs,t_es) = traverse (get_edge_target g e) e
-  val es = s_es |> E.NSet.union_merge t_es |> E.NSet.add e
-(* for circles, we take the minimum name to be s=t and the rest to be internal wire-vertices *)
-in if V.name_eq (s_end,t_end) andalso is_wire_vertex g s_end then
-     let
-       val wvs = s_wvs |> V.NSet.union_merge t_wvs |> V.NSet.add s_end
-       val min_wv = (the o V.NSet.get_min) wvs
-     in (min_wv, min_wv, wvs |> V.NSet.delete min_wv, es)
-     end
-   else (s_end, t_end, s_wvs |> V.NSet.union_merge t_wvs, es)
-end
 
 fun get_wires_for_edges g es = let
   fun gw es' = if E.NSet.is_empty es' then []
@@ -898,7 +917,6 @@ end
 (****** PLUGGING FUNCTIONS ******)
 (********************************)
 
-fun get_only_edge g v = E.NSet.tryget_singleton (get_adj_edges' g v)
 fun get_plugging g v1 v2 =
   case (get_only_edge g v1,get_only_edge g v2)
     of (SOME e1,SOME e2) =>
@@ -937,50 +955,6 @@ in
 end
 val plug_and_normalise_anon = snd ooo plug_and_normalise
 
-
-(* finds the open subgraph defined by a node-vertex set
- * assumes graph is normalised
- * returns a set of vertices
- *
- * NB: bang_graph has a [less efficient] version of this
- * that does not assume normalisation (but also returns
- * complete outgoing wires, not just the first wire vertex)
- * FIXME: use that to provide a general version of
- *        get_open_subgraph?
- *)
-(*fun find_open_subgraph vset g = let
-  fun add_edge_source e = V.NSet.add (get_edge_source g e)
-  fun add_edge_target e = V.NSet.add (get_edge_target g e)
-  fun absorb v vset =
-    if is_wire_vertex g v then vset
-    else
-      vset |> E.NSet.fold add_edge_source (get_in_edges g v)
-           |> E.NSet.fold add_edge_target (get_out_edges g v)
-in
-  V.NSet.fold absorb vset vset
-end*)
-
-(*fun find_open_subgraph g vset = let
-  fun add_if_wv v = if is_wire_vertex g v then V.NSet.add v else I
-  fun add_incoming_wire e = let
-    val (s,_,wvs,_) = get_wire_containing_edge g e
-  in
-    (add_if_wv s) o V.NSet.union_merge wvs
-  end
-  fun add_outgoing_wire e = let
-    val (_,t,wvs,_) = get_wire_containing_edge g e
-  in
-    (add_if_wv t) o V.NSet.union_merge wvs
-  end
-  fun absorb v = let
-    val (ins,outs) = (get_in_edges g v, get_out_edges g v)
-  in
-     (E.NSet.fold add_incoming_wire ins)
-     o (E.NSet.fold add_outgoing_wire outs)
-  end
-in
-  V.NSet.fold absorb vset vset
-end*)
 
 fun find_open_subgraph g vset = let
   fun absorb new accum =
