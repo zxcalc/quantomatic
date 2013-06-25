@@ -1331,6 +1331,14 @@ functor OGraph_Interface_Tests(
                      |> add_undir_eunit2 "f" "b" "a"
     val _ = Testing.assert "g7 (/= g1" (not (G.is_subgraph g7 g1))
     val _ = Testing.assert "g1 (/= g7" (not (G.is_subgraph g1 g7))
+    (* NB: direction of Undirected edges matters! *)
+    val g8 = G.empty |> add_vunit1 "a"
+                     |> add_vunit2 "b"
+                     |> add_vexpr1 "c" "x"
+                     |> add_dir_eunit1 "e" "a" "b"
+                     |> add_undir_eunit2 "f" "a" "b"
+    val _ = Testing.assert "g1 (/= g8" (not (G.is_subgraph g1 g8))
+    val _ = Testing.assert "g8 (/= g1" (not (G.is_subgraph g8 g1))
     in () end) ();
 
 
@@ -1342,26 +1350,32 @@ functor OGraph_Interface_Tests(
                      |> add_vunit2 "b"
                      |> add_dir_eunit1 "e" "a" "b"
                      |> add_undir_eunit2 "f" "b" "a"
+    (* g2 = g1 *)
     val g2 = G.empty |> add_vunit1 "a"
                      |> add_vunit2 "b"
                      |> add_dir_eunit1 "e" "a" "b"
                      |> add_undir_eunit2 "f" "b" "a"
+    (* g3 has different vertex data (b) *)
     val g3 = G.empty |> add_vunit1 "a"
                      |> add_vunit1 "b"
                      |> add_dir_eunit1 "e" "a" "b"
                      |> add_undir_eunit2 "f" "b" "a"
+    (* g4 has different edge directedness (f) *)
     val g4 = G.empty |> add_vunit1 "a"
                      |> add_vunit2 "b"
                      |> add_dir_eunit1 "e" "a" "b"
                      |> add_dir_eunit2 "f" "b" "a"
+    (* g5 has different edge data (e) *)
     val g5 = G.empty |> add_vunit1 "a"
                      |> add_vunit2 "b"
                      |> add_dir_eunit2 "e" "a" "b"
                      |> add_undir_eunit2 "f" "b" "a"
+    (* g6 has different orientation of undirected edge (f) *)
     val g6 = G.empty |> add_vunit1 "a"
                      |> add_vunit2 "b"
                      |> add_dir_eunit1 "e" "a" "b"
                      |> add_undir_eunit2 "f" "a" "b"
+    (* g6 has different orientation of directed edge (e) *)
     val g7 = G.empty |> add_vunit1 "a"
                      |> add_vunit2 "b"
                      |> add_dir_eunit1 "e" "b" "a"
@@ -1608,55 +1622,488 @@ functor OGraph_Interface_Tests(
 
 
   val _ = Testing.test "G.is_intersection" (fn () => let
-    (* TODO: val is_intersection : T -> T -> T -> bool *)
+    val _ = Testing.assert "G.is_intersection G.empty"
+            (G.is_intersection G.empty G.empty G.empty)
+
+    val g1 = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_wv "d"
+        |> add_wv "e"
+        |> add_wv "f"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+        |> add_undir_eunit2 "g" "b" "e"
+        |> add_undir_eunit1 "h" "b" "f"
+        |> add_undir_eunit1 "i" "c" "f"
+    val _ = Testing.assert "G.is_intersection g1 g1 g1"
+            (G.is_intersection g1 g1 g1)
+
+    val g2 = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c_" "x"
+        |> add_wv "d"
+        |> add_wv "e_"
+        |> add_wv "f_"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+        |> add_undir_eunit2 "g_" "b" "e_"
+        |> add_undir_eunit1 "h_" "b" "f_"
+        |> add_undir_eunit1 "i_" "c_" "f_"
+
+    val g1_g2 = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_wv "d"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+    val _ = Testing.assert "G.is_intersection g1_g2 g1 g2"
+            (G.is_intersection g1_g2 g1 g2)
+
+    val g1_g2' = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_wv "d"
+        |> add_dir_eunit1 "e" "d" "a"
+        |> add_dir_eunit1 "f" "b" "d"
+    val _ = Testing.assert "! G.is_intersection g1_g2' g1 g2"
+            (not (G.is_intersection g1_g2' g1 g2))
+
+    val g3 = G.empty
+        |> add_vunit1 "a_"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_wv "d_"
+        |> add_wv "e_"
+        |> add_wv "f"
+        |> add_dir_eunit1 "e_" "a_" "d_"
+        |> add_dir_eunit1 "f_" "d_" "b"
+        |> add_undir_eunit2 "g_" "b" "e_"
+        |> add_undir_eunit1 "h" "b" "f"
+        |> add_undir_eunit1 "i" "c" "f"
+
+    val g1_g3 = G.empty
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_wv "f"
+        |> add_undir_eunit1 "h" "b" "f"
+        |> add_undir_eunit1 "i" "c" "f"
+    val _ = Testing.assert "G.is_intersection g1_g3 g1 g3"
+            (G.is_intersection g1_g3 g1 g3)
+
+    val g4 = G.empty
+        |> add_vunit1 "a_"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_wv "d_"
+        |> add_wv "e_"
+        |> add_wv "f"
+        |> add_dir_eunit1 "e_" "a_" "d_"
+        |> add_dir_eunit1 "f_" "d_" "b"
+        |> add_undir_eunit2 "g_" "b" "e_"
+        |> add_undir_eunit1 "h_" "b" "f"
+        |> add_undir_eunit1 "i_" "c" "f"
+
+    val g1_g4 = G.empty
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_wv "f"
+    val _ = Testing.assert "G.is_intersection g1_g4 g1 g4"
+            (G.is_intersection g1_g4 g1 g4)
+
+    (* NB: edge direction matters, even for Undirected edges *)
+    val g5 = G.empty
+        |> add_vunit1 "a_"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_wv "d_"
+        |> add_wv "e_"
+        |> add_wv "f"
+        |> add_dir_eunit1 "e_" "a_" "d_"
+        |> add_dir_eunit1 "f_" "d_" "b"
+        |> add_undir_eunit2 "g_" "b" "e_"
+        |> add_undir_eunit1 "h" "b" "f"
+        |> add_undir_eunit1 "i" "f" "c"
+
+    val g1_g5 = G.empty
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_wv "f"
+        |> add_undir_eunit1 "h" "b" "f"
+        |> add_undir_eunit1 "i" "c" "f"
+    val _ = Testing.assert "not G.is_intersection g1_g5 g1 g5"
+            (not (G.is_intersection g1_g5 g1 g5))
     in () end) ();
 
 
 
   val _ = Testing.test "G.merge_by_subgraph" (fn () => let
-    (* merge two graphs on a subgraph, which must be their intersection *)
-    (* TODO: val merge_by_subgraph : T -> T -> T -> T *)
+    val _ = assert_g_eq "merge of empty graphs" G.empty
+            (G.merge_by_subgraph G.empty G.empty G.empty)
+
+    val g1 = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_wv "d"
+        |> add_wv "e"
+        |> add_wv "f"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+        |> add_undir_eunit2 "g" "b" "e"
+        |> add_undir_eunit1 "h" "b" "f"
+        |> add_undir_eunit1 "i" "c" "f"
+
+    val g2 = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c_" "x"
+        |> add_wv "d"
+        |> add_wv "e_"
+        |> add_wv "f_"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+        |> add_undir_eunit2 "g_" "b" "e_"
+        |> add_undir_eunit1 "h_" "b" "f_"
+        |> add_undir_eunit1 "i_" "c_" "f_"
+
+    val g1_g2 = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_wv "d"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+
+    val g_exp = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_vexpr1 "c_" "x"
+        |> add_wv "d"
+        |> add_wv "e_"
+        |> add_wv "f_"
+        |> add_wv "e"
+        |> add_wv "f"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+        |> add_undir_eunit2 "g_" "b" "e_"
+        |> add_undir_eunit1 "h_" "b" "f_"
+        |> add_undir_eunit1 "i_" "c_" "f_"
+        |> add_undir_eunit2 "g" "b" "e"
+        |> add_undir_eunit1 "h" "b" "f"
+        |> add_undir_eunit1 "i" "c" "f"
+
+    val _ = assert_g_eq "merge of g1 and g2" g_exp
+            (G.merge_by_subgraph g1_g2 g1 g2)
     in () end) ();
 
 
 
   val _ = Testing.test "G.merge_by_vertices" (fn () => let
-    (* merge two graphs which have distinct egdes by shared vertices:
-       vertices with same name are kept only once, edges must be
-       distinct. *)
-    (* TODO: val merge_by_vertices : T -> T -> T *)
+    val _ = assert_g_eq "merge of empty graphs" G.empty
+            (G.merge_by_vertices G.empty G.empty)
+
+    val g1 = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_wv "d"
+        |> add_wv "e"
+        |> add_wv "f"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+        |> add_undir_eunit2 "g" "b" "e"
+        |> add_undir_eunit1 "h" "b" "f"
+        |> add_undir_eunit1 "i" "c" "f"
+
+    val g2 = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c_" "x"
+        |> add_wv "d"
+        |> add_wv "e_"
+        |> add_wv "f_"
+        |> add_dir_eunit1 "e_" "a" "d"
+        |> add_dir_eunit1 "f_" "d" "b"
+        |> add_undir_eunit2 "g_" "b" "e_"
+        |> add_undir_eunit1 "h_" "b" "f_"
+        |> add_undir_eunit1 "i_" "c_" "f_"
+
+    val g_exp = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_vexpr1 "c_" "x"
+        |> add_wv "d"
+        |> add_wv "e_"
+        |> add_wv "f_"
+        |> add_wv "e"
+        |> add_wv "f"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+        |> add_undir_eunit2 "g" "b" "e"
+        |> add_undir_eunit1 "h" "b" "f"
+        |> add_undir_eunit1 "i" "c" "f"
+        |> add_dir_eunit1 "e_" "a" "d"
+        |> add_dir_eunit1 "f_" "d" "b"
+        |> add_undir_eunit2 "g_" "b" "e_"
+        |> add_undir_eunit1 "h_" "b" "f_"
+        |> add_undir_eunit1 "i_" "c_" "f_"
+
+    val _ = assert_g_eq "merge of g1 and g2" g_exp
+            (G.merge_by_vertices g1 g2)
     in () end) ();
 
 
 
   val _ = Testing.test "G.get_arity" (fn () => let
-    (* TODO: val get_arity : T -> V.name -> Arity.T *)
+    val _ = (G.get_arity G.empty (V.mk "a");
+              raise ERROR "G.get_arity (empty) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g) =>
+              (Testing.assert "correct vname in exp (empty)"
+                              (V.string_of_name vn = "a");
+               Testing.assert "correct graph in exp (empty)"
+                              (G.is_empty g))
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_wv "v2"
+        |> add_vunit1 "v3"
+        |> add_wv "v4"
+        |> add_vunit1 "v5"
+        |> add_vunit1 "v6"
+        |> add_dir_eunit1 "e1" "v1" "v2"
+        |> add_undir_eunit1 "e2" "v1" "v3"
+        |> add_dir_eunit1 "e3" "v4" "v1"
+        |> add_undir_eunit1 "e4" "v5" "v1"
+        |> add_dir_eunit1 "e5" "v1" "v5"
+        |> add_dir_eunit1 "e6" "v5" "v1"
+        |> add_dir_eunit1 "e7" "v5" "v5"
+        |> add_undir_eunit1 "e8" "v5" "v5"
+
+    val _ = (G.get_arity g (V.mk "v0");
+             raise ERROR "G.get_arity (unknown vertex) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g') =>
+              (Testing.assert "correct vname in exp (unknown vertex)"
+                              (V.name_eq (vn,V.mk "v0"));
+               Testing.assert "correct graph in exp (unknown vertex)"
+                              (G.exact_eq g g'))
+
+    fun assert_arity_eq v rep =
+    let val a1 = G.get_arity g (V.mk v) in
+      if Arity.rep_of a1 = rep
+      then ()
+      else ( writeln ("Expected ("^v^"):");
+            Pretty.writeln (Pretty.block 
+              ( [Pretty.str "(in:",
+                 Pretty.str (Int.toString (#no_in rep))]
+              @ [Pretty.str ", out:",
+                 Pretty.str (Int.toString (#no_out rep))]
+              @ [Pretty.str ", undir:",
+                 Pretty.str (Int.toString (#no_undir rep))]
+              @ [Pretty.str ")"] ));
+            writeln ("Actual ("^v^"):");
+            Arity.print a1;
+            Testing.assert ("arity of "^v) false)
+    end
+
+    val _ = assert_arity_eq "v1" {no_in = 2, no_out = 2, no_undir = 2}
+    val _ = assert_arity_eq "v2" {no_in = 1, no_out = 0, no_undir = 0}
+    val _ = assert_arity_eq "v3" {no_in = 0, no_out = 0, no_undir = 1}
+    val _ = assert_arity_eq "v4" {no_in = 0, no_out = 1, no_undir = 0}
+    val _ = assert_arity_eq "v5" {no_in = 2, no_out = 2, no_undir = 3}
+    val _ = assert_arity_eq "v6" {no_in = 0, no_out = 0, no_undir = 0}
     in () end) ();
 
 
 
   val _ = Testing.test "G.get_self_loops" (fn () => let
-    (* TODO: val get_self_loops : T -> V.name -> E.NSet.T *)
+    val _ = (G.get_self_loops G.empty (V.mk "a");
+              raise ERROR "G.get_self_loops (empty) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g) =>
+              (Testing.assert "correct vname in exp (empty)"
+                              (V.string_of_name vn = "a");
+               Testing.assert "correct graph in exp (empty)"
+                              (G.is_empty g))
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit1 "v3"
+        |> add_wv "v4"
+        |> add_wv "v5"
+        |> add_wv "v6"
+        |> add_dir_eunit1 "loop1" "v1" "v1"
+        |> add_undir_eunit1 "loop2" "v1" "v1"
+        |> add_dir_eunit1 "loop3" "v2" "v2"
+        |> add_undir_eunit1 "loop4" "v4" "v4"
+        |> add_dir_eunit1 "e1" "v1" "v2"
+        |> add_undir_eunit1 "e2" "v1" "v3"
+        |> add_dir_eunit1 "e3" "v5" "v1"
+
+    val _ = (G.get_self_loops g (V.mk "v0");
+             raise ERROR "G.get_self_loops (unknown vertex) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g') =>
+              (Testing.assert "correct vname in exp (unknown vertex)"
+                              (V.name_eq (vn,V.mk "v0"));
+               Testing.assert "correct graph in exp (unknown vertex)"
+                              (G.exact_eq g g'))
+
+    val _ = assert_edges "self-loops of v1 = [loop1,loop2]"
+                         ["loop1","loop2"]
+                         (G.get_self_loops g (V.mk "v1"))
+    val _ = assert_edges "self-loops of v2 = [loop3]"
+                         ["loop3"]
+                         (G.get_self_loops g (V.mk "v2"))
+    val _ = assert_edges "self-loops of v3 = []" []
+                         (G.get_self_loops g (V.mk "v3"))
+    val _ = assert_edges "self-loops of v4 = [loop4]"
+                         ["loop4"]
+                         (G.get_self_loops g (V.mk "v4"))
+    val _ = assert_edges "self-loops of v5 = []" []
+                         (G.get_self_loops g (V.mk "v5"))
+    val _ = assert_edges "self-loops of v6 = []" []
+                         (G.get_self_loops g (V.mk "v6"))
     in () end) ();
 
 
 
   val _ = Testing.test "G.delete_subgraph" (fn () => let
-    (* remove the first graph from the second, assumes first is a subgraph *)
-    (* TODO: val delete_subgraph : T -> T -> T *)
+    val _ = assert_g_eq "G.delete_subgraph (empty,empty)" G.empty
+                        (G.delete_subgraph G.empty G.empty)
+
+    val g1 = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_dir_eunit1 "e" "a" "b"
+        |> add_undir_eunit2 "f" "b" "a"
+    val g2 = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_undir_eunit2 "f" "b" "a"
+    val g_exp = G.empty
+        |> add_vexpr1 "c" "x"
+
+    val _ = assert_g_eq "G.delete_subgraph (g1\\empty)" g1
+                        (G.delete_subgraph G.empty g1)
+    val _ = assert_g_eq "G.delete_subgraph (g1\\g2)" g_exp
+                        (G.delete_subgraph g2 g1)
     in () end) ();
 
 
 
   val _ = Testing.test "G.has_edges_between" (fn () => let
-    (* edges between two vertices *)
-    (* TODO: val has_edges_between : T -> V.name -> V.name -> bool *)
+    val _ = (G.has_edges_between G.empty (V.mk "a") (V.mk "a");
+              raise ERROR "G.has_edges_between (empty) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g) =>
+              (Testing.assert "correct vname in exp (empty)"
+                              (V.string_of_name vn = "a");
+               Testing.assert "correct graph in exp (empty)"
+                              (G.is_empty g))
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_vexpr1 "v3" "x"
+        |> add_vunit2 "v4"
+        |> add_undir_eunit2 "u1" "v1" "v2"
+        |> add_dir_eunit1 "d1" "v1" "v3"
+        |> add_undir_eunit2 "u2" "v3" "v4"
+        |> add_dir_eunit1 "d2" "v4" "v3"
+        |> add_dir_eunit1 "d3" "v3" "v4"
+        |> add_undir_eunit1 "l1" "v2" "v2"
+        |> add_dir_eunit1 "l2" "v3" "v3"
+
+    val _ = (G.has_edges_between g (V.mk "v0") (V.mk "v1");
+             raise ERROR "G.has_edges_between (unknown vertex 1) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g') =>
+              (Testing.assert "correct vname in exp (unknown vertex 1)"
+                              (V.name_eq (vn,V.mk "v0"));
+               Testing.assert "correct graph in exp (unknown vertex 1)"
+                              (G.exact_eq g g'))
+    val _ = (G.has_edges_between g (V.mk "v1") (V.mk "v0");
+             raise ERROR "G.has_edges_between (unknown vertex 2) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g') =>
+              (Testing.assert "correct vname in exp (unknown vertex 2)"
+                              (V.name_eq (vn,V.mk "v0"));
+               Testing.assert "correct graph in exp (unknown vertex 2)"
+                              (G.exact_eq g g'))
+
+    val _ = Testing.assert "edges v1-v2"
+            (G.has_edges_between g (V.mk "v1") (V.mk "v2"))
+    val _ = Testing.assert "edges v2-v1"
+            (G.has_edges_between g (V.mk "v2") (V.mk "v1"))
+    val _ = Testing.assert "edges v1-v3"
+            (G.has_edges_between g (V.mk "v1") (V.mk "v3"))
+    val _ = Testing.assert "edges v3-v1"
+            (G.has_edges_between g (V.mk "v3") (V.mk "v1"))
+    val _ = Testing.assert "edges v3-v4"
+            (G.has_edges_between g (V.mk "v3") (V.mk "v4"))
+    val _ = Testing.assert "no edges v2-v4"
+            (not (G.has_edges_between g (V.mk "v2") (V.mk "v4")))
+    val _ = Testing.assert "no edges v1-v1"
+            (not (G.has_edges_between g (V.mk "v1") (V.mk "v1")))
+    val _ = Testing.assert "edges v2-v2"
+            (G.has_edges_between g (V.mk "v2") (V.mk "v2"))
+    val _ = Testing.assert "edges v3-v3"
+            (G.has_edges_between g (V.mk "v3") (V.mk "v3"))
     in () end) ();
 
 
 
   val _ = Testing.test "G.edges_between" (fn () => let
-    (* TODO: val edges_between : T -> V.name -> V.name -> E.NSet.T *)
+    val _ = (G.edges_between G.empty (V.mk "a") (V.mk "a");
+              raise ERROR "G.edges_between (empty) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g) =>
+              (Testing.assert "correct vname in exp (empty)"
+                              (V.string_of_name vn = "a");
+               Testing.assert "correct graph in exp (empty)"
+                              (G.is_empty g))
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_vexpr1 "v3" "x"
+        |> add_vunit2 "v4"
+        |> add_undir_eunit2 "u1" "v1" "v2"
+        |> add_dir_eunit1 "d1" "v1" "v3"
+        |> add_undir_eunit2 "u2" "v3" "v4"
+        |> add_dir_eunit1 "d2" "v4" "v3"
+        |> add_dir_eunit1 "d3" "v3" "v4"
+        |> add_undir_eunit1 "l1" "v2" "v2"
+        |> add_dir_eunit1 "l2" "v3" "v3"
+
+    val _ = (G.edges_between g (V.mk "v0") (V.mk "v1");
+             raise ERROR "G.edges_between (unknown vertex 1) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g') =>
+              (Testing.assert "correct vname in exp (unknown vertex 1)"
+                              (V.name_eq (vn,V.mk "v0"));
+               Testing.assert "correct graph in exp (unknown vertex 1)"
+                              (G.exact_eq g g'))
+    val _ = (G.edges_between g (V.mk "v1") (V.mk "v0");
+             raise ERROR "G.edges_between (unknown vertex 2) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g') =>
+              (Testing.assert "correct vname in exp (unknown vertex 2)"
+                              (V.name_eq (vn,V.mk "v0"));
+               Testing.assert "correct graph in exp (unknown vertex 2)"
+                              (G.exact_eq g g'))
+
+    fun assert_edges_between v1 v2 exp =
+      (assert_edges ("edges "^v1^"-"^v2) exp
+                    (G.edges_between g (V.mk v1) (V.mk v2));
+       assert_edges ("edges "^v2^"-"^v1) exp
+                    (G.edges_between g (V.mk v2) (V.mk v1)))
+
+    val _ = assert_edges_between "v1" "v2" ["u1"]
+    val _ = assert_edges_between "v1" "v3" ["d1"]
+    val _ = assert_edges_between "v3" "v4" ["u2","d2","d3"]
+    val _ = assert_edges_between "v2" "v4" []
+    val _ = assert_edges_between "v1" "v1" []
+    val _ = assert_edges_between "v2" "v2" ["l1"]
+    val _ = assert_edges_between "v3" "v3" ["l2"]
     in () end) ();
 
 
@@ -1665,6 +2112,56 @@ functor OGraph_Interface_Tests(
     (* TODO: val dir_edges_between : T -> V.name -> V.name -> E.NSet.T (* from fst to snd vertex *) 
          * E.NSet.T (* from snd to fst vertex *)   
 *)
+    val _ = (G.dir_edges_between G.empty (V.mk "a") (V.mk "a");
+              raise ERROR "G.dir_edges_between (empty) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g) =>
+              (Testing.assert "correct vname in exp (empty)"
+                              (V.string_of_name vn = "a");
+               Testing.assert "correct graph in exp (empty)"
+                              (G.is_empty g))
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_vexpr1 "v3" "x"
+        |> add_vunit2 "v4"
+        |> add_undir_eunit2 "u1" "v1" "v2"
+        |> add_dir_eunit1 "d1" "v1" "v3"
+        |> add_undir_eunit2 "u2" "v3" "v4"
+        |> add_dir_eunit1 "d2" "v4" "v3"
+        |> add_dir_eunit1 "d3" "v3" "v4"
+        |> add_undir_eunit1 "l1" "v2" "v2"
+        |> add_dir_eunit1 "l2" "v3" "v3"
+
+    val _ = (G.dir_edges_between g (V.mk "v0") (V.mk "v1");
+             raise ERROR "G.dir_edges_between (unknown vertex 1) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g') =>
+              (Testing.assert "correct vname in exp (unknown vertex 1)"
+                              (V.name_eq (vn,V.mk "v0"));
+               Testing.assert "correct graph in exp (unknown vertex 1)"
+                              (G.exact_eq g g'))
+    val _ = (G.dir_edges_between g (V.mk "v1") (V.mk "v0");
+             raise ERROR "G.dir_edges_between (unknown vertex 2) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g') =>
+              (Testing.assert "correct vname in exp (unknown vertex 2)"
+                              (V.name_eq (vn,V.mk "v0"));
+               Testing.assert "correct graph in exp (unknown vertex 2)"
+                              (G.exact_eq g g'))
+
+    fun assert_edges_between v1 v2 forward backward = let
+      val (f,b) = G.dir_edges_between g (V.mk v1) (V.mk v2)
+    in
+      assert_edges ("edges "^v1^"->"^v2) forward f;
+      assert_edges ("edges "^v2^"->"^v1) backward b
+    end
+
+    val _ = assert_edges_between "v1" "v2" [] []
+    val _ = assert_edges_between "v1" "v3" ["d1"] []
+    val _ = assert_edges_between "v3" "v4" ["d3"] ["d2"]
+    val _ = assert_edges_between "v2" "v4" [] []
+    val _ = assert_edges_between "v1" "v1" [] []
+    val _ = assert_edges_between "v2" "v2" [] []
+    val _ = assert_edges_between "v3" "v3" ["l2"] ["l2"]
     in () end) ();
 
 

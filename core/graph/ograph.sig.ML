@@ -155,7 +155,9 @@ val get_node_vertices : T -> V.NSet.T
 val get_edges         : T -> E.NSet.T
 
 (* check if two graphs are exactly the same (names, data, and structure) *)
+(* note that the direction of Undirected edges *does* matter *)
 val is_subgraph : T -> T -> bool
+(* (exact_eq g1 g2) <=> (is_subgraph g1 g2) andalso (is_subgraph g2 g1) *)
 val exact_eq : T -> T -> bool
 
 (* adding a vertex gives back unique name for it and the new graph *)
@@ -178,9 +180,12 @@ val delete_vertex : V.name -> T -> T
 val swap_edge_dir : E.name -> T -> T
 
 
+(* intersection -> g1 -> g2 *)
+(* note that the direction of Undirected edges *does* matter *)
 val is_intersection : T -> T -> T -> bool
 
 (* merge two graphs on a subgraph, which must be their intersection *)
+(* subgraph -> g1 -> g2 *)
 val merge_by_subgraph : T -> T -> T -> T
 
 (* merge two graphs which have distinct egdes by shared vertices:

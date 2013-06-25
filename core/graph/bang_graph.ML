@@ -328,7 +328,7 @@ fun get_out_dir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Directed) o 
 fun get_adj_undir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Undirected) o get_adj_edges g
 
 fun is_self_loop g e = V.name_eq (get_edge_source g e, get_edge_target g e)
-fun get_self_loops g v = E.NSet.filter (is_self_loop g) (get_adj_edges' g v)
+fun get_self_loops g v = E.NSet.filter (is_self_loop g) (get_adj_edges g v)
 
 fun get_dir_self_loops g v =
   E.NSet.filter (fn e => is_self_loop g e andalso is_dir_edge g e)
@@ -341,9 +341,9 @@ fun get_undir_self_loops g v =
 (* set the arity. note that (undir) self-loops are counted twice *)
 fun get_arity g v = let
   fun card f = E.NSet.cardinality (f g v)
-in Arity.zero |> Arity.set_in (card get_in_edges)
-              |> Arity.set_out (card get_out_edges)
-              |> Arity.set_undir (card get_adj_undir_edges + card get_adj_undir_edges)
+in Arity.zero |> Arity.set_in (card get_in_dir_edges)
+              |> Arity.set_out (card get_out_dir_edges)
+              |> Arity.set_undir (card get_adj_undir_edges + card get_undir_self_loops)
 end
 
 fun adj_edge_classes g v = (
@@ -696,7 +696,10 @@ end
 val rename_ograph_anon = snd oo rename_ograph
 
 
-fun edges_between g v1 v2 = E.NSet.intersect (get_adj_edges' g v1) (get_adj_edges g v2)
+fun edges_between g v1 v2 =
+  if V.name_eq (v1,v2)
+  then get_self_loops g v1
+  else E.NSet.intersect (get_adj_edges g v1) (get_adj_edges g v2)
 fun has_edges_between g v1 v2 = not (E.NSet.is_empty (edges_between g v1 v2))
 
 fun dir_edges_between g v1 v2 =

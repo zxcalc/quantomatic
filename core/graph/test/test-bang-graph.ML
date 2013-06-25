@@ -1357,7 +1357,7 @@ functor Bang_Graph_Interface_Tests(
    * rename_vertex_opt
    *
    * TODO: functions account for !-boxes:
-   * is_intersection (?)
+   * is_intersection
    * get_plugging
    * are_pluggable
    * get_open_subgraph (?)

@@ -56,7 +56,7 @@ sig
 end;
 
 (* *)
-structure Arity = 
+structure Arity : ARITY = 
 struct
   
   (* not every *)
@@ -128,6 +128,11 @@ struct
         no_out = non_zero_div (#no_out rep1) (#no_out rep2),
         no_undir = non_zero_div (#no_undir rep1) (#no_undir rep2) };
   
+  fun mult (Arity rep1) (Arity rep2) = (* rep1 * rep2 *)
+      Arity { no_in = (#no_in rep1) * (#no_in rep2),
+        no_out = (#no_out rep1) * (#no_out rep2),
+        no_undir = (#no_undir rep1) * (#no_undir rep2) };
+  
   fun max_incidence (Arity rep) = 
       Int.max(Int.max (#no_in rep, #no_out rep), #no_undir rep);
 
@@ -141,14 +146,16 @@ struct
          [#no_in rep, #no_out rep, #no_undir rep]
          NONE;
 
+  fun rep_of (Arity rep) = rep
+
   fun pretty (Arity rep) = 
       Pretty.block 
         ( [Pretty.str "(in:",
            Pretty.str (Int.toString (#no_in rep))]
         @ [Pretty.str ", out:",
-           Pretty.str (Int.toString (#no_in rep))]
+           Pretty.str (Int.toString (#no_out rep))]
         @ [Pretty.str ", undir:",
-           Pretty.str (Int.toString (#no_in rep))]
+           Pretty.str (Int.toString (#no_undir rep))]
         @ [Pretty.str ")"] );
 
   val print = Pretty.writeln o pretty;
