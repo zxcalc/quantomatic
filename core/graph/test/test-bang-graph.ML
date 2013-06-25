@@ -1210,7 +1210,70 @@ functor Bang_Graph_Interface_Tests(
 
 
   val _ = Testing.test "G.merge_bboxes" (fn () => let
-    (* TODO: val merge_bboxes : B.NSet.T -> T -> B.name * T *)
+    val g_clean = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_vunit1 "v3"
+
+    val g = g_clean
+        |> add_bbox "bl" ["v1"]
+        |> add_bbox "br" ["v3"]
+    val _ = (G.merge_bboxes B.NSet.empty g;
+             raise ERROR "merge_bboxes (none given) incorrect")
+            handle G.merge_bbox_exp _ => ()
+    val _ = (G.merge_bboxes (B.NSet.of_list (map B.mk ["bl","bm","br"])) g;
+             raise ERROR "merge_bboxes (unknown !-box) incorrect")
+            handle G.no_such_bbox_exp (_,b_e,_) =>
+              (Testing.assert "exception has correct !-box" (B.dest b_e = "bm"))
+
+    val g = g_clean
+        |> add_bbox "bl" ["v1"]
+        |> add_bbox "br" ["v3"]
+    val (bm,g_merged) =
+        G.merge_bboxes (B.NSet.of_list (map B.mk ["bl","br"])) g
+    val g_exp = g_clean
+        |> add_bbox (B.dest bm) ["v1","v3"]
+    val _ = assert_g_eq "G.merge_bboxes (1)" g_exp g_merged
+
+    val g = g_clean
+        |> add_bbox "bp" ["v1","v2","v3"]
+        |> add_bbox_with_parent "bl" "bp" ["v1"]
+        |> add_bbox_with_parent "br" "bp" ["v3"]
+    val (bm,g_merged) =
+        G.merge_bboxes (B.NSet.of_list (map B.mk ["bl","br"])) g
+    val g_exp = g_clean
+        |> add_bbox "bp" ["v1","v2","v3"]
+        |> add_bbox_with_parent (B.dest bm) "bp" ["v1","v3"]
+    val _ = assert_g_eq "G.merge_bboxes (2)" g_exp g_merged
+
+    val g = g_clean
+        |> add_bbox "bp" ["v1","v2","v3"]
+        |> add_bbox_with_parent "bl" "bp" ["v1"]
+        |> add_bbox_with_parent "bm" "bp" ["v2"]
+        |> add_bbox_with_parent "br" "bp" ["v3"]
+    val (bm,g_merged) =
+        G.merge_bboxes (B.NSet.of_list (map B.mk ["bl","bm","br"])) g
+    val g_exp = g_clean
+        |> add_bbox "bp" ["v1","v2","v3"]
+        |> add_bbox_with_parent (B.dest bm) "bp" ["v1","v2","v3"]
+    val _ = assert_g_eq "G.merge_bboxes (3)" g_exp g_merged
+
+    val g = g_clean
+        |> add_bbox "bp" ["v1","v2","v3"]
+        |> add_bbox_with_parent "bl" "bp" ["v1"]
+        |> add_bbox_with_parent "bm" "bp" ["v2"]
+        |> add_bbox "br" ["v3"]
+    val _ = (G.merge_bboxes (B.NSet.of_list (map B.mk ["bl","bm","br"])) g;
+             raise ERROR "merge_bboxes (different parents) incorrect")
+            handle G.merge_bbox_exp _ => ()
+
+    val g = g_clean
+        |> add_bbox "bp" ["v1","v2","v3"]
+        |> add_bbox "bl" ["v1","v2"]
+        |> add_bbox "br" ["v2","v3"]
+    val _ = (G.merge_bboxes (B.NSet.of_list (map B.mk ["bl","br"])) g;
+             raise ERROR "merge_bboxes (overlapping) incorrect")
+            handle G.merge_bbox_exp _ => ()
     in () end) ()
 
 

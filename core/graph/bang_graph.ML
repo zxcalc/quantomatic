@@ -1069,11 +1069,25 @@ fun merge_bboxes bnset g =
   (case B.NSet.pull_local_top bnset of
      NONE => raise merge_bbox_exp "given empty bbox name set"
    | SOME (bn,bnset2) =>
-     (bn, B.NSet.fold
-          (fn bn2 => fn g2 =>
-               g2 |> add_to_bbox_anon bn (get_vertices_in_bbox g2 bn2)
-                  |> delete_bbox bn2)
-          bnset2 g))
+       let
+         val parents = get_bbox_parents g bn
+         fun merge_with_bn bn2 g2 = let
+           val b2verts = get_vertices_in_bbox g2 bn2
+           val bverts = get_vertices_in_bbox g2 bn
+           val b2parents = get_bbox_parents g2 bn2
+         in
+           if not (B.NSet.eq parents b2parents)
+           then raise merge_bbox_exp ("parents of "^(B.dest bn)^
+                                      " and "^(B.dest bn2)^" are different")
+           else if V.NSet.nonempty_intersect bverts b2verts
+           then raise merge_bbox_exp "!-boxes are not disjoint"
+           else
+             g2 |> add_to_bbox_anon bn b2verts
+                |> delete_bbox bn2
+         end
+       in
+         (bn, B.NSet.fold merge_with_bn bnset2 g)
+       end)
 
 fun expand_bbox bb ((vsub,esub,bsub),g) = let
   val _ = if has_bbox g bb then () else raise no_such_bbox_exp ("expand_bbox", bb, g) 
