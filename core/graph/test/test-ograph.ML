@@ -249,8 +249,34 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.edge_adj_edges" (fn () => let
-    (* TODO: val get_adj_edges : T -> V.name -> E.NSet.T *)
+  val _ = Testing.test "G.get_adj_edges" (fn () => let
+    val _ = (G.get_adj_edges G.empty (V.mk "a");
+              raise ERROR "G.get_adj_edges (empty) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g) =>
+              (Testing.assert "correct vname in exp (empty)"
+                              (V.string_of_name vn = "a");
+               Testing.assert "correct graph in exp (empty)"
+                              (G.is_empty g));
+
+    val g = G.empty |> add_vunit1 "a"
+                    |> add_vunit2 "b"
+                    |> add_undir_eunit1 "e" "a" "b"
+                    |> add_dir_eunit2 "f" "b" "b";
+
+    val _ = Testing.assert "adj edges of a = [e]"
+            (E.NSet.eq (G.get_adj_edges g (V.mk "a"))
+                       (E.NSet.of_list (map E.mk ["e"])));
+    val _ = Testing.assert "adj edges of b = [e,f]"
+            (E.NSet.eq (G.get_adj_edges g (V.mk "b"))
+                       (E.NSet.of_list (map E.mk ["e","f"])));
+
+    val _ = (G.get_adj_edges g (V.mk "c");
+             raise ERROR "G.get_adj_edges (unknown vertex) did not raise exception")
+            handle G.no_such_vertex_exp (_,vn,g') =>
+              (Testing.assert "correct vname in exp (unknown vertex)"
+                              (V.name_eq (vn,V.mk "c"));
+               Testing.assert "correct graph in exp (unknown vertex)"
+                              (G.exact_eq g g'));
     in () end) ();
 
 
@@ -268,9 +294,7 @@ functor OGraph_Interface_Tests(
 
 
   val _ = Testing.test "G.get_adj_undir_edges" (fn () => let
-    (* TODO:
-val get_adj_undir_edges : T -> V.name -> E.NSet.T
-*)
+    (* TODO: val get_adj_undir_edges : T -> V.name -> E.NSet.T *)
     in () end) ();
 
 

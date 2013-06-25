@@ -263,9 +263,13 @@ fun get_out_edges g v =
   if has_vertex g v then EVFn.inv_img (get_source g) v
   else raise no_such_vertex_exp ("get_out_edges", v, g)
 
-fun get_adj_edges g v =
+fun get_adj_edges' g v =
   E.NSet.union_merge (EVFn.inv_img (get_source g) v)
                      (EVFn.inv_img (get_target g) v)
+fun get_adj_edges g v =
+  if has_vertex g v
+  then get_adj_edges' g v
+  else raise no_such_vertex_exp ("get_adj_edges", v, g)
 
 fun get_successor_vertices g v =
   E.NSet.fold (fn e => (
@@ -317,17 +321,17 @@ fun get_adj_vertices_to_set g vset =
 
 fun get_in_dir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Directed) o get_in_edges g
 fun get_out_dir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Directed) o get_out_edges g
-fun get_adj_undir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Undirected) o get_adj_edges g
+fun get_adj_undir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Undirected) o get_adj_edges' g
 
 fun is_self_loop g e = V.name_eq (get_edge_source g e, get_edge_target g e)
-fun get_self_loops g v = E.NSet.filter (is_self_loop g) (get_adj_edges g v)
+fun get_self_loops g v = E.NSet.filter (is_self_loop g) (get_adj_edges' g v)
 
 fun get_dir_self_loops g v =
   E.NSet.filter (fn e => is_self_loop g e andalso is_dir_edge g e)
-                (get_adj_edges g v)
+                (get_adj_edges' g v)
 fun get_undir_self_loops g v =
   E.NSet.filter (fn e => is_self_loop g e andalso not (is_dir_edge g e))
-                (get_adj_edges g v)
+                (get_adj_edges' g v)
 
 
 (* set the arity. note that (undir) self-loops are counted twice *)
@@ -389,7 +393,7 @@ fun add_vertex_anon d g = snd (add_vertex d g)
     
 fun delete_vertex v g =
   g |> update_vdata (VTab.delete v)
-    |> E.NSet.fold delete_edge (get_adj_edges g v)
+    |> E.NSet.fold delete_edge (get_adj_edges' g v)
     |> update_bbox_rel (BVRel.inv_delete v)
 
 fun add_named_bbox bb g =
@@ -688,7 +692,7 @@ end
 val rename_ograph_anon = snd oo rename_ograph
 
 
-fun edges_between g v1 v2 = E.NSet.intersect (get_adj_edges g v1) (get_adj_edges g v2)
+fun edges_between g v1 v2 = E.NSet.intersect (get_adj_edges' g v1) (get_adj_edges g v2)
 fun has_edges_between g v1 v2 = not (E.NSet.is_empty (edges_between g v1 v2))
 
 fun dir_edges_between g v1 v2 =
@@ -712,7 +716,7 @@ fun get_inputs g   = V.NSet.filter (is_input' g)    (get_wire_vertices g)
 fun get_outputs g  = V.NSet.filter (is_output' g)   (get_wire_vertices g)
 
 
-fun wv_get_other_edge g wv e = E.NSet.tryget_singleton (E.NSet.delete e (get_adj_edges g wv))
+fun wv_get_other_edge g wv e = E.NSet.tryget_singleton (E.NSet.delete e (get_adj_edges' g wv))
 (*  let
     val (in_e,out_e) = (get_in_edges g wv, get_out_edges g wv)
   in
@@ -870,7 +874,7 @@ end
 (****** PLUGGING FUNCTIONS ******)
 (********************************)
 
-fun get_only_edge g v = E.NSet.tryget_singleton (get_adj_edges g v)
+fun get_only_edge g v = E.NSet.tryget_singleton (get_adj_edges' g v)
 fun get_plugging g v1 v2 =
   case (get_only_edge g v1,get_only_edge g v2)
     of (SOME e1,SOME e2) =>
@@ -1093,7 +1097,7 @@ fun expand_bbox bb ((vsub,esub,bsub),g) = let
   val _ = if has_bbox g bb then () else raise no_such_bbox_exp ("expand_bbox", bb, g) 
   val old_children = get_bbox_children g bb
   val old_vertices = get_vertices_in_bbox g bb
-  val old_edges = V.NSet.fold (E.NSet.union_merge o get_adj_edges g) old_vertices E.NSet.empty
+  val old_edges = V.NSet.fold (E.NSet.union_merge o get_adj_edges' g) old_vertices E.NSet.empty
   val vsub' = VSub.extend_fresh old_vertices vsub
   val esub' = ESub.extend_fresh old_edges esub
   val bsub' = BSub.extend_fresh old_children bsub
