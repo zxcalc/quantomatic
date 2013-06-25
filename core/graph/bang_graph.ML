@@ -710,9 +710,16 @@ fun dir_edges_between g v1 v2 =
 
 
 (* avoids re-checking is_wire_vertex *)
-fun is_input' g v = E.NSet.is_empty (get_in_edges g v)
-fun is_output' g v = E.NSet.is_empty (get_out_edges g v)
-fun is_boundary' g v = is_input' g v andalso is_output' g v
+fun is_input' g v = E.NSet.is_empty (get_in_edges g v) andalso
+                    (case E.NSet.get_local_bot (get_out_edges g v)
+                       of SOME e => is_dir_edge g e
+                        | NONE => false)
+fun is_output' g v = E.NSet.is_empty (get_out_edges g v) andalso
+                     (case E.NSet.get_local_bot (get_in_edges g v)
+                        of SOME e => is_dir_edge g e
+                         | NONE => false)
+fun is_boundary' g v = E.NSet.is_empty (get_in_edges g v) orelse
+                       E.NSet.is_empty (get_out_edges g v)
 
 fun is_input g v    = is_wire_vertex g v andalso is_input' g v
 fun is_output g v   = is_wire_vertex g v andalso is_output' g v

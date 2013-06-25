@@ -228,8 +228,14 @@ val rename_edge_opt    : E.name -> E.name -> T -> T option
 (********* OPEN GRAPHS *********)
 (*******************************)
 
+(* a boundary is a wire vertex with at most one adjacent edge *)
 val get_boundary : T -> V.NSet.T
+(* NB: only isolated wire-vertices are both inputs and outputs *)
+(* an input is a wire-vertex with no in edges and
+ * no undirected out edges *)
 val get_inputs   : T -> V.NSet.T
+(* an output is a wire-vertex with no out edges and
+ * no undirected in edges *)
 val get_outputs  : T -> V.NSet.T
 val is_boundary  : T -> V.name -> bool
 val is_input     : T -> V.name -> bool

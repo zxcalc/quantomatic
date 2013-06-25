@@ -2109,9 +2109,6 @@ functor OGraph_Interface_Tests(
 
 
   val _ = Testing.test "G.dir_edges_between" (fn () => let
-    (* TODO: val dir_edges_between : T -> V.name -> V.name -> E.NSet.T (* from fst to snd vertex *) 
-         * E.NSet.T (* from snd to fst vertex *)   
-*)
     val _ = (G.dir_edges_between G.empty (V.mk "a") (V.mk "a");
               raise ERROR "G.dir_edges_between (empty) did not raise exception")
             handle G.no_such_vertex_exp (_,vn,g) =>
@@ -2172,9 +2169,7 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.rename_ograph_anon" (fn () => let
-    (* TODO: val rename_ograph_anon : (VSub.T * ESub.T) -> T -> T *)
-    in () end) ();
+  (* TODO: val rename_ograph_anon : (VSub.T * ESub.T) -> T -> T *)
 
 
 
@@ -2214,39 +2209,148 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.get_boundary" (fn () => let
-    (* TODO: val get_boundary : T -> V.NSet.T *)
-    in () end) ();
+  local
+    val g = G.empty
+        |> add_wv "b1"
+        |> add_wv "b2"
+        |> add_wv "b3"
+        |> add_wv "b4"
+        |> add_wv "i1"
+        |> add_wv "i2"
+        |> add_wv "i3"
+        |> add_wv "o1"
+        |> add_wv "o3"
+        |> add_wv "s1"
+        |> add_wv "c1"
+        |> add_wv "c2"
+        |> add_wv "c3"
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_wv "w3"
+        |> add_wv "w4"
+        |> add_wv "w5"
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_vexpr1 "v3" "x"
+        |> add_dir_eunit1 "bw1" "i3" "o3"
+        |> add_undir_eunit1 "bw2" "b3" "b4"
+        |> add_undir_eunit1 "b1" "b1" "v1"
+        |> add_undir_eunit2 "b2" "b2" "w4"
+        |> add_undir_eunit2 "b2'" "w4" "v1"
+        |> add_dir_eunit1 "i1" "i1" "v1"
+        |> add_dir_eunit2 "i2" "i2" "w5"
+        |> add_dir_eunit2 "i2'" "w5" "v3"
+        |> add_dir_eunit1 "o1" "v2" "o1"
+        |> add_undir_eunit1 "c1" "c1" "c1"
+        |> add_dir_eunit2 "c2" "c2" "c3"
+        |> add_dir_eunit2 "c3" "c3" "c2"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e1'" "w1" "v3"
+        |> add_undir_eunit1 "e2" "v2" "w2"
+        |> add_undir_eunit1 "e2'" "w2" "v3"
+        |> add_dir_eunit1 "e3" "v3" "w3"
+        |> add_dir_eunit1 "e3'" "w3" "v3"
+  in
+    val _ = Testing.test "G.get_boundary" (fn () => let
+      val _ = assert_vertices "G.get_boundary (empty)" []
+                              (G.get_boundary G.empty)
+      val _ = assert_vertices "G.get_boundary (g)"
+                              ["b1","b2","b3","b4","i1","i2","i3","o1","o3","s1"]
+                              (G.get_boundary g)
+      in () end) ()
 
 
-
-  val _ = Testing.test "G.get_inputs" (fn () => let
-    (* TODO: val get_inputs   : T -> V.NSet.T *)
-    in () end) ();
-
-
-
-  val _ = Testing.test "G.get_outputs" (fn () => let
-    (* TODO: val get_outputs  : T -> V.NSet.T *)
-    in () end) ();
+    val _ = Testing.test "G.get_inputs" (fn () => let
+      val _ = assert_vertices "G.get_inputs (empty)" []
+                              (G.get_inputs G.empty)
+      val _ = assert_vertices "G.get_inputs (g)"
+                              ["i1","i2","i3"]
+                              (G.get_inputs g)
+      in () end) ()
 
 
-
-  val _ = Testing.test "G.is_boundary" (fn () => let
-    (* TODO: val is_boundary  : T -> V.name -> bool *)
-    in () end) ();
-
-
-
-  val _ = Testing.test "G.is_input" (fn () => let
-    (* TODO: val is_input     : T -> V.name -> bool *)
-    in () end) ();
+    val _ = Testing.test "G.get_outputs" (fn () => let
+      val _ = assert_vertices "G.get_outputs (empty)" []
+                              (G.get_outputs G.empty)
+      val _ = assert_vertices "G.get_outputs (g)"
+                              ["o1","o3"]
+                              (G.get_outputs g)
+      in () end) ()
 
 
+    val _ = Testing.test "G.is_boundary" (fn () => let
+      val _ = (G.is_boundary G.empty (V.mk "a");
+                raise ERROR "G.is_boundary (empty) did not raise exception")
+              handle G.no_such_vertex_exp (_,vn,g) =>
+                (Testing.assert "correct vname in exp (empty)"
+                                (V.string_of_name vn = "a");
+                 Testing.assert "correct graph in exp (empty)"
+                                (G.is_empty g))
 
-  val _ = Testing.test "G.is_output" (fn () => let
-    (* TODO: val is_output    : T -> V.name -> bool *)
-    in () end) ();
+      val _ = (G.is_boundary g (V.mk "v0");
+               raise ERROR "G.is_boundary (unknown vertex) did not raise exception")
+              handle G.no_such_vertex_exp (_,vn,g') =>
+                (Testing.assert "correct vname in exp (unknown vertex)"
+                                (V.name_eq (vn,V.mk "v0"));
+                 Testing.assert "correct graph in exp (unknown vertex)"
+                                (G.exact_eq g g'))
+
+      val _ = map (fn v => Testing.assert v (G.is_boundary g (V.mk v)))
+              ["b1","b2","b3","b4","i1","i2","i3","o1","o3","s1"]
+      val _ = map (fn v => Testing.assert v (not (G.is_boundary g (V.mk v))))
+              ["c1","c2","c3","w1","w2","w3","w4","w5","v1","v2","v3"]
+      in () end) ()
+
+
+    val _ = Testing.test "G.is_input" (fn () => let
+      val _ = (G.is_input G.empty (V.mk "a");
+                raise ERROR "G.is_input (empty) did not raise exception")
+              handle G.no_such_vertex_exp (_,vn,g) =>
+                (Testing.assert "correct vname in exp (empty)"
+                                (V.string_of_name vn = "a");
+                 Testing.assert "correct graph in exp (empty)"
+                                (G.is_empty g))
+
+      val _ = (G.is_input g (V.mk "v0");
+               raise ERROR "G.is_input (unknown vertex) did not raise exception")
+              handle G.no_such_vertex_exp (_,vn,g') =>
+                (Testing.assert "correct vname in exp (unknown vertex)"
+                                (V.name_eq (vn,V.mk "v0"));
+                 Testing.assert "correct graph in exp (unknown vertex)"
+                                (G.exact_eq g g'))
+
+      val _ = map (fn v => Testing.assert v (G.is_input g (V.mk v)))
+              ["i1","i2","i3"]
+      val _ = map (fn v => Testing.assert v (not (G.is_input g (V.mk v))))
+              ["b1","b2","b3","b4","o1","o3","s1","c1","c2","c3",
+               "w1","w2","w3","w4","w5","v1","v2","v3"]
+      in () end) ()
+
+
+    val _ = Testing.test "G.is_output" (fn () => let
+      val _ = (G.is_output G.empty (V.mk "a");
+                raise ERROR "G.is_output (empty) did not raise exception")
+              handle G.no_such_vertex_exp (_,vn,g) =>
+                (Testing.assert "correct vname in exp (empty)"
+                                (V.string_of_name vn = "a");
+                 Testing.assert "correct graph in exp (empty)"
+                                (G.is_empty g))
+
+      val _ = (G.is_output g (V.mk "v0");
+               raise ERROR "G.is_output (unknown vertex) did not raise exception")
+              handle G.no_such_vertex_exp (_,vn,g') =>
+                (Testing.assert "correct vname in exp (unknown vertex)"
+                                (V.name_eq (vn,V.mk "v0"));
+                 Testing.assert "correct graph in exp (unknown vertex)"
+                                (G.exact_eq g g'))
+
+      val _ = map (fn v => Testing.assert v (G.is_output g (V.mk v)))
+              ["o1","o3"]
+      val _ = map (fn v => Testing.assert v (not (G.is_output g (V.mk v))))
+              ["b1","b2","b3","b4","i1","i2","i3","s1","c1","c2","c3",
+               "w1","w2","w3","w4","w5","v1","v2","v3"]
+      in () end) ()
+  end
 
 
 
