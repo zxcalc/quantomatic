@@ -245,6 +245,8 @@ val is_output    : T -> V.name -> bool
 (* Given a wire vertex and an edge, give the other connected edge, if it
    exists. In the case of a wire-vertex with a single, given self-loop,
    return NONE. *)
+(* this may raise an exception if the vertex is not a wire-vertex
+ * or if the edge is not adjacent to it *)
 val wv_get_other_edge : T -> V.name -> E.name -> E.name option
 
 (* Wire equality; assumes the wires are in the same graph *)

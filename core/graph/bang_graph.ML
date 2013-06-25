@@ -730,7 +730,7 @@ fun get_inputs g   = V.NSet.filter (is_input' g)    (get_wire_vertices g)
 fun get_outputs g  = V.NSet.filter (is_output' g)   (get_wire_vertices g)
 
 
-fun wv_get_other_edge g wv e = E.NSet.tryget_singleton (E.NSet.delete e (get_adj_edges' g wv))
+fun wv_get_other_edge g wv e = E.NSet.tryget_singleton (E.NSet.delete e (get_adj_edges g wv))
 (*  let
     val (in_e,out_e) = (get_in_edges g wv, get_out_edges g wv)
   in
@@ -876,8 +876,16 @@ fun normalise g = g |> fold normalise_wire_anon (get_wire_list g)
 
 fun split_edge e g = let
   val (dd, (s,t)) = get_edge_info g e
+  val bbs = if is_wire_vertex g s
+            then get_bboxes_containing_vertex g s
+            else if is_wire_vertex g t
+            then get_bboxes_containing_vertex g t
+            else B.NSet.union_merge (get_bboxes_containing_vertex g s)
+                                    (get_bboxes_containing_vertex g t)
   val g' = delete_edge e g
   val (vn,g') = add_vertex WVert g'
+  val vset = V.NSet.single vn
+  val g' = (B.NSet.fold (fn b => add_vertices_to_bbox b vset) bbs g')
   val (e1,g') = add_edge dd s vn g'
   val (e2,g') = add_edge dd vn t g'
 in

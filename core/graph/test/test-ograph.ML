@@ -2350,51 +2350,114 @@ functor OGraph_Interface_Tests(
               ["b1","b2","b3","b4","i1","i2","i3","s1","c1","c2","c3",
                "w1","w2","w3","w4","w5","v1","v2","v3"]
       in () end) ()
+
+
+    val _ = Testing.test "G.wv_get_other_edge" (fn () => let
+      val _ = (case G.wv_get_other_edge G.empty (V.mk "a") (E.mk "e")
+                 of NONE => ()
+                  | SOME _ => raise ERROR "G.wv_get_other_edge (empty) did not return NONE")
+              handle G.no_such_vertex_exp (_,vn,g_e) =>
+                (Testing.assert "correct vertex in exp (empty)"
+                                (V.string_of_name vn = "a");
+                 Testing.assert "correct graph in exp (empty)"
+                                (G.is_empty g_e))
+                   | G.no_such_edge_exp (_,en,g_e) =>
+                (Testing.assert "correct edge in exp (empty)"
+                                (E.string_of_name en = "e");
+                 Testing.assert "correct graph in exp (empty)"
+                                (G.is_empty g_e))
+
+      val _ = (case G.wv_get_other_edge g (V.mk "a") (E.mk "e1")
+                 of NONE => ()
+                  | SOME _ => raise ERROR "G.wv_get_other_edge (unknown vertex) did not return NONE")
+              handle G.no_such_vertex_exp (_,vn,g_e) =>
+                (Testing.assert "correct vertex in exp (unknown vertex)"
+                                (V.string_of_name vn = "a");
+                 Testing.assert "correct graph in exp (unknown vertex)"
+                                (G.exact_eq g_e g))
+      val _ = (case G.wv_get_other_edge g (V.mk "w1") (E.mk "e")
+                 of NONE => ()
+                  | SOME _ => raise ERROR "G.wv_get_other_edge (unknown edge) did not return NONE")
+              handle G.no_such_edge_exp (_,en,g_e) =>
+                (Testing.assert "correct edge in exp (unknown edge)"
+                                (E.string_of_name en = "e");
+                 Testing.assert "correct graph in exp (unknown edge)"
+                                (G.exact_eq g_e g))
+      val _ = (case G.wv_get_other_edge g (V.mk "w1") (E.mk "bw1")
+                 of NONE => ()
+                  | SOME _ => raise ERROR "G.wv_get_other_edge (other edge) did not return NONE")
+              handle G.no_such_edge_exp (_,en,g_e) =>
+                (Testing.assert "correct edge in exp (other edge)"
+                                (E.string_of_name en = "bw1");
+                 Testing.assert "correct graph in exp (other edge)"
+                                (G.exact_eq g_e g))
+
+      val _ = case G.wv_get_other_edge g (V.mk "i1") (E.mk "i1")
+                of NONE => ()
+                 | SOME e => raise ERROR ("i1,i1: expected NONE, got "^(E.dest e))
+      val _ = case G.wv_get_other_edge g (V.mk "w1") (E.mk "e1")
+                of NONE => raise ERROR "w1,e1: got NONE"
+                 | SOME e => if E.dest e = "e1'" then ()
+                              else raise ERROR ("w1,e1: expected e1', got "^(E.dest e))
+      val _ = case G.wv_get_other_edge g (V.mk "w1") (E.mk "e1'")
+                of NONE => raise ERROR "w1,e1': got NONE"
+                 | SOME e => if E.dest e = "e1" then ()
+                              else raise ERROR ("w1,e1': expected e1, got "^(E.dest e))
+      val _ = case G.wv_get_other_edge g (V.mk "w2") (E.mk "e2")
+                of NONE => raise ERROR "w2,e2: got NONE"
+                 | SOME e => if E.dest e = "e2'" then ()
+                              else raise ERROR ("w2,e2: expected e2', got "^(E.dest e))
+      val _ = case G.wv_get_other_edge g (V.mk "w2") (E.mk "e2'")
+                of NONE => raise ERROR "w2,e2': got NONE"
+                 | SOME e => if E.dest e = "e2" then ()
+                              else raise ERROR ("w2,e2': expected e2, got "^(E.dest e))
+      val _ = case G.wv_get_other_edge g (V.mk "c2") (E.mk "c2")
+                of NONE => raise ERROR "c2,c2: got NONE"
+                 | SOME e => if E.dest e = "c3" then ()
+                              else raise ERROR ("c2,c2: expected e3, got "^(E.dest e))
+      val _ = case G.wv_get_other_edge g (V.mk "c2") (E.mk "c3")
+                of NONE => raise ERROR "c2,c3: got NONE"
+                 | SOME e => if E.dest e = "c2" then ()
+                              else raise ERROR ("c2,c3: expected e2, got "^(E.dest e))
+      in () end) ();
   end
 
 
 
-  val _ = Testing.test "G.wv_get_other_edge" (fn () => let
-    (* Given a wire vertex and an edge, give the other connected edge, if it
-       exists. In the case of a wire-vertex with a single, given self-loop,
-       return NONE. *)
-    (* TODO: val wv_get_other_edge : T -> V.name -> E.name -> E.name option *)
-    in () end) ();
-
-
-
   local (* wires *)
-    val g = G.empty |> add_wv "w1"
-                    |> add_wv "w2"
-                    |> add_wv "w3"
-                    |> add_wv "w4"
-                    |> add_wv "w5"
-                    |> add_wv "w6"
-                    |> add_wv "w7"
-                    |> add_wv "w8"
-                    |> add_wv "c1"
-                    |> add_wv "c2"
-                    |> add_wv "c3"
-                    |> add_vunit1 "n1"
-                    |> add_vunit1 "n2"
-                    |> add_vunit1 "n3"
-                    |> add_dir_eunit1 "e1" "n1" "w1"
-                    |> add_dir_eunit1 "e2" "w1" "w2"
-                    |> add_dir_eunit1 "e3" "w2" "n2"
-                    |> add_dir_eunit1 "e4" "n2" "w3"
-                    |> add_dir_eunit1 "e5" "w3" "w4"
-                    |> add_dir_eunit1 "e6" "n2" "n3"
-                    |> add_dir_eunit1 "e7" "n3" "w5"
-                    |> add_dir_eunit1 "e8" "w5" "n3"
-                    |> add_dir_eunit1 "ce1" "c1" "c2"
-                    |> add_dir_eunit1 "ce2" "c2" "c1"
-                    |> add_dir_eunit1 "ce3" "c3" "c3"
-                    |> add_undir_eunit1 "f1" "n2" "w6"
-                    |> add_undir_eunit1 "f2" "w6" "n3"
-                    |> add_undir_eunit1 "f3" "n2" "w7"
-                    |> add_undir_eunit1 "f4" "n3" "w7"
-                    |> add_undir_eunit1 "f5" "w8" "n2"
-                    |> add_undir_eunit1 "f6" "w8" "n3";
+    val g_no_w8_wire = G.empty
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_wv "w3"
+        |> add_wv "w4"
+        |> add_wv "w5"
+        |> add_wv "w6"
+        |> add_wv "w7"
+        |> add_wv "c1"
+        |> add_wv "c2"
+        |> add_wv "c3"
+        |> add_vunit1 "n1"
+        |> add_vunit1 "n2"
+        |> add_vunit1 "n3"
+        |> add_dir_eunit1 "e1" "n1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "w2"
+        |> add_dir_eunit1 "e3" "w2" "n2"
+        |> add_dir_eunit1 "e4" "n2" "w3"
+        |> add_dir_eunit1 "e5" "w3" "w4"
+        |> add_dir_eunit1 "e6" "n2" "n3"
+        |> add_dir_eunit1 "e7" "n3" "w5"
+        |> add_dir_eunit1 "e8" "w5" "n3"
+        |> add_dir_eunit1 "ce1" "c1" "c2"
+        |> add_dir_eunit1 "ce2" "c2" "c1"
+        |> add_dir_eunit1 "ce3" "c3" "c3"
+        |> add_undir_eunit1 "f1" "n2" "w6"
+        |> add_undir_eunit1 "f2" "w6" "n3"
+        |> add_undir_eunit1 "f3" "n2" "w7"
+        |> add_undir_eunit1 "f4" "n3" "w7"
+    val g = g_no_w8_wire
+        |> add_wv "w8"
+        |> add_undir_eunit1 "f5" "w8" "n2"
+        |> add_undir_eunit1 "f6" "w8" "n3"
     val g_raw = g;
 
     fun wire v1 v2 vs es =
@@ -2422,82 +2485,104 @@ functor OGraph_Interface_Tests(
     val exp_wire_f5 = wire "n2" "n3" ["w8"] ["f5","f6"];
     val exp_wire_f6 = exp_wire_f5;
   in
-    val _ = Testing.test "G.wire_eqwire_eq" (fn () => let
-      (* TODO: val wire_eq : wire -> wire -> bool *) in () end) ();
+    val _ = Testing.test "G.wire_eq" (fn () => let
+      val _ = Testing.assert "e1,e1" (G.wire_eq exp_wire_e1 exp_wire_e1)
+      val _ = Testing.assert "e1,e4" (not (G.wire_eq exp_wire_e1 exp_wire_e4))
+      in () end) ()
 
 
     val _ = Testing.test "G.wire_ord" (fn () => let
-      (* TODO: val wire_ord : wire * wire -> order *)
-      in () end) ();
+      val _ = Testing.assert "e1 ord e1"
+              (G.wire_ord (exp_wire_e1,exp_wire_e1) = EQUAL)
+      val _ = case G.wire_ord (exp_wire_e1,exp_wire_e4)
+                of GREATER => Testing.assert "e4 < e1"
+                              (G.wire_ord (exp_wire_e4,exp_wire_e1) = LESS)
+                 | LESS    => Testing.assert "e4 > e1"
+                              (G.wire_ord (exp_wire_e4,exp_wire_e1) = GREATER)
+                 | EQUAL => Testing.assert "e1 <> e4" false
+      in () end) ()
 
 
     val _ = Testing.test "G.delete_wire" (fn () => let
-      (* TODO: val delete_wire : wire -> T -> T *)
-      in () end) ();
+      val _ = assert_g_eq "delete w8 wire" g_no_w8_wire
+                          (G.delete_wire exp_wire_f5 g_raw)
+      in () end) ()
 
 
-    val _ = Testing.test "G.get_wire_containing_edge"
-      (fn () =>
-        let
-          fun test_wire_for_edge exp_wire en =
-              if G.wire_eq exp_wire (G.get_wire_containing_edge g_raw (E.mk en))
-              then ()
-              else raise ERROR ("Incorrect wire returned for edge "^en)
+    val _ = Testing.test "G.get_wire_containing_edge" (fn () => let
+      fun test_wire_for_edge exp_wire en =
+          if G.wire_eq exp_wire (G.get_wire_containing_edge g_raw (E.mk en))
+          then ()
+          else raise ERROR ("Incorrect wire returned for edge "^en)
 
-          val _ = test_wire_for_edge exp_wire_e1 "e1"
-          val _ = test_wire_for_edge exp_wire_e2 "e2"
-          val _ = test_wire_for_edge exp_wire_e3 "e3"
-          val _ = test_wire_for_edge exp_wire_e4 "e4"
-          val _ = test_wire_for_edge exp_wire_e5 "e5"
-          val _ = test_wire_for_edge exp_wire_e6 "e6"
-          val _ = test_wire_for_edge exp_wire_e7 "e7"
-          val _ = test_wire_for_edge exp_wire_e8 "e8"
-          val _ =
-            if G.wire_eq exp_wire_ce1_a (G.get_wire_containing_edge g_raw (E.mk "ce1"))
-            then ()
-            else
-              if G.wire_eq exp_wire_ce1_b (G.get_wire_containing_edge g_raw (E.mk "ce1"))
-              then ()
-              else raise ERROR "Incorrect wire returned for edge ce1"
-          val _ =
-            if G.wire_eq exp_wire_ce2_a (G.get_wire_containing_edge g_raw (E.mk "ce2"))
-            then ()
-            else
-              if G.wire_eq exp_wire_ce2_b (G.get_wire_containing_edge g_raw (E.mk "ce2"))
-              then ()
-              else raise ERROR "Incorrect wire returned for edge ce2"
-          val _ = test_wire_for_edge exp_wire_ce3 "ce3"
-          val _ = test_wire_for_edge exp_wire_f1 "f1"
-          val _ = test_wire_for_edge exp_wire_f2 "f2"
-          val _ = test_wire_for_edge exp_wire_f3 "f3"
-          val _ = test_wire_for_edge exp_wire_f4 "f4"
-          val _ = test_wire_for_edge exp_wire_f5 "f5"
-          val _ = test_wire_for_edge exp_wire_f6 "f6"
-        in () end) ()
+      val _ = test_wire_for_edge exp_wire_e1 "e1"
+      val _ = test_wire_for_edge exp_wire_e2 "e2"
+      val _ = test_wire_for_edge exp_wire_e3 "e3"
+      val _ = test_wire_for_edge exp_wire_e4 "e4"
+      val _ = test_wire_for_edge exp_wire_e5 "e5"
+      val _ = test_wire_for_edge exp_wire_e6 "e6"
+      val _ = test_wire_for_edge exp_wire_e7 "e7"
+      val _ = test_wire_for_edge exp_wire_e8 "e8"
+      val _ =
+        if G.wire_eq exp_wire_ce1_a (G.get_wire_containing_edge g_raw (E.mk "ce1"))
+        then ()
+        else
+          if G.wire_eq exp_wire_ce1_b (G.get_wire_containing_edge g_raw (E.mk "ce1"))
+          then ()
+          else raise ERROR "Incorrect wire returned for edge ce1"
+      val _ =
+        if G.wire_eq exp_wire_ce2_a (G.get_wire_containing_edge g_raw (E.mk "ce2"))
+        then ()
+        else
+          if G.wire_eq exp_wire_ce2_b (G.get_wire_containing_edge g_raw (E.mk "ce2"))
+          then ()
+          else raise ERROR "Incorrect wire returned for edge ce2"
+      val _ = test_wire_for_edge exp_wire_ce3 "ce3"
+      val _ = test_wire_for_edge exp_wire_f1 "f1"
+      val _ = test_wire_for_edge exp_wire_f2 "f2"
+      val _ = test_wire_for_edge exp_wire_f3 "f3"
+      val _ = test_wire_for_edge exp_wire_f4 "f4"
+      val _ = test_wire_for_edge exp_wire_f5 "f5"
+      val _ = test_wire_for_edge exp_wire_f6 "f6"
+      in () end) ()
 
 
     val _ = Testing.test "G.get_wires_for_edges" (fn () => let
-      (* TODO: val get_wires_for_edges : T -> E.NSet.T -> wire list *)
+      fun test_wires_for_edges exp_wires es = let
+        val actual_wires = G.get_wires_for_edges g_raw
+                           (E.NSet.of_list (map E.mk es))
+        fun unique (w::ws) = (not (exists (G.wire_eq w) ws))
+                             andalso (unique ws)
+          | unique [] = true
+      in
+        if forall (fn w => exists (G.wire_eq w) exp_wires) actual_wires
+        then if unique actual_wires
+             then ()
+             else raise ERROR ("Duplicate wires returned")
+        else raise ERROR ("Incorrect wires returned for edges")
+      end
+      val _ = test_wires_for_edges [exp_wire_f1] ["f1"]
+      val _ = test_wires_for_edges [exp_wire_f1,exp_wire_ce3] ["f1","ce3"]
+      val _ = test_wires_for_edges [exp_wire_f1,exp_wire_ce3]
+                                   ["f1","f2","ce3"]
       in () end) ();
 
 
-    val _ = Testing.test "G.get_wire_list"
-      (fn () =>
-        let
-          val exp_wire_list = [exp_wire_e1,exp_wire_e4,exp_wire_e6,exp_wire_e7,
-                               exp_wire_ce3,exp_wire_f1,exp_wire_f3,exp_wire_f5,
-                               (G.get_wire_containing_edge g_raw (E.mk "ce1"))];
-          val real_wire_list = G.get_wire_list g_raw;
-          fun c_wire_lists (w::ws) (w'::ws') =
-            if G.wire_eq w w' then c_wire_lists ws ws'
-            else raise ERROR ("wire lists differ EXPECTED: "^Pretty.string_of (G.pretty_wire w)^
-                              "  GOT: "^Pretty.string_of (G.pretty_wire w'))
-            | c_wire_lists [] [] = ()
-            | c_wire_lists _ _   = raise ERROR "failed, wire lists of different lengths"
-        in
-          c_wire_lists (sort G.wire_ord exp_wire_list)
-                       (sort G.wire_ord real_wire_list)
-        end) ()
+    val _ = Testing.test "G.get_wire_list" (fn () => let
+        val exp_wire_list = [exp_wire_e1,exp_wire_e4,exp_wire_e6,exp_wire_e7,
+                             exp_wire_ce3,exp_wire_f1,exp_wire_f3,exp_wire_f5,
+                             (G.get_wire_containing_edge g_raw (E.mk "ce1"))];
+        val real_wire_list = G.get_wire_list g_raw;
+        fun c_wire_lists (w::ws) (w'::ws') =
+          if G.wire_eq w w' then c_wire_lists ws ws'
+          else raise ERROR ("wire lists differ EXPECTED: "^Pretty.string_of (G.pretty_wire w)^
+                            "  GOT: "^Pretty.string_of (G.pretty_wire w'))
+          | c_wire_lists [] [] = ()
+          | c_wire_lists _ _   = raise ERROR "failed, wire lists of different lengths"
+      in
+        c_wire_lists (sort G.wire_ord exp_wire_list)
+                     (sort G.wire_ord real_wire_list)
+      end) ()
 
 
     (*val _ = Testing.test "G.normalise"
@@ -2581,7 +2666,267 @@ functor OGraph_Interface_Tests(
 
 
     val _ = Testing.test "G.split_edge" (fn () => let
-      (* TODO: val split_edge : E.name -> T -> (E.name * V.name * E.name) * T *)
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n1" "w1"
+          |> add_dir_eunit1 "e2" "w1" "w2"
+          |> add_dir_eunit1 "e3" "w2" "n2"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e2") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv (V.dest v)
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "n1" "w1"
+          |> add_dir_eunit1 (E.dest e1) "w1" (V.dest v)
+          |> add_dir_eunit1 (E.dest e2) (V.dest v) "w2"
+          |> add_dir_eunit1 "e3" "w2" "n2"
+      val _ = assert_g_eq "split (d1)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_dir_eunit1 "e1" "n1" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv (V.dest v)
+          |> add_dir_eunit1 (E.dest e1) "n1" (V.dest v)
+          |> add_dir_eunit1 (E.dest e2) (V.dest v) "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+      val _ = assert_g_eq "split (d2)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_dir_eunit1 "e1" "n1" "w1"
+          |> add_dir_eunit1 "e2" "w1" "n2"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e2") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv (V.dest v)
+          |> add_dir_eunit1 "e1" "n1" "w1"
+          |> add_dir_eunit1 (E.dest e1) "w1" (V.dest v)
+          |> add_dir_eunit1 (E.dest e2) (V.dest v) "n2"
+      val _ = assert_g_eq "split (d3)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_dir_eunit1 "e1" "n1" "n2"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv (V.dest v)
+          |> add_dir_eunit1 (E.dest e1) "n1" (V.dest v)
+          |> add_dir_eunit1 (E.dest e2) (V.dest v) "n2"
+      val _ = assert_g_eq "split (d4)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_dir_eunit1 "e1" "n1" "n1"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_wv (V.dest v)
+          |> add_dir_eunit1 (E.dest e1) "n1" (V.dest v)
+          |> add_dir_eunit1 (E.dest e2) (V.dest v) "n1"
+      val _ = assert_g_eq "split (d5)" g_exp g'
+
+      val g = G.empty
+          |> add_wv "w1"
+          |> add_dir_eunit1 "e1" "w1" "w1"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_wv "w1"
+          |> add_wv (V.dest v)
+          |> add_dir_eunit1 (E.dest e1) "w1" (V.dest v)
+          |> add_dir_eunit1 (E.dest e2) (V.dest v) "w1"
+      val _ = assert_g_eq "split (d6)" g_exp g'
+
+      val g = G.empty
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_dir_eunit1 "e1" "w1" "w2"
+          |> add_dir_eunit1 "e2" "w2" "w1"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_wv (V.dest v)
+          |> add_dir_eunit1 (E.dest e1) "w1" (V.dest v)
+          |> add_dir_eunit1 (E.dest e2) (V.dest v) "w2"
+          |> add_dir_eunit1 "e2" "w2" "w1"
+      val _ = assert_g_eq "split (d7)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_wv "o1"
+          |> add_dir_eunit1 "e1" "n1" "o1"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_wv "o1"
+          |> add_wv (V.dest v)
+          |> add_dir_eunit1 (E.dest e1) "n1" (V.dest v)
+          |> add_dir_eunit1 (E.dest e2) (V.dest v) "o1"
+      val _ = assert_g_eq "split (d8)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_wv "i1"
+          |> add_dir_eunit1 "e1" "i1" "n1"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_wv "i1"
+          |> add_wv (V.dest v)
+          |> add_dir_eunit1 (E.dest e1) "i1" (V.dest v)
+          |> add_dir_eunit1 (E.dest e2) (V.dest v) "n1"
+      val _ = assert_g_eq "split (d9)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_undir_eunit1 "e1" "n1" "w1"
+          |> add_undir_eunit1 "e2" "w1" "w2"
+          |> add_undir_eunit1 "e3" "w2" "n2"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e2") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv (V.dest v)
+          |> add_wv "w2"
+          |> add_undir_eunit1 "e1" "n1" "w1"
+          |> add_undir_eunit1 (E.dest e1) "w1" (V.dest v)
+          |> add_undir_eunit1 (E.dest e2) (V.dest v) "w2"
+          |> add_undir_eunit1 "e3" "w2" "n2"
+      val _ = assert_g_eq "split (u1)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_undir_eunit1 "e1" "n1" "w1"
+          |> add_undir_eunit1 "e2" "w1" "n2"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv (V.dest v)
+          |> add_undir_eunit1 (E.dest e1) "n1" (V.dest v)
+          |> add_undir_eunit1 (E.dest e2) (V.dest v) "w1"
+          |> add_undir_eunit1 "e2" "w1" "n2"
+      val _ = assert_g_eq "split (u2)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_undir_eunit1 "e1" "n1" "w1"
+          |> add_undir_eunit1 "e2" "w1" "n2"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e2") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv "w1"
+          |> add_wv (V.dest v)
+          |> add_undir_eunit1 "e1" "n1" "w1"
+          |> add_undir_eunit1 (E.dest e1) "w1" (V.dest v)
+          |> add_undir_eunit1 (E.dest e2) (V.dest v) "n2"
+      val _ = assert_g_eq "split (u3)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_undir_eunit1 "e1" "n1" "n2"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_vunit1 "n2"
+          |> add_wv (V.dest v)
+          |> add_undir_eunit1 (E.dest e1) "n1" (V.dest v)
+          |> add_undir_eunit1 (E.dest e2) (V.dest v) "n2"
+      val _ = assert_g_eq "split (4)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_undir_eunit1 "e1" "n1" "n1"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_wv (V.dest v)
+          |> add_undir_eunit1 (E.dest e1) "n1" (V.dest v)
+          |> add_undir_eunit1 (E.dest e2) (V.dest v) "n1"
+      val _ = assert_g_eq "split (u5)" g_exp g'
+
+      val g = G.empty
+          |> add_wv "w1"
+          |> add_undir_eunit1 "e1" "w1" "w1"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_wv "w1"
+          |> add_wv (V.dest v)
+          |> add_undir_eunit1 (E.dest e1) "w1" (V.dest v)
+          |> add_undir_eunit1 (E.dest e2) (V.dest v) "w1"
+      val _ = assert_g_eq "split (u6)" g_exp g'
+
+      val g = G.empty
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_undir_eunit1 "e1" "w1" "w2"
+          |> add_undir_eunit1 "e2" "w2" "w1"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_wv (V.dest v)
+          |> add_undir_eunit1 (E.dest e1) "w1" (V.dest v)
+          |> add_undir_eunit1 (E.dest e2) (V.dest v) "w2"
+          |> add_undir_eunit1 "e2" "w2" "w1"
+      val _ = assert_g_eq "split (u7)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_wv "b1"
+          |> add_undir_eunit1 "e1" "n1" "b1"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_wv "b1"
+          |> add_wv (V.dest v)
+          |> add_undir_eunit1 (E.dest e1) "n1" (V.dest v)
+          |> add_undir_eunit1 (E.dest e2) (V.dest v) "b1"
+      val _ = assert_g_eq "split (u8)" g_exp g'
+
+      val g = G.empty
+          |> add_vunit1 "n1"
+          |> add_wv "b1"
+          |> add_undir_eunit1 "e1" "b1" "n1"
+      val ((e1,v,e2),g') = G.split_edge (E.mk "e1") g
+      val g_exp = G.empty
+          |> add_vunit1 "n1"
+          |> add_wv "b1"
+          |> add_wv (V.dest v)
+          |> add_undir_eunit1 (E.dest e1) "b1" (V.dest v)
+          |> add_undir_eunit1 (E.dest e2) (V.dest v) "n1"
+      val _ = assert_g_eq "split (u9)" g_exp g'
       in () end) ();
   end
 
