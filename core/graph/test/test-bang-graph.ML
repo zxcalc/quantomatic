@@ -1792,16 +1792,9 @@ functor Bang_Graph_Interface_Tests(
     val g1 = g1_clean
         |> add_bbox "b1" ["a","d"]
     val g2 = g2_clean
-        |> add_bbox "b2" ["a","d","b","e_","f_"]
+        |> add_bbox "b2" ["a","d"]
     val _ = Testing.assert "G.is_intersection diff names"
-            (G.is_intersection g1_g2_clean g1 g2)
-    (* FIXME: expand !-box?
-    val g_exp = g_exp_clean
-        |> add_bbox "b1" ["a","d"]
-        |> add_bbox "b2" ["a","d","b","e","f","e_","f_"]
-    val _ = assert_g_eq "G.merge_by_subgraph diff names" g_exp
-            (G.merge_by_subgraph g1_g2_clean g1 g2)
-    *)
+            (not (G.is_intersection g1_g2_clean g1 g2))
 
     val g1 = g1_clean
         |> add_bbox "b1" ["a","d"]
@@ -1828,24 +1821,6 @@ functor Bang_Graph_Interface_Tests(
         |> add_bbox "b1" ["d"]
     val _ = assert_g_eq "G.merge_by_subgraph same name" g_exp
             (G.merge_by_subgraph g1_g2 g1 g2)
-
-    val g1 = g1_clean
-        |> add_bbox "b1" ["a","d"]
-    val g2 = g2_clean
-        |> add_bbox "b2" ["a","d","b","e_","f_"]
-    val g1_g2 = g1_g2_clean
-        |> add_bbox "b1" ["a","d"]
-    val _ = Testing.assert "G.is_intersection same name, diff contents"
-            (not (G.is_intersection g1_g2 g1 g2))
-
-    val g1 = g1_clean
-        |> add_bbox "b1" ["a","d"]
-    val g2 = g2_clean
-        |> add_bbox "b2" ["a","d","b","e_","f_"]
-    val g1_g2 = g1_g2_clean
-        |> add_bbox "b1" ["a","d","b"]
-    val _ = Testing.assert "G.is_intersection same name, diff contents (2)"
-            (not (G.is_intersection g1_g2 g1 g2))
 
     val g1 = g1_clean
         |> add_bbox "b1" ["a","d","b","e","f"]

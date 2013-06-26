@@ -611,11 +611,15 @@ fun is_intersection sub g1 g2 = let
 in (V.NSet.eq (get_vertices sub) vi) andalso
    (E.NSet.eq (get_edges sub) ei) andalso
    (B.NSet.eq (get_bboxes sub) bbi) andalso
+   (V.NSet.forall (fn v =>
+      let val v_bbs_sub = get_bboxes_containing_vertex sub v in
+        B.NSet.eq v_bbs_sub (get_bboxes_containing_vertex g1 v) andalso
+        B.NSet.eq v_bbs_sub (get_bboxes_containing_vertex g2 v)
+      end) (get_vertices sub)) andalso
    (is_subgraph sub g1) andalso
    (is_subgraph sub g2)
 end
 
-(* FIXME: need to make sure we don't break !-box openness (see FIXME in tests) *)
 fun merge_by_subgraph sub g1 g2 =
   (* Note that without checking disjointness, one of the add_... functions below will likely
      throw an exception. However, this extra work will produce better errors. *)
