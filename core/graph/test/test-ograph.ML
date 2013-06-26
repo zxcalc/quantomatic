@@ -2532,6 +2532,7 @@ functor OGraph_Interface_Tests(
         |> add_wv "w3"
         |> add_wv "w4"
         |> add_wv "w5"
+        |> add_wv "w6"
         |> add_vunit1 "v1"
         |> add_vunit2 "v2"
         |> add_vexpr1 "v3" "x"
@@ -2551,8 +2552,10 @@ functor OGraph_Interface_Tests(
         |> add_dir_eunit1 "e1'" "w1" "v3"
         |> add_undir_eunit1 "e2" "v2" "w2"
         |> add_undir_eunit1 "e2'" "w2" "v3"
-        |> add_dir_eunit1 "e3" "v3" "w3"
-        |> add_dir_eunit1 "e3'" "w3" "v3"
+        |> add_undir_eunit1 "e3" "w3" "v3"
+        |> add_undir_eunit1 "e3'" "w3" "v3"
+        |> add_undir_eunit1 "e4" "v3" "w6"
+        |> add_undir_eunit1 "e4'" "v3" "w6"
   in
     val _ = Testing.test "G.get_boundary" (fn () => let
       val _ = assert_vertices "G.get_boundary (empty)" []
@@ -2736,32 +2739,70 @@ functor OGraph_Interface_Tests(
         |> add_wv "w5"
         |> add_wv "w6"
         |> add_wv "w7"
+        |> add_wv "bw1"
+        |> add_wv "bw2"
+        |> add_wv "bw3"
+        |> add_wv "bw4"
+        |> add_wv "bw5"
+        |> add_wv "bw6"
+        |> add_wv "bw7"
+        |> add_wv "bw8"
+        |> add_wv "isol1"
         |> add_wv "c1"
         |> add_wv "c2"
         |> add_wv "c3"
+        |> add_wv "c4"
+        |> add_wv "c5"
         |> add_vunit1 "n1"
-        |> add_vunit1 "n2"
-        |> add_vunit1 "n3"
+        |> add_vunit2 "n2"
+        |> add_vexpr1 "n3" "x"
         |> add_dir_eunit1 "e1" "n1" "w1"
         |> add_dir_eunit1 "e2" "w1" "w2"
         |> add_dir_eunit1 "e3" "w2" "n2"
-        |> add_dir_eunit1 "e4" "n2" "w3"
-        |> add_dir_eunit1 "e5" "w3" "w4"
-        |> add_dir_eunit1 "e6" "n2" "n3"
-        |> add_dir_eunit1 "e7" "n3" "w5"
-        |> add_dir_eunit1 "e8" "w5" "n3"
-        |> add_dir_eunit1 "ce1" "c1" "c2"
-        |> add_dir_eunit1 "ce2" "c2" "c1"
-        |> add_dir_eunit1 "ce3" "c3" "c3"
-        |> add_undir_eunit1 "f1" "n2" "w6"
-        |> add_undir_eunit1 "f2" "w6" "n3"
-        |> add_undir_eunit1 "f3" "n2" "w7"
-        |> add_undir_eunit1 "f4" "n3" "w7"
+        |> add_dir_eunit2 "e4" "n2" "w3"
+        |> add_dir_eunit2 "e5" "w3" "w4"
+        |> add_dir_eexpr1 "e6" "n2" "n3" "x"
+        |> add_dir_eexpr2 "e7" "n3" "w5" "x"
+        |> add_dir_eexpr2 "e8" "w5" "n3" "x"
+        |> add_dir_estring1 "ce1" "c1" "c2" "x"
+        |> add_dir_estring1 "ce2" "c2" "c1" "x"
+        |> add_dir_estring1 "ce3" "c3" "c3" "x"
+        |> add_dir_estring1 "bwe1" "bw1" "bw2" "1"
+        |> add_dir_estring1 "bwe2" "bw3" "bw4" "2"
+        |> add_dir_estring1 "bwe3" "bw4" "bw5" "2"
+        |> add_undir_estring1 "f1" "n2" "w6" "y"
+        |> add_undir_estring1 "f2" "w6" "n3" "y"
+        |> add_undir_estring2 "f3" "n2" "w7" "y"
+        |> add_undir_estring2 "f4" "n3" "w7" "y"
+        |> add_undir_estring2 "ce4" "c4" "c5" "z"
+        |> add_undir_estring2 "ce5" "c4" "c5" "z"
+        |> add_undir_estring1 "bwe4" "bw6" "bw7" "3"
+        |> add_undir_estring1 "bwe5" "bw8" "bw7" "3"
     val g = g_no_w8_wire
         |> add_wv "w8"
-        |> add_undir_eunit1 "f5" "w8" "n2"
-        |> add_undir_eunit1 "f6" "w8" "n3"
+        |> add_undir_estring1 "f5" "w8" "n2" "z"
+        |> add_undir_estring1 "f6" "w8" "n3" "z"
     val g_raw = g;
+
+    (* a simple iso checker that only works on graphs where
+     * every wire and every node vertex has a different type *)
+    fun assert_g_iso_and_bounds_same msg g_exp g_actual = let
+      fun assert m b = if b then () else
+            (writeln (msg^": "^m);
+             writeln "expected:";
+             G.print g_exp;
+             writeln "got";
+             G.print g_actual;
+             Testing.assert (msg^": "^m) false)
+      val _ = assert "vsets same size"
+        (V.NSet.cardinality (G.get_vertices g_exp) =
+           V.NSet.cardinality (G.get_vertices g_actual))
+      val _ = assert "esets same size"
+         (E.NSet.cardinality (G.get_edges g_exp) =
+           E.NSet.cardinality (G.get_edges g_actual))
+      val _ = assert "same boundaries"
+         (V.NSet.eq (G.get_boundary g_exp) (G.get_boundary g_actual))
+    in () end
 
     fun wire v1 v2 vs es =
           (V.mk v1, V.mk v2, V.NSet.of_list (map V.mk vs),
@@ -2874,8 +2915,12 @@ functor OGraph_Interface_Tests(
     val _ = Testing.test "G.get_wire_list" (fn () => let
         val exp_wire_list = [exp_wire_e1,exp_wire_e4,exp_wire_e6,exp_wire_e7,
                              exp_wire_ce3,exp_wire_f1,exp_wire_f3,exp_wire_f5,
-                             (G.get_wire_containing_edge g_raw (E.mk "ce1"))];
-        val real_wire_list = G.get_wire_list g_raw;
+                             (G.get_wire_containing_edge g_raw (E.mk "ce1")),
+                             (G.get_wire_containing_edge g_raw (E.mk "ce4")),
+                             (G.get_wire_containing_edge g_raw (E.mk "bwe1")),
+                             (G.get_wire_containing_edge g_raw (E.mk "bwe2")),
+                             (G.get_wire_containing_edge g_raw (E.mk "bwe4"))]
+        val real_wire_list = G.get_wire_list g_raw
         fun c_wire_lists (w::ws) (w'::ws') =
           if G.wire_eq w w' then c_wire_lists ws ws'
           else raise ERROR ("wire lists differ EXPECTED: "^Pretty.string_of (G.pretty_wire w)^
@@ -2888,84 +2933,96 @@ functor OGraph_Interface_Tests(
       end) ()
 
 
-    (*val _ = Testing.test "G.normalise"
-      (fn () =>
-        let
-          val g = G.empty |> add_wv "w1"
-                          |> add_wv "w2"
-                          |> add_wv "w4"
-                          |> add_wv "w5"
-                          |> add_wv "w6"
-                          |> add_wv "w7"
-                          |> add_wv "w8"
-                          |> add_wv "w9"
-                          |> add_wv "w10"
-                          |> add_wv "w11"
-                          |> add_wv "w12"
-                          |> add_wv "w13"
-                          |> add_wv "w14"
-                          |> add_wv "c1"
-                          |> add_wv "c3"
-                          |> add_vunit1 "n1"
-                          |> add_vunit1 "n2"
-                          |> add_vunit1 "n3"
-                          |> add_dir_eunit1 "e1" "n1" "w1"
-                          |> add_dir_eunit1 "e2" "w1" "w2"
-                          |> add_dir_eunit1 "e3" "w2" "n2"
-                          |> add_dir_eunit1 "e4" "n2" "w4"
-                          |> add_dir_eunit1 "e6a" "n2" "w9"
-                          |> add_dir_eunit1 "e6b" "w9" "w10"
-                          |> add_dir_eunit1 "e6c" "w10" "n3"
-                          |> add_dir_eunit1 "e7" "n3" "w5"
-                          |> add_dir_eunit1 "e8a" "w5" "w11"
-                          |> add_dir_eunit1 "e8b" "w11" "n3"
-                          |> add_dir_eunit1 "ce1" "c1" "c1"
-                          |> add_dir_eunit1 "ce3" "c3" "c3"
-                          |> add_undir_eunit1 "f1" "n2" "w6"
-                          |> add_undir_eunit1 "f2a" "w6" "w12"
-                          |> add_undir_eunit1 "f2b" "w12" "n3"
-                          |> add_undir_eunit1 "f3" "n2" "w7"
-                          |> add_undir_eunit1 "f4a" "w7" "w13"
-                          |> add_undir_eunit1 "f4b" "n3" "w13"
-                          |> add_undir_eunit1 "f5" "w8" "n2"
-                          |> add_undir_eunit1 "f6a" "w8" "w14"
-                          |> add_undir_eunit1 "f6b" "w14" "n3";
-          val g_exp_norm = g;
-          val g_norm = G.normalise g_raw
-        in
-          if GIso.test g_norm g_exp_norm then ()
-          else (writeln "Expected"; G.print g_exp_norm;
-                writeln "Got"; G.print g_norm;
-                raise ERROR "Minimise gave incorrect graph")
-        end) ();*)
+    val _ = Testing.test "G.normalise" (fn () => let
+      val g_exp_norm = G.empty
+          |> add_wv "w1"
+          |> add_wv "w2"
+          |> add_wv "w4"
+          |> add_wv "w5"
+          |> add_wv "w6"
+          |> add_wv "w7"
+          |> add_wv "w8"
+          |> add_wv "w9"
+          |> add_wv "w10"
+          |> add_wv "w11"
+          |> add_wv "w12"
+          |> add_wv "w13"
+          |> add_wv "w14"
+          |> add_wv "c1"
+          |> add_wv "c3"
+          |> add_wv "c4"
+          |> add_wv "bw1"
+          |> add_wv "bw2"
+          |> add_wv "bw3"
+          |> add_wv "bw5"
+          |> add_wv "bw6"
+          |> add_wv "bw8"
+          |> add_wv "isol1"
+          |> add_vunit1 "n1"
+          |> add_vunit2 "n2"
+          |> add_vexpr1 "n3" "x"
+          |> add_dir_eunit1 "e1" "n1" "w1"
+          |> add_dir_eunit1 "e2" "w1" "w2"
+          |> add_dir_eunit1 "e3" "w2" "n2"
+          |> add_dir_eunit2 "e4" "n2" "w4"
+          |> add_dir_eexpr1 "e6a" "n2" "w9" "x"
+          |> add_dir_eexpr1 "e6b" "w9" "w10" "x"
+          |> add_dir_eexpr1 "e6c" "w10" "n3" "x"
+          |> add_dir_eexpr2 "e7" "n3" "w5" "x"
+          |> add_dir_eexpr2 "e8a" "w5" "w11" "x"
+          |> add_dir_eexpr2 "e8b" "w11" "n3" "x"
+          |> add_dir_estring1 "ce1" "c1" "c1" "x"
+          |> add_dir_estring2 "ce3" "c3" "c3" "x"
+          |> add_dir_estring1 "bwe1" "bw1" "bw2" "1"
+          |> add_dir_estring1 "bwe2" "bw3" "bw5" "2"
+          |> add_undir_estring1 "f1" "n2" "w6" "y"
+          |> add_undir_estring1 "f2a" "w6" "w12" "y"
+          |> add_undir_estring1 "f2b" "w12" "n3" "y"
+          |> add_undir_estring2 "f3" "n2" "w7" "y"
+          |> add_undir_estring2 "f4a" "w7" "w13" "y"
+          |> add_undir_estring2 "f4b" "n3" "w13" "y"
+          |> add_undir_estring1 "f5" "w8" "n2" "z"
+          |> add_undir_estring1 "f6a" "w8" "w14" "z"
+          |> add_undir_estring1 "f6b" "w14" "n3" "z"
+          |> add_undir_estring2 "ce4" "c4" "c4" "z"
+          |> add_undir_estring1 "bwe4" "bw6" "bw8" "3"
+      val g_norm = G.normalise g_raw
+      val _ = assert_g_iso_and_bounds_same "normalise" g_exp_norm g_norm
+      in () end) ()
 
 
-    (*val _ = Testing.test "G.minimise"
-      (fn () =>
-        val g = G.empty |> add_wv "w4"
-                        |> add_wv "c1"
-                        |> add_wv "c3"
-                        |> add_vunit1 "n1"
-                        |> add_vunit1 "n2"
-                        |> add_vunit1 "n3"
-                        |> add_dir_eunit1 "e1" "n1" "n2"
-                        |> add_dir_eunit1 "e4" "n2" "w4"
-                        |> add_dir_eunit1 "e6" "n2" "n3"
-                        |> add_dir_eunit1 "e7" "n3" "n3"
-                        |> add_dir_eunit1 "ce1" "c1" "c1"
-                        |> add_dir_eunit1 "ce3" "c3" "c3"
-                        |> add_undir_eunit1 "f1" "n2" "n3"
-                        |> add_undir_eunit1 "f3" "n2" "n3"
-                        |> add_undir_eunit1 "f5" "n2" "n3";
-        val g_exp_min = g;
-        let
-          val g_min = G.minimise g_raw
-        in
-          if GIso.test g_min g_exp_min then ()
-          else (writeln "Expected"; G.print g_exp_min;
-                writeln "Got"; G.print g_min;
-                raise ERROR "Minimise gave incorrect graph")
-        end) ();*)
+    val _ = Testing.test "G.minimise" (fn () => let
+      val g_exp_min = G.empty
+          |> add_wv "w4"
+          |> add_wv "c1"
+          |> add_wv "c3"
+          |> add_wv "c4"
+          |> add_wv "bw1"
+          |> add_wv "bw2"
+          |> add_wv "bw3"
+          |> add_wv "bw5"
+          |> add_wv "bw6"
+          |> add_wv "bw8"
+          |> add_wv "isol1"
+          |> add_vunit1 "n1"
+          |> add_vunit2 "n2"
+          |> add_vexpr1 "n3" "x"
+          |> add_dir_eunit1 "e1" "n1" "n2"
+          |> add_dir_eunit2 "e4" "n2" "w4"
+          |> add_dir_eexpr1 "e6" "n2" "n3" "x"
+          |> add_dir_eexpr2 "e7" "n3" "n3" "x"
+          |> add_dir_estring1 "ce1" "c1" "c1" "x"
+          |> add_dir_estring2 "ce3" "c3" "c3" "x"
+          |> add_dir_estring1 "bwe1" "bw1" "bw2" "1"
+          |> add_dir_estring1 "bwe2" "bw3" "bw5" "2"
+          |> add_undir_estring1 "f1" "n2" "n3" "y"
+          |> add_undir_estring2 "f3" "n2" "n3" "y"
+          |> add_undir_estring1 "f5" "n2" "n3" "z"
+          |> add_undir_estring2 "ce4" "c4" "c4" "z"
+          |> add_undir_estring1 "bwe4" "bw6" "bw8" "3"
+      val g_min = G.minimise g_raw
+      val _ = assert_g_iso_and_bounds_same "minimise" g_exp_min g_min
+      in () end) ()
 
 
     val _ = Testing.test "G.split_edge" (fn () => let

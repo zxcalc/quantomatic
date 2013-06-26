@@ -789,8 +789,16 @@ fun is_output' g v = E.NSet.is_empty (get_out_edges g v) andalso
                      (case E.NSet.get_local_bot (get_in_edges g v)
                         of SOME e => is_dir_edge g e
                          | NONE => false)
-fun is_boundary' g v = E.NSet.is_empty (get_in_edges g v) orelse
-                       E.NSet.is_empty (get_out_edges g v)
+fun is_boundary' g v = let
+  val in_edges = get_in_edges g v
+  val out_edges = get_out_edges g v
+in
+  (E.NSet.is_empty in_edges andalso E.NSet.is_empty out_edges)
+  orelse
+  (E.NSet.is_empty in_edges andalso E.NSet.is_singleton out_edges)
+  orelse
+  (E.NSet.is_singleton in_edges andalso E.NSet.is_empty out_edges)
+end
 
 fun is_input g v    = is_wire_vertex g v andalso is_input' g v
 fun is_output g v   = is_wire_vertex g v andalso is_output' g v

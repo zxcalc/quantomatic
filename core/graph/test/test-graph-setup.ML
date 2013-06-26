@@ -370,9 +370,9 @@ functor Test_OGraph_Tools(
         G.add_named_edge (E.mk n) (Directed,(eexpr2 a)) (V.mk s) (V.mk t)
   fun add_dir_eexpr2_a n s t a =
         G.add_named_edge (E.mk n) (Directed,(eexpr2_a a)) (V.mk s) (V.mk t)
-  fun add_dir_estring1 n str s t =
+  fun add_dir_estring1 n s t str =
         G.add_named_edge (E.mk n) (Directed,(estring1 str)) (V.mk s) (V.mk t)
-  fun add_dir_estring2 n str s t =
+  fun add_dir_estring2 n s t str =
         G.add_named_edge (E.mk n) (Directed,(estring2 str)) (V.mk s) (V.mk t)
 
   fun add_undir_eunit1 n s t =
@@ -387,9 +387,9 @@ functor Test_OGraph_Tools(
         G.add_named_edge (E.mk n) (Undirected,(Data.EExpr2 (Expr.parse a))) (V.mk s) (V.mk t)
   fun add_undir_eexpr2_a n s t a =
         G.add_named_edge (E.mk n) (Undirected,(Data.EExpr2 a)) (V.mk s) (V.mk t)
-  fun add_undir_estring1 n str s t =
+  fun add_undir_estring1 n s t str =
         G.add_named_edge (E.mk n) (Undirected,(Data.EString1 str)) (V.mk s) (V.mk t)
-  fun add_undir_estring2 n str s t =
+  fun add_undir_estring2 n s t str =
         G.add_named_edge (E.mk n) (Undirected,(Data.EString2 str)) (V.mk s) (V.mk t)
 
   (* testing stuff *)
