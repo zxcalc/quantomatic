@@ -157,7 +157,7 @@ PolyML.Project.make "matching/greedy_match_search.ML";
 Testing.make_test "matching/test/test-matching-setup.ML";
 Testing.make_test "matching/test/test-bang-match-state.ML";
 Testing.make_test "matching/test/test-string-graph-matching.ML";
-(*Testing.make_test "matching/test/test-bang-graph-matching.ML";*)
+Testing.make_test "matching/test/test-bang-graph-matching.ML";
 
 (*
 (*

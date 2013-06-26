@@ -888,15 +888,15 @@ fun normalise_wire' (wire as (s,t,wvs,es)) g =
                | NONE    => I)
       val dir_and_data = get_edge_dir_and_data g ((the o E.NSet.get_local_bot) es)
       val g      = g |> delete_wire wire
-      val (b1,g) = g |> add_vertex WVert
-      val (b2,g) = g |> add_vertex WVert
-      val g      = g |> B.NSet.fold (fn b => add_vertex_to_bbox b s o 
-                                             add_vertex_to_bbox b t) bboxes
-      val (e1,g) = g |> add_edge dir_and_data s b1
-      val (e2,g) = g |> add_edge dir_and_data b1 b2
-      val (e3,g) = g |> add_edge dir_and_data b2 t
+      val (wv1,g) = g |> add_vertex WVert
+      val (wv2,g) = g |> add_vertex WVert
+      val g      = g |> B.NSet.fold (fn b => add_vertex_to_bbox b wv1 o 
+                                             add_vertex_to_bbox b wv2) bboxes
+      val (e1,g) = g |> add_edge dir_and_data s wv1
+      val (e2,g) = g |> add_edge dir_and_data wv1 wv2
+      val (e3,g) = g |> add_edge dir_and_data wv2 t
     in
-      ((s,t,V.NSet.of_list [b1,b2],E.NSet.of_list [e1,e2,e3]), g)
+      ((s,t,V.NSet.of_list [wv1,wv2],E.NSet.of_list [e1,e2,e3]), g)
     end
 fun normalise_wire wire g = let
   val _ = assert_wire_coherent g wire
