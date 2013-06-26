@@ -1871,10 +1871,164 @@ functor Bang_Graph_Interface_Tests(
         |> add_bbox "b6" ["n1","w1",V.dest v,"w2","n2"]
     val _ = assert_g_eq "split" g_exp g'
     in () end) ()
+
+
+  val _ = Testing.test "G.normalise (with !-boxes)" (fn () => let
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_dir_eunit1 "e1" "v1" "v2"
+        |> add_bbox "b1" ["v1","v2"]
+    val g' = G.normalise g
+    val _ = Testing.assert "normalise 1: correct no. verts"
+            (V.NSet.cardinality (G.get_vertices g') = 4)
+    val _ = Testing.assert "normalise 1: b1 correct size"
+            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 4)
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_dir_eunit1 "e1" "v1" "v2"
+        |> add_bbox "b1" ["v1"]
+    val g' = G.normalise g
+    val _ = Testing.assert "normalise 2: correct no. verts"
+            (V.NSet.cardinality (G.get_vertices g') = 4)
+    val _ = Testing.assert "normalise 2: b1 correct size"
+            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 3)
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_wv "w1"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_bbox "b1" ["v1","w1","v2"]
+    val g' = G.normalise g
+    val _ = Testing.assert "normalise 3: correct no. verts"
+            (V.NSet.cardinality (G.get_vertices g') = 4)
+    val _ = Testing.assert "normalise 3: b1 correct size"
+            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 4)
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_wv "w1"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_bbox "b1" ["w1","v2"]
+    val g' = G.normalise g
+    val _ = Testing.assert "normalise 4: correct no. verts"
+            (V.NSet.cardinality (G.get_vertices g') = 4)
+    val _ = Testing.assert "normalise 4: b1 correct size"
+            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 3)
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_wv "w1"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_bbox "b1" ["w1"]
+    val g' = G.normalise g
+    val _ = Testing.assert "normalise 5: correct no. verts"
+            (V.NSet.cardinality (G.get_vertices g') = 4)
+    val _ = Testing.assert "normalise 5: b1 correct size"
+            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 2)
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "w2"
+        |> add_bbox "b1" ["v1","w1","w2"]
+    val g' = G.normalise g
+    val _ = Testing.assert "normalise 6: correct no. verts"
+            (V.NSet.cardinality (G.get_vertices g') = 2)
+    val _ = Testing.assert "normalise 6: b1 correct size"
+            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 2)
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "w2"
+        |> add_bbox "b1" ["w1","w2"]
+    val g' = G.normalise g
+    val _ = Testing.assert "normalise 7: correct no. verts"
+            (V.NSet.cardinality (G.get_vertices g') = 2)
+    val _ = Testing.assert "normalise 7: b1 correct size"
+            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 1)
+    in () end) ()
+
+
+  val _ = Testing.test "G.minimise (with !-boxes)" (fn () => let
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_dir_eunit1 "e1" "v1" "v2"
+        |> add_bbox "b1" ["v1","v2"]
+    val g' = G.minimise g
+    val _ = Testing.assert "minimise 1: correct no. verts"
+            (V.NSet.cardinality (G.get_vertices g') = 2)
+    val _ = Testing.assert "minimise 1: b1 correct size"
+            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 2)
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_wv "w1"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_bbox "b1" ["v1","w1","v2"]
+    val g' = G.minimise g
+    val _ = Testing.assert "minimise 1: correct no. verts"
+            (V.NSet.cardinality (G.get_vertices g') = 2)
+    val _ = Testing.assert "minimise 1: b1 correct size"
+            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 2)
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_wv "w1"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_bbox "b1" ["v1","w1"]
+    val g' = G.minimise g
+    val _ = Testing.assert "minimise 1: correct no. verts"
+            (V.NSet.cardinality (G.get_vertices g') = 2)
+    val _ = Testing.assert "minimise 1: b1 correct size"
+            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 1)
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_wv "w1"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_bbox "b1" ["w1"]
+    val g' = G.minimise g
+    val _ = Testing.assert "minimise 1: correct no. verts"
+            (V.NSet.cardinality (G.get_vertices g') = 3)
+    val _ = Testing.assert "minimise 1: b1 correct size"
+            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 1)
+
+    val g = G.empty
+        |> add_vunit1 "v1"
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "w2"
+        |> add_bbox "b1" ["w1","w2"]
+    val g' = G.minimise g
+    val _ = Testing.assert "minimise 1: correct no. verts"
+            (V.NSet.cardinality (G.get_vertices g') = 2)
+    val _ = Testing.assert "minimise 1: b1 correct size"
+            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 1)
+    in () end) ()
   (* TODO: tests for !-box openness preservation:
    * merge_by_vertices
-   * normalise
-   * minimise
    * plug(_anon)
    * plug_and_normalise(_anon)
    * plug_and_minimise(_anon)
