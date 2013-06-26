@@ -1625,9 +1625,9 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.is_intersection" (fn () => let
-    val _ = Testing.assert "G.is_intersection G.empty"
-            (G.is_intersection G.empty G.empty G.empty)
+  val _ = Testing.test "G.merge" (fn () => let
+    val _ = assert_g_eq "merge of empty graphs" G.empty
+            (G.merge G.empty G.empty)
 
     val g1 = G.empty
         |> add_vunit1 "a"
@@ -1641,8 +1641,7 @@ functor OGraph_Interface_Tests(
         |> add_undir_eunit2 "g" "b" "e"
         |> add_undir_eunit1 "h" "b" "f"
         |> add_undir_eunit1 "i" "c" "f"
-    val _ = Testing.assert "G.is_intersection g1 g1 g1"
-            (G.is_intersection g1 g1 g1)
+    val _ = assert_g_eq "merge of g1 and g1" g1 (G.merge g1 g1)
 
     val g2 = G.empty
         |> add_vunit1 "a"
@@ -1656,24 +1655,25 @@ functor OGraph_Interface_Tests(
         |> add_undir_eunit2 "g_" "b" "e_"
         |> add_undir_eunit1 "h_" "b" "f_"
         |> add_undir_eunit1 "i_" "c_" "f_"
-
-    val g1_g2 = G.empty
+    val g_exp = G.empty
         |> add_vunit1 "a"
         |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_vexpr1 "c_" "x"
         |> add_wv "d"
+        |> add_wv "e_"
+        |> add_wv "f_"
+        |> add_wv "e"
+        |> add_wv "f"
         |> add_dir_eunit1 "e" "a" "d"
         |> add_dir_eunit1 "f" "d" "b"
-    val _ = Testing.assert "G.is_intersection g1_g2 g1 g2"
-            (G.is_intersection g1_g2 g1 g2)
-
-    val g1_g2' = G.empty
-        |> add_vunit1 "a"
-        |> add_vunit2 "b"
-        |> add_wv "d"
-        |> add_dir_eunit1 "e" "d" "a"
-        |> add_dir_eunit1 "f" "b" "d"
-    val _ = Testing.assert "! G.is_intersection g1_g2' g1 g2"
-            (not (G.is_intersection g1_g2' g1 g2))
+        |> add_undir_eunit2 "g_" "b" "e_"
+        |> add_undir_eunit1 "h_" "b" "f_"
+        |> add_undir_eunit1 "i_" "c_" "f_"
+        |> add_undir_eunit2 "g" "b" "e"
+        |> add_undir_eunit1 "h" "b" "f"
+        |> add_undir_eunit1 "i" "c" "f"
+    val _ = assert_g_eq "merge of g1 and g2" g_exp (G.merge g1 g2)
 
     val g3 = G.empty
         |> add_vunit1 "a_"
@@ -1687,15 +1687,25 @@ functor OGraph_Interface_Tests(
         |> add_undir_eunit2 "g_" "b" "e_"
         |> add_undir_eunit1 "h" "b" "f"
         |> add_undir_eunit1 "i" "c" "f"
-
-    val g1_g3 = G.empty
+    val g_exp = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit1 "a_"
         |> add_vunit2 "b"
         |> add_vexpr1 "c" "x"
+        |> add_wv "d"
+        |> add_wv "d_"
+        |> add_wv "e"
+        |> add_wv "e_"
         |> add_wv "f"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "e_" "a_" "d_"
+        |> add_dir_eunit1 "f" "d" "b"
+        |> add_dir_eunit1 "f_" "d_" "b"
+        |> add_undir_eunit2 "g" "b" "e"
+        |> add_undir_eunit2 "g_" "b" "e_"
         |> add_undir_eunit1 "h" "b" "f"
         |> add_undir_eunit1 "i" "c" "f"
-    val _ = Testing.assert "G.is_intersection g1_g3 g1 g3"
-            (G.is_intersection g1_g3 g1 g3)
+    val _ = assert_g_eq "merge of g1 and g3" g_exp (G.merge g1 g3)
 
     val g4 = G.empty
         |> add_vunit1 "a_"
@@ -1709,151 +1719,33 @@ functor OGraph_Interface_Tests(
         |> add_undir_eunit2 "g_" "b" "e_"
         |> add_undir_eunit1 "h_" "b" "f"
         |> add_undir_eunit1 "i_" "c" "f"
+    val _ = (G.merge g1 g4;
+              raise ERROR "merge g1,g4 should have failed")
+            handle G.bad_graph_merge_exp _ => ()
 
-    val g1_g4 = G.empty
-        |> add_vunit2 "b"
-        |> add_vexpr1 "c" "x"
-        |> add_wv "f"
-    val _ = Testing.assert "G.is_intersection g1_g4 g1 g4"
-            (G.is_intersection g1_g4 g1 g4)
-
-    (* NB: edge direction matters, even for Undirected edges *)
-    val g5 = G.empty
-        |> add_vunit1 "a_"
-        |> add_vunit2 "b"
-        |> add_vexpr1 "c" "x"
-        |> add_wv "d_"
-        |> add_wv "e_"
-        |> add_wv "f"
-        |> add_dir_eunit1 "e_" "a_" "d_"
-        |> add_dir_eunit1 "f_" "d_" "b"
-        |> add_undir_eunit2 "g_" "b" "e_"
-        |> add_undir_eunit1 "h" "b" "f"
-        |> add_undir_eunit1 "i" "f" "c"
-
-    val g1_g5 = G.empty
-        |> add_vunit2 "b"
-        |> add_vexpr1 "c" "x"
-        |> add_wv "f"
-        |> add_undir_eunit1 "h" "b" "f"
-        |> add_undir_eunit1 "i" "c" "f"
-    val _ = Testing.assert "not G.is_intersection g1_g5 g1 g5"
-            (not (G.is_intersection g1_g5 g1 g5))
-    in () end) ();
-
-
-
-  val _ = Testing.test "G.merge_by_subgraph" (fn () => let
-    val _ = assert_g_eq "merge of empty graphs" G.empty
-            (G.merge_by_subgraph G.empty G.empty G.empty)
-
-    val g1 = G.empty
-        |> add_vunit1 "a"
-        |> add_vunit2 "b"
-        |> add_vexpr1 "c" "x"
-        |> add_wv "d"
-        |> add_wv "e"
-        |> add_wv "f"
-        |> add_dir_eunit1 "e" "a" "d"
-        |> add_dir_eunit1 "f" "d" "b"
-        |> add_undir_eunit2 "g" "b" "e"
-        |> add_undir_eunit1 "h" "b" "f"
-        |> add_undir_eunit1 "i" "c" "f"
-
-    val g2 = G.empty
-        |> add_vunit1 "a"
-        |> add_vunit2 "b"
-        |> add_vexpr1 "c_" "x"
-        |> add_wv "d"
-        |> add_wv "e_"
-        |> add_wv "f_"
-        |> add_dir_eunit1 "e" "a" "d"
-        |> add_dir_eunit1 "f" "d" "b"
-        |> add_undir_eunit2 "g_" "b" "e_"
-        |> add_undir_eunit1 "h_" "b" "f_"
-        |> add_undir_eunit1 "i_" "c_" "f_"
-
-    val g1_g2 = G.empty
-        |> add_vunit1 "a"
-        |> add_vunit2 "b"
-        |> add_wv "d"
-        |> add_dir_eunit1 "e" "a" "d"
-        |> add_dir_eunit1 "f" "d" "b"
-
+    val g6 = G.empty
+        |> add_vunit1 "v1"
+        |> add_wv "w1"
+        |> add_undir_eunit1 "e1" "v1" "w1"
+    val g7 = G.empty
+        |> add_vunit1 "v2"
+        |> add_wv "w1"
+        |> add_undir_eunit1 "e2" "v2" "w1"
     val g_exp = G.empty
-        |> add_vunit1 "a"
-        |> add_vunit2 "b"
-        |> add_vexpr1 "c" "x"
-        |> add_vexpr1 "c_" "x"
-        |> add_wv "d"
-        |> add_wv "e_"
-        |> add_wv "f_"
-        |> add_wv "e"
-        |> add_wv "f"
-        |> add_dir_eunit1 "e" "a" "d"
-        |> add_dir_eunit1 "f" "d" "b"
-        |> add_undir_eunit2 "g_" "b" "e_"
-        |> add_undir_eunit1 "h_" "b" "f_"
-        |> add_undir_eunit1 "i_" "c_" "f_"
-        |> add_undir_eunit2 "g" "b" "e"
-        |> add_undir_eunit1 "h" "b" "f"
-        |> add_undir_eunit1 "i" "c" "f"
+        |> add_vunit1 "v1"
+        |> add_vunit1 "v2"
+        |> add_wv "w1"
+        |> add_undir_eunit1 "e1" "v1" "w1"
+        |> add_undir_eunit1 "e2" "v2" "w1"
+    val _ = assert_g_eq "merge of g6 and g7" g_exp (G.merge g6 g7)
 
-    val _ = assert_g_eq "merge of g1 and g2" g_exp
-            (G.merge_by_subgraph g1_g2 g1 g2)
-    in () end) ();
-
-
-
-  val _ = Testing.test "G.merge_by_vertices" (fn () => let
-    val _ = assert_g_eq "merge of empty graphs" G.empty
-            (G.merge_by_vertices G.empty G.empty)
-
-    val g1 = G.empty
-        |> add_vunit1 "a"
-        |> add_vunit2 "b"
-        |> add_vexpr1 "c" "x"
-        |> add_wv "d"
-        |> add_wv "e"
-        |> add_wv "f"
-        |> add_undir_eunit1 "e" "a" "d"
-        |> add_dir_eunit2 "g" "b" "e"
-        |> add_undir_eunit1 "h" "b" "f"
-        |> add_undir_eunit1 "i" "c" "f"
-
-    val g2 = G.empty
-        |> add_vunit1 "a"
-        |> add_vunit2 "b"
-        |> add_vexpr1 "c_" "x"
-        |> add_wv "d"
-        |> add_wv "e_"
-        |> add_wv "f_"
-        |> add_undir_eunit1 "e_" "a" "d"
-        |> add_dir_eunit2 "g_" "b" "e_"
-        |> add_undir_eunit1 "h_" "b" "f_"
-        |> add_undir_eunit1 "i_" "c_" "f_"
-
-    val g_exp = G.empty
-        |> add_vunit1 "a"
-        |> add_vunit2 "b"
-        |> add_vexpr1 "c" "x"
-        |> add_vexpr1 "c_" "x"
-        |> add_wv "d"
-        |> add_wv "e_"
-        |> add_wv "f_"
-        |> add_wv "e"
-        |> add_wv "f"
-        |> add_undir_eunit1 "e" "a" "d"
-        |> add_dir_eunit2 "g" "b" "e"
-        |> add_undir_eunit1 "h" "b" "f"
-        |> add_undir_eunit1 "i" "c" "f"
-        |> add_undir_eunit1 "e_" "a" "d"
-        |> add_dir_eunit2 "g_" "b" "e_"
-        |> add_undir_eunit1 "h_" "b" "f_"
-        |> add_undir_eunit1 "i_" "c_" "f_"
-
-    val _ = assert_g_eq "merge of g1 and g2" g_exp
-            (G.merge_by_vertices g1 g2)
+    val g8 = G.empty
+        |> add_vunit1 "v2"
+        |> add_wv "w1"
+        |> add_undir_eunit2 "e2" "v2" "w1"
+    val _ = (G.merge g6 g8;
+              raise ERROR "merge g6,g8 should have failed")
+            handle G.bad_graph_merge_exp _ => ()
     in () end) ();
 
 

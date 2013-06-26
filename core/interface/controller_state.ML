@@ -931,7 +931,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
                           (fn (k,v) => GraphUserData.set_bbox_annotation k v)
                           (GraphUserData.get_bbox_annotation_tab ud_s')
       in state |> push_hist tname UA
-               |> set_graph (Graph.merge_by_vertices targ source) tname
+               |> set_graph (Graph.merge targ source) tname
                |> set_graph_ud ud' tname
       end
 

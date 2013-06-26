@@ -48,7 +48,7 @@ exception no_such_vertex_exp of string * V.name * T
 (*exception no_such_vnames_exp of string * V.NSet.T * T*)
 exception duplicate_vertex_exp of V.name * T
 
-exception bad_graph_merge_exp of T * T * T
+exception bad_graph_merge_exp of T * T
 
 exception no_such_edge_exp of string * E.name * T
 exception duplicate_edge_exp of E.name * T
@@ -604,83 +604,10 @@ fun exact_eq g1 g2 =
   ) (get_bboxes g1))
   
 
-fun is_intersection sub g1 g2 = let
-  val vi = V.NSet.intersect (get_vertices g1) (get_vertices g2)
-  val ei = E.NSet.intersect (get_edges g1) (get_edges g2)
-  val bbi = B.NSet.intersect (get_bboxes g1) (get_bboxes g2)
-in (V.NSet.eq (get_vertices sub) vi) andalso
-   (E.NSet.eq (get_edges sub) ei) andalso
-   (B.NSet.eq (get_bboxes sub) bbi) andalso
-   (V.NSet.forall (fn v =>
-      let val v_bbs_sub = get_bboxes_containing_vertex sub v in
-        B.NSet.eq v_bbs_sub (get_bboxes_containing_vertex g1 v) andalso
-        B.NSet.eq v_bbs_sub (get_bboxes_containing_vertex g2 v)
-      end) (get_vertices sub)) andalso
-   (is_subgraph sub g1) andalso
-   (is_subgraph sub g2)
-end
-
-fun merge_by_subgraph sub g1 g2 =
-  (* Note that without checking disjointness, one of the add_... functions below will likely
-     throw an exception. However, this extra work will produce better errors. *)
-  if not (is_intersection sub g1 g2) then raise bad_graph_merge_exp (sub,g1,g2)
-  else sub (* start with common graph *)
-  (* add new verts from g1 and g2 *)
-  |> V.NSet.fold (fn v =>
-      add_named_vertex v (get_vertex_data g1 v))
-     (V.NSet.subtract (get_vertices g1) (get_vertices sub))
-  |> V.NSet.fold (fn v =>
-      add_named_vertex v (get_vertex_data g2 v))
-     (V.NSet.subtract (get_vertices g2) (get_vertices sub))
-  (* add new edges from g1 and g2 *)
-  |> E.NSet.fold (fn e =>
-      add_named_edge e
-        (get_edge_dir_and_data g1 e)
-        (get_edge_source g1 e)
-        (get_edge_target g1 e))
-     (E.NSet.subtract (get_edges g1) (get_edges sub))
-  |> E.NSet.fold (fn e =>
-      add_named_edge e
-        (get_edge_dir_and_data g2 e)
-        (get_edge_source g2 e)
-        (get_edge_target g2 e))
-     (E.NSet.subtract (get_edges g2) (get_edges sub))
-  (* add new bboxes from g1 and g2 *)
-  |> B.NSet.fold (fn bb => add_named_bbox bb)
-     (B.NSet.subtract (get_bboxes g1) (get_bboxes sub))
-  |> B.NSet.fold (fn bb => add_named_bbox bb)
-     (B.NSet.subtract (get_bboxes g2) (get_bboxes sub))
-  (* bboxes contained in the intersection may contain more vertices in g1 and g2 than just
-   * those in sub, so update containment (and parents) for all bboxes *)
-  |> B.NSet.fold (fn bb =>
-      add_vertices_to_bbox bb (get_vertices_in_bbox g1 bb) o
-      add_children_to_bbox bb (get_bbox_children g1 bb))
-     (get_bboxes g1)
-  |> B.NSet.fold (fn bb =>
-      add_vertices_to_bbox bb (get_vertices_in_bbox g2 bb) o
-      add_children_to_bbox bb (get_bbox_children g2 bb))
-     (get_bboxes g2)
-
-(* currently, this will fail on bad_graph_merge_exp if any vertices are contained
- * in bboxes. This can be handled by adding common bboxes containing common verts
- * to the subgraph. *)
-fun merge_by_vertices g1 g2 = let
-  val common_verts = V.NSet.intersect (get_vertices g1) (get_vertices g2)
-  val common_graph = V.NSet.fold
-                       (fn v => add_named_vertex v (get_vertex_data g1 v))
-                       common_verts empty
-in merge_by_subgraph common_graph g1 g2
-end
-
 (* note this assumes that sg < g. In particular, the edges in sg are not (explicitly) deleted. *)
 fun delete_subgraph sg g =
   g |> V.NSet.fold delete_vertex (get_vertices sg)
     |> B.NSet.fold delete_bbox (get_bboxes sg)
-
-(*fun merge_by_vertices g1 g2 =
-  if not (E.NSet.is_empty (E.NSet.intersect (get_edges g1) (get_edges g2)))
-  then raise bad_graph_merge_exp ("edge names not disjoint",g1,g2)
-  else *)
 
 
 (************************************)
@@ -808,6 +735,149 @@ fun get_boundary g = V.NSet.filter (is_boundary' g) (get_wire_vertices g)
 fun get_inputs g   = V.NSet.filter (is_input' g)    (get_wire_vertices g)
 fun get_outputs g  = V.NSet.filter (is_output' g)   (get_wire_vertices g)
 
+
+fun merge g1 g2 = let
+  (* some pre-checking *)
+  (* we (may) have an implied span, where the centre of the span is
+   * the subgraph of common names (which may not be a graph at all) *)
+
+  (* First, we check that the inclusions reflect !-box containment.
+   * This is actually slightly stronger than necessary, but will almost
+   * always be satisfied in practice.
+   *)
+  val shared_bbs = B.NSet.intersect (get_bboxes g1) (get_bboxes g2)
+  val _ = if B.NSet.forall (fn b =>
+              B.NSet.eq (BBRel.inv_img (get_bbox_child_rel g1) b)
+                        (BBRel.inv_img (get_bbox_child_rel g2) b)
+              ) shared_bbs
+          then ()
+          else raise bad_graph_merge_exp (g1,g2)
+  val shared_vs = V.NSet.intersect (get_vertices g1) (get_vertices g2)
+  val _ = if V.NSet.forall (fn b =>
+              B.NSet.eq (BVRel.inv_img (get_bbox_rel g1) b)
+                        (BVRel.inv_img (get_bbox_rel g2) b)
+              ) shared_vs
+          then ()
+          else raise bad_graph_merge_exp (g1,g2)
+
+  (* Now we check that the inclusions are boundary-coherent; this means
+   * that anything that is an input of the intersection is an input of
+   * either g1 or g2, and similarly for outputs.
+   * This is complicated by:
+   * (a) the fact we store wire-vertex types on edges
+   * (b) undirected edges
+   *)
+  val _ = if V.NSet.forall (fn v =>
+        not (is_wire_vertex g1 v) orelse
+        let
+          val adj1 = get_adj_edges' g1 v
+          val adj2 = get_adj_edges' g2 v
+          val adj = E.NSet.intersect adj1 adj2
+          fun input_somewhere v = is_input' g1 v orelse is_input' g2 v
+          fun output_somewhere v = is_output' g1 v orelse is_output' g2 v
+          fun undir_bnd_everywhere v = E.NSet.is_singleton adj1
+                                       andalso
+                                       E.NSet.is_singleton adj2
+          fun undir_bnd_somewhere v = E.NSet.is_singleton adj1
+                                      orelse
+                                      E.NSet.is_singleton adj2
+          val types_agree =
+            case (E.NSet.get_local_bot adj1,E.NSet.get_local_bot adj2)
+              of (SOME e1,SOME e2) =>
+                    let
+                      val (dir1,data1) = get_edge_dir_and_data g1 e1
+                      val (dir2,data2) = get_edge_dir_and_data g2 e2
+                    in
+                      dir1 = dir2 andalso edata_eq (data1,data2)
+                    end
+               | _ => true
+        in
+          types_agree andalso
+          if E.NSet.is_empty adj
+          then (input_somewhere v andalso output_somewhere v)
+               orelse undir_bnd_everywhere v
+          else
+            case E.NSet.tryget_singleton adj
+              of NONE => true (* not a boundary at all *)
+               | SOME e =>
+                   let
+                     val s = get_edge_source g1 e
+                     val t = get_edge_target g1 e
+                   in
+                     if V.name_eq (s,t)
+                     then true (* circle *)
+                     else if get_edge_dir g1 e = Undirected
+                     then undir_bnd_somewhere v
+                     else if V.name_eq (s,v)
+                     then output_somewhere v
+                     else input_somewhere v
+                   end
+        end
+      ) shared_vs
+      then () else raise bad_graph_merge_exp (g1,g2)
+
+  (* Of course, we also need to check that the intersection is truly a
+   * subgraph of both g1 and g2 (ie: that they agree on types, edge sources
+   * and edge targets); we check that during the construction below *)
+
+  (* start with g1 and add things from g2 to it *)
+  val vdata =
+        VTab.fold (fn (v,d) => fn tab =>
+          case VTab.get_opt tab v
+            of SOME d' => if vdata_eq (d,d') then tab
+                          else raise bad_graph_merge_exp (g1,g2)
+             | NONE    => VTab.add (v,d) tab
+          ) (get_vdata g2) (get_vdata g1)
+  val edata =
+        ETab.fold (fn (e,(d as (dir,dd))) => fn tab =>
+          case ETab.get_opt tab e
+            of SOME (d' as (dir',dd')) =>
+                  if dir = dir' andalso edata_eq (dd,dd') then tab
+                  else raise bad_graph_merge_exp (g1,g2)
+             | NONE    => ETab.add (e,d) tab
+          ) (get_edata g2) (get_edata g1)
+  val source =
+        EVFn.fold (fn (e,v) => fn f =>
+          case EVFn.get_opt f e
+            of SOME v' => if V.name_eq (v,v')
+                          then f
+                          else if fst (ETab.get edata e) = Undirected
+                                  andalso (* might just be reversed *)
+                                  EVFn.is_mapped (get_target g1) (e,v)
+                                  andalso
+                                  EVFn.is_mapped (get_target g2) (e,v')
+                          then f
+                          else raise bad_graph_merge_exp (g1,g2)
+             | NONE    => EVFn.add (e,v) f
+          ) (get_source g2) (get_source g1)
+  val target =
+        EVFn.fold (fn (e,v) => fn f =>
+          case EVFn.get_opt f e
+            of SOME v' => if V.name_eq (v,v')
+                          then f
+                          else if fst (ETab.get edata e) = Undirected
+                                  andalso (* might just be reversed *)
+                                  EVFn.is_mapped (get_source g1) (e,v)
+                                  andalso
+                                  EVFn.is_mapped (get_source g2) (e,v')
+                          then f
+                          else raise bad_graph_merge_exp (g1,g2)
+             | NONE    => EVFn.add (e,v) f
+          ) (get_target g2) (get_target g1)
+  val bboxes = B.NSet.union_merge (get_bboxes g2) (get_bboxes g1)
+  val bbox_rel = BVRel.fold BVRel.add (get_bbox_rel g2) (get_bbox_rel g1)
+  val bbox_child_rel = BBRel.fold BBRel.add (get_bbox_child_rel g2)
+                                            (get_bbox_child_rel g1)
+  (* check wvs *)
+in
+  BG { vdata = vdata, edata = edata,
+       source = source, target = target,
+       bboxes = bboxes, bbox_rel = bbox_rel,
+       bbox_child_rel = bbox_child_rel }
+end
+
+fun merge_opt g1 g2 = SOME (merge g1 g2)
+  handle bad_graph_merge_exp _ => NONE
 
 
 (********************************)

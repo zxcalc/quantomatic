@@ -1727,7 +1727,7 @@ functor Bang_Graph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.is_intersection/G.merge_by_subgraph (with !-boxes)" (fn () => let
+  val _ = Testing.test "G.merge (with !-boxes)" (fn () => let
     val g1_clean = G.empty
         |> add_vunit1 "a"
         |> add_vunit2 "b"
@@ -1752,12 +1752,6 @@ functor Bang_Graph_Interface_Tests(
         |> add_undir_eunit2 "g_" "b" "e_"
         |> add_undir_eunit1 "h_" "b" "f_"
         |> add_undir_eunit1 "i_" "c_" "f_"
-    val g1_g2_clean = G.empty
-        |> add_vunit1 "a"
-        |> add_vunit2 "b"
-        |> add_wv "d"
-        |> add_dir_eunit1 "e" "a" "d"
-        |> add_dir_eunit1 "f" "d" "b"
     val g_exp_clean = G.empty
         |> add_vunit1 "a"
         |> add_vunit2 "b"
@@ -1781,59 +1775,42 @@ functor Bang_Graph_Interface_Tests(
         |> add_bbox "b1" ["e","f"]
     val g2 = g2_clean
         |> add_bbox "b2" ["e_","f_"]
-    val _ = Testing.assert "G.is_intersection disjoint"
-            (G.is_intersection g1_g2_clean g1 g2)
     val g_exp = g_exp_clean
         |> add_bbox "b1" ["e","f"]
         |> add_bbox "b2" ["e_","f_"]
-    val _ = assert_g_eq "G.merge_by_subgraph disjoint" g_exp
-            (G.merge_by_subgraph g1_g2_clean g1 g2)
+    val _ = assert_g_eq "G.merge disjoint" g_exp (G.merge g1 g2)
 
     val g1 = g1_clean
         |> add_bbox "b1" ["a","d"]
     val g2 = g2_clean
         |> add_bbox "b2" ["a","d"]
-    val _ = Testing.assert "G.is_intersection diff names"
-            (not (G.is_intersection g1_g2_clean g1 g2))
+    val _ = (G.merge g1 g2;
+              raise ERROR "merge (diff names) should have failed")
+            handle G.bad_graph_merge_exp _ => ()
 
     val g1 = g1_clean
         |> add_bbox "b1" ["a","d"]
     val g2 = g2_clean
         |> add_bbox "b1" ["a","d"]
-    val g1_g2 = g1_g2_clean
-        |> add_bbox "b1" ["a","d"]
-    val _ = Testing.assert "G.is_intersection same name"
-            (G.is_intersection g1_g2 g1 g2)
     val g_exp = g_exp_clean
         |> add_bbox "b1" ["a","d"]
-    val _ = assert_g_eq "G.merge_by_subgraph same name" g_exp
-            (G.merge_by_subgraph g1_g2 g1 g2)
+    val _ = assert_g_eq "G.merge same name" g_exp (G.merge g1 g2)
 
     val g1 = g1_clean
         |> add_bbox "b1" ["d"]
     val g2 = g2_clean
         |> add_bbox "b1" ["d"]
-    val g1_g2 = g1_g2_clean
-        |> add_bbox "b1" ["d"]
-    val _ = Testing.assert "G.is_intersection same name (2)"
-            (G.is_intersection g1_g2 g1 g2)
     val g_exp = g_exp_clean
         |> add_bbox "b1" ["d"]
-    val _ = assert_g_eq "G.merge_by_subgraph same name" g_exp
-            (G.merge_by_subgraph g1_g2 g1 g2)
+    val _ = assert_g_eq "G.merge same name (2)" g_exp (G.merge g1 g2)
 
     val g1 = g1_clean
         |> add_bbox "b1" ["a","d","b","e","f"]
     val g2 = g2_clean
         |> add_bbox "b1" ["a","d","b","e_","f_"]
-    val g1_g2 = g1_g2_clean
-        |> add_bbox "b1" ["a","d","b"]
-    val _ = Testing.assert "G.is_intersection same name, overlapping contents"
-            (G.is_intersection g1_g2 g1 g2)
     val g_exp = g_exp_clean
         |> add_bbox "b1" ["a","d","b","e","f","e_","f_"]
-    val _ = assert_g_eq "G.merge_by_subgraph diff names" g_exp
-            (G.merge_by_subgraph g1_g2 g1 g2)
+    val _ = assert_g_eq "G.merge same name, overlapping" g_exp (G.merge g1 g2)
     in () end) ()
 
 

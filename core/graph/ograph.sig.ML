@@ -72,7 +72,7 @@ exception duplicate_vertex_exp of V.name * T
 exception no_such_edge_exp of string * E.name * T
 exception duplicate_edge_exp of E.name * T
 
-exception bad_graph_merge_exp of T * T * T
+exception bad_graph_merge_exp of T * T
 
 exception not_an_endpoint_exp of string * E.name * V.name * T
 
@@ -179,19 +179,10 @@ val delete_vertex : V.name -> T -> T
 
 val swap_edge_dir : E.name -> T -> T
 
-
-(* intersection -> g1 -> g2 *)
-(* note that the direction of Undirected edges *does* matter *)
-val is_intersection : T -> T -> T -> bool
-
-(* merge two graphs on a subgraph, which must be their intersection *)
-(* subgraph -> g1 -> g2 *)
-val merge_by_subgraph : T -> T -> T -> T
-
-(* merge two graphs which have distinct egdes by shared vertices:
-   vertices with same name are kept only once, edges must be
-   distinct. *)
-val merge_by_vertices : T -> T -> T
+(* merge two graphs; things with common names are unified *)
+(* raises bad_graph_merge_exp if the graphs could not be merged
+ * (eg: it would add too many edges to wire-vertices) *)
+val merge : T -> T -> T
 
 val get_arity : T -> V.name -> Arity.T
 val get_self_loops : T -> V.name -> E.NSet.T
