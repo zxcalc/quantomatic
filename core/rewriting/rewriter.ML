@@ -102,7 +102,10 @@ struct
          * fail (a quirk of the implementations of LinRatExpr
          * and V.CRnm) *)
         val g_norm = Graph.normalise target
-        val rnms = (VSub.mk_from_avoids (Graph.get_vertices g_norm), ESub.empty, BSub.empty)
+        val rnms = (
+          VSub.empty |> VSub.avoid_set_in_cod (Graph.get_vertices g_norm)
+                     |> VSub.extend_fresh (Rule.get_vertices rule),
+          ESub.empty, BSub.empty)
         val (_,rule) = Rule.rename_bang_graph_rule rnms rule;
         val lhs = Graph.normalise (Rule.get_lhs rule);
         val rhs = Graph.normalise (Rule.get_rhs rule);
