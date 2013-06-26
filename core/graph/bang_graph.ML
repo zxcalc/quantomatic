@@ -430,10 +430,10 @@ fun add_named_edge e (dir,d) s t g =
       val _ = can_link get_edge_source s
       val _ = can_link get_edge_target t
       fun extend_bbs g = let
-        val (ws,wt,wvs,_) = get_wire_containing_edge g e
-        val ws_bbs = get_bboxes_containing_vertex g ws
-        val wt_bbs = get_bboxes_containing_vertex g wt
-        val wire_bbs = B.NSet.union_merge ws_bbs wt_bbs
+        val (_,_,wvs,_) = get_wire_containing_edge g e
+        val s_bbs = get_bboxes_containing_vertex g s
+        val t_bbs = get_bboxes_containing_vertex g t
+        val wire_bbs = B.NSet.union_merge s_bbs t_bbs
       in
         B.NSet.fold (fn b => add_vertices_to_bbox b wvs) wire_bbs g
       end
@@ -615,7 +615,7 @@ in (V.NSet.eq (get_vertices sub) vi) andalso
    (is_subgraph sub g2)
 end
 
-
+(* FIXME: need to make sure we don't break !-box openness (see FIXME in tests) *)
 fun merge_by_subgraph sub g1 g2 =
   (* Note that without checking disjointness, one of the add_... functions below will likely
      throw an exception. However, this extra work will produce better errors. *)

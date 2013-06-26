@@ -1610,21 +1610,46 @@ functor Bang_Graph_Interface_Tests(
         |> add_undir_eunit1 "e2" "w2" "n2"
     val g = g_clean
         |> add_bbox "b1" ["n1","w1"]
-        |> add_bbox "b2" ["n2","w2"]
+        |> add_bbox_with_parent "b2" "b1" ["w1"]
+        |> add_bbox "b3" ["n2","w2"]
+        |> add_bbox "b4" ["w2"]
+        |> add_bbox "b5" ["w1","w2"]
+        |> add_bbox "b6" ["n1","w1","w2","n2"]
 
     val (e,g') = G.add_edge (Undirected,eunit1) (V.mk "w1") (V.mk "w2") g
     val g_exp = g_clean
         |> add_undir_eunit1 (E.dest e) "w1" "w2"
         |> add_bbox "b1" ["n1","w1","w2"]
-        |> add_bbox "b2" ["n2","w1","w2"]
+        |> add_bbox_with_parent "b2" "b1" ["w1","w2"]
+        |> add_bbox "b3" ["n2","w1","w2"]
+        |> add_bbox "b4" ["w1","w2"]
+        |> add_bbox "b5" ["w1","w2"]
+        |> add_bbox "b6" ["n1","w1","w2","n2"]
     val _ = assert_g_eq "expanded bboxes (add_edge)" g_exp g'
-
-    val g_exp = g_clean
-        |> add_undir_eunit1 "x" "w1" "w2"
-        |> add_bbox "b1" ["n1","w1","w2"]
-        |> add_bbox "b2" ["n2","w1","w2"]
     val _ = assert_g_eq "expanded bboxes (add_named_edge)" g_exp
-            (G.add_named_edge (E.mk "x") (Undirected,eunit1) (V.mk "w1") (V.mk "w2") g)
+            (G.add_named_edge e (Undirected,eunit1) (V.mk "w1") (V.mk "w2") g)
+
+    val g_clean = G.empty
+        |> add_vunit1 "n1"
+        |> add_vunit1 "n2"
+        |> add_wv "w1"
+        |> add_undir_eunit1 "e1" "n1" "w1"
+    val g = g_clean
+        |> add_bbox "b1" ["n1","w1"]
+        |> add_bbox_with_parent "b2" "b1" ["w1"]
+        |> add_bbox "b3" ["n2","w1"]
+        |> add_bbox "b4" ["n2"]
+
+    val (e,g') = G.add_edge (Undirected,eunit1) (V.mk "w1") (V.mk "n2") g
+    val g_exp = g_clean
+        |> add_undir_eunit1 (E.dest e) "w1" "n2"
+        |> add_bbox "b1" ["n1","w1"]
+        |> add_bbox_with_parent "b2" "b1" ["w1"]
+        |> add_bbox "b3" ["n2","w1"]
+        |> add_bbox "b4" ["n2","w1"]
+    val _ = assert_g_eq "expanded bboxes (add_edge 2)" g_exp g'
+    val _ = assert_g_eq "expanded bboxes (add_named_edge 2)" g_exp
+            (G.add_named_edge e (Undirected,eunit1) (V.mk "w1") (V.mk "n2") g)
     in () end) ()
 
 
@@ -1699,12 +1724,182 @@ functor Bang_Graph_Interface_Tests(
     val _ = Testing.assert "g4 (/= g5" (not (G.is_subgraph g4 g5))
     val _ = Testing.assert "g5 (/= g4" (not (G.is_subgraph g5 g4))
     in () end) ()
+
+
+
+  val _ = Testing.test "G.is_intersection/G.merge_by_subgraph (with !-boxes)" (fn () => let
+    val g1_clean = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_wv "d"
+        |> add_wv "e"
+        |> add_wv "f"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+        |> add_undir_eunit2 "g" "b" "e"
+        |> add_undir_eunit1 "h" "b" "f"
+        |> add_undir_eunit1 "i" "c" "f"
+    val g2_clean = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c_" "x"
+        |> add_wv "d"
+        |> add_wv "e_"
+        |> add_wv "f_"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+        |> add_undir_eunit2 "g_" "b" "e_"
+        |> add_undir_eunit1 "h_" "b" "f_"
+        |> add_undir_eunit1 "i_" "c_" "f_"
+    val g1_g2_clean = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_wv "d"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+    val g_exp_clean = G.empty
+        |> add_vunit1 "a"
+        |> add_vunit2 "b"
+        |> add_vexpr1 "c" "x"
+        |> add_vexpr1 "c_" "x"
+        |> add_wv "d"
+        |> add_wv "e"
+        |> add_wv "e_"
+        |> add_wv "f"
+        |> add_wv "f_"
+        |> add_dir_eunit1 "e" "a" "d"
+        |> add_dir_eunit1 "f" "d" "b"
+        |> add_undir_eunit2 "g" "b" "e"
+        |> add_undir_eunit2 "g_" "b" "e_"
+        |> add_undir_eunit1 "h" "b" "f"
+        |> add_undir_eunit1 "h_" "b" "f_"
+        |> add_undir_eunit1 "i" "c" "f"
+        |> add_undir_eunit1 "i_" "c_" "f_"
+
+    val g1 = g1_clean
+        |> add_bbox "b1" ["e","f"]
+    val g2 = g2_clean
+        |> add_bbox "b2" ["e_","f_"]
+    val _ = Testing.assert "G.is_intersection disjoint"
+            (G.is_intersection g1_g2_clean g1 g2)
+    val g_exp = g_exp_clean
+        |> add_bbox "b1" ["e","f"]
+        |> add_bbox "b2" ["e_","f_"]
+    val _ = assert_g_eq "G.merge_by_subgraph disjoint" g_exp
+            (G.merge_by_subgraph g1_g2_clean g1 g2)
+
+    val g1 = g1_clean
+        |> add_bbox "b1" ["a","d"]
+    val g2 = g2_clean
+        |> add_bbox "b2" ["a","d","b","e_","f_"]
+    val _ = Testing.assert "G.is_intersection diff names"
+            (G.is_intersection g1_g2_clean g1 g2)
+    (* FIXME: expand !-box?
+    val g_exp = g_exp_clean
+        |> add_bbox "b1" ["a","d"]
+        |> add_bbox "b2" ["a","d","b","e","f","e_","f_"]
+    val _ = assert_g_eq "G.merge_by_subgraph diff names" g_exp
+            (G.merge_by_subgraph g1_g2_clean g1 g2)
+    *)
+
+    val g1 = g1_clean
+        |> add_bbox "b1" ["a","d"]
+    val g2 = g2_clean
+        |> add_bbox "b1" ["a","d"]
+    val g1_g2 = g1_g2_clean
+        |> add_bbox "b1" ["a","d"]
+    val _ = Testing.assert "G.is_intersection same name"
+            (G.is_intersection g1_g2 g1 g2)
+    val g_exp = g_exp_clean
+        |> add_bbox "b1" ["a","d"]
+    val _ = assert_g_eq "G.merge_by_subgraph same name" g_exp
+            (G.merge_by_subgraph g1_g2 g1 g2)
+
+    val g1 = g1_clean
+        |> add_bbox "b1" ["d"]
+    val g2 = g2_clean
+        |> add_bbox "b1" ["d"]
+    val g1_g2 = g1_g2_clean
+        |> add_bbox "b1" ["d"]
+    val _ = Testing.assert "G.is_intersection same name (2)"
+            (G.is_intersection g1_g2 g1 g2)
+    val g_exp = g_exp_clean
+        |> add_bbox "b1" ["d"]
+    val _ = assert_g_eq "G.merge_by_subgraph same name" g_exp
+            (G.merge_by_subgraph g1_g2 g1 g2)
+
+    val g1 = g1_clean
+        |> add_bbox "b1" ["a","d"]
+    val g2 = g2_clean
+        |> add_bbox "b2" ["a","d","b","e_","f_"]
+    val g1_g2 = g1_g2_clean
+        |> add_bbox "b1" ["a","d"]
+    val _ = Testing.assert "G.is_intersection same name, diff contents"
+            (not (G.is_intersection g1_g2 g1 g2))
+
+    val g1 = g1_clean
+        |> add_bbox "b1" ["a","d"]
+    val g2 = g2_clean
+        |> add_bbox "b2" ["a","d","b","e_","f_"]
+    val g1_g2 = g1_g2_clean
+        |> add_bbox "b1" ["a","d","b"]
+    val _ = Testing.assert "G.is_intersection same name, diff contents (2)"
+            (not (G.is_intersection g1_g2 g1 g2))
+
+    val g1 = g1_clean
+        |> add_bbox "b1" ["a","d","b","e","f"]
+    val g2 = g2_clean
+        |> add_bbox "b1" ["a","d","b","e_","f_"]
+    val g1_g2 = g1_g2_clean
+        |> add_bbox "b1" ["a","d","b"]
+    val _ = Testing.assert "G.is_intersection same name, overlapping contents"
+            (G.is_intersection g1_g2 g1 g2)
+    val g_exp = g_exp_clean
+        |> add_bbox "b1" ["a","d","b","e","f","e_","f_"]
+    val _ = assert_g_eq "G.merge_by_subgraph diff names" g_exp
+            (G.merge_by_subgraph g1_g2 g1 g2)
+    in () end) ()
+
+
+  val _ = Testing.test "G.split_edge (with !-boxes)" (fn () => let
+    val g = G.empty
+        |> add_vunit1 "n1"
+        |> add_vunit1 "n2"
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_dir_eunit1 "e1" "n1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "w2"
+        |> add_dir_eunit1 "e3" "w2" "n2"
+        |> add_bbox "b1" ["n1","w1"]
+        |> add_bbox_with_parent "b2" "b1" ["w1"]
+        |> add_bbox "b3" ["n2","w2"]
+        |> add_bbox "b4" ["w2"]
+        |> add_bbox "b5" ["w1","w2"]
+        |> add_bbox "b6" ["n1","w1","w2","n2"]
+    val ((e1,v,e2),g') = G.split_edge (E.mk "e2") g
+    val g_exp = G.empty
+        |> add_vunit1 "n1"
+        |> add_vunit1 "n2"
+        |> add_wv "w1"
+        |> add_wv (V.dest v)
+        |> add_wv "w2"
+        |> add_dir_eunit1 "e1" "n1" "w1"
+        |> add_dir_eunit1 (E.dest e1) "w1" (V.dest v)
+        |> add_dir_eunit1 (E.dest e2) (V.dest v) "w2"
+        |> add_dir_eunit1 "e3" "w2" "n2"
+        |> add_bbox "b1" ["n1","w1",V.dest v,"w2"]
+        |> add_bbox_with_parent "b2" "b1" ["w1",V.dest v,"w2"]
+        |> add_bbox "b3" ["n2","w1",V.dest v,"w2"]
+        |> add_bbox "b4" ["w1",V.dest v,"w2"]
+        |> add_bbox "b5" ["w1",V.dest v,"w2"]
+        |> add_bbox "b6" ["n1","w1",V.dest v,"w2","n2"]
+    val _ = assert_g_eq "split" g_exp g'
+    in () end) ()
   (* TODO: tests for !-box openness preservation:
-   * merge_by_subgraph
    * merge_by_vertices
    * normalise
    * minimise
-   * split_edge
    * plug(_anon)
    * plug_and_normalise(_anon)
    * plug_and_minimise(_anon)
@@ -1716,7 +1911,6 @@ functor Bang_Graph_Interface_Tests(
    * rename_vertex_opt
    *
    * TODO: functions account for !-boxes:
-   * is_intersection
    * get_plugging
    * are_pluggable
    * get_open_subgraph (?)
