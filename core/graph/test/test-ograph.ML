@@ -1896,7 +1896,7 @@ functor OGraph_Interface_Tests(
       if Arity.rep_of a1 = rep
       then ()
       else ( writeln ("Expected ("^v^"):");
-            Pretty.writeln (Pretty.block 
+            Pretty.writeln (Pretty.block
               ( [Pretty.str "(in:",
                  Pretty.str (Int.toString (#no_in rep))]
               @ [Pretty.str ", out:",
@@ -2766,7 +2766,7 @@ functor OGraph_Interface_Tests(
         |> add_dir_eexpr2 "e8" "w5" "n3" "x"
         |> add_dir_estring1 "ce1" "c1" "c2" "x"
         |> add_dir_estring1 "ce2" "c2" "c1" "x"
-        |> add_dir_estring1 "ce3" "c3" "c3" "x"
+        |> add_dir_estring2 "ce3" "c3" "c3" "x"
         |> add_dir_estring1 "bwe1" "bw1" "bw2" "1"
         |> add_dir_estring1 "bwe2" "bw3" "bw4" "2"
         |> add_dir_estring1 "bwe3" "bw4" "bw5" "2"
@@ -2787,21 +2787,112 @@ functor OGraph_Interface_Tests(
     (* a simple iso checker that only works on graphs where
      * every wire and every node vertex has a different type *)
     fun assert_g_iso_and_bounds_same msg g_exp g_actual = let
-      fun assert m b = if b then () else
+      fun error m =
             (writeln (msg^": "^m);
              writeln "expected:";
              G.print g_exp;
              writeln "got";
              G.print g_actual;
-             Testing.assert (msg^": "^m) false)
+             raise Testing.assertion_failed_exp (msg^": "^m))
+      fun assert m b = if b then () else error m
+      val _ = assert "same boundaries"
+         (V.NSet.eq (G.get_boundary g_exp) (G.get_boundary g_actual))
       val _ = assert "vsets same size"
         (V.NSet.cardinality (G.get_vertices g_exp) =
            V.NSet.cardinality (G.get_vertices g_actual))
       val _ = assert "esets same size"
          (E.NSet.cardinality (G.get_edges g_exp) =
            E.NSet.cardinality (G.get_edges g_actual))
-      val _ = assert "same boundaries"
-         (V.NSet.eq (G.get_boundary g_exp) (G.get_boundary g_actual))
+      fun map_nverts vsub vset_exp vset_actual =
+        case V.NSet.pull_local_bot vset_exp
+          of NONE => if V.NSet.is_empty vset_actual then vsub
+                     else error "too many node vertices"
+           | SOME (v,vset_exp') =>
+               let
+                 val vdata = G.get_vertex_data g_exp v
+                 fun same_data vn = G.vdata_eq (vdata,G.get_vertex_data g_actual vn)
+               in
+                 case V.NSet.get_exists same_data vset_actual
+                   of NONE => error ("vertex matching "^(V.dest v))
+                    | SOME tgt => map_nverts (VSub.add (v,tgt) vsub)
+                                             vset_exp'
+                                             (V.NSet.delete tgt vset_actual)
+               end
+      val vsub = VSub.extend_fixed (G.get_boundary g_exp) VSub.empty
+      val vsub = map_nverts vsub (G.get_node_vertices g_exp)
+                                 (G.get_node_vertices g_actual)
+      fun map_self_loops vsub esub c_exp c_act =
+        case E.NSet.pull_local_bot c_exp
+          of NONE => if E.NSet.is_empty c_act then (vsub,esub)
+                     else error "too many circles"
+           | SOME (e,c_exp') =>
+               let
+                 val (edir,edata) = G.get_edge_dir_and_data g_exp e
+                 fun same_dir_and_data en = let
+                   val (edir',edata') = G.get_edge_dir_and_data g_actual en
+                 in edir = edir' andalso G.edata_eq (edata,edata') end
+               in
+                 case E.NSet.get_exists same_dir_and_data c_act
+                   of NONE => error ("circle matching "^(E.dest e))
+                    | SOME tgt =>
+                        let
+                          val cv = G.get_edge_source g_exp e
+                          val cv' = G.get_edge_source g_actual tgt
+                          val vsub' = if VSub.is_mapped vsub (cv,cv')
+                                      then vsub
+                                      else VSub.add (cv,cv') vsub
+                        in
+                          map_self_loops
+                            vsub' (ESub.add (e,tgt) esub)
+                            c_exp' (E.NSet.delete tgt c_act)
+                        end
+               end
+      fun is_self_loop g e = V.name_eq (G.get_edge_source g e,
+                                        G.get_edge_target g e)
+      fun get_self_loops g = E.NSet.filter (is_self_loop g) (G.get_edges g)
+      val (vsub,esub) = map_self_loops vsub ESub.empty
+                                       (get_self_loops g_exp)
+                                       (get_self_loops g_actual)
+      fun get_non_self_loops g = E.NSet.filter (not o (is_self_loop g)) (G.get_edges g)
+      fun check_wires e_exp e_act unm_wvs_exp unm_wvs_act =
+        case E.NSet.get_local_bot e_exp
+          of NONE => if not (E.NSet.is_empty e_act)
+                     then error "too many edges"
+                     else (unm_wvs_exp,unm_wvs_act)
+           | SOME e =>
+               let
+                 val (edir,edata) = G.get_edge_dir_and_data g_exp e
+                 fun same_dir_and_data en = let
+                   val (edir',edata') = G.get_edge_dir_and_data g_actual en
+                 in edir = edir' andalso G.edata_eq (edata,edata') end
+               in
+                 case E.NSet.get_exists same_dir_and_data e_act
+                   of NONE => error ("edge matching "^(E.dest e))
+                    | SOME tgt =>
+                        let
+                          val (s,t,wvs,es) = G.get_wire_containing_edge g_exp e
+                          val (s',t',wvs',es') = G.get_wire_containing_edge g_actual tgt
+                          val e_exp' = E.NSet.remove_set es e_exp
+                          val e_act' = E.NSet.remove_set es' e_act
+                          val unm_wvs_exp' =
+                            unm_wvs_exp |> V.NSet.remove_set wvs
+                                        |> V.NSet.delete s
+                                        |> V.NSet.delete t
+                          val unm_wvs_act' =
+                            unm_wvs_act |> V.NSet.remove_set wvs'
+                                        |> V.NSet.delete s'
+                                        |> V.NSet.delete t'
+                          val _ =
+                            if V.name_eq (s,t)
+                            then assert "self-loop matches self-loop" (V.name_eq (s',t'))
+                            else (assert "wire source matched"
+                                         (VSub.is_mapped vsub (s,s'));
+                                  assert "wire target matched"
+                                         (VSub.is_mapped vsub (t,t')))
+                        in
+                          check_wires e_exp' e_act' unm_wvs_exp' unm_wvs_act'
+                        end
+               end
     in () end
 
     fun wire v1 v2 vs es =
