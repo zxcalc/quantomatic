@@ -48,6 +48,7 @@ PolyML.Project.optional_make "local_config.ML";
 PolyML.Project.make "io/input.ML";
 PolyML.Project.make "io/output.ML";
 PolyML.Project.make "io/json_io.ML";
+PolyML.Project.make "io/file_io.ML";
 
 (*
  * Names
@@ -162,38 +163,6 @@ Testing.make_test "matching/test/test-bang-match-state.ML";
 Testing.make_test "matching/test/test-string-graph-matching.ML";
 Testing.make_test "matching/test/test-bang-graph-matching.ML";
 
-(*
-(*
- * Deprecated XML I/O stuff
- *)
-PolyML.Project.make "io/xml_parse_utils.ML";
-PolyML.Project.make "io/xml_output_utils.ML";
-PolyML.Project.make "io/xml_io.ML";
-PolyML.Project.make "io/reader.ML";
-PolyML.Project.make "io/writer.ML";
-
-PolyML.Project.make "io/linrat_xml.ML";
-
-
-(* Graph Component Data *)
-(* component data is a bit of a hack, and has I/O interdependencies *)
-PolyML.Project.make "theories/component_data.ML";
-(* boilerplate data functors for enumerated datatypes *)
-PolyML.Project.make "theories/enum_data.ML";
-
-PolyML.Project.make "io/graph_xml_v2_input.ML";
-PolyML.Project.make "io/graph_xml_v2_output.ML";
-PolyML.Project.make "io/graph_annotations_xml_input.ML";
-PolyML.Project.make "io/graph_annotations_xml_output.ML";
-PolyML.Project.make "io/rule_xml_output.ML";
-PolyML.Project.make "io/rule_xml_input.ML";
-PolyML.Project.make "io/ruleset_annotations_xml_input.ML";
-PolyML.Project.make "io/ruleset_annotations_xml_output.ML";
-PolyML.Project.make "io/ruleset_xml_input.ML";
-PolyML.Project.make "io/ruleset_xml_output.ML";
-
-PolyML.Project.make "io/io_interface_xml.ML";
-*)
 
 (*
  * Rewriting
@@ -217,7 +186,6 @@ Testing.make_test "rewriting/test/ruleset_rewriter-tests.ML";
  * Theories
  *)
 (* construction of everything in a graphical theory from just param *)
-(* NB: currently relies on XML I/O stuff *)
 PolyML.Project.make "theories/graphical_theory.ML";
 PolyML.Project.make "io/graphical_theory_io.ML";
 

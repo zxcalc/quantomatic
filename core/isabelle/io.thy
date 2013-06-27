@@ -2,32 +2,15 @@ theory io
 imports Main graph 
 uses
 
-(* TODO(ldixon): push the edits to xml.ML back to Isabelle -
-re-loading over Isabelle's library means that quanto's XML structure,
-and anything that uses it, will be incompatible with the one that is
-loaded over it. Alternatively, make an xml2 library. *)
-"~~/contrib/isaplib/General/xml.ML"
-
 (* Quantomatic CORE *)
 
 (* Generic output/input tools *)
- "../../core/io/xml_parse_utils.ML"
- "../../core/io/xml_output_utils.ML"
  "../../core/io/input.ML"
  "../../core/io/output.ML"
  "../../core/io/json_io.ML"
- "../../core/io/xml_io.ML"
-(*
- "../../core/io/input_xml.ML"
- "../../core/io/output_xml.ML"
- "../../core/io/input_linrat.ML"
- "../../core/io/output_linrat.ML" *)
- "../../core/io/reader.ML"
- "../../core/io/writer.ML"
 
 (* Expressions *)
  "../../core/io/linrat_json.ML"
- "../../core/io/linrat_xml.ML"
 
 (* Graph Component Data *)
 (* component data is a bit of a hack, and has I/O interdependencies *)
@@ -37,24 +20,14 @@ loaded over it. Alternatively, make an xml2 library. *)
  "../../core/theories/enum_data.ML"
 
 (* Graphs *)
- "../../core/io/graph_xml_v2_input.ML"
- "../../core/io/graph_xml_v2_output.ML"
  "../../core/io/graph_json.ML"
- "../../core/io/graph_annotations_xml_input.ML"
- "../../core/io/graph_annotations_xml_output.ML"
  "../../core/io/graph_annotations_json.ML"
 
 (* Rules *)
- "../../core/io/rule_xml_output.ML"
- "../../core/io/rule_xml_input.ML"
  "../../core/io/rule_json.ML"
 
 (* Rulesets *)
- "../../core/io/ruleset_xml_input.ML"
- "../../core/io/ruleset_xml_output.ML"
  "../../core/io/ruleset_json.ML"
- "../../core/io/ruleset_annotations_xml_input.ML"
- "../../core/io/ruleset_annotations_xml_output.ML"
  "../../core/io/ruleset_annotations_json.ML"
 
 (* Lists of rewrites *)
@@ -62,9 +35,6 @@ loaded over it. Alternatively, make an xml2 library. *)
 
 (* Simple dot output for graphs *)
  "../../core/io/graph_dot_output.ML"
-
-(* Package all IO stuff into one place *)
- "../../core/io/io_interface.ML"
 
 (* matching *)
  "../../core/matching/match_state.ML"

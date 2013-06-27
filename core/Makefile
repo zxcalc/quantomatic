@@ -41,7 +41,7 @@ $(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAP_ML_SRC_FILES)
 
 heap: $(QUANTO_HEAP)
 
-bin/%: toplevel/%.ML $(QUANTO_HEAP)
+bin/%: toplevel/%.ML $(QUANTO_HEAP) $(shell find "toplevel/$%" | grep ".ML$$")
 	@mkdir -p bin
 	POLYFLAGS="$(POLYFLAGS)" ../tools/polyc -l $(QUANTO_HEAP) -o $@ $<
 

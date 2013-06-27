@@ -159,8 +159,8 @@
  *   StringDataChunk ::= ESC 'N' DataChunk ;
  *   StructuredDataChunk ::= ESC 'S' DataChunk ;
  *   TaggedDataChunk ::= XmlDataChunk | StringDataChunk | StructedDataChunk ;
- *   ObjectResultFormat ::= "name" | "xml" | "json" | "pretty" | "native" ;
- *   GraphExportFormat ::= "native" | "xml" | "json" | "pretty" | "hilb" | "mathematica" | "matlab" | "tikz"
+ *   ObjectResultFormat ::= "name" | "json" | "pretty" | "native" ;
+ *   GraphExportFormat ::= "native" | "json" | "pretty" | "hilb" | "mathematica" | "matlab" | "tikz"
  *
  *   Argument ::= String | StringList | DataChunk | TaggedDataChunk |
  *                Integer | ObjectResultFormat | GraphExportFormat ;
@@ -356,7 +356,7 @@
  * Args:
  *   GraphName: String
  *   VertexName: String
- *   ComponentDataFormat: "pretty" | "xml" | "json"
+ *   ComponentDataFormat: "pretty" | "json"
  * Desc: Get the component data attached to a vertex
  * Response: XmlResponse | PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX | BADFORMAT
@@ -377,7 +377,7 @@
  * Args:
  *   GraphName: String
  *   EdgeName: String
- *   ComponentDataFormat: "pretty" | "xml" | "json"
+ *   ComponentDataFormat: "pretty" | "json"
  * Desc: Get the component data attached to an edge
  * Response: XmlResponse | PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE | BADFORMAT
