@@ -256,7 +256,6 @@ PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
 
 
 (*
-(*
  * Descrimination nets
  *)
 PolyML.Project.make "dnets/DNetsLib.ML";
@@ -268,8 +267,7 @@ PolyML.Project.make "dnets/TopDNet.ML";
 Testing.make_test "dnets/test.ML"; 
 
 (* Performance tests for dnets *)
-(* Testing.make_test "dnets/perf.ML"; *)
-*)
+(*Testing.make_test "dnets/perf.ML";*)
 
 (*
  * Controller / Interface

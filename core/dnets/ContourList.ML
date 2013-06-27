@@ -50,7 +50,7 @@ struct
       val first_contour = C.target_function(g)
       val contour_list = first_contour::[]
 
-      val remaining_list = G.get_vnames g
+      val remaining_list = G.get_vertices g
       val remaining_list = V.NSet.list_of remaining_list
       val g_list = replicate (length remaining_list) g
       val remaining_list = map2 C.L.mk g_list remaining_list
@@ -65,7 +65,7 @@ struct
       val first_contour = C.mk_first_contour g v
       val contour_list = first_contour::[]
 
-      val remaining_list = G.get_vnames g
+      val remaining_list = G.get_vertices g
       val remaining_list = V.NSet.list_of remaining_list
       val g_list = replicate (length remaining_list) g
       val remaining_list = map2 C.L.mk g_list remaining_list
