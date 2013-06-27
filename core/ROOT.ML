@@ -287,15 +287,18 @@ PolyML.Project.make "interface/console_lexer.ML"; (* lexer for quanto console *)
 PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *)
 PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
 PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
-(*
 
 (*
  * Top-level testing
  *)
+(*
+(* Regression tests currently use XML I/O *)
 Testing.make_test "test/regression-tests.ML";
-(* Metrics tests depend on Str_Theory *)
+*)
+(* Metrics tests depend on Substrings_Theory *)
 Testing.make_test "metrics/test/test.ML";
-Testing.make_test "example_code/ROOT.ML";*)
+(* Example code currently uses XML I/O *)
+(*Testing.make_test "example_code/ROOT.ML";*)
 
 
 
