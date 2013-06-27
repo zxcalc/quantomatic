@@ -223,53 +223,39 @@ PolyML.Project.make "io/graphical_theory_io.ML";
 PolyML.Project.make "theories/red_green/theory.ML";
 PolyML.Project.make "theories/red_green/io.ML";
 
-
-(*PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
+(*
+PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
 PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
-PolyML.Project.make "theories/red_green/vertex.ML";
-PolyML.Project.make "theories/red_green/graph.ML";
-PolyML.Project.make "theories/red_green/theory.ML";
-PolyML.Project.make "theories/red_green/io.ML";
+*)
 
 (* ghz-w specific vertices, graphs, and matching *)
-PolyML.Project.make "theories/ghz_w/vertex.ML";
-PolyML.Project.make "theories/ghz_w/graph.ML";
 PolyML.Project.make "theories/ghz_w/theory.ML";
 PolyML.Project.make "theories/ghz_w/io.ML";
 
 (* Graphs having vertices with strings as data, substring as matching *)
-PolyML.Project.make "theories/substrings/vertex.ML";
-PolyML.Project.make "theories/substrings/graph.ML";
 PolyML.Project.make "theories/substrings/theory.ML";
 PolyML.Project.make "theories/substrings/io.ML";
 
 (* Graphs having strings as types, linrat as data and both substrings and linrat
  * as matching *)
-PolyML.Project.make "theories/substr_linrat/vertex.ML";
-PolyML.Project.make "theories/substr_linrat/graph.ML";
 PolyML.Project.make "theories/substr_linrat/theory.ML";
 PolyML.Project.make "theories/substr_linrat/io.ML";
 Testing.make_test "theories/substr_linrat/test/test.ML";
 
 (* rgb specific vertices, graphs, and matching *)
-PolyML.Project.make "theories/red_green_blue/vertex.ML";
-PolyML.Project.make "theories/red_green_blue/graph.ML";
 PolyML.Project.make "theories/red_green_blue/theory.ML";
 PolyML.Project.make "theories/red_green_blue/io.ML";
 
 (* petri specific vertices, graphs, and matching *)
-PolyML.Project.make "theories/petri/vertex.ML";
-PolyML.Project.make "theories/petri/graph.ML";
 PolyML.Project.make "theories/petri/theory.ML";
 PolyML.Project.make "theories/petri/io.ML";
 
 (* Tactics as Graphs in Isabelle *)
-PolyML.Project.make "theories/isaplanner_rtechn/vertex.ML";
-PolyML.Project.make "theories/isaplanner_rtechn/graph.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/theory.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
 
 
+(*
 (*
  * Descrimination nets
  *)

@@ -1,13 +1,13 @@
 structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
 = struct
-  type nvdata = RG_Data.nvdata;
-  type edata = unit;
+  type nvdata = RG_Data.nvdata
+  type edata = RG_Data.edata
 
   structure IVDataInputJSON : INPUT_JSON =
   struct
-    open JsonInputUtils;
-    structure L = InputLinratJSON;
-    type data = RG_Data.nvdata;
+    open JsonInputUtils
+    structure L = InputLinratJSON
+    type data = nvdata
     val get_angle = L.input oo (get_easy Json.Null)
     val to_lower = String.implode o (map Char.toLower) o String.explode
     fun input (Json.String t) =
@@ -24,13 +24,13 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
               | "z" => RG_Data.Znd (get_angle obj "angle")
               | "x" => RG_Data.Xnd (get_angle obj "angle")
               | t   => raise bad_input_exp ("Unknown vertex type "^t,"type"))
-      | input _ = raise bad_input_exp ("Expected object","");
-  end;
+      | input _ = raise bad_input_exp ("Expected object","")
+  end
   structure IVDataOutputJSON : OUTPUT_JSON =
   struct
-    open JsonOutputUtils;
-    structure L = OutputLinratJSON;
-    type data = RG_Data.nvdata;
+    open JsonOutputUtils
+    structure L = OutputLinratJSON
+    type data = nvdata
     fun output (RG_Data.Znd a) =
           Json.Object (
             Json.empty_obj |> update ("type",Json.String "Z")
@@ -45,25 +45,25 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
           Json.Object (
             Json.empty_obj |> update ("type",Json.String "hadamard")
           )
-  end;
-  structure EDataInputJSON = InputUnitJSON;
-  structure EDataOutputJSON = OutputUnitJSON;
+  end
+  structure EDataInputJSON = InputUnitJSON
+  structure EDataOutputJSON = OutputUnitJSON
 
   structure DotStyle : DOT_STYLE =
   struct
-    type nvdata = nvdata;
+    type nvdata = nvdata
     fun style_for_ivertex_data (RG_Data.Znd _) =
           "[style=filled,fillcolor=green,fontcolor=black,shape=circle]"
       | style_for_ivertex_data (RG_Data.Xnd _) =
           "[style=filled,fillcolor=red,fontcolor=white,shape=circle]"
       | style_for_ivertex_data RG_Data.Hnd =
-          "[style=filled,fillcolor=yellow,fontcolor=white,shape=square]";
-  end;
-end;
+          "[style=filled,fillcolor=yellow,fontcolor=white,shape=square]"
+  end
+end
 
 (* Use this for convenience if you don't need annotations *)
 structure RG_GraphicalTheoryIO = GraphicalTheoryIO(
   structure Theory = RG_Theory
   structure GraphComponentDataIO = RG_ComponentDataIO
-);
+)
 

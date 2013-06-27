@@ -1,13 +1,13 @@
 signature GRAPH_ADAPTER =
 sig
-    structure Graph : GRAPH
+    structure Graph : OGRAPH
     val pretty_vertex : AlgFormat.format -> Graph.T ->
 			V.name -> Pretty.T
 end
 
 (* construct tensor term from a DAG *)
 functor TensorTermFun (
-  structure Graph : GRAPH
+  structure Graph : OGRAPH
   val pretty_vertex : AlgFormat.format -> Graph.T ->
 		      V.name -> Pretty.T) =
 struct
@@ -23,12 +23,8 @@ datatype term =
 type component = E.name list * term * E.name list
 
 
-fun wrap_vertex graph v = let
-    val (ie,oe) = ((apfst E.NSet.list_of) o
-		   (apsnd E.NSet.list_of) o
-		   snd) (Graph.get_vertex graph v)
-in (ie,V v,oe)
-end
+fun wrap_vertex graph v =
+  (Graph.get_in_edges graph v,V v,Graph.get_out_edges graph v)
 
 (* tensor a list of components, gathering inputs *)
 fun tensor [] = ([],Id 0,[])
