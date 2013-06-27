@@ -12,7 +12,7 @@ ISAPLIB_SOURCES=../../isaplib
 # polyml executable
 POLYML_HOME=$(shell ../tools/findpoly.sh)
 POLYML=$(POLYML_HOME)/bin/poly
-POLYFLAGS=-H 200
+POLYFLAGS=-H 200 $(if $(FAST),--disable-tests) $(if $(V),--test-log-level=$(V))
 
 
 ################################
