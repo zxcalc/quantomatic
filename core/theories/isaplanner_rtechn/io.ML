@@ -25,9 +25,9 @@ structure RTechn_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
           fold_arr_easy goal_name_from_json obj prop StrIntName.NSet.empty
     fun input (Json.Object obj) =
           (case to_lower (get_string obj "type")
-             of "RT" => RTechn_Data.RTechnNode
+             of "rt" => RTechn_Data.RTechnNode
                               (get_string_easy "?" obj "tactic")
-              | "Gs" =>
+              | "gs" =>
                   (RTechn_Data.GoalNode
                      (get_string_easy "" obj "goal_type",
                      get_goal_names obj "goal_names")
