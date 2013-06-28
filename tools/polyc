@@ -62,7 +62,8 @@ fi
 POLY="$POLYML_HOME/bin/poly"
 POLYML_LIB="$POLYML_HOME/lib"
 
-FILE="$1"
+DIR="$(dirname "$1")"
+FILE="$(basename "$1")"
 NAME="${FILE%%.*}"
 if [[ $PROG == "" ]]; then PROG=$NAME; fi
 if [[ $TOP ]]
@@ -111,6 +112,8 @@ if [[ $HEAP != "" ]]; then
 fi
 
 cat >> "$BUILDFILE" <<- EOF
+	val polyc____oldDir = OS.FileSys.getDir();
+	OS.FileSys.chDir "${DIR}";
 	PolyML.exception_trace (fn () => use "${FILE}")
 	    handle IO.Io {name="${FILE}",cause=(OS.SysErr (msg,_)),...} =>
 	           (TextIO.print ("Could not open file \"${FILE}\": "^msg^"\n");
@@ -118,10 +121,12 @@ cat >> "$BUILDFILE" <<- EOF
 	         | _ =>
 	           (TextIO.print ("Exception raised when usiing file \"${FILE}\"\n");
 	            OS.Process.exit OS.Process.failure);
+	OS.FileSys.chDir polyc____oldDir;
 	fun trap f () = (PolyML.exception_trace f; OS.Process.exit OS.Process.success)
 	                handle _ => OS.Process.exit OS.Process.failure;
 	PolyML.shareCommonData ${MAIN};
 	PolyML.fullGC();
+	val _ = TextIO.print "Exporting \"${PROG}${OBJEXT}\"\n";
 	PolyML.export("${PROG}", trap ${MAIN});
 	val _ = OS.Process.exit OS.Process.success;
 	EOF
@@ -131,6 +136,7 @@ rm -f "$BUILDFILE"
 
 if [[ $POLYEXIT == 0 ]]; then
 	export LD_RUN_PATH="$POLYML_LIB:$LD_RUN_PATH"
+	echo "cc $LDFLAGS \"-L${POLYML_LIB}\" -lpolymain -lpolyml -o \"${PROG}\" \"${PROG}${OBJEXT}\""
 	cc $LDFLAGS "-L${POLYML_LIB}" -lpolymain -lpolyml -o "${PROG}" "${PROG}${OBJEXT}"
 	rm -f "${PROG}${OBJEXT}"
 else
