@@ -260,14 +260,15 @@ PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
 (*
  * Top-level testing
  *)
-(*
-(* Regression tests currently use XML I/O *)
+(* FIXME: some tests fail
+Testing.make_test "test/old-rg-ruleset-rewriter-tests.ML";
+*)
+(* FIXME: some tests fail
 Testing.make_test "test/regression-tests.ML";
 *)
 (* Metrics tests depend on Substrings_Theory *)
 Testing.make_test "metrics/test/test.ML";
-(* Example code currently uses XML I/O *)
-(*Testing.make_test "example_code/ROOT.ML";*)
+Testing.make_test "example_code/ROOT.ML";
 
 
 

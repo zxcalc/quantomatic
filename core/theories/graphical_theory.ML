@@ -11,7 +11,7 @@ sig
   sharing Rule.Graph.Sharing = Graph.Sharing
 
   (* sets of rules for a graph *)
-  structure Ruleset : RULESET
+  structure Ruleset : BANG_GRAPH_RULESET
   sharing Ruleset.Sharing.Rule = Rule.Sharing 
 
   (* A matching between two graphs *)
