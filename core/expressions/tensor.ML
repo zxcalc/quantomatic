@@ -88,7 +88,7 @@ struct
     val vect' = if Semiring.is_one c then vect else Vector.map ((curry Semiring.times) c) vect
     val n = Vector.foldr (Semiring.gcd) Semiring.zero vect'
   in if Semiring.is_zero n then ((Semiring.one, Semiring.one), (size,vect))
-                           else ((c,n), (size, Vector.map (fn m =>Semiring.div_real (m,n)) vect'))
+                           else ((c,n), (size, Vector.map (fn m =>Semiring.divide (m,n)) vect'))
   end
   
   fun get_from_product t1 (t2 as ((d2, l2, u2), v2)) (row,col) = let

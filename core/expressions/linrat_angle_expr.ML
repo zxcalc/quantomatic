@@ -104,7 +104,7 @@ struct
 
   fun mk const kv_list = (const, fold X.NTab.update kv_list empty);
 
-  fun mk_var nm = mk PiCoeff.zero [(nm, Coeff.mk 1 1)];
+  fun mk_var nm = mk PiCoeff.zero [(nm, Coeff.mk (1, 1))];
 
   (* reduce exprs to a normal by removing variables whose Coeff = 0 ======*)
   fun reduce_expr (p, t) = 
@@ -132,7 +132,7 @@ struct
 
   (* arithmetic subtraction for expressions ========================*)
   fun subtr_expr e1 e2 = 
-      add_expr e1 (scale_expr (Coeff.mk ~1 1) e2)
+      add_expr e1 (scale_expr (Coeff.mk (~1, 1)) e2)
 
   (* =====================================================================*)
   (* subs
@@ -244,7 +244,7 @@ struct
           | SOME pv => 
             let (* 1/Coeff of match var *)
                 val coeff_of_pv = X.NTab.get ptab pv
-                val c = Coeff.divide (Coeff.mk 1 1) coeff_of_pv
+                val c = Coeff.divide (Coeff.mk (1, 1)) coeff_of_pv
                 val pat_subst = scale_expr c (pcoeff0, X.NTab.delete pv ptab)
             in
               SOME (Match (X.NTab.update (pv, (tgt2,pat_subst)) mtab))
@@ -322,7 +322,7 @@ struct
        (* there is a pat var not in target, put difference between 
           expressions into an instantiation of that var. *)
         | SOME match_var => 
-          let val c = Coeff.divide (Coeff.mk 1 1) 
+          let val c = Coeff.divide (Coeff.mk (1, 1)) 
                    (* subs can have introduced previously unseen vars *)
                                    (X.NTab.get (snd pat2) match_var) 
               (* 1/Coeff of match var *)
@@ -369,16 +369,16 @@ struct
     exception semantic_exp
 
     (* semantic ops *)
-    fun rat (TOK(L.INT n), TOK(L.INT d)) = RAT (Coeff.mk n d)
+    fun rat (TOK(L.INT n), TOK(L.INT d)) = RAT (Coeff.mk (n, d))
       | rat _ = raise semantic_exp
-    fun pirat (TOK(L.INT n), TOK(L.INT d)) = RAT (PiCoeff.mk n d)
+    fun pirat (TOK(L.INT n), TOK(L.INT d)) = RAT (PiCoeff.mk (n, d))
       | pirat _ = raise semantic_exp
     fun whole_num mker n = mker (n,TOK(L.INT 1))
-    fun rat_term (RAT r, TOK(L.ID id)) = EXP (mk (PiCoeff.mk 0 1) [(X.mk id,r)])
+    fun rat_term (RAT r, TOK(L.ID id)) = EXP (mk (PiCoeff.mk (0, 1)) [(X.mk id,r)])
       | rat_term _ = raise semantic_exp
     fun const_term (RAT r) = EXP (mk r [])
       | const_term _ = raise semantic_exp
-    val one_pi = const_term (RAT (Coeff.mk 1 1))
+    val one_pi = const_term (RAT (Coeff.mk (1, 1)))
     fun var_term (TOK(L.ID id)) = EXP (mk_var (X.mk id))
       | var_term _ = raise semantic_exp
     fun plus (EXP a, EXP b) = EXP (add_expr a b)

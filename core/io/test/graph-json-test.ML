@@ -7,7 +7,7 @@ local
   structure GIn = GJsonInput;
   structure GOut = GJsonOutput;
   val expr_1_json = "{\"vars\":{\"a\":{\"num\":1,\"denom\":3},\"b\":{\"num\":2,\"denom\":1}}}"
-  val expr_1 = L.mk C.zero [(X.mk "a",C.mk 1 3), (X.mk "b",C.mk 2 1)]
+  val expr_1 = L.mk C.zero [(X.mk "a",C.mk (1,3)), (X.mk "b",C.mk (2,1))]
   val expr_2_json = "{\"pi\":{\"num\":1,\"denom\":1}}"
   val expr_2 = L.pi
   val expr_3_json = "{\"pi\":{\"num\":1,\"denom\":2},\"vars\":{\"\\\\alpha\":{\"num\":1,\"denom\":1}}}"

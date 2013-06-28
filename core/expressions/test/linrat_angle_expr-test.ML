@@ -17,8 +17,8 @@ local
   val b = Expr.mk_var b_v;
   val c = Expr.mk_var c_v;
 
-  val one = Coeff.mk 1 1;
-  val two = Coeff.mk 2 1;
+  val one = Coeff.mk (1, 1);
+  val two = Coeff.mk (2, 1);
 
   val one_e = Expr.mk one [];
   
@@ -76,8 +76,8 @@ in
   val _ = Testing.test "Parse 0" parse ("0", zero);
   val _ = Testing.test "Parse a + b" parse ("a + b", a + b);
   val _ = Testing.test "Parse 2\\pi + 1" parse ("2\\pi + 1", two*pi + one_e);
-  val _ = Testing.test "Parse 3/4 a" parse ("3/4 a", (Coeff.mk 3 4)*a);
-  val _ = Testing.test "Parse 1/2" parse ("1/2", Expr.mk (Coeff.mk 1 2) []);
+  val _ = Testing.test "Parse 3/4 a" parse ("3/4 a", (Coeff.mk (3, 4))*a);
+  val _ = Testing.test "Parse 1/2" parse ("1/2", Expr.mk (Coeff.mk (1, 2)) []);
 
   val _ = Testing.test "Parse (fail) &" parse_fail "&";
   val _ = Testing.test "Parse (fail) b/a" parse_fail "b/a";

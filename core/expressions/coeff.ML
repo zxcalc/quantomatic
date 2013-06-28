@@ -1,4 +1,4 @@
-signature COEFF =
+signature FIELD =
 sig
   type T;
   val add : T -> T -> T;
@@ -20,8 +20,8 @@ end
 
 signature RATIONAL = 
 sig
-  include COEFF;
-  val mk : int -> int -> T
+  include FIELD;
+  val mk : int * int -> T
 end
 
 
@@ -74,10 +74,10 @@ fun rat_subtr (n1,d1) (n2,d2) = rat_add (n1,d1) (~n2,d2)
 fun rat_mult (n1,d1) (n2,d2) = rat_reduce (n1*n2, d1*d2)
 fun rat_div (n1,d1) (n2,d2) = rat_mult (n1,d1) (d2,n2)
 
-fun mk n d = rat_reduce (n,d)
+fun mk (n,d) = rat_reduce (n,d)
 
-val zero = mk 0 1
-val one = mk 1 1
+val zero = mk (0, 1)
+val one = mk (1, 1)
 fun is_zero r = eq r zero
 fun is_one r = eq r one
 fun negate (n1,d1) = (~n1,d1);
@@ -124,7 +124,7 @@ fun subtr (n1,d1) (n2,d2) = add (n1,d1) (~n2,d2)
 fun mult (n1,d1) (n2,d2) = rat_reduce (n1*n2, d1*d2)
 fun op div (n1,d1) (n2,d2) = mult (n1,d1) (d2,n2)
 
-fun mk n d = rat_reduce (n,d);
+fun mk (n, d) = rat_reduce (n,d);
 
 end;
 

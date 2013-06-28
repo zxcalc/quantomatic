@@ -62,6 +62,8 @@ PolyML.Project.make "expressions/lex.ML";
 PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/expr.ML"; 
 PolyML.Project.make "expressions/linrat_angle_expr.ML";
+PolyML.Project.make "expressions/semiring.ML";
+PolyML.Project.make "expressions/tensor.ML";
 
 (* I/O *)
 PolyML.Project.make "io/linrat_json.ML";
@@ -205,8 +207,8 @@ PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix 
 *)
 (* I/O *)
 PolyML.Project.make "io/rewrite_json.ML";
+(*Testing.make_test "rewriting/test/rewriter-test.ML";*)
 (*
-Testing.make_test "rewriting/test/rewriter-test.ML";
 Testing.make_test "rewriting/test/ruleset_rewriter-tests.ML";
 *)
 

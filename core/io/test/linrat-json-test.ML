@@ -30,12 +30,12 @@ in
 
   val _ = Testing.test "LinratAngleExpr I/O: parse 1/3 a + 2 b"
             test_parse ("{\"vars\":{\"a\":{\"num\":1,\"denom\":3},\"b\":{\"num\":2,\"denom\":1}}}",
-                        L.mk C.zero [(X.mk "a",C.mk 1 3),
-                                     (X.mk "b",C.mk 2 1)]);
+                        L.mk C.zero [(X.mk "a",C.mk (1, 3)),
+                                     (X.mk "b",C.mk (2, 1))]);
 
   val _ = Testing.test "LinratAngleExpr I/O: parse 3/8 pi + 2/3 \\beta"
             test_parse ("{\"pi\":{\"num\":3,\"denom\":8},\"vars\":{\"\\\\beta\":{\"num\":2,\"denom\":3}}}",
-                        L.mk (C.mk 3 8) [(X.mk "\\beta",C.mk 2 3)])
+                        L.mk (C.mk (3, 8)) [(X.mk "\\beta",C.mk (2, 3))])
 
   val _ = Testing.test "LinratAngleExpr I/O: reparse zero"
             test_reparse L.zero;
@@ -45,15 +45,15 @@ in
 
   val _ = Testing.test "LinratAngleExpr I/O: parse a + 2b"
             test_reparse (L.mk C.zero [(X.mk "a",C.one),
-                                       (X.mk "b",C.mk 2 1)]);
+                                       (X.mk "b",C.mk (2, 1))]);
 
   val _ = Testing.test "LinratAngleExpr I/O: parse 3/8 pi + 2/3 \\beta"
-            test_reparse (L.mk (C.mk 3 8) [(X.mk "\\beta",C.mk 2 3)])
+            test_reparse (L.mk (C.mk (3, 8)) [(X.mk "\\beta",C.mk (2, 3))])
 
   (* NB: uses a quirk of the JSON parser (it parses JSON fragments) *)
   val _ = Testing.test "LinratAngleExpr I/O: parse as string"
             test_parse ("\"3/8 \\\\pi + 2/3 \\\\beta\"",
-                        L.mk (C.mk 3 8) [(X.mk "\\beta",C.mk 2 3)])
+                        L.mk (C.mk (3, 8)) [(X.mk "\\beta",C.mk (2, 3))])
 
   val _ = Testing.assert_no_failed_tests();
 end

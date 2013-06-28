@@ -1,12 +1,12 @@
 signature GCD_SEMIRING =
 sig
   type T
-  exception DivisionByComplex
+  (*exception DivisionByComplex*)
   val plus : T * T -> T
   val times : T * T -> T
   val zero : T
   val one : T
-  val div_real : T * T -> T        (* raises DivisionByComplex is second arg is not real *)
+  val divide : T * T -> T
   val is_zero : T -> bool
   val is_one : T -> bool
   val to_string : T -> string
@@ -21,10 +21,9 @@ end
 structure IntSemiring : GCD_SEMIRING =
 struct
   type T = int
-  exception DivisionByComplex
   val plus = op+
   val times = op*
-  val div_real = op div
+  val divide = op div
   val zero = 0
   val one = 1
   fun is_zero v = (v=zero)
@@ -46,12 +45,12 @@ end
 structure CIntSemiring : GCD_SEMIRING =
 struct
   type T = int * int
-  exception DivisionByComplex
   
   fun plus ((r1,i1),(r2,i2)) = (r1+r2,i1+i2)
   fun times ((r1,i1),(r2,i2)) = (r1*r2 - i1*i2, r1*i2 + r2*i1)
-  fun div_real ((r1,i1),(r2,0)) = (r1 div r2, i1 div r2)
-    | div_real _ = raise DivisionByComplex
+  fun conjugate (r,i) = (r,~i)
+  fun divide ((r1,i1),(r2,0)) = (r1 div r2, i1 div r2)
+    | divide (num,denom) = divide (times (num, conjugate denom), times (denom, conjugate denom))
   val zero = (0,0)
   val one = (1,0)
   fun is_zero v = (v=zero)
@@ -71,6 +70,5 @@ struct
   fun gcd ((r1,i1),(r2,i2)) = (IntSemiring.gcd (IntSemiring.gcd (r1,i1), IntSemiring.gcd (r2,i2)), 0)
     
   val total_ord = prod_ord int_ord int_ord
-  fun conjugate (r,i) = (r,~i)
   fun is_real (_,i) = (i=0)
 end

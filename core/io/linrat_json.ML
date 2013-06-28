@@ -8,7 +8,7 @@ structure InputLinratJSON : INPUT_JSON where type data = LinratAngleExpr.T
     val num = get_int obj "num"
     val denom = get_int obj "denom"
   in
-    C.mk num denom
+    C.mk (num, denom)
   end
   
   fun get_rational_easy dflt obj prop =
