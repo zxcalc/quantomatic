@@ -64,7 +64,7 @@ PolyML.Project.make "expressions/expr.ML";
 PolyML.Project.make "expressions/linrat_angle_expr.ML";
 PolyML.Project.make "expressions/semiring.ML";
 PolyML.Project.make "expressions/tensor.ML";
-PolyML.Project.make "expressions/matrix.ML";
+(*PolyML.Project.make "expressions/matrix.ML";*)
 
 (* I/O *)
 PolyML.Project.make "io/linrat_json.ML";
