@@ -6,12 +6,18 @@ signature MATRIX =
 sig
   type T
   (* The type of matrix elements; see coeff.ML *)
-  structure F : FIELD
+  structure Field : FIELD
+
+  val num_rows : T -> int
+  val num_cols : T -> int
+
+  (* adds a zero column at the given index *)
+  val insert_zero_column : int -> T -> T
 
   (* Takes a size (rows,cols) and a function from positions to elements *)
-  val mk : (int * int) -> (int * int -> F.T) -> T
+  val mk : (int * int) -> (int * int -> Field.T) -> T
   (* Takes a list of rows, each row being a list of elements *)
-  val from_lists : F.T list list -> T
+  val from_lists : Field.T list list -> T
 
   (* Perform Guassian elimination for the given number of unknowns.
    *
@@ -30,19 +36,20 @@ sig
    * otherwise the result will be in RREF.
    *
    * Raises not_in_rref_exp if given a matrix not in RREF. *)
-  val gauss_update : int -> (int -> F.T) -> T -> T option
+  val gauss_update : int -> (int -> Field.T) -> T -> T option
 
   (* Get a single element; takes a position in (row,col) form *)
-  val get : T -> int * int -> F.T
+  val get : T -> int * int -> Field.T
 
   val pretty : T -> Pretty.T
   val print : T -> unit
 end
 
-functor Matrix(Field: FIELD) =
+functor Matrix(Field: FIELD) : MATRIX =
 struct
   structure F = Field
   type T = (Field.T Vector.vector) Vector.vector
+  structure Field = Field
 
   fun mk (rows,cols) f =
     Vector.tabulate (rows, fn i => Vector.tabulate (cols, fn j => f(i,j)))
@@ -59,6 +66,16 @@ struct
   exception not_in_rref_exp of T
 
   fun find_pivot row = Vector.findi (fn (_,e) => not (Field.is_zero e)) row
+
+  fun insert_zero i row = Vector.tabulate (Vector.length row + 1,
+    fn j => (
+      if j < i then Vector.sub (row, j)
+      else if j = i then Field.zero
+      else Vector.sub (row, j - 1)
+    ))
+
+  fun insert_zero_column i = Vector.map (insert_zero i)
+
   fun mult_row d row = Vector.map (fn e => Field.mult d e) row
   fun subtr_row row1 row2 = Vector.mapi (fn (i,e) => Field.subtr e (Vector.sub (row2,i))) row1
 
