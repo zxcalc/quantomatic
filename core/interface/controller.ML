@@ -318,23 +318,6 @@ struct
     | update_ruleset_ud rset_ud _ state =
       State.set_rset_ud rset_ud state
 
-  fun slurp file = let
-    val instream =  TextIO.openIn file
-    fun read str = case TextIO.inputLine instream
-                     of  SOME s => read (str ^ s)
-                      | NONE => str
-    val s = read ""
-  in
-    (TextIO.closeIn instream ; s)
-  end;
-  fun write_to_file file s = let
-    val outstream = TextIO.openOut file
-  in
-    (TextIO.output (outstream, s);
-     TextIO.closeOut outstream)
-  end;
-  fun write_json_to_file file = (write_to_file file) o Json.encode;
-
   fun load_ruleset data replace state = (let
     val json = Json.of_string data
     val (rs,ud) = TheoryIO.InputRulesetJSON.input json
@@ -478,13 +461,10 @@ struct
                 (StringResponse { data = GraphName.dest nm },state')
               end
           | LoadGraphFromFileRequest { fileName } =>
-             (load_graph (OS.Path.file fileName) (slurp fileName)
-              handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn,...} =>
-                     (ErrorResponse { errorCode = "FILEACCESS",
-                                      message = ("The file could not be read ("^msg^")") }, state)
-                   | IO.Io {name : string, function : string, ...} =>
-                     (ErrorResponse { errorCode = "FILEACCESS",
-                                      message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
+             (load_graph (OS.Path.file fileName) (File_Io.read_string fileName)
+            handle File_Io.io_exn msg =>
+                   (ErrorResponse { errorCode = "FILEACCESS",
+                    message = msg }, state))
           | LoadGraphFromDataRequest { data, requestedName } =>
              load_graph requestedName data
           | CopyGraphRequest { graphName } =>
@@ -505,19 +485,14 @@ struct
           val graph = get_graph graphName state
           val ud = get_graph_ud graphName state
           val json = TheoryIO.OutputGraphJSON.output (graph,ud)
-          val _ = write_json_to_file fileName json
+          val _ = File_Io.write_json fileName json
         in
           (OkResponse, state)
         end
-        handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
+        handle File_Io.io_exn msg =>
                (ErrorResponse {
                   errorCode = "FILEACCESS",
-                  message = ("The file could not be written to ("^msg^")")
-                }, state)
-             | IO.Io {name : string, function : string, ...} =>
-               (ErrorResponse {
-                  errorCode = "FILEACCESS",
-                  message = ("The file could not be written to (unknown error in "^function^" of "^name^")")
+                  message = msg
                 }, state))
 
     | serviceRequest' (RenameGraphRequest { oldName, newName }) state =
@@ -886,13 +861,10 @@ fun hilb ([format], graph) =
 
     (* Rulesets *)
     | serviceRequest' (ImportRulesetFromFileRequest { fileName, replace }) state =
-       (load_ruleset (slurp fileName) replace state
-        handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
+       (load_ruleset (File_Io.read_string fileName) replace state
+        handle File_Io.io_exn msg =>
                (ErrorResponse { errorCode = "FILEACCESS",
-                                message = ("The file could not be read ("^msg^")") }, state)
-             | IO.Io {name : string, function : string, ...} =>
-               (ErrorResponse { errorCode = "FILEACCESS",
-                                message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
+                message = msg }, state))
 
     | serviceRequest' (ImportRulesetFromDataRequest { data, replace }) state =
         load_ruleset data replace state
@@ -902,16 +874,14 @@ fun hilb ([format], graph) =
           val rs = State.get_rset state
           val ud = State.get_rset_ud state
           val json = TheoryIO.OutputRulesetJSON.output (rs,ud)
-          val _ = write_json_to_file fileName json
+          val _ = File_Io.write_json fileName json
         in
           (OkResponse, state)
         end
-        handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
-               (ErrorResponse { errorCode = "FILEACCESS",
-                                message = ("The file could not be written to ("^msg^")") }, state)
-             | IO.Io {name : string, function : string, ...} =>
-               (ErrorResponse { errorCode = "FILEACCESS",
-                                message = ("The file could not be written to (unknown error in "^function^" of "^name^")") }, state))
+        handle File_Io.io_exn msg =>
+               (ErrorResponse {
+                  errorCode = "FILEACCESS",
+                  message = msg }, state))
 
     | serviceRequest' (ExportRulesetAsDataRequest) state =
         let

@@ -521,21 +521,12 @@ struct
           G.add_named_bbox bn
         end
 
-  local
-    fun write_to_file file s = let
-      val outstream = TextIO.openOut file
-    in
-      (TextIO.output (outstream, s);
-       TextIO.closeOut outstream)
-    end
-  in
-    fun graph_from_json str    = GJsonInput.input str
-    fun load_graph      path   = GJsonInput.input (Json.read_file path)
-    fun save_dot_graph  g path = write_to_file path (GDotOutput.output g)
+  fun graph_from_json str    = GJsonInput.input str
+  fun load_graph      path   = GJsonInput.input (File_Io.read_json path)
+  fun save_dot_graph  g path = File_Io.write_string path (GDotOutput.output g)
 
-    val print_dot_graph        = writeln o GDotOutput.output
-    val print_json_graph       = Pretty.writeln o Json.pretty o GJsonOutput.output
-  end
+  val print_dot_graph        = writeln o GDotOutput.output
+  val print_json_graph       = Pretty.writeln o Json.pretty o GJsonOutput.output
 
   fun num_bboxes g = B.NSet.cardinality (G.get_bboxes g)
 
