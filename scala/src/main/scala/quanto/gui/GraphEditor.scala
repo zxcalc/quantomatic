@@ -13,9 +13,10 @@ import quanto.layout.ForceLayout
 object GraphEditor extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
-  println("loading theory " + GraphEditor.getClass.getResource("strategy_graph.qtheory"))
-  val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("strategy_graph.qtheory"))
-  val StringVETheory = Theory.fromJson(Json.parse(thyFile))
+  // println("loading theory " + GraphEditor.getClass.getResource("strategy_graph.qtheory"))
+  // val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("strategy_graph.qtheory"))
+  // val StringVETheory = Theory.fromJson(Json.parse(thyFile))
+  val StringVETheory = Theory.DefaultTheory
 
   val graphEditPanel = new GraphEditPanel(StringVETheory, readOnly = false)
   val graphDocument = graphEditPanel.graphDocument
