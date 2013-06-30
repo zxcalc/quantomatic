@@ -18,6 +18,11 @@ signature LINRAT_ANGLE_EXPR
   val subtr_expr : T -> T -> T
   val add_expr : T -> T -> T
   val scale_expr : Coeff.T -> T -> T
+
+  (* take a rational matrix in GNF and a list labelling its columns to the
+   * associated substitution map. For under-specified systems, free variables
+   * will be sent to themselves. *)
+  val gauss_matrix_to_subst : RationalMatrix.T -> X.name list -> T XTab.T
 end;
 
 structure LinratAngleExpr =
@@ -120,6 +125,8 @@ struct
   fun scale_expr s (e_pi, e_tab) = 
       (PiCoeff.mult s e_pi, X.NTab.map_all (K (Coeff.mult s)) e_tab);
 
+  fun mk_const k = scale_expr k pi
+
   (* arithmetic addition for expressions ========================*)
   fun add_expr (pi1,tab1) (pi2,tab2) = 
       let 
@@ -157,6 +164,37 @@ struct
       end
 
   (* =====================================================================*)
+
+  fun gauss_matrix_to_subst m cols =
+    fold (fn i => fn tab => (
+      let
+        (* extract the leading column name, along with the rest of the expression *)
+        val (x_opt,expr) =
+          fold_index (fn (j,y) => fn (x_opt, expr) => (
+              case x_opt
+                of NONE => if Coeff.is_one (RationalMatrix.get m (i,j))
+                           then (SOME y,zero)
+                           else (NONE,zero)
+                 | SOME x => (SOME x, subtr_expr expr (
+                                scale_expr (RationalMatrix.get m (i,j)) (
+                                  case XTab.get_opt tab y
+                                    of SOME e => e
+                                     | NONE   => mk_var y
+                                )
+                             ))
+          )) cols (NONE,zero)
+        (* treat the rightmost column as the constant value *)
+        val expr = subtr_expr expr
+          (mk_const (RationalMatrix.get m (i, RationalMatrix.num_cols m - 1)))
+      in
+        case x_opt
+          of SOME x =>
+                if XTab.dom_contains tab x
+                then raise RationalMatrix.not_in_rref_exp m
+                else tab |> XTab.add (x,expr)
+           | NONE => raise RationalMatrix.not_in_rref_exp m
+      end
+    )) ((RationalMatrix.num_rows m - 1) downto 0) XTab.empty
 
   (*
   fun pretty (pi, tab) =

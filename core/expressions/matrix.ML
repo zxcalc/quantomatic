@@ -140,13 +140,13 @@ struct
   fun print m = Pretty.writeln (pretty m)
 end
 
-structure RatMatrix = Matrix(Rational);
+structure RationalMatrix = Matrix(Rational);
 
 TextIO.print "find me";
 
-val matr = RatMatrix.from_lists (map (map Rational.mk) [
+val matr = RationalMatrix.from_lists (map (map Rational.mk) [
   [(1,1), (1,1), (2,1)],
   [(1,1), (1,1), (2,1)]
 ]);
 
-RatMatrix.print (the (RatMatrix.gauss 2 matr));
+RationalMatrix.print (the (RationalMatrix.gauss 2 matr));
