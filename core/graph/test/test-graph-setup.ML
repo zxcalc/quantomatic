@@ -94,34 +94,67 @@ struct
         Pretty.block [Pretty.str "EString2(", Pretty.str s, Pretty.str ")"]
   
   (* matching and substitution *)
-  type psubst = LinratAngleExpr.match
-  type subst = psubst
-  fun init_psubst_from_data _ _ = LinratAngleExpr.empty_match
-  val solve_psubst = Seq.single
+  type psubst = LinratMatcher.psubst
+  type subst = LinratMatcher.subst
+  
+  local
+    fun pull_names (nvtab,etab) = X.NSet.empty
+      |> VTab.fold (
+           fn (_,VExpr1 a) => X.NSet.union_merge (LinratAngleExpr.free_vars a)
+            | (_,VExpr2 a) => X.NSet.union_merge (LinratAngleExpr.free_vars a)
+            | _ => I
+         ) nvtab
+      |> ETab.fold (
+           fn (_,EExpr1 a) => X.NSet.union_merge (LinratAngleExpr.free_vars a)
+            | (_,EExpr2 a) => X.NSet.union_merge (LinratAngleExpr.free_vars a)
+            | _ => I
+         ) etab
+  in
+    fun init_psubst_from_data p_tabs t_tabs =
+      LinratMatcher.init_psubst_from_names (pull_names p_tabs, pull_names t_tabs)
+  end
+  
+  fun solve_psubst ps = Seq.single (LinratMatcher.solve_psubst ps)
 
   fun match_nvdata ((VExpr1 a1),(VExpr1 a2)) m = 
-        LinratAngleExpr.match a1 a2 m
+        LinratMatcher.match (a1, a2) m
     | match_nvdata ((VExpr2 a1),(VExpr2 a2)) m = 
-        LinratAngleExpr.match a1 a2 m
+        LinratMatcher.match (a1, a2) m
     | match_nvdata (v1,v2) m = 
         if nvdata_eq (v1, v2) then SOME m else NONE
 
-  fun subst_in_nvdata sub (VExpr1 a) = VExpr1 (LinratAngleExpr.subst sub a)
-    | subst_in_nvdata sub (VExpr2 a) = VExpr2 (LinratAngleExpr.subst sub a)
+  fun subst_in_nvdata sub (VExpr1 a) =
+        let
+          val (sub',a') = LinratMatcher.subst_in_expr sub a
+        in VExpr1 a'
+        end
+    | subst_in_nvdata sub (VExpr2 a) =
+        let
+          val (sub',a') = LinratMatcher.subst_in_expr sub a
+        in VExpr2 a'
+        end
     | subst_in_nvdata _ vd = vd
 
   fun match_edata ((EExpr1 a1),(EExpr1 a2)) m = 
-        LinratAngleExpr.match a1 a2 m
+        LinratMatcher.match (a1, a2) m
     | match_edata ((EExpr2 a1),(EExpr2 a2)) m = 
-        LinratAngleExpr.match a1 a2 m
+        LinratMatcher.match (a1, a2) m
     | match_edata (e1,e2) m = 
         if edata_eq (e1,e2) then SOME m else NONE
   
-  fun subst_in_edata sub (EExpr1 a) = EExpr1 (LinratAngleExpr.subst sub a)
-    | subst_in_edata sub (EExpr2 a) = EExpr2 (LinratAngleExpr.subst sub a)
+  fun subst_in_edata sub (EExpr1 a) =
+        let
+          val (sub',a') = LinratMatcher.subst_in_expr sub a
+        in EExpr1 a'
+        end
+    | subst_in_edata sub (EExpr2 a) =
+        let
+          val (sub',a') = LinratMatcher.subst_in_expr sub a
+        in EExpr2 a'
+        end
     | subst_in_edata _ ed = ed
     
-  val pretty_subst = LinratAngleExpr.pretty_match
+  val pretty_subst = LinratMatcher.pretty_subst
   val print_subst = Pretty.writeln o pretty_subst
 end
 

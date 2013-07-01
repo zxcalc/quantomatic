@@ -10,9 +10,12 @@ sig
    * (e.g. for under-specified systems of equations) *)
   type subst = LinratAngleExpr.T XTab.T * X.NSet.T
 
+  (* initialise psubst given sets of names free in pattern and target *)
+  val init_psubst_from_names : X.NSet.T * X.NSet.T -> psubst
+
   (* compute the matrix row corresponding to these expressions and add it with gauss_update.
    * If gauss_update retuns NONE, this signals a match failure, so return NONE.  *)
-  val match : psubst -> LinratAngleExpr.T * LinratAngleExpr.T -> psubst option
+  val match : LinratAngleExpr.T * LinratAngleExpr.T -> psubst -> psubst option
 
   (* take a rational matrix in GNF with column labels to the associated
    * substitution map. For under-specified systems, free variables
@@ -22,6 +25,9 @@ sig
   (* apply the substitution. If an uncognised variable is encountered, replace it with a
    * new fresh variable. (hence the updated subst needs to be returned) *)
   val subst_in_expr : subst -> LinratAngleExpr.T -> subst * LinratAngleExpr.T
+
+  (* for outputting subst data *)
+  val pretty_subst : subst -> Pretty.T
 end
 
 structure LinratMatcher : LINRAT_MATCHER =
@@ -29,7 +35,9 @@ struct
   type psubst = RationalMatrix.T * X.NSet.T * X.NSet.T
   type subst = LinratAngleExpr.T XTab.T * X.NSet.T
 
-  fun match (m,p_names,t_names) (p_expr, t_expr) = let
+  fun init_psubst_from_names (p_names, t_names) = (RationalMatrix.empty, p_names, t_names)
+
+  fun match (p_expr, t_expr) (m,p_names,t_names) = let
     val const = Rational.subtr (LinratAngleExpr.coeff_for_var p_expr NONE)
                                (LinratAngleExpr.coeff_for_var t_expr NONE)
     val row =
@@ -98,5 +106,38 @@ struct
          (XTab.empty, t_names)
   end
 
-  fun subst_in_expr (tab, avoids) expr = ((tab,avoids), expr)
+  fun subst_in_expr (tab, avoids) expr = let
+    fun subst_for_var x ((tab,avoids),accum) =
+      let
+        val (e, tab', avoids') =
+          case XTab.get_opt tab x
+            of SOME e => (e, tab, avoids)
+             | NONE   =>
+                 let
+                   val (fresh, avoids') = avoids |> X.NSet.add_new x
+                   val fresh_e = LinratAngleExpr.mk_var fresh
+                 in
+                   (fresh_e, tab |> XTab.add (x, fresh_e), avoids')
+                 end
+      in (
+           (tab', avoids'),
+           LinratAngleExpr.add_expr accum
+             (LinratAngleExpr.scale_expr
+                (LinratAngleExpr.coeff_for_var expr (SOME x)) e)
+         )
+      end
+  in X.NSet.fold
+       subst_for_var
+       (LinratAngleExpr.free_vars expr)
+       ((tab,avoids), LinratAngleExpr.mk_const (LinratAngleExpr.coeff_for_var expr NONE))
+  end
+
+  fun pretty_subst (tab, avoids) =
+    Pretty.chunks [Pretty.block [Pretty.str "SUBST {"],
+      Pretty.block [Pretty.str "  ", Pretty.chunks [
+        Pretty.block [Pretty.str "Table: ", XTab.pretty LinratAngleExpr.pretty tab],
+        Pretty.block [Pretty.str "Avoids: ", X.NSet.pretty avoids]
+    ]],
+    Pretty.str "}"]
+  
 end

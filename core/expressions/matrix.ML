@@ -11,6 +11,8 @@ sig
   val num_rows : T -> int
   val num_cols : T -> int
 
+  val empty : T
+
   (* adds a zero column at the given index *)
   val insert_zero_column : int -> T -> T
 

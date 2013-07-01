@@ -22,6 +22,9 @@ signature RATIONAL =
 sig
   include FIELD;
   val mk : int * int -> T
+
+  val get_num   : T -> int
+  val get_denom : T -> int
 end
 
 
@@ -75,6 +78,8 @@ fun rat_mult (n1,d1) (n2,d2) = rat_reduce (n1*n2, d1*d2)
 fun rat_div (n1,d1) (n2,d2) = rat_mult (n1,d1) (d2,n2)
 
 fun mk (n,d) = rat_reduce (n,d)
+fun get_num   (n,_) = n
+fun get_denom (_,d) = d
 
 val zero = mk (0, 1)
 val one = mk (1, 1)
