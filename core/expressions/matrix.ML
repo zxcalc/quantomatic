@@ -38,8 +38,12 @@ sig
    * otherwise the result will be in RREF.
    *
    * Raises not_in_rref_exp if given a matrix not in RREF. *)
-  val gauss_update  : int -> Field.T list -> T -> T option
-  val gauss_updatef : int -> (int -> Field.T) -> T -> T option
+  val gauss_update : int -> Field.T list -> T -> T option
+  
+  (* As before, but apply the given function to the last column to reduce the
+   * field element, e.g. modulo 2. *)
+  val gauss_update_reduced : (Field.T -> Field.T) -> int -> Field.T list -> T -> T option
+
 
   (* Get a single element; takes a position in (row,col) form *)
   val get : T -> int * int -> Field.T
@@ -84,7 +88,13 @@ struct
 
   exception inconsistent_exp of unit
 
-  fun gauss_update' free new_row m = let
+  fun map_last f vec =
+    case Vector.length vec
+      of 0   => vec
+       | len => Vector.update (vec, len - 1, f (Vector.sub (vec, len-1)))
+
+  fun gauss_update' reducef free new_row m = let
+    val rf = map_last reducef
     val (row_opt, mlist) =
       Vector.foldl (fn (current_row, (row_opt,accum)) => (
         case row_opt
@@ -99,15 +109,15 @@ struct
                     then raise inconsistent_exp ()
                     else
                       if pi < current_pi then
-                        (NONE, current_row :: mult_row (Field.divide Field.one pval) row :: accum)
+                        (NONE, current_row :: rf (mult_row (Field.divide Field.one pval) row) :: accum)
                       else if pi = current_pi then
-                        (SOME (subtr_row row (mult_row pval current_row)), current_row :: accum)
+                        (SOME (rf (subtr_row row (mult_row pval current_row))), current_row :: accum)
                       else (* pi > current_pi *)
                         (SOME row, current_row :: accum)
                 | NONE => (NONE, current_row :: accum)
             end
            | NONE => (NONE, current_row :: accum)
-      )) (SOME (new_row), []) m
+      )) (SOME (rf new_row), []) m
   in
     SOME (Vector.fromList (rev (
       case row_opt
@@ -124,12 +134,15 @@ struct
   end
   handle inconsistent_exp () => NONE
 
-  fun gauss_updatef free rowf m = gauss_update' free (Vector.tabulate (num_cols m,rowf)) m
-  fun gauss_update free row_list m = gauss_update' free (Vector.fromList row_list) m
+  (*fun gauss_updatef free rowf m = gauss_update' I free (Vector.tabulate (num_cols m,rowf)) m*)
+  fun gauss_update free row_list m = gauss_update' I free (Vector.fromList row_list) m
+
+  fun gauss_update_reduced reducef free row_list m =
+    gauss_update' reducef free (Vector.fromList row_list) m
 
   fun gauss free = Vector.foldl (fn (row, m_opt) => (
       case m_opt
-        of SOME m => gauss_update' free row m
+        of SOME m => gauss_update' I free row m
          | NONE => NONE
     )) (SOME empty)
  
@@ -143,13 +156,11 @@ struct
   fun print m = Pretty.writeln (pretty m)
 end
 
-structure RationalMatrix = Matrix(Rational);
-
-TextIO.print "find me";
+structure RationalMatrix = Matrix(Rational)
 
 val matr = RationalMatrix.from_lists (map (map Rational.mk) [
   [(1,1), (1,1), (2,1)],
   [(1,1), (1,1), (2,1)]
-]);
+])
 
-RationalMatrix.print (the (RationalMatrix.gauss 2 matr));
+val _ = RationalMatrix.print (the (RationalMatrix.gauss 2 matr));

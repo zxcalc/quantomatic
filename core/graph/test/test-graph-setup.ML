@@ -124,15 +124,11 @@ struct
         if nvdata_eq (v1, v2) then SOME m else NONE
 
   fun subst_in_nvdata sub (VExpr1 a) =
-        let
-          val (sub',a') = LinratMatcher.subst_in_expr sub a
-        in VExpr1 a'
-        end
+        let val (sub',a') = LinratMatcher.subst_in_expr sub a
+        in VExpr1 a' end
     | subst_in_nvdata sub (VExpr2 a) =
-        let
-          val (sub',a') = LinratMatcher.subst_in_expr sub a
-        in VExpr2 a'
-        end
+        let val (sub',a') = LinratMatcher.subst_in_expr sub a
+        in VExpr2 a' end
     | subst_in_nvdata _ vd = vd
 
   fun match_edata ((EExpr1 a1),(EExpr1 a2)) m = 
@@ -143,15 +139,11 @@ struct
         if edata_eq (e1,e2) then SOME m else NONE
   
   fun subst_in_edata sub (EExpr1 a) =
-        let
-          val (sub',a') = LinratMatcher.subst_in_expr sub a
-        in EExpr1 a'
-        end
+        let val (sub',a') = LinratMatcher.subst_in_expr sub a
+        in EExpr1 a' end
     | subst_in_edata sub (EExpr2 a) =
-        let
-          val (sub',a') = LinratMatcher.subst_in_expr sub a
-        in EExpr2 a'
-        end
+        let val (sub',a') = LinratMatcher.subst_in_expr sub a
+        in EExpr2 a' end
     | subst_in_edata _ ed = ed
     
   val pretty_subst = LinratMatcher.pretty_subst

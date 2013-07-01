@@ -39,7 +39,7 @@ local
   fun parse_fail str =
     (Expr.parse str; raise ERROR ("Parser accepted bad expression \""^str^"\""))
     handle Expr.parse_exp => ()
-         | Coeff.BadExpression _ => ();
+         | Div => ();
 in
   val _ = Testing.test "Parse 0" parse ("0", zero);
   val _ = Testing.test "Parse a + b" parse ("a + b", a + b);

@@ -48,7 +48,9 @@ struct
             Rational.negate (LinratAngleExpr.coeff_for_var t_expr (SOME x))
           )) (X.NSet.list_of t_names) @
       [const]
-  in case RationalMatrix.gauss_update (X.NSet.cardinality p_names) row m
+  in case RationalMatrix.gauss_update_reduced
+            (Rational.reduce_mod 2)
+            (X.NSet.cardinality p_names) row m
        of SOME m' => SOME (m',p_names,t_names)
         | NONE    => NONE
   end

@@ -44,7 +44,7 @@ struct
 
   val two_circles_expr1_pi_2pi = circle_expr1pi
       |> add_wv "c3"
-      |> add_dir_eexpr1 "e3" "c3" "c3" "2\\pi";
+      |> add_dir_eexpr1 "e3" "c3" "c3" "2 \\pi";
 
   val circle_expr2pi = G.empty
       |> add_wv "c3"

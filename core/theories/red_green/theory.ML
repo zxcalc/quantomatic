@@ -1,8 +1,8 @@
 structure RG_Data =
 struct
   val pretty_theory_name = Pretty.str "red_green"
-  type psubst = LinratAngleExpr.match
-  type subst  = psubst
+  type psubst = LinratMatcher.psubst
+  type subst  = LinratMatcher.subst
 
   datatype nvdata = Xnd of LinratAngleExpr.T (* Red: defined using H of Z *) 
                   | Znd of LinratAngleExpr.T (* Green *)
@@ -32,18 +32,33 @@ struct
     | pretty_nvdata Hnd = Pretty.str "H"
   
   fun match_nvdata (Hnd, Hnd) m = SOME m
-    | match_nvdata (Znd a1,Znd a2) m = LinratAngleExpr.match a1 a2 m
-    | match_nvdata (Xnd a1,Xnd a2) m = LinratAngleExpr.match a1 a2 m
+    | match_nvdata (Znd a1,Znd a2) m = LinratMatcher.match (a1,a2) m
+    | match_nvdata (Xnd a1,Xnd a2) m = LinratMatcher.match (a1,a2) m
     | match_nvdata _ _ = NONE
 
   fun subst_in_nvdata _ Hnd = Hnd
-    | subst_in_nvdata u (Xnd a) = Xnd (LinratAngleExpr.subst u a)
-    | subst_in_nvdata u (Znd a) = Znd (LinratAngleExpr.subst u a)
+    | subst_in_nvdata u (Xnd a) =
+        let val (sub',a') = LinratMatcher.subst_in_expr u a
+        in Xnd a' end
+    | subst_in_nvdata u (Znd a) =
+        let val (sub',a') = LinratMatcher.subst_in_expr u a
+        in Znd a' end
 
   open EmptyEdgeData
 
-  fun init_psubst_from_data _ _ = LinratAngleExpr.empty_match
-  val solve_psubst = Seq.single
+  local
+    fun pull_names (nvtab,_) = X.NSet.empty
+      |> VTab.fold (
+           fn (_,Znd a) => X.NSet.union_merge (LinratAngleExpr.free_vars a)
+            | (_,Xnd a) => X.NSet.union_merge (LinratAngleExpr.free_vars a)
+            | _ => I
+         ) nvtab
+  in
+    fun init_psubst_from_data p_data t_data =
+      LinratMatcher.init_psubst_from_names (pull_names p_data, pull_names t_data)
+  end
+  
+  fun solve_psubst ps = Seq.single (LinratMatcher.solve_psubst ps)
 end
 
 structure RG_Theory = GraphicalTheory(structure Data = RG_Data)
