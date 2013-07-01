@@ -3,6 +3,7 @@
 /gui/dist/
 .polysave
 *.heap
+*.polyml-heap
 *.o
 *.log
 .*.swp
