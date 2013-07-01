@@ -41,7 +41,7 @@ sig
   structure GraphEnum : GRAPH_ENUMERATOR
   structure Metric : GRAPH_METRIC
   (*structure TData : TENSOR_DATA*)
-  sharing Graph.SharingOGraph = Metric.Graph.SharingOGraph = GraphEnum.Theory.Graph.SharingOGraph
+  sharing Graph.Sharing = Metric.Graph.Sharing = GraphEnum.Theory.Graph.Sharing
   type rundesc = int * int * int * int
   type T
   val synth : (Graph.T * int * int) list -> rundesc -> T
@@ -55,9 +55,9 @@ functor TensorSynth (
   structure GraphEnum : GRAPH_ENUMERATOR
   structure Metric : GRAPH_METRIC
   structure TData : TENSOR_DATA
-  sharing GraphEnum.Theory.Graph.SharingOGraph =
-          Metric.Graph.SharingOGraph =
-          TData.Graph.SharingOGraph
+  sharing GraphEnum.Theory.Graph.Sharing =
+          Metric.Graph.Sharing =
+          TData.Graph.Sharing
 ) : SYNTHESIZE =
 struct
   structure TData = TData
@@ -76,7 +76,7 @@ struct
     val ((scalar,perm_outs,perm_ins),tens') = Tensor.normalise tens
     val norm_ins = map (fn n => V.mk ("i_"^(Int.toString n))) perm_ins
     val norm_outs = map (fn n => V.mk ("o_"^(Int.toString n))) perm_outs
-    val gr' = fold2 Graph.rename_vname ins norm_ins (fold2 Graph.rename_vname outs norm_outs gr)
+    val gr' = fold2 Graph.rename_vertex ins norm_ins (fold2 Graph.rename_vertex outs norm_outs gr)
   in class_table |> Tensor.Tab.update (tens',
       (case Tensor.Tab.lookup class_table tens'
          of SOME eq => eq | NONE => EqClass.empty)

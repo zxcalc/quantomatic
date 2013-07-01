@@ -5,7 +5,7 @@ sig
   
   val dimension : int (* all generators are assumed to be of fixed dimension *)
   (* given vertex data and arities, return a tensor *)
-  val tensor_for_vertex_data : Graph.VData.data -> (int * int) -> Tensor.T
+  val tensor_for_vertex_data : Graph.vdata -> (int * int) -> Tensor.T
 end
 
 
@@ -30,7 +30,8 @@ struct
   end
   
   fun contract_edge graph edge (i_offsets, o_offsets, tensor) = let
-    val (_,(src,tgt)) = TData.Graph.get_edge graph edge
+    val src = TData.Graph.get_edge_source graph edge
+    val tgt = TData.Graph.get_edge_target graph edge
     val upper = V.NTab.get o_offsets src
     val lower = V.NTab.get i_offsets tgt
   in (contract_offsets_for_name tgt i_offsets,
@@ -41,10 +42,12 @@ struct
   fun boundary_list offsets = map fst (sort (fn ((_,o1),(_,o2)) => int_ord (o1, o2)) (V.NTab.list_of offsets))
   
   fun append_vertex graph vert (i_offsets, o_offsets, verts, tensor) = let
-    val (data, (in_edges, out_edges)) = TData.Graph.get_vertex graph vert
+    val data = TData.Graph.get_vertex_data graph vert
+    val in_edges = TData.Graph.get_in_edges graph vert
+    val out_edges = TData.Graph.get_out_edges graph vert
     val (num_in, num_out) =
-      case data of TData.Graph.OVData.NVert _ => (E.NSet.cardinality in_edges, E.NSet.cardinality out_edges)
-                 | TData.Graph.OVData.WVert => (1,1)
+      case data of TData.Graph.NVert _ => (E.NSet.cardinality in_edges, E.NSet.cardinality out_edges)
+                 | TData.Graph.WVert => (1,1)
     val (current_in, current_out) = (TData.Tensor.lower_index_count tensor, TData.Tensor.upper_index_count tensor)
     val new_tensor = TData.Tensor.product tensor (TData.tensor_for_vertex_data data (num_in, num_out))
     val new_i_offsets = if num_in = 0 then i_offsets
@@ -53,7 +56,7 @@ struct
                         else o_offsets |> V.NTab.doadd (vert, (TData.Tensor.upper_index_count tensor) + num_out - 1)
     val new_verts = verts |> V.NSet.add vert
     val edges_to_contract = V.NSet.fold
-                              (E.NSet.union_merge o (TData.Graph.enames_between graph vert))
+                              (E.NSet.union_merge o (TData.Graph.edges_between graph vert))
                               new_verts E.NSet.empty
     val (new_i_offsets, new_o_offsets, new_tensor) =
       E.NSet.fold (contract_edge graph) edges_to_contract (new_i_offsets,new_o_offsets,new_tensor)
@@ -63,7 +66,7 @@ struct
   fun tensor_for_graph graph = let
     val (i_offsets,o_offsets,_,t) =
       V.NSet.fold_rev (append_vertex graph)
-                      (TData.Graph.get_vnames graph)
+                      (TData.Graph.get_vertices graph)
                       (V.NTab.empty,V.NTab.empty,V.NSet.empty,
                        TData.Tensor.id TData.dimension 0)
   in (boundary_list i_offsets, boundary_list o_offsets,t)

@@ -11,8 +11,6 @@ PolyML.Project.make "default_rws.ML";
 PolyML.Project.make "default_gens.ML";
 PolyML.Project.make "metric.ML";
 
-PolyML.Project.make "semiring.ML";
-PolyML.Project.make "tensor.ML";
 PolyML.Project.make "tensor_eval.ML";
 
 PolyML.Project.make "enumerate.ML";

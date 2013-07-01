@@ -29,6 +29,36 @@ sig
   val pretty : T -> Pretty.T;
 end;
 
+(* This is a dumb wrapper that just passes function calls on to Graph *)
+signature SIMPLE_BBOX_OPERABLE_GRAPH =
+sig
+  include BBOX_OPERABLE_GRAPH
+
+  val init : Graph.T -> T
+end
+
+functor DumbBBoxOperableGraph(Graph: BANG_GRAPH)
+: SIMPLE_BBOX_OPERABLE_GRAPH where type T = Graph.T =
+struct
+  type T = Graph.T
+  structure Graph = Graph
+
+  val init = I
+  val normalise = Graph.normalise
+  val expand_bbox = Graph.fresh_expand_bbox_anon
+  val kill_bbox = Graph.kill_bbox
+  val get_current_graph = I
+  val empty = Graph.empty
+  val print = Graph.print
+  val pretty = Graph.pretty
+
+  structure Sharing =
+  struct
+    type T = T
+    structure Graph = Graph.Sharing
+  end
+end
+
 (* This is an operator that records the !-box operations that are performed
  * and allows them to be replayed on another graph.
  *
@@ -72,7 +102,7 @@ datatype bbox_op = BBKill of B.name
 
 functor ReplayableBBoxOperableGraph(structure Graph: BANG_GRAPH) : REPLAYABLE_BBOX_OPERABLE_GRAPH =
 struct
-  
+
 
   structure Graph = Graph;
   type T = {
