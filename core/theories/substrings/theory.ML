@@ -24,7 +24,7 @@ struct
 
   open EmptyEdgeData
 
-  fun init_psubst_from_data _ = ()
+  fun init_psubst_from_data _ _ = ()
   val solve_psubst = Seq.single
 end
 

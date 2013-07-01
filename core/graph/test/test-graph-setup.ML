@@ -96,7 +96,7 @@ struct
   (* matching and substitution *)
   type psubst = LinratAngleExpr.match
   type subst = psubst
-  fun init_psubst_from_data _ = LinratAngleExpr.empty_match
+  fun init_psubst_from_data _ _ = LinratAngleExpr.empty_match
   val solve_psubst = Seq.single
 
   fun match_nvdata ((VExpr1 a1),(VExpr1 a2)) m = 

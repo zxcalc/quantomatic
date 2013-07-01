@@ -171,7 +171,7 @@ functor OGraphMatchState(Graph : OGRAPH) : OGRAPH_MATCH_STATE
     p_nodeverts  = V.NSet.empty,
     ps_nodeverts = V.NSet.empty,
     tgt_verts    = V.NSet.empty,
-    match_psubst = Graph.init_psubst tgt
+    match_psubst = Graph.init_psubst pat tgt
   }
   
   (* getters and setters *)

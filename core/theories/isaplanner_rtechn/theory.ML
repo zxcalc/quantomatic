@@ -55,7 +55,7 @@ struct
 
   fun subst_in_edata _ = I
 
-  fun init_psubst_from_data _ = ()
+  fun init_psubst_from_data _ _ = ()
   val solve_psubst = Seq.single
 end
 

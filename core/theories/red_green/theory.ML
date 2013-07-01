@@ -42,7 +42,7 @@ struct
 
   open EmptyEdgeData
 
-  fun init_psubst_from_data _ = LinratAngleExpr.empty_match
+  fun init_psubst_from_data _ _ = LinratAngleExpr.empty_match
   val solve_psubst = Seq.single
 end
 

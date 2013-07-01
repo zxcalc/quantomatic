@@ -239,7 +239,9 @@ fun pretty_vdata (NVert n) = Pretty.block[Pretty.str "N{", Data.pretty_nvdata n,
   | pretty_vdata (WVert)   = Pretty.str "W{}"
 
 
-fun init_psubst g= init_psubst_from_data (get_nvdata_tab g, get_edata_tab g)
+fun init_psubst pattern target =
+  init_psubst_from_data (get_nvdata_tab pattern, get_edata_tab pattern)
+                        (get_nvdata_tab target,  get_edata_tab target)
 
 
 

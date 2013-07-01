@@ -36,7 +36,7 @@ sharing type Sharing.subst = subst
 type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
 
 (* Thin wrappers to Graph.Data substructure *)
-val init_psubst : T -> psubst
+val init_psubst : T -> T -> psubst
 val match_vdata : vdata * vdata -> psubst -> psubst option
 val match_edata : edata * edata -> psubst -> psubst option
 val vdata_eq : vdata * vdata -> bool
