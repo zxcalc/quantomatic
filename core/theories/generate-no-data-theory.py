@@ -40,7 +40,7 @@ print('''
   
   fun match_nvdata (x,y) () = if nvdata_eq (x,y) then SOME () else NONE
 
-  fun subst_in_nvdata _ = I
+  fun subst_in_nvdata sub d = (sub,d)
 
   open EmptyEdgeData
 

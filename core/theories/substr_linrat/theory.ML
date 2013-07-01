@@ -24,7 +24,7 @@ struct
 
   fun subst_in_nvdata u (s,a) =
     let val (sub',a') = LinratMatcher.subst_in_expr u a
-    in (s,a') end
+    in (sub', (s,a')) end
 
   open EmptyEdgeData
 

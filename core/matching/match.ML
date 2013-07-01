@@ -104,7 +104,7 @@ functor OGraphMatch(Graph : OGRAPH) : OGRAPH_MATCH
       val pat_vdata = Graph.get_vertex_data pat v
       val tgt_vdata = Graph.get_vertex_data tgt v'
     in
-      Graph.vdata_eq (tgt_vdata, Graph.subst_in_vdata subst pat_vdata)
+      Graph.vdata_eq (tgt_vdata, snd (Graph.subst_in_vdata subst pat_vdata))
     end;
 
     fun edata_matches e = let
@@ -112,7 +112,7 @@ functor OGraphMatch(Graph : OGRAPH) : OGRAPH_MATCH
       val pat_edata = Graph.get_edge_data pat e
       val tgt_edata = Graph.get_edge_data tgt e'
     in
-      Graph.edata_eq (tgt_edata, Graph.subst_in_edata subst pat_edata)
+      Graph.edata_eq (tgt_edata, snd (Graph.subst_in_edata subst pat_edata))
     end;
   in
     if not (V.NSet.eq (Graph.get_vertices pat) (VVInj.get_dom_set vmap))

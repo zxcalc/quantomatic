@@ -37,7 +37,7 @@ struct
         if String.isPrefix n1 n2 then SOME subst else NONE
     | match_nvdata _ _ = NONE
 
-  fun subst_in_nvdata _ = I
+  fun subst_in_nvdata sub d = (sub, d)
 
   type edata = string
   val default_edata = ""
@@ -53,7 +53,7 @@ struct
   
   fun match_edata (s1,s2) u = if s1 = s2 then SOME u else NONE
 
-  fun subst_in_edata _ = I
+  fun subst_in_edata sub d = (sub, d)
 
   fun init_psubst_from_data _ _ = ()
   val solve_psubst = Seq.single

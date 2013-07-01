@@ -125,11 +125,11 @@ struct
 
   fun subst_in_nvdata sub (VExpr1 a) =
         let val (sub',a') = LinratMatcher.subst_in_expr sub a
-        in VExpr1 a' end
+        in (sub', VExpr1 a') end
     | subst_in_nvdata sub (VExpr2 a) =
         let val (sub',a') = LinratMatcher.subst_in_expr sub a
-        in VExpr2 a' end
-    | subst_in_nvdata _ vd = vd
+        in (sub', VExpr2 a') end
+    | subst_in_nvdata sub vd = (sub,vd)
 
   fun match_edata ((EExpr1 a1),(EExpr1 a2)) m = 
         LinratMatcher.match (a1, a2) m
@@ -140,11 +140,11 @@ struct
   
   fun subst_in_edata sub (EExpr1 a) =
         let val (sub',a') = LinratMatcher.subst_in_expr sub a
-        in EExpr1 a' end
+        in (sub', EExpr1 a') end
     | subst_in_edata sub (EExpr2 a) =
         let val (sub',a') = LinratMatcher.subst_in_expr sub a
-        in EExpr2 a' end
-    | subst_in_edata _ ed = ed
+        in (sub', EExpr2 a') end
+    | subst_in_edata sub ed = (sub,ed)
     
   val pretty_subst = LinratMatcher.pretty_subst
   val print_subst = Pretty.writeln o pretty_subst

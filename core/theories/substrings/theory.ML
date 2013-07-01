@@ -20,7 +20,7 @@ struct
   fun match_nvdata (s1,s2) () =
         if String.isPrefix s1 s2 then SOME () else NONE
 
-  fun subst_in_nvdata _ = I
+  fun subst_in_nvdata sub d = (sub, d)
 
   open EmptyEdgeData
 

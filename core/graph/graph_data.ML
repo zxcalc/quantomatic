@@ -47,8 +47,8 @@ sig
   val solve_psubst : psubst -> subst Seq.seq
 
   (* Apply substitutions to data. *)
-  val subst_in_nvdata : subst -> nvdata -> nvdata
-  val subst_in_edata : subst -> edata -> edata
+  val subst_in_nvdata : subst -> nvdata -> subst * nvdata
+  val subst_in_edata : subst -> edata -> subst * edata
 end
 
 (* Convenience structure for defining GRAPH_DATA with empty edge data *)
@@ -58,7 +58,7 @@ struct
   val default_edata = ()
   fun edata_eq ((),()) = true
   fun match_edata ((),()) m = SOME m
-  fun subst_in_edata _ () = ()
+  fun subst_in_edata sub () = (sub, ())
   fun pretty_edata () = Pretty.str "()"
   val edata_typestrings = ["()"]
   fun default_edata_of_typestring _ = ()

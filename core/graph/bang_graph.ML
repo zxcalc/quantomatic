@@ -220,12 +220,21 @@ fun default_vdata_of_typestring "wire-vertex" = WVert
 fun typestring_of_vdata WVert = "wire-vertex"
   | typestring_of_vdata (NVert d) = typestring_of_nvdata d
 
-fun subst_in_vdata sub (NVert nv) = NVert (subst_in_nvdata sub nv)
-  | subst_in_vdata sub (WVert) = WVert
+fun subst_in_vdata sub (NVert nv) =
+      let val (sub', nv') = subst_in_nvdata sub nv
+      in (sub', NVert nv') end
+  | subst_in_vdata sub (WVert) = (sub, WVert)
 
-fun apply_data_subst sub g =
-  g |> V.NSet.fold (update_vertex_data (subst_in_vdata sub)) (get_vertices g)
-    |> E.NSet.fold (update_edge_data (subst_in_edata sub)) (get_edges g)
+fun apply_data_subst sub graph =
+  (sub, graph)
+    |> V.NSet.fold (fn v => fn (sub, g) => (
+         let val (sub', vd) = subst_in_vdata sub (get_vertex_data g v)
+         in (sub', g |> set_vertex_data vd v) end
+       )) (get_vertices graph)
+    |> E.NSet.fold (fn e => fn (sub, g) => (
+         let val (sub', ed) = subst_in_edata sub (get_edge_data g e)
+         in (sub', g |> set_edge_data ed e) end
+       )) (get_edges graph)
 
 fun vdata_eq (NVert nv1, NVert nv2) = Data.nvdata_eq (nv1,nv2)
   | vdata_eq (WVert, WVert) = true

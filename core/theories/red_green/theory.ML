@@ -36,13 +36,13 @@ struct
     | match_nvdata (Xnd a1,Xnd a2) m = LinratMatcher.match (a1,a2) m
     | match_nvdata _ _ = NONE
 
-  fun subst_in_nvdata _ Hnd = Hnd
+  fun subst_in_nvdata sub Hnd = (sub, Hnd)
     | subst_in_nvdata u (Xnd a) =
         let val (sub',a') = LinratMatcher.subst_in_expr u a
-        in Xnd a' end
+        in (sub', Xnd a') end
     | subst_in_nvdata u (Znd a) =
         let val (sub',a') = LinratMatcher.subst_in_expr u a
-        in Znd a' end
+        in (sub', Znd a') end
 
   open EmptyEdgeData
 

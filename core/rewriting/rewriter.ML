@@ -137,7 +137,7 @@ struct
     val g = Match.get_tgt m
     val pat = BBoxOperableGraph.get_current_graph (Match.get_pat m)
     val (vmap,emap) = (Match.get_vmap m, Match.get_emap m)
-    val rhs' = rhs |> Graph.apply_data_subst (Match.get_subst m)
+    val rhs' = snd (rhs |> Graph.apply_data_subst (Match.get_subst m))
 
     val shared_boundary = Graph.get_boundary pat
     val lhs_interior = V.NSet.subtract (Graph.get_vertices pat) shared_boundary
