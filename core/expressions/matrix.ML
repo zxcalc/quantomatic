@@ -36,7 +36,8 @@ sig
    * otherwise the result will be in RREF.
    *
    * Raises not_in_rref_exp if given a matrix not in RREF. *)
-  val gauss_update : int -> (int -> Field.T) -> T -> T option
+  val gauss_update  : int -> Field.T list -> T -> T option
+  val gauss_updatef : int -> (int -> Field.T) -> T -> T option
 
   (* Get a single element; takes a position in (row,col) form *)
   val get : T -> int * int -> Field.T
@@ -121,8 +122,8 @@ struct
   end
   handle inconsistent_exp () => NONE
 
-  fun gauss_update free rowf m = gauss_update' free (Vector.tabulate (num_cols m,rowf)) m
-  fun gauss_update_list free row_list m = gauss_update' free (Vector.fromList row_list) m
+  fun gauss_updatef free rowf m = gauss_update' free (Vector.tabulate (num_cols m,rowf)) m
+  fun gauss_update free row_list m = gauss_update' free (Vector.fromList row_list) m
 
   fun gauss free = Vector.foldl (fn (row, m_opt) => (
       case m_opt

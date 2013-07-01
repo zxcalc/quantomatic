@@ -72,16 +72,6 @@ local
     (Expr.parse str; raise ERROR ("Parser accepted bad expression \""^str^"\""))
     handle Expr.parse_exp => ()
          | Coeff.BadExpression _ => ();
-
-  val pretty_subst = XTab.pretty Expr.pretty
-
-  fun assert_subst_eq (s1,s2) =
-    if XTab.tab_eq (fn (x,y) => Expr.eq x y) (s1,s2)
-    then ()
-    else raise ERROR ("Substitutions not equal.\n" ^
-                      Pretty.string_of (pretty_subst s1) ^ "\n" ^
-                      Pretty.string_of (pretty_subst s2) ^ "\n")
-
 in
   val _ = Testing.test "Parse 0" parse ("0", zero);
   val _ = Testing.test "Parse a + b" parse ("a + b", a + b);
@@ -120,21 +110,6 @@ in
           (a + b,(a_v,b_v));
   val _ = Testing.test "try_rename1 (a + b)[a -> c]" rename_succeeds
           (a + b,(a_v,c_v),b + c);
-
-  val matr = RationalMatrix.from_lists (map (map (fn i => Rational.mk (i,1))) [
-    [1, 0, 0, ~5, 1,  0],
-    [0, 1, 2, ~6, 0, ~1],
-    [0, 0, 1, ~7, 2,  0]
-  ])
-
-  val _ = Testing.test "Gauss matrix to subst" assert_subst_eq (
-    Expr.gauss_matrix_to_subst matr (map X.mk ["a", "b", "c", "d", "e"]),
-    XTab.of_list [
-      (X.mk "a", Expr.parse "5 d - e"),
-      (X.mk "b", Expr.parse "\\pi - 8 d + 4 e"),
-      (X.mk "c", Expr.parse "7 d - 2 e")
-    ]
-  )
 
   val _ = Testing.assert_no_failed_tests();
 end;

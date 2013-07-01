@@ -66,11 +66,13 @@ PolyML.Project.make "expressions/expr.ML";
 PolyML.Project.make "expressions/linrat_angle_expr.ML";
 PolyML.Project.make "expressions/semiring.ML";
 PolyML.Project.make "expressions/tensor.ML";
+PolyML.Project.make "expressions/linrat_matcher.ML";
 
 (* I/O *)
 PolyML.Project.make "io/linrat_json.ML";
 
 Testing.make_test "expressions/test/linrat_angle_expr-test.ML";
+Testing.make_test "expressions/test/linrat_matcher-test.ML";
 Testing.make_test "io/test/linrat-json-test.ML";
 
 
