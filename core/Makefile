@@ -60,7 +60,7 @@ run: ml-shell
 
 # 
 localclean:
-	rm -f heaps/*.polyml-heap
+	rm -f heaps/*.heap
 	rm -f bin/*.o
 	find . -type d -name .polysave | xargs rm -rf
 	rm -f $(ALL_BINS)
