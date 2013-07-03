@@ -8,27 +8,44 @@
  * both expanding it and killing it.
  *)
 functor GreedyMatchSearch(
-  BBoxOperableGraph : BBOX_OPERABLE_GRAPH
+  Graph : BANG_GRAPH
 ) : BG_MATCH_SEARCH =
 struct
 
   structure Log : LOG = Log(val init_level = 0);
-
-  structure BBoxOperableGraph = BBoxOperableGraph;
-  structure Graph = BBoxOperableGraph.Graph;
+  structure Graph = Graph;
   structure InnerMatchState = OGraphMatchState(Graph);
   structure InnerMatchSearch = ProgressiveMatchSearch(InnerMatchState);
-  structure Match = BangGraphMatch(BBoxOperableGraph);
+  structure Match = BangGraphMatch(Graph);
 
   datatype State = MatchState of {
-    pat          : BBoxOperableGraph.T,
+    init_pat     : Graph.T,
+    bbox_ops     : bbox_op list,
     wild_bboxes  : B.NSet.T,
     inner_state  : InnerMatchState.T
-  };
+  }
 
-  (* shorthand *)
-  structure Oper = BBoxOperableGraph;
-  structure Inner = InnerMatchState;
+  fun update_init_pat f (MatchState r) = MatchState {init_pat=f(#init_pat r),bbox_ops= #bbox_ops r,wild_bboxes= #wild_bboxes r,inner_state= #inner_state r}
+  fun update_bbox_ops f (MatchState r) = MatchState {init_pat= #init_pat r,bbox_ops=f(#bbox_ops r),wild_bboxes= #wild_bboxes r,inner_state= #inner_state r}
+  fun update_wild_bboxes f (MatchState r) = MatchState {init_pat= #init_pat r,bbox_ops= #bbox_ops r,wild_bboxes=f(#wild_bboxes r),inner_state= #inner_state r}
+  fun update_inner_state f (MatchState r) = MatchState {init_pat= #init_pat r,bbox_ops= #bbox_ops r,wild_bboxes= #wild_bboxes r,inner_state=f(#inner_state r)}
+
+  fun get_init_pat    (MatchState r) = #init_pat r
+  fun get_bbox_ops    (MatchState r) = #bbox_ops r
+  fun get_wild_bboxes (MatchState r) = #wild_bboxes r
+  fun get_inner_state (MatchState r) = #inner_state r
+
+  fun set_init_pat    x  = update_init_pat    (fn _ => x)
+  fun set_bbox_ops    x  = update_bbox_ops    (fn _ => x)
+  fun set_wild_bboxes x  = update_wild_bboxes (fn _ => x)
+  fun set_inner_state x  = update_inner_state (fn _ => x)
+
+  (* the inner match state actually holds the canonical reference to the expanded pattern graph *)
+  val get_pat = InnerMatchState.get_pat o get_inner_state
+  val update_pat = update_inner_state o InnerMatchState.update_pat
+  fun set_pat x = update_pat (fn _ => x)
+
+  fun add_wild_bbox bb = update_wild_bboxes (B.NSet.add bb)
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
@@ -37,45 +54,18 @@ struct
   val log_v_nset = log_p V.NSet.pretty
 
   fun init pat tgt = MatchState {
-    pat = pat,
+    init_pat = pat,
+    bbox_ops = [],
     wild_bboxes = B.NSet.empty,
-    inner_state = Inner.init (Oper.get_current_graph pat) tgt
-  };
-
-  fun get_inner_state (MatchState state) = #inner_state state;
-  fun update_inner_state f (MatchState state) = MatchState {
-    pat          = #pat state,
-    wild_bboxes  = #wild_bboxes state,
-    inner_state  = f (#inner_state state)
-  };
-  val set_inner_state = update_inner_state o K;
-
-  fun get_pat (MatchState state) = #pat state;
-  fun update_pat f (MatchState state) = let
-    val oper = f (#pat state)
-    val pat = Oper.get_current_graph oper
-  in
-    MatchState {
-      pat          = oper,
-      wild_bboxes  = #wild_bboxes state,
-      inner_state  = Inner.set_pat pat (#inner_state state)
-    }
-  end;
-  val set_pat = update_pat o K;
-
-  fun get_wild_bboxes (MatchState state) = #wild_bboxes state
-  fun add_wild_bbox b (MatchState state) = MatchState {
-    pat          = #pat state,
-    wild_bboxes  = B.NSet.add b (#wild_bboxes state),
-    inner_state  = #inner_state state
-  };
+    inner_state = InnerMatchState.init pat tgt
+  }
 
   fun schedule_concrete new_vs new_es bms = let
     val ms = get_inner_state bms
-    val pat = Inner.get_pat ms
+    val pat = InnerMatchState.get_pat ms
 
     val touched = Graph.get_adj_vertices_to_set pat new_vs
-    val to_sched = V.NSet.intersect (Inner.get_p_nodeverts ms) touched
+    val to_sched = V.NSet.intersect (InnerMatchState.get_p_nodeverts ms) touched
 
     val unbboxed = V.NSet.subtract new_vs (Graph.get_bboxed pat)
     val wires = Graph.get_wires_for_edges pat new_es
@@ -101,26 +91,26 @@ struct
     val bare_wire_es = fold (fn (_,_,_,es) => E.NSet.add ((the o E.NSet.get_min) es)) bare_wires E.NSet.empty  
   in
     set_inner_state
-    (ms |> Inner.extend_u_circles circle_wvs
-        |> Inner.extend_u_nodeverts (V.NSet.intersect unbboxed nvs)
-        |> Inner.extend_u_wireverts (V.NSet.intersect unbboxed wvs)
-        |> Inner.extend_u_bare_wires bare_wire_es
-        |> Inner.extend_ps_nodeverts to_sched)
+    (ms |> InnerMatchState.extend_u_circles circle_wvs
+        |> InnerMatchState.extend_u_nodeverts (V.NSet.intersect unbboxed nvs)
+        |> InnerMatchState.extend_u_wireverts (V.NSet.intersect unbboxed wvs)
+        |> InnerMatchState.extend_u_bare_wires bare_wire_es
+        |> InnerMatchState.extend_ps_nodeverts to_sched)
     bms
   end
 
   fun schedule_new_concrete bms = let
     val ms = get_inner_state bms
-    val pat = Inner.get_pat ms
+    val pat = InnerMatchState.get_pat ms
     val new_vs = V.NSet.subtract (Graph.get_vertices pat)
-                                 (VVInj.get_dom_set (Inner.get_vmap ms))
+                                 (VVInj.get_dom_set (InnerMatchState.get_vmap ms))
     val new_es = E.NSet.subtract (Graph.get_edges pat)
-                                 (EEInj.get_dom_set (Inner.get_emap ms))
+                                 (EEInj.get_dom_set (InnerMatchState.get_emap ms))
   in
     schedule_concrete new_vs new_es bms
   end
   fun schedule_concrete_pat bms = let
-    val pat = Inner.get_pat (get_inner_state bms)
+    val pat = InnerMatchState.get_pat (get_inner_state bms)
     val vs = Graph.get_vertices pat
     val es = Graph.get_edges pat
   in
@@ -175,23 +165,27 @@ struct
 
   fun expand_pat_bbox b ms = let
     val _ = Log.logf 2 (fn () => "Expanding !-box "^(B.string_of_name b)) ()
+    val (bb_op, pat') = Graph.expand_bbox_op b (get_pat ms)
   in
-    update_pat (BBoxOperableGraph.expand_bbox b) ms
+    ms |> set_pat pat'
+       |> update_bbox_ops (cons bb_op)
   end;
 
   fun kill_pat_bbox b ms = let
     val _ = Log.logf 2 (fn () => "Killing !-box "^(B.string_of_name b)) ()
+    val (bb_op, pat') = Graph.kill_bbox_op b (get_pat ms)
   in
-    update_pat (BBoxOperableGraph.kill_bbox b) ms
+    ms |> set_pat pat'
+       |> update_bbox_ops (cons bb_op)
   end;
 
   fun kill_bboxes_adj_to_complete_nvs bms = let
     val ms = get_inner_state bms
-    val pat = Inner.get_pat ms
-    val complete = Inner.get_complete_nodeverts ms
+    val pat = InnerMatchState.get_pat ms
+    val complete = InnerMatchState.get_complete_nodeverts ms
     val touched = Graph.get_adj_vertices_to_set pat complete
     fun kill_all_bboxes v bms = let
-      val pat = Inner.get_pat (get_inner_state bms)
+      val pat = InnerMatchState.get_pat (get_inner_state bms)
     in
       B.NSet.fold kill_pat_bbox (Graph.get_bboxes_containing_vertex pat v) bms
       handle Graph.no_such_vertex_exp _ => bms
@@ -221,11 +215,11 @@ struct
       ms |> kill_pat_bbox bbox
          |> add_wild_bbox bbox
     fun kill_if_wild bbox ms =
-      (if is_wild (Inner.get_pat (get_inner_state ms)) bbox
+      (if is_wild (InnerMatchState.get_pat (get_inner_state ms)) bbox
        then kill_pat_bbox' bbox ms
        else ms)
       handle Graph.no_such_bbox_exp _ => ms
-    val pat = Inner.get_pat (get_inner_state ms)
+    val pat = InnerMatchState.get_pat (get_inner_state ms)
   in
     B.NSet.fold kill_if_wild (Graph.get_bboxes pat) ms
   end
@@ -254,23 +248,24 @@ struct
 
   fun matches_from_ms ms = let
     val ims = get_inner_state ms
-    val (pat,tgt,vmap,emap,wild) = (
+    val (init_pat,pat,bbox_ops,tgt,vmap,emap,wild) = (
+      get_init_pat ms,
       get_pat ms,
+      get_bbox_ops ms,
       InnerMatchState.get_tgt ims,
       InnerMatchState.get_vmap ims,
       InnerMatchState.get_emap ims,
       get_wild_bboxes ms
     )
   in
-    Seq.map (Match.mk pat tgt vmap emap BBInj.empty wild)
+    Seq.map (Match.mk init_pat pat bbox_ops tgt vmap emap BBInj.empty wild)
             (Graph.solve_psubst (InnerMatchState.get_match_psubst ims))
   end;
 
   fun find_matches ms = Seq.maps matches_from_ms (match_loop ms);
 
   fun match_normalised pat tgt = let
-    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern"
-                        (BBoxOperableGraph.get_current_graph pat)
+    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
     val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
     val ms = init pat tgt
            |> schedule_concrete_pat
@@ -280,11 +275,10 @@ struct
   end
 
   fun match pat tgt =
-    match_normalised (BBoxOperableGraph.normalise pat) (Graph.normalise tgt)
+    match_normalised (Graph.normalise pat) (Graph.normalise tgt)
 
   fun match_subgraph_normalised pat tgt tgt_verts = let
-    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern"
-                        (BBoxOperableGraph.get_current_graph pat)
+    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
     val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
     val _ = log_v_nset 4 "GreedyMatchSearch: target vertices" tgt_verts
     val ms = init pat tgt
@@ -294,7 +288,7 @@ struct
     find_matches ms
   end
   fun match_subgraph pat tgt =
-    match_subgraph_normalised (BBoxOperableGraph.normalise pat) (Graph.normalise tgt)
+    match_subgraph_normalised (Graph.normalise pat) (Graph.normalise tgt)
 
   structure Sharing =
   struct

@@ -1,27 +1,27 @@
 (* The type-sharing struct for BANG_GRAPH_MATCH *)
 signature BANG_GRAPH_MATCH_SHARING
 = sig
-  type T;
-  structure Graph : OGRAPH_SHARING;
-  structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH_SHARING;
-  sharing Graph = BBoxOperableGraph.Graph;
-end;
+  type T
+  structure Graph : OGRAPH_SHARING
+end
 
 (* A match from a !-graph to a !-graph *)
 signature BANG_GRAPH_MATCH
 = sig
   type T;
   structure Graph : BANG_GRAPH;
-  structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH;
   
   (* sharing via sharing structure *)
   structure Sharing : BANG_GRAPH_MATCH_SHARING
     sharing type Sharing.T = T
     sharing Sharing.Graph = Graph.Sharing;
-    sharing Sharing.BBoxOperableGraph = BBoxOperableGraph.Sharing;
   
+  (* the un-expanded !-graph pattern *)
+  val get_init_pat : T -> Graph.T;
   (* the graph to match from *)
-  val get_pat   : T -> BBoxOperableGraph.T;
+  val get_pat   : T -> Graph.T;
+  (* the list of bbox operations to produce pat from init_pat *)
+  val get_bbox_ops : T -> bbox_op list;
   (* the graph to match onto *)
   val get_tgt   : T -> Graph.T;
   (* the vertex map (from pat verts to tgt verts *)
@@ -36,7 +36,9 @@ signature BANG_GRAPH_MATCH
   val get_wild_bboxes  : T -> B.NSet.T;
 
   exception bad_match_exp of string
-                           * BBoxOperableGraph.T
+                           * Graph.T
+                           * Graph.T
+                           * bbox_op list
                            * Graph.T
                            * VVInj.T
                            * EEInj.T
@@ -46,7 +48,9 @@ signature BANG_GRAPH_MATCH
 
   (* create a match; checks for correctness *)
   (* raises bad_match_exp if not a valid match *)
-  val mk : BBoxOperableGraph.T
+  val mk : Graph.T
+        -> Graph.T
+        -> bbox_op list
         -> Graph.T
         -> VVInj.T
         -> EEInj.T
@@ -57,27 +61,34 @@ signature BANG_GRAPH_MATCH
 
   (* create a match; checks for correctness *)
   (* returns NONE if not a valid match *)
-  val mk_opt : BBoxOperableGraph.T
-            -> Graph.T
-            -> VVInj.T
-            -> EEInj.T
-            -> BBInj.T
-            -> B.NSet.T
-            -> Graph.subst
-            -> T option;
+  val mk_opt :
+           Graph.T
+        -> Graph.T
+        -> bbox_op list
+        -> Graph.T
+        -> VVInj.T
+        -> EEInj.T
+        -> BBInj.T
+        -> B.NSet.T
+        -> Graph.subst
+        -> T option;
 
   val print : T -> unit;
   val pretty : T -> Pretty.T;
 end;
 
-functor BangGraphMatch(BBoxOperableGraph : BBOX_OPERABLE_GRAPH) : BANG_GRAPH_MATCH
+functor BangGraphMatch(Graph : BANG_GRAPH) : BANG_GRAPH_MATCH
 = struct
-  structure Graph = BBoxOperableGraph.Graph
-  structure BBoxOperableGraph = BBoxOperableGraph
+  structure Graph = Graph
   
   datatype T = Match of {
-    (* pattern and target graphs *)
-    pat      : BBoxOperableGraph.T,
+    (* initial pattern graph *)
+    init_pat : Graph.T,
+    (* pattern with bboxes expanded *)
+    pat      : Graph.T,
+    (* bbox operations to get from init_pat to pat *)
+    bbox_ops : bbox_op list,
+    (* target graph *)
     tgt      : Graph.T,
     (* vertex mapping from pat to tgt *)
     vmap     : VVInj.T,
@@ -88,7 +99,9 @@ functor BangGraphMatch(BBoxOperableGraph : BBOX_OPERABLE_GRAPH) : BANG_GRAPH_MAT
     wild_bbs : B.NSet.T
   };
 
+  fun get_init_pat    (Match r) = #init_pat r;
   fun get_pat         (Match r) = #pat r;
+  fun get_bbox_ops    (Match r) = #bbox_ops r;
   fun get_tgt         (Match r) = #tgt r;
   fun get_vmap        (Match r) = #vmap r;
   fun get_emap        (Match r) = #emap r;
@@ -97,7 +110,9 @@ functor BangGraphMatch(BBoxOperableGraph : BBOX_OPERABLE_GRAPH) : BANG_GRAPH_MAT
   fun get_wild_bboxes (Match r) = #wild_bbs r;
 
   exception bad_match_exp of string
-                           * BBoxOperableGraph.T
+                           * Graph.T
+                           * Graph.T
+                           * bbox_op list
                            * Graph.T
                            * VVInj.T
                            * EEInj.T
@@ -108,10 +123,9 @@ functor BangGraphMatch(BBoxOperableGraph : BBOX_OPERABLE_GRAPH) : BANG_GRAPH_MAT
   fun find_match_error pat tgt vmap emap bmap subst = let
     val vmapf = VVInj.get vmap
     val emapf = EEInj.get emap
-    val pat_g = BBoxOperableGraph.get_current_graph pat
 
     fun edge_coherent e = let
-      val ((dir,_),(s,t)) = Graph.get_edge_info pat_g e
+      val ((dir,_),(s,t)) = Graph.get_edge_info pat e
       val e' = emapf e
       val exp_s' = vmapf s
       val exp_t' = vmapf t
@@ -130,7 +144,7 @@ functor BangGraphMatch(BBoxOperableGraph : BBOX_OPERABLE_GRAPH) : BANG_GRAPH_MAT
 
     fun vdata_matches v = let
       val v' = vmapf v
-      val pat_vdata = Graph.get_vertex_data pat_g v
+      val pat_vdata = Graph.get_vertex_data pat v
       val tgt_vdata = Graph.get_vertex_data tgt v'
     in
       Graph.vdata_eq (tgt_vdata, snd(Graph.subst_in_vdata subst pat_vdata))
@@ -138,15 +152,15 @@ functor BangGraphMatch(BBoxOperableGraph : BBOX_OPERABLE_GRAPH) : BANG_GRAPH_MAT
 
     fun edata_matches e = let
       val e' = emapf e
-      val pat_edata = Graph.get_edge_data pat_g e
+      val pat_edata = Graph.get_edge_data pat e
       val tgt_edata = Graph.get_edge_data tgt e'
     in
       Graph.edata_eq (tgt_edata, snd (Graph.subst_in_edata subst pat_edata))
     end;
   in
-    if not (V.NSet.eq (Graph.get_vertices pat_g) (VVInj.get_dom_set vmap))
+    if not (V.NSet.eq (Graph.get_vertices pat) (VVInj.get_dom_set vmap))
     then SOME "vmap is not total"
-    else if not (E.NSet.eq (Graph.get_edges pat_g) (EEInj.get_dom_set emap))
+    else if not (E.NSet.eq (Graph.get_edges pat) (EEInj.get_dom_set emap))
     then SOME "emap is not total"
     else if not (V.NSet.sub_set (VVInj.get_cod_set vmap) (Graph.get_vertices tgt))
     then SOME "vmap image is not in the target graph"
@@ -161,11 +175,13 @@ functor BangGraphMatch(BBoxOperableGraph : BBOX_OPERABLE_GRAPH) : BANG_GRAPH_MAT
     else NONE
   end;
 
-  fun mk_opt pat tgt vmap emap bmap wild subst =
+  fun mk_opt init_pat pat bbox_ops tgt vmap emap bmap wild subst =
     case find_match_error pat tgt vmap emap bmap subst
       of SOME _ => NONE
        | NONE => SOME (Match {
+                   init_pat = init_pat,
                    pat      = pat,
+                   bbox_ops = bbox_ops,
                    tgt      = tgt,
                    vmap     = vmap,
                    emap     = emap,
@@ -174,11 +190,13 @@ functor BangGraphMatch(BBoxOperableGraph : BBOX_OPERABLE_GRAPH) : BANG_GRAPH_MAT
                    wild_bbs = wild
                  });
 
-  fun mk pat tgt vmap emap bmap wild subst =
+  fun mk init_pat pat bbox_ops tgt vmap emap bmap wild subst =
     case find_match_error pat tgt vmap emap bmap subst
-      of SOME e => raise bad_match_exp (e,pat,tgt,vmap,emap,bmap,subst,wild)
+      of SOME e => raise bad_match_exp (e,init_pat,pat,bbox_ops,tgt,vmap,emap,bmap,subst,wild)
        | NONE => Match {
+                   init_pat = init_pat,
                    pat      = pat,
+                   bbox_ops = bbox_ops,
                    tgt      = tgt,
                    vmap     = vmap,
                    emap     = emap,
@@ -202,7 +220,7 @@ functor BangGraphMatch(BBoxOperableGraph : BBOX_OPERABLE_GRAPH) : BANG_GRAPH_MAT
         Pretty.chunks [
           Pretty.block [
             Pretty.str "Pattern: ",
-            BBoxOperableGraph.pretty (get_pat ms)
+            Graph.pretty (get_pat ms)
           ],
           Pretty.block [
             Pretty.str "Target: ",
@@ -234,7 +252,6 @@ functor BangGraphMatch(BBoxOperableGraph : BBOX_OPERABLE_GRAPH) : BANG_GRAPH_MAT
   structure Sharing : BANG_GRAPH_MATCH_SHARING
   = struct
     structure Graph = Graph.Sharing
-    structure BBoxOperableGraph = BBoxOperableGraph.Sharing
     type T = T;
   end;
 end;

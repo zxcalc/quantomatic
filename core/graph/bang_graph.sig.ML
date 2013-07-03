@@ -1,3 +1,9 @@
+datatype bbox_op = BBKill of B.name
+                 | BBExpand of {
+                      bbox : B.name,
+                      boundary_map : VSub.T,
+                      bbox_map : BSub.T }
+
 signature BANG_GRAPH =
 sig
   include OGRAPH
@@ -108,6 +114,15 @@ sig
   val fresh_copy_bbox_anon : B.name -> T -> T
   val fresh_expand_bbox : B.name -> T -> (VSub.T * ESub.T * BSub.T) * T
   val fresh_expand_bbox_anon : B.name -> T -> T
+
+  (* apply the given operation and return the new graph and a replayable bbox op *)
+  val expand_bbox_op : B.name -> T -> bbox_op * T
+  val kill_bbox_op   : B.name -> T -> bbox_op * T
+
+  val replay_bbox_op  : bbox_op -> T -> T
+
+  (* replay this list of bbox ops, from back to front (as this is how they are stored) *)
+  val replay_bbox_ops : bbox_op list -> T -> T
   
   val rename_bang_graph      : (VSub.T * ESub.T * BSub.T) -> T ->
                                (VSub.T * ESub.T * BSub.T) * T
