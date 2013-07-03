@@ -163,4 +163,4 @@ val matr = RationalMatrix.from_lists (map (map Rational.mk) [
   [(1,1), (1,1), (2,1)]
 ])
 
-val _ = RationalMatrix.print (the (RationalMatrix.gauss 2 matr));
+(*val _ = RationalMatrix.print (the (RationalMatrix.gauss 2 matr));*)
