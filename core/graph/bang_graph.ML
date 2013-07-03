@@ -786,43 +786,43 @@ fun merge g1 g2 = let
           val adj = E.NSet.intersect adj1 adj2
           fun input_somewhere v = is_input' g1 v orelse is_input' g2 v
           fun output_somewhere v = is_output' g1 v orelse is_output' g2 v
-          fun undir_bnd_everywhere v = E.NSet.is_singleton adj1
+          fun bnd_everywhere v = E.NSet.is_singleton adj1
                                        andalso
                                        E.NSet.is_singleton adj2
-          fun undir_bnd_somewhere v = E.NSet.is_singleton adj1
+          fun bnd_somewhere v = E.NSet.is_singleton adj1
                                       orelse
                                       E.NSet.is_singleton adj2
-          val types_agree =
-            case (E.NSet.get_local_bot adj1,E.NSet.get_local_bot adj2)
-              of (SOME e1,SOME e2) =>
-                    let
-                      val (dir1,data1) = get_edge_dir_and_data g1 e1
-                      val (dir2,data2) = get_edge_dir_and_data g2 e2
-                    in
-                      dir1 = dir2 andalso edata_eq (data1,data2)
-                    end
-               | _ => true
         in
-          types_agree andalso
-          if E.NSet.is_empty adj
-          then (input_somewhere v andalso output_somewhere v)
-               orelse undir_bnd_everywhere v
-          else
-            case E.NSet.tryget_singleton adj
-              of NONE => true (* not a boundary at all *)
-               | SOME e =>
-                   let
-                     val s = get_edge_source g1 e
-                     val t = get_edge_target g1 e
-                   in
-                     if V.name_eq (s,t)
-                     then true (* circle *)
-                     else if get_edge_dir g1 e = Undirected
-                     then undir_bnd_somewhere v
-                     else if V.name_eq (s,v)
-                     then output_somewhere v
-                     else input_somewhere v
-                   end
+          case (E.NSet.get_local_bot adj1,E.NSet.get_local_bot adj2)
+            of (SOME e1,SOME e2) =>
+                  let
+                    val (dir1,data1) = get_edge_dir_and_data g1 e1
+                    val (dir2,data2) = get_edge_dir_and_data g2 e2
+                  in
+                    dir1 = dir2 andalso edata_eq (data1,data2) andalso
+                    if E.NSet.is_empty adj
+                    then
+                      if dir1 = Directed
+                      then input_somewhere v andalso output_somewhere v
+                      else bnd_everywhere v
+                    else
+                      case E.NSet.tryget_singleton adj
+                        of NONE => true (* not a boundary at all *)
+                         | SOME e =>
+                             let
+                               val s = get_edge_source g1 e
+                               val t = get_edge_target g1 e
+                             in
+                               if V.name_eq (s,t)
+                               then true (* circle *)
+                               else if dir1 = Undirected
+                               then bnd_somewhere v
+                               else if V.name_eq (s,v)
+                               then output_somewhere v
+                               else input_somewhere v
+                             end
+                  end
+             | _ => true (* at least one is an isolated wv *)
         end
       ) shared_vs
       then () else raise bad_graph_merge_exp (g1,g2)
