@@ -1,13 +1,9 @@
 local
   structure Rule = RG_Theory.Rule
   structure Ruleset = RG_Theory.Ruleset
-  structure BBoxOperableGraph = ReplayableBBoxOperableGraph(
-    structure Graph = RG_Theory.Graph
-  )
   structure Rewriter = BangGraphRewriter(
     structure Rule = Ruleset.BangGraphRule
     structure Matcher = RG_Theory.MatchSearch
-    structure BBoxOperableGraph = BBoxOperableGraph
   )
   structure RulesetRewriter = RG_Theory.RulesetRewriter
   structure MatchSearch = RG_Theory.MatchSearch

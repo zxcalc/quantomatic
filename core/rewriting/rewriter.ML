@@ -92,33 +92,26 @@ struct
   val log_vrnm = log_p V.Rnm.pretty
   val log_ernm = log_p E.Rnm.pretty
 
-  (*fun prepare_rule rule target =
-      let
-        (* (Boundary) vertices and variables must be renamed
-         * away from those in g, otherwise the rewriting will
-         * fail (a quirk of the implementations of LinRatExpr
-         * and V.CRnm) *)
-        val g_norm = Graph.normalise target
-        val rnms = (
-          VSub.empty |> VSub.avoid_set_in_cod (Graph.get_vertices g_norm)
-                     |> VSub.extend_fresh (Rule.get_vertices rule),
-          ESub.empty, BSub.empty)
-        val (_,rule) = Rule.rename_bang_graph_rule rnms rule;
-        val lhs = Graph.normalise (Rule.get_lhs rule);
-        val rhs = Graph.normalise (Rule.get_rhs rule);
-        val avoid = V.NSet.union_merge (Graph.get_vertices g_norm) (Graph.get_vertices rhs);
-        val track = Rule.get_boundary_vertices rule;
-      in
-        (Rule.mk (lhs,rhs),
-         BBOp.init lhs avoid track,
-         g_norm)
-      end;*)
+  fun normalise_rule rule = let
+    val lhs = Graph.normalise (Rule.get_lhs rule)
+    val rhs = Graph.normalise (Rule.get_rhs rule)
+  in
+    Rule.mk (lhs,rhs)
+  end
 
-  fun find_matches rule graph =
-    (rule, Matcher.match_normalised (Rule.get_lhs rule) graph)
+  fun find_matches rule graph = let
+    val rule' = normalise_rule rule
+    val graph' = Graph.normalise graph
+  in
+    (rule', Matcher.match_normalised (Rule.get_lhs rule') graph')
+  end
 
-  fun find_matches_in_subgraph rule graph vset =
-    (rule, Matcher.match_subgraph_normalised (Rule.get_lhs rule) graph vset)
+  fun find_matches_in_subgraph rule graph vset = let
+    val rule' = normalise_rule rule
+    val graph' = Graph.normalise graph
+  in
+    (rule, Matcher.match_subgraph_normalised (Rule.get_lhs rule') graph' vset)
+  end
 
   fun sg_rewrite_at m rhs = let
     val g = Match.get_tgt m

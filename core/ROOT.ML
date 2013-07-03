@@ -68,6 +68,11 @@ PolyML.Project.make "expressions/semiring.ML";
 PolyML.Project.make "expressions/tensor.ML";
 PolyML.Project.make "expressions/linrat_matcher.ML";
 
+(*
+PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
+PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
+*)
+
 (* I/O *)
 PolyML.Project.make "io/linrat_json.ML";
 
@@ -86,8 +91,6 @@ PolyML.Project.make "graph/ograph.sig.ML";
 PolyML.Project.make "graph/bang_graph.sig.ML";
 PolyML.Project.make "graph/bang_graph.ML";
 
-(*PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)*)
-
 PolyML.Project.make "graph/graph_annotations.ML"; (* graph annotations *)
 
 (* I/O *)
@@ -98,7 +101,6 @@ PolyML.Project.make "io/graph_dot_output.ML";
 Testing.make_test "graph/test/test-graph-setup.ML";
 Testing.make_test "graph/test/test-ograph.ML";
 Testing.make_test "graph/test/test-bang-graph.ML";
-(*Testing.make_test "graph/test/test-bang-graph-iso.ML";*)
 
 Testing.make_test "io/test/graph-json-test.ML";
 
@@ -138,7 +140,7 @@ PolyML.Project.make "theories/ruleset_annotations.ML";
 PolyML.Project.make "io/ruleset_json.ML";
 PolyML.Project.make "io/ruleset_annotations_json.ML";
 
-(*Testing.make_test "theories/test/ruleset-test.ML";*)
+Testing.make_test "theories/test/ruleset-test.ML";
 
 
 (*
@@ -180,10 +182,8 @@ PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix 
 *)
 (* I/O *)
 PolyML.Project.make "io/rewrite_json.ML";
-(*Testing.make_test "rewriting/test/rewriter-test.ML";*)
-(*
+Testing.make_test "rewriting/test/rewriter-test.ML";
 Testing.make_test "rewriting/test/ruleset_rewriter-tests.ML";
-*)
 
 (*
  * Theories
@@ -196,11 +196,6 @@ PolyML.Project.make "io/graphical_theory_io.ML";
 (* graph-derived expressions for R-G graphs *)
 PolyML.Project.make "theories/red_green/theory.ML";
 PolyML.Project.make "theories/red_green/io.ML";
-
-(*
-PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
-PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
-*)
 
 (* ghz-w specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/ghz_w/theory.ML";
@@ -263,12 +258,8 @@ PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
 (*
  * Top-level testing
  *)
-(* FIXME: some tests fail
 Testing.make_test "test/old-rg-ruleset-rewriter-tests.ML";
-*)
-(* FIXME: some tests fail
 Testing.make_test "test/regression-tests.ML";
-*)
 (* Metrics tests depend on Substrings_Theory *)
 Testing.make_test "metrics/test/test.ML";
 Testing.make_test "example_code/ROOT.ML";
