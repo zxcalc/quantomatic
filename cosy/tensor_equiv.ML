@@ -79,7 +79,7 @@ struct
     val ((scalar,perm_outs,perm_ins),tens') = TData.Tensor.normalise tens
     val norm_ins = map (fn n => V.mk ("i_"^(Int.toString n))) perm_ins
     val norm_outs = map (fn n => V.mk ("o_"^(Int.toString n))) perm_outs
-    val gr' = fold2 Graph.rename_vname ins norm_ins (fold2 Graph.rename_vname outs norm_outs gr)
+    val gr' = fold2 Graph.rename_vertex ins norm_ins (fold2 Graph.rename_vertex outs norm_outs gr)
   in
     (gr', tens')
   end

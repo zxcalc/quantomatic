@@ -315,8 +315,8 @@ struct
   fun has_match_in_dnet eqt tgt = let
     fun has_match pat_n = let
       val pat = get_graph_entry eqt pat_n
-    in is_some (Seq.pull (Theory.MatchSearch.match
-         (GE.get_graph pat, GE.get_graph tgt)
+    in is_some (Seq.pull (
+         Theory.MatchSearch.match (GE.get_graph pat) (GE.get_graph tgt)
        ))
     end
   in GraphName.NSet.exists has_match

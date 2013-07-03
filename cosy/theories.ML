@@ -111,8 +111,8 @@ structure RG_Enum = FastGraphEnum(
   
   structure Metric = WeightedArityMetric(
     structure Graph = RG_Theory.Graph
-    fun weight_for_data (Graph.OVData.NVert (RG_InternVData.Xnd _)) = 6
-      | weight_for_data (Graph.OVData.NVert (RG_InternVData.Znd _)) = 5
+    fun weight_for_data (Graph.NVert (RG_Data.Xnd _)) = 6
+      | weight_for_data (Graph.NVert (RG_Data.Znd _)) = 5
       | weight_for_data _ = 4
   )
   
@@ -127,8 +127,8 @@ structure GHZW_Enum = FastGraphEnum(
   
   structure Metric = WeightedArityMetric(
     structure Graph = GHZW_Theory.Graph
-    fun weight_for_data (Graph.OVData.NVert (GHZW_Data.GHZ)) = 6
-      | weight_for_data (Graph.OVData.NVert (GHZW_Data.W)) = 5
+    fun weight_for_data (Graph.NVert (GHZW_Data.GHZ)) = 6
+      | weight_for_data (Graph.NVert (GHZW_Data.W)) = 5
       | weight_for_data _ = 4
   )
   
@@ -160,7 +160,7 @@ structure GHZW_Enum = GraphEnumerator(structure Theory = GHZW_Theory)
 structure GHZW_Metric = WeightedArityMetric(
   structure Graph = GHZW_Theory.Graph
 <<<<<<< HEAD
-  fun weight_for_data (Graph.OVData.NVert GHZW_Data.ZERO) = 1
+  fun weight_for_data (Graph.NVert GHZW_Data.ZERO) = 1
 =======
   fun weight_for_data (Graph.NVert GHZW_Data.ZERO) = 1
 >>>>>>> simple-graph

@@ -5,13 +5,13 @@ sig
   structure EqClassTab : EQ_CLASS_TAB
   
   type data
-  type generator = (Theory.Graph.VData.data * int * int)
+  type generator = (Theory.Graph.vdata * int * int)
   
   val default_data : data
   type size_param = int * int * int * int
   
-  sharing Theory.Graph.SharingOGraph =
-          Metric.Graph.SharingOGraph
+  sharing Theory.Graph.Sharing =
+          Metric.Graph.Sharing
   sharing Theory.Ruleset.Sharing =
           EqClassTab.Theory.Ruleset.Sharing
   
@@ -24,9 +24,9 @@ functor FastGraphEnum(
   structure Theory : GRAPHICAL_THEORY
   structure Metric : GRAPH_METRIC
   structure Equiv : GRAPH_EQUIV
-  sharing Theory.Graph.SharingOGraph =
-          Metric.Graph.SharingOGraph =
-          Equiv.Graph.SharingOGraph
+  sharing Theory.Graph.Sharing =
+          Metric.Graph.Sharing =
+          Equiv.Graph.Sharing
 ) : GRAPH_ENUM =
 struct
   structure Theory = Theory
@@ -34,7 +34,7 @@ struct
   structure Graph = Theory.Graph
 
   type size_param = int * int * int * int
-  type generator = (Theory.Graph.VData.data * int * int) (* generators (data + arities) *)
+  type generator = (Theory.Graph.vdata * int * int) (* generators (data + arities) *)
   (* Ordered Vertices, free inputs, free outputs, list of lists of
      edges, one vertex at a time *)
   type adjmat = generator list * int list * int list * (int list) list 
@@ -43,7 +43,7 @@ struct
   val default_data = empty_graph_rep
   
   fun generator_eq ((data1,i1,o1), (data2,i2,o2)) =
-    Theory.Graph.VData.data_eq (data1, data2) andalso
+    Theory.Graph.vdata_eq (data1, data2) andalso
     (i1,o1) = (i2,o2)
   
   structure EqClassTab = EqClassTab(
@@ -193,17 +193,17 @@ struct
       | into_edges (vin::vins) (vout, (n::ns)) = List.tabulate (n, K (vout,vin)) @ (into_edges vins (vout, ns))
     fun list_int_edges vs ess = maps (into_edges vs) (ListPair.zip (vs, ess))
     val edge_list = list_int_edges vertices (to_block_matr ess)
-    val g0 = List.foldr (fn ((x,y), g) => snd (g |> Graph.add_edge (Graph.Directed, Theory.EData.default_data) x y)) g0 edge_list
+    val g0 = List.foldr (fn ((x,y), g) => snd (g |> Graph.add_edge (Directed, Theory.Graph.default_edata) x y)) g0 edge_list
     val edge_in_list = maps (fn (n,y) => List.tabulate (n, K y)) (ListPair.zip (is, vertices))
     val edge_out_list = maps (fn (n,y) => List.tabulate (n, K y)) (ListPair.zip (os, vertices))
     fun add_in_edge (v, g) = let
-      val (bound, g') = g |> Graph.add_vertex (Theory.OVData.WVert);
-      val (_,g'') = g' |> Graph.add_edge (Graph.Directed, Theory.EData.default_data) bound v
+      val (bound, g') = g |> Graph.add_vertex (Theory.Graph.WVert);
+      val (_,g'') = g' |> Graph.add_edge (Directed, Theory.Graph.default_edata) bound v
     in g''
     end
     fun add_out_edge (v, g) = let
-      val (bound, g') = g |> Graph.add_vertex (Theory.OVData.WVert);
-      val (_,g'') = g' |> Graph.add_edge (Graph.Directed, Theory.EData.default_data) v bound
+      val (bound, g') = g |> Graph.add_vertex (Theory.Graph.WVert);
+      val (_,g'') = g' |> Graph.add_edge (Directed, Theory.Graph.default_edata) v bound
     in g''
     end  
     val g0 = List.foldr add_in_edge g0 edge_in_list
@@ -212,9 +212,9 @@ struct
   end
 
   fun add_ident_wire g = let 
-      val (x, g) = g |> Graph.add_vertex (Theory.OVData.WVert);
-      val (y, g) = g |> Graph.add_vertex (Theory.OVData.WVert);
-      val (_, g) = g |> Graph.add_edge (Graph.Directed, Theory.EData.default_data) x y
+      val (x, g) = g |> Graph.add_vertex (Theory.Graph.WVert);
+      val (y, g) = g |> Graph.add_vertex (Theory.Graph.WVert);
+      val (_, g) = g |> Graph.add_edge (Directed, Theory.Graph.default_edata) x y
   in g
   end
 

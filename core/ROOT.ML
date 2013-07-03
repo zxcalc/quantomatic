@@ -254,11 +254,11 @@ Testing.make_test "dnets/test.ML";
 
 
 (* Include cosy *)
-(*val rootDir = OS.FileSys.getDir();
+val rootDir = OS.FileSys.getDir();
 OS.FileSys.chDir (rootDir ^ "/../cosy/");
 use "ROOT.ML";
 OS.FileSys.chDir rootDir;
-PolyML.Project.depend_on_files [rootDir ^ "/../cosy/ROOT.ML"];*)
+PolyML.Project.depend_on_files [rootDir ^ "/../cosy/ROOT.ML"];
 
 
 
