@@ -2,7 +2,7 @@ signature RULESET_REWRITER_SHARING =
 sig
   structure Ruleset : RULESET_SHARING
   type match
-end;
+end
 
 signature RULESET_REWRITER =
 sig
@@ -12,15 +12,15 @@ sig
   type match
 
   structure Sharing : RULESET_REWRITER_SHARING
-  sharing Sharing.Ruleset = Ruleset.Sharing;
-  sharing type Sharing.match = match;
+  sharing Sharing.Ruleset = Ruleset.Sharing
+  sharing type Sharing.match = match
 
   (* Finds all rewrites for a graph using the active rules
    * in a ruleset
    *)
   val apply : Ruleset.T (* ruleset to use *)
            -> Ruleset.Rule.Graph.T (* graph to rewrite *)
-           -> ((R.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T) Seq.seq;
+           -> ((R.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T) Seq.seq
               (* instantiated rule and new graph *)
 
   (* Finds all rewrites for a subgraph using the active rules
@@ -31,31 +31,31 @@ sig
   val apply_in : Ruleset.T (* ruleset to use *)
               -> Ruleset.Rule.Graph.T (* graph to rewrite *)
               -> V.NSet.T (* subgraph to match against *)
-              -> ((R.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T) Seq.seq;
+              -> ((R.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T) Seq.seq
               (* instantiated rule and new graph *)
 
   (* As apply, but gives only the first result *)
   val apply_first : Ruleset.T
                  -> Ruleset.Rule.Graph.T 
-                 -> ((R.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T) option;
+                 -> ((R.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T) option
   (* As apply_in, but gives only the first result *)
   val apply_first_in : Ruleset.T
                     -> Ruleset.Rule.Graph.T
                     -> V.NSet.T  
-                    -> ((R.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T) option;
+                    -> ((R.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T) option
 
   (* Find all rewrites in a set of rules *)
   val applicable_rules : Ruleset.T (* background ruleset *)
-      -> (Ruleset.Rule.T -> Ruleset.Rule.Graph.T -> Ruleset.Rule.T * match Seq.seq) (* matcher *)
+      -> (Ruleset.Rule.T -> Ruleset.Rule.Graph.T -> match Seq.seq) (* matcher *)
       -> R.NSet.T (* subset of rules to use *) 
       -> Ruleset.Rule.Graph.T (* graph to look for matches of rules in *)
-      -> ((R.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T) Seq.seq;
+      -> ((R.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T) Seq.seq
          (* instantiated rule and new graph *)
 
   (* a couple of helpful fns because match is opaque *)
-  val print_match : match -> unit;
-  val pretty_match : match -> Pretty.T;
-end;
+  val print_match : match -> unit
+  val pretty_match : match -> Pretty.T
+end
 
 (* *)
 functor RulesetRewriter(
@@ -67,10 +67,10 @@ functor RulesetRewriter(
 struct
   structure Log : LOG = Log(val init_level = 0)
 
-  structure Ruleset = Ruleset;
-  type match = Rewriter.match;
+  structure Ruleset = Ruleset
+  type match = Rewriter.match
 
-  structure Rule = Ruleset.BangGraphRule;
+  structure Rule = Ruleset.BangGraphRule
   structure Graph = Rule.Graph
 
   fun log_p pretty_f lvl name =
@@ -92,11 +92,10 @@ struct
           val rule = (Ruleset.get_rule rset n)
           val rulename = R.string_of_name n
           val _ = log_rule 2 ("Trying rule "^rulename) rule
-          val (r,matches) = matcher rule g
-          val _ = log_rule 3 "Rule instantiated as" r
+          val matches = matcher rule g
           fun apply_rw m = let
             val _ = Log.log 1 ("Applying rule "^rulename)
-            val (rule,g) = Rewriter.rewrite_at r m
+            val (rule,g) = Rewriter.rewrite_at rule m
           in
             ((n,rule),g)
           end
@@ -105,11 +104,11 @@ struct
         end)
      rnset
      Seq.empty
-  end;
+  end
   
   fun apply rset g = 
       applicable_rules rset Rewriter.find_matches 
-       (Ruleset.get_active rset) g;
+       (Ruleset.get_active rset) g
 
   fun apply_in rset g vset = 
   let
@@ -118,28 +117,28 @@ struct
   in
       applicable_rules rset find_matches
         (Ruleset.get_active rset) g
-  end;
+  end
   
   (* apply just first rule that can be applied *)
   fun apply_first rset g =
       case Seq.pull (apply rset g)
        of NONE => NONE
-        | SOME (h,_) => SOME h;
+        | SOME (h,_) => SOME h
 
   fun apply_first_in rset vset g = 
       case Seq.pull (apply_in rset vset g) 
        of NONE => NONE
-        | SOME (h,_) => SOME h;
+        | SOME (h,_) => SOME h
 
-  val print_match = Rewriter.print_match;
-  val pretty_match = Rewriter.pretty_match;
+  val print_match = Rewriter.print_match
+  val pretty_match = Rewriter.pretty_match
 
   structure Sharing : RULESET_REWRITER_SHARING
   = struct
-    structure Ruleset = Ruleset.Sharing;
-    type match = match;
+    structure Ruleset = Ruleset.Sharing
+    type match = match
   end
 
 
-end; (* *)
+end (* *)
 
