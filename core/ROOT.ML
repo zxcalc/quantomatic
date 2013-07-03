@@ -193,9 +193,9 @@ PolyML.Project.make "theories/graphical_theory.ML";
 PolyML.Project.make "io/graphical_theory_io.ML";
 
 (* string vertex/edge graphs *)
-PolyML.Project.make "theories/string_ve/graph.ML";
+(*PolyML.Project.make "theories/string_ve/graph.ML";
 PolyML.Project.make "theories/string_ve/theory.ML";
-PolyML.Project.make "theories/string_ve/io.ML";
+PolyML.Project.make "theories/string_ve/io.ML";*)
 
 
 (* red-green specific vertices, graphs and matching *)
@@ -255,11 +255,11 @@ Testing.make_test "dnets/test.ML";
 
 
 (* Include cosy *)
-val rootDir = OS.FileSys.getDir();
+(*val rootDir = OS.FileSys.getDir();
 OS.FileSys.chDir (rootDir ^ "/../cosy/");
 use "ROOT.ML";
 OS.FileSys.chDir rootDir;
-PolyML.Project.depend_on_files [rootDir ^ "/../cosy/ROOT.ML"];
+PolyML.Project.depend_on_files [rootDir ^ "/../cosy/ROOT.ML"];*)
 
 
 
@@ -286,13 +286,13 @@ PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
 
 (* new modular controller *)
 
-(*PolyML.Project.make "json_interface/controller_util.ML";
+PolyML.Project.make "json_interface/controller_util.ML";
 PolyML.Project.make "json_interface/controller_module.ML";
 PolyML.Project.make "json_interface/modules/test.ML";
 PolyML.Project.make "json_interface/controller.ML";
 PolyML.Project.make "json_interface/controller_registry.ML";
 PolyML.Project.make "json_interface/protocol.ML";
-PolyML.Project.make "json_interface/run.ML";*)
+PolyML.Project.make "json_interface/run.ML";
 
 
 (*

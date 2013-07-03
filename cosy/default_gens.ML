@@ -6,9 +6,9 @@ struct
   
   val id = let
     val gr = Graph.empty
-    val (a,gr) = gr |> Graph.add_vertex (Graph.OVData.WVert)
-    val (b,gr) = gr |> Graph.add_vertex (Graph.OVData.WVert)
-  in (gr |> Graph.doadd_edge (Graph.Directed, Graph.EData.default_data) a b, 1, 1) 
+    val (a,gr) = gr |> Graph.add_vertex (Graph.WVert)
+    val (b,gr) = gr |> Graph.add_vertex (Graph.WVert)
+  in (gr |> Graph.add_edge_anon (Directed, Graph.default_edata) a b, 1, 1) 
   end
   
   fun gen data (ins, outs) = let
