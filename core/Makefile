@@ -12,7 +12,7 @@ ISAPLIB_SOURCES=../../isaplib
 # polyml executable
 POLYML_HOME=$(shell ../tools/findpoly.sh)
 POLYML=$(POLYML_HOME)/bin/poly
-POLYFLAGS=-H 200
+POLYFLAGS=-H 200 $(if $(FAST),--disable-tests) $(if $(V),--test-log-level=$(V))
 
 
 ################################
@@ -41,7 +41,7 @@ $(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAP_ML_SRC_FILES)
 
 heap: $(QUANTO_HEAP)
 
-bin/%: toplevel/%.ML $(QUANTO_HEAP)
+bin/%: toplevel/%.ML $(QUANTO_HEAP) $(shell find "toplevel/$%" | grep ".ML$$")
 	@mkdir -p bin
 	POLYFLAGS="$(POLYFLAGS)" ../tools/polyc -l $(QUANTO_HEAP) -o $@ $<
 
@@ -60,7 +60,7 @@ run: ml-shell
 
 # 
 localclean:
-	rm -f heaps/*.polyml-heap
+	rm -f heaps/*.heap
 	rm -f bin/*.o
 	find . -type d -name .polysave | xargs rm -rf
 	rm -f $(ALL_BINS)

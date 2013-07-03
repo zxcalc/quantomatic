@@ -82,7 +82,7 @@ local
           val n_minus = LIB.rm_element (V.name_eq) node1 n
           val node2 = one_of n_minus
         in
-          g |> G.add_named_edge e (G.Directed,eunit1) node1 node2
+          g |> G.add_named_edge e (Directed,eunit1) node1 node2
         end
     | add_edges g n (e::es) =
         let
@@ -90,11 +90,11 @@ local
           val n_minus = LIB.rm_element (V.name_eq) node1 n
           val node2 = one_of n_minus
         in
-          add_edges (g |> G.add_named_edge e (G.Directed,eunit1) node1 node2) n es
+          add_edges (g |> G.add_named_edge e (Directed,eunit1) node1 node2) n es
         end  
 
 
-  fun get_adj g n = V.NSet.list_of (G.adj_vnames g n)
+  fun get_adj g n = V.NSet.list_of (G.get_adj_vertices g n)
 
   fun get_connected_nodes g [] num_nodes bb_nodes = bb_nodes
     | get_connected_nodes g (n::[]) num_nodes bb_nodes  = 
@@ -120,8 +120,8 @@ local
         end 
 
   fun add_bbox g bb [] = g
-    | add_bbox g bb (n::[]) = g |> G.doadd_to_bbox bb (V.NSet.single n)
-    | add_bbox g bb (n::ns) = add_bbox (g |> G.doadd_to_bbox bb (V.NSet.single n)) bb ns
+    | add_bbox g bb (n::[]) = g |> G.add_to_bbox_anon bb (V.NSet.single n)
+    | add_bbox g bb (n::ns) = add_bbox (g |> G.add_to_bbox_anon bb (V.NSet.single n)) bb ns
 
   fun add_bboxes g n b npbb =
     if (b=1) then
@@ -152,8 +152,8 @@ local
       val g = g |> G.add_named_vertex bound b
       val edge = E.mk("b_e" ^ string_of_int(i))
       val dice = random_range 1 2
-      val g = if (dice=1) then g |> G.add_named_edge edge (G.Directed,eunit1) node bound
-                else g |> G.add_named_edge edge (G.Directed,eunit1) bound node
+      val g = if (dice=1) then g |> G.add_named_edge edge (Directed,eunit1) node bound
+                else g |> G.add_named_edge edge (Directed,eunit1) bound node
     in
       if (i=1) then g else add_boundaries (i-1) g nodes
     end

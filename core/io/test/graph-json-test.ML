@@ -7,7 +7,7 @@ local
   structure GIn = GJsonInput;
   structure GOut = GJsonOutput;
   val expr_1_json = "{\"vars\":{\"a\":{\"num\":1,\"denom\":3},\"b\":{\"num\":2,\"denom\":1}}}"
-  val expr_1 = L.mk C.zero [(X.mk "a",C.mk 1 3), (X.mk "b",C.mk 2 1)]
+  val expr_1 = L.mk C.zero [(X.mk "a",C.mk (1,3)), (X.mk "b",C.mk (2,1))]
   val expr_2_json = "{\"pi\":{\"num\":1,\"denom\":1}}"
   val expr_2 = L.pi
   val expr_3_json = "{\"pi\":{\"num\":1,\"denom\":2},\"vars\":{\"\\\\alpha\":{\"num\":1,\"denom\":1}}}"
@@ -24,11 +24,38 @@ local
                   |> add_undir_eunit2 "e2" "n3" "n4"
                   |> add_dir_eexpr1_a "e3" "n5" "n5" expr_3
                   |> add_bbox "b1" ["w1","n1","n2"]
-                  |> add_child_bbox "b2" "b1" ["w1","n1"]
+                  |> add_bbox_with_parent "b2" "b1" ["w1","n1"]
                   |> add_bbox "b3" [];
   val g_json_1 =
   "{"^
     "\"wire_vertices\":[\"w1\",\"w2\"],"^
+    "\"node_vertices\":{"^
+      "\"n1\":{\"data\":\"VUnit1\"},"^
+      "\"n2\":{\"data\":{\"type\":\"VExpr1\",\"angle\":null}},"^
+      "\"n3\":{\"data\":{\"type\":\"VExpr2\"}},"^
+      "\"n4\":{\"data\":{\"type\":\"VExpr1\",\"angle\":"^expr_1_json^"}},"^
+      "\"n5\":{\"data\":{\"type\":\"VExpr2\",\"angle\":"^expr_2_json^"}},"^
+      "\"n6\":{\"data\":{\"type\":\"VExpr2\",\"angle\":\"a+\\\\pi\"}}"^
+    "},"^
+    "\"dir_edges\":{"^
+      "\"e1\":{\"src\":\"w1\",\"tgt\":\"n1\",\"data\":\"EUnit1\"},"^
+      "\"e3\":{\"src\":\"n5\",\"tgt\":\"n5\",\"data\":{\"type\":\"EExpr1\",\"angle\":"^expr_3_json^"}}"^
+    "},"^
+    "\"undir_edges\":{"^
+      "\"e2\":{\"src\":\"n3\",\"tgt\":\"n4\",\"data\":{\"type\":\"EUnit2\"}}"^
+    "},"^
+    "\"bang_boxes\":{"^
+      "\"b1\":{\"contents\":[\"w1\",\"n1\",\"n2\"]},"^
+      "\"b2\":{\"contents\":[\"w1\",\"n1\"],\"parent\":\"b1\"},"^
+      "\"b3\":{}"^
+    "}"^
+  "}";
+  val g_json_2 =
+  "{"^
+    "\"wire_vertices\":{"^
+      "\"w1\":{},"^
+      "\"w2\":null"^
+    "},"^
     "\"node_vertices\":{"^
       "\"n1\":{\"data\":\"VUnit1\"},"^
       "\"n2\":{\"data\":{\"type\":\"VExpr1\",\"angle\":null}},"^
@@ -66,16 +93,26 @@ local
        raise ERROR "Got wrong graph")
   end
   fun test_reparse expr = let
-    val e = GIn.input (GOut.output expr)
+    val j = GOut.output expr
   in
-    if G.exact_eq expr e
-    then ()
-    else
-      (writeln "Expected graph:";
-       G.print expr;
-       writeln "Graph from JSON:";
-       G.print e;
-       raise ERROR "Got wrong graph")
+    let
+      val e = GIn.input j
+    in
+      if G.exact_eq expr e
+      then ()
+      else
+        (writeln "Expected graph:";
+         G.print expr;
+         writeln "Graph from JSON:";
+         G.print e;
+         writeln "JSON:";
+         writeln (Json.string_of j);
+         raise ERROR "Got wrong graph")
+    end
+    handle ex =>
+      (writeln "JSON:";
+       writeln (Json.string_of j);
+       raise ex)
   end
 in
   val _ = Testing.test "Graph I/O: parse empty"
@@ -86,6 +123,9 @@ in
 
   val _ = Testing.test "Graph I/O: parse example graph 1"
             test_parse (g_json_1,g);
+
+  val _ = Testing.test "Graph I/O: parse example graph 1 (alternative json)"
+            test_parse (g_json_2,g);
 
   val _ = Testing.test "Graph I/O: reparse example graph 1"
             test_reparse g;

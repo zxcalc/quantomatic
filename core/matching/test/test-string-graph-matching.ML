@@ -1,13 +1,11 @@
 (*
  * Tests matching of string graphs against string graphs
  *)
-functor String_Graph_Matching_Tests(
-  Matcher : MATCH_SEARCH where type G.EData.data = Test_Graph_Data.edata
-                           and type G.OVData.IData.data = Test_Graph_Data.vdata
-) =
+functor String_Graph_Matching_Tests(Tester : MATCH_TESTER) =
 struct
-  structure Tools = Test_Match_Tools(Matcher);
-  open Tools;
+  structure GTools = Test_OGraph_Tools(Tester.G);
+  open GTools;
+  open Tester;
 
   (*
    * Circle matching tests
@@ -46,7 +44,7 @@ struct
 
   val two_circles_expr1_pi_2pi = circle_expr1pi
       |> add_wv "c3"
-      |> add_dir_eexpr1 "e3" "c3" "c3" "2\\pi";
+      |> add_dir_eexpr1 "e3" "c3" "c3" "2 \\pi";
 
   val circle_expr2pi = G.empty
       |> add_wv "c3"
@@ -249,7 +247,6 @@ struct
   val _ = Testing.test "match: undir bare wire (eunit1) --> undir barbell (eunit1)"
                        (find_n_correct_matches 2) (undir_bare_wire1,undir_barbell);
 
-
   (*
    * Matching node-vertices against other node-vertices
    *)
@@ -429,8 +426,9 @@ struct
   val _ = Testing.test "match: barbell line --> barbell loop"
                        (find_n_correct_matches 2) (barbell_line,barbell_loop);
 
-  val _ = Testing.assert_no_failed_tests();
+  (*val _ = Testing.assert_no_failed_tests();*)
 end;
 
-structure Concrete_Matcher_Tests = String_Graph_Matching_Tests(Test_ConcreteMatcher);
+structure Concrete_Matcher_Tests =
+  String_Graph_Matching_Tests(Test_Match_Tools(Test_ConcreteMatcher));
 

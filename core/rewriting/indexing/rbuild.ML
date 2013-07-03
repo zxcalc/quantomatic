@@ -31,7 +31,7 @@ structure RandomGraph
   fun create_connected_component vtypes =
   	let
   	val graph = fold G.doadd_vertex vtypes G.empty
-  	val vnames = NSet.list_of (G.get_vnames graph)
+  	val vnames = NSet.list_of (G.get_vertices graph)
   	fun add_e_to_graph [] g acc 	    = g
   	  | add_e_to_graph (n::names) g []  = add_e_to_graph names g [n]
   	  | add_e_to_graph (n::names) g acc =
@@ -97,7 +97,7 @@ structure RandomGraph
   	let
   	val prim_graph = vgen numv
   			 |> create_connected_component
-  	val vnames = (NSet.list_of o G.get_vnames) prim_graph
+  	val vnames = (NSet.list_of o G.get_vertices) prim_graph
   	in
   	prim_graph
   	|> add_extra_edges nume vnames

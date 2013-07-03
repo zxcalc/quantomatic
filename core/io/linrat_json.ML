@@ -8,7 +8,7 @@ structure InputLinratJSON : INPUT_JSON where type data = LinratAngleExpr.T
     val num = get_int obj "num"
     val denom = get_int obj "denom"
   in
-    C.mk num denom
+    C.mk (num, denom)
   end
   
   fun get_rational_easy dflt obj prop =
@@ -39,29 +39,28 @@ struct
   open JsonOutputUtils;
   type data = LinratAngleExpr.T;
   
-  fun make_rational (num,denom) = let
-    val add_num = Json.update ("num",(Json.Int num))
-    val add_denom = Json.update ("denom",(Json.Int denom))
-    val add_all = add_denom o add_num
+  fun make_rational r =
+    Json.mk_object [("num",  (Json.Int (Rational.get_num r))),
+                    ("denom",(Json.Int (Rational.get_denom r)))]
+  
+  fun make_vars expr = let
+    fun add_entry x = Json.update (
+      X.string_of_name x,
+      make_rational (LinratAngleExpr.coeff_for_var expr (SOME x)))
   in
-    Json.Object (add_all Json.empty_obj)
+    Json.Object (X.NSet.fold add_entry (LinratAngleExpr.free_vars expr) Json.empty_obj)
   end
   
-  fun make_vars tab = let
-    fun add_entry (v,c) = Json.update (X.string_of_name v,make_rational c)
-  in
-    Json.Object (X.NTab.fold add_entry tab Json.empty_obj)
-  end
-  
-  fun output (pi,tab) = let
+  fun output expr = let
     (* we try to minimise the output *)
+    val pi = LinratAngleExpr.coeff_for_var expr NONE
     val add_const = if LinratAngleExpr.Coeff.is_zero pi
                     then I
                     else Json.update ("pi",(make_rational pi))
-    val add_vars = if X.NTab.is_name_empty tab
+    val add_vars = if X.NSet.is_empty (LinratAngleExpr.free_vars expr)
                    then I
-                   else Json.update ("vars",(make_vars tab))
-    val str = Pretty.string_of (LinratAngleExpr.pretty (pi,tab))
+                   else Json.update ("vars",(make_vars expr))
+    val str = Pretty.string_of (LinratAngleExpr.pretty expr)
     val add_str = Json.update ("pretty",(Json.String str))
     val add_all = add_str o add_vars o add_const
   in

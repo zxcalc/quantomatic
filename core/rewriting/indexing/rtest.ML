@@ -70,7 +70,7 @@ structure Tester
   (*get internal vertex names from a graph*)
   fun get_inames graph = 
   	let
-  	val vnames = G.get_vnames graph
+  	val vnames = G.get_vertices graph
   	val bnames = G.get_boundary graph
   	in
   	NSet.remove_set bnames vnames

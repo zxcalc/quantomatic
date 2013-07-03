@@ -21,8 +21,8 @@ struct
     val (iv, gr) = Graph.empty |> Graph.add_vertex (Graph.OVData.NVert data)
     val (gr,invs) = addk ins gr
     val (gr,outvs) = addk outs gr
-    val gr = V.NSet.fold (fn v => Graph.doadd_edge (Graph.Directed, Graph.EData.default_data) v iv) invs gr
-    val gr = V.NSet.fold (fn v => Graph.doadd_edge (Graph.Directed, Graph.EData.default_data) iv v) outvs gr *)
+    val gr = V.NSet.fold (fn v => Graph.add_edge_anon (Directed, Graph.default_edata) v iv) invs gr
+    val gr = V.NSet.fold (fn v => Graph.add_edge_anon (Directed, Graph.default_edata) iv v) outvs gr *)
   in (data, ins, outs)
   end
   

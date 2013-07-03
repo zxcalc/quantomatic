@@ -13,8 +13,11 @@
 
 structure Commands =
 struct
-  type vertexDesc = { name: string, vType: string, data: ComponentData.T, userData: string };
-  type edgeDesc = { name: string, eType: string, sourceName: string, targetName: string, directed: bool, data: ComponentData.T, userData: string };
+  datatype componentData = StringCData of string
+                         | JsonCData of Json.json
+
+  type vertexDesc = { name: string, vType: string, data: componentData, userData: string };
+  type edgeDesc = { name: string, eType: string, sourceName: string, targetName: string, directed: bool, data: componentData, userData: string };
   type bangBoxDesc = { name: string, vertexNames: string list };
   type graphDesc = { name: string, vertices: vertexDesc list, edges: edgeDesc list, bangBoxen: bangBoxDesc list };
   type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
@@ -22,12 +25,8 @@ struct
    * component data *)
   datatype resultFormat = BasicFormat
                         | PrettyFormat
-                        | XmlFormat
                         | JsonFormat
-                        | DescriptionFormat;
-  datatype componentData = StringCData of string
-                         | XmlCData of (XML.tree list)
-                         | DescriptionCData of ComponentData.T;
+                        | DescriptionFormat
 
                      (* A dummy request does not change the state, and simply produces the given response *)
   datatype request = DummyRequest of { response: response }
@@ -134,7 +133,6 @@ struct
 
                        (* Native format: suitable for saving to a file and loading again *)
        and graphFormat = NativeGraphFormat
-                       | XmlGraphFormat
                        | JsonGraphFormat
                        | PrettyGraphFormat
                        | HilbertSpaceGraphFormat
@@ -248,8 +246,8 @@ struct
                     | MetricResponse of { data: int list}
 
                     | DataResponse of { data: string }
+                    | ComponentDataResponse of { data : componentData }
                     | PrettyResponse of { data: Pretty.T }
-                    | XmlResponse of { data: XML.tree }
                     | JsonResponse of { data: Json.json }
                     | CountResponse of { count: int }
 
@@ -257,7 +255,6 @@ struct
                     | VertexDescriptionResponse of { vertex: vertexDesc }
                     | EdgeDescriptionResponse of { edge: edgeDesc }
                     | BangBoxDescriptionResponse of { bangBox: bangBoxDesc }
-                    | ComponentDataResponse of { data: ComponentData.T }
                     | RewriteListResponse of { rewrites: rewriteDesc list }
 
                     | UnknownResponse of { code: string }
@@ -283,8 +280,8 @@ end;
 functor Controller(
   structure Theory : GRAPHICAL_THEORY
   structure GraphComponentDataIO : GRAPH_COMPONENT_DATA_IO
-  sharing type Theory.OVData.IData.data = GraphComponentDataIO.vdata
-  sharing type Theory.EData.data = GraphComponentDataIO.edata
+  sharing type Theory.Graph.nvdata = GraphComponentDataIO.nvdata
+  sharing type Theory.Graph.edata = GraphComponentDataIO.edata
 ) : CONTROLLER =
 struct
   structure State = ControllerState(Theory);
@@ -294,30 +291,11 @@ struct
   structure Ruleset = State.Theory.Ruleset;
   structure Rule = State.Theory.Rule;
   structure G = State.Theory.Graph;
-  structure OVData = State.Theory.OVData;
-  structure EData = State.Theory.EData;
-  structure VCD = State.Theory.VertexComponentData;
-  structure ECD = State.Theory.EdgeComponentData;
 
   structure TheoryIO = StringTableAnnotatedGraphicalTheoryIO(
     structure Theory = Theory
     structure GraphComponentDataIO = GraphComponentDataIO
   );
-
-  structure InputXML = State.Theory.IO_Xml.Input;
-  structure OutputXML = State.Theory.IO_Xml.Output;
-  structure GraphUserDataOutputXML = OutputGraphStringTableAnnotationsXML;
-  structure GraphUserDataInputXML = InputGraphStringTableAnnotationsXML;
-  structure RulesetUserDataOutputXML = OutputRulesetStringTableAnnotationsXML;
-  structure RulesetUserDataInputXML = InputRulesetStringTableAnnotationsXML;
-  structure GraphAndUIOutputXML = OutputWrapXML(
-              val tagname = "graph_and_user_data"
-              val attrs = []
-              structure Output1 = OutputConcatPairXMLList);
-  structure RulesetAndUIOutputXML = OutputWrapXML(
-              val tagname = "ruleset_and_user_data"
-              val attrs = []
-              structure Output1 = OutputConcatPairXMLList);
 
   val theoryName = State.Theory.theory_name;
 
@@ -340,44 +318,6 @@ struct
     | update_ruleset_ud rset_ud _ state =
       State.set_rset_ud rset_ud state
 
-  fun slurp file = let
-    val instream =  TextIO.openIn file
-    fun read str = case TextIO.inputLine instream
-                     of  SOME s => read (str ^ s)
-                      | NONE => str
-    val s = read ""
-  in
-    (TextIO.closeIn instream ; s)
-  end;
-  fun write_to_file file s = let
-    val outstream = TextIO.openOut file
-  in
-    (TextIO.output (outstream, s);
-     TextIO.closeOut outstream)
-  end;
-  fun write_json_to_file file = (write_to_file file) o Json.encode;
-
-  fun load_ruleset_xml data replace state = (let
-    val xml = XMLReader.read_from_string data
-  in
-   (OkResponse,
-     state |> update_ruleset (InputXML.Ruleset.input xml) replace
-           |> update_ruleset_ud (RulesetUserDataInputXML.input xml) replace
-     )
-  end
-  handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
-             (ErrorResponse { errorCode = "BADDATA",
-                message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
-       | InputXML.Ruleset.bad_input_exp (s1,s2) =>
-             (ErrorResponse { errorCode = "BADDATA",
-                message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
-       | XMLReader.bad_input_exp _ =>
-             (ErrorResponse { errorCode = "BADDATA",
-                message = ("The file is neither valid XML nor JSON") }, state)
-       | _ =>
-             (ErrorResponse { errorCode = "BADDATA",
-                message = ("An error occurred while parse the ruleset") }, state));
-
   fun load_ruleset data replace state = (let
     val json = Json.of_string data
     val (rs,ud) = TheoryIO.InputRulesetJSON.input json
@@ -390,32 +330,37 @@ struct
   handle TheoryIO.InputRulesetJSON.bad_input_exp (s1,s2) =>
              (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
-       | Json.parse_exn _ => load_ruleset_xml data replace state);
+       | Json.parse_exn _ =>
+             (ErrorResponse { errorCode = "BADDATA",
+                message = "The file is not valid JSON" }, state))
 
-  fun describe_vertex (n, (nd,_)) =
-    { name = V.dest n, vType = VCD.type_of nd,
-      data = VCD.cdata_of nd, userData = "" }
+  fun describe_vertex (n, (nd, (ins,outs))) =
+    { name = V.dest n, vType = G.typestring_of_vdata nd,
+      data = JsonCData (TheoryIO.VDataOutputJSON.output nd), userData = "" }
 
   fun describe_edge (en, ((bd,ed), (n1, n2))) =
-    { name = E.dest en, eType = ECD.type_of ed,
+    { name = E.dest en, eType = G.typestring_of_edata ed,
       sourceName = V.dest n1, targetName = V.dest n2,
-      directed = (bd = G.Directed), data = ECD.cdata_of ed,
+      directed = (bd = Directed), data = JsonCData (TheoryIO.EDataOutputJSON.output ed),
       userData = "" }
 
-  fun describe_bangbox (bn, vs) =
+  fun describe_bbox (bn, vs) =
     { name = B.dest bn, vertexNames = map V.dest (V.NSet.list_of vs) }
 
   fun describe_graph (n, graph) =
-    let
-      val vert_list = V.NTab.list_of (G.get_vertices graph)
-      val edge_list = E.NTab.list_of (G.get_edges graph)
-      val bbox_list = B.NTab.list_of (G.get_bbox_table graph)
-    in
       { name = n,
-        vertices = map describe_vertex vert_list,
-        edges = map describe_edge edge_list,
-        bangBoxen = map describe_bangbox bbox_list }
-    end
+        vertices = VTab.fold (fn (v,vd) => (
+          cons (describe_vertex (v,(vd,(G.get_in_edges graph v,G.get_out_edges graph v))))
+        )) (G.get_vdata_tab graph) [],
+        edges = E.NSet.fold (fn e => (
+          cons (describe_edge (e,(
+            G.get_edge_dir_and_data graph e,
+            (G.get_edge_source graph e,G.get_edge_target graph e)
+          )))
+        )) (G.get_edges graph) [],
+        bangBoxen = B.NSet.fold (fn b => (
+          cons (describe_bbox (b, G.get_vertices_in_bbox graph b))
+        )) (G.get_bboxes graph) [] }
 
   fun describe_rewrite ((rn, rule), result) =
     let
@@ -432,11 +377,11 @@ struct
                     Pretty.list "i{" "}" (map E.pretty_name (E.NSet.list_of ins)),
                     Pretty.list "; o{" "}" (map E.pretty_name (E.NSet.list_of outs)),
                     Pretty.str "; ",
-                    OVData.pretty_data nd
+                    G.pretty_vdata nd
                    ]
 
-  fun pretty_edge_dir_or_undir G.Directed = Pretty.str "dir"
-    | pretty_edge_dir_or_undir G.UnDirected = Pretty.str "bidir";
+  fun pretty_edge_dir_or_undir Directed = Pretty.str "dir"
+    | pretty_edge_dir_or_undir Undirected = Pretty.str "bidir";
 
   fun pretty_edge (en, ((bd,e), (n1, n2))) =
       Pretty.block [E.pretty_name en,
@@ -447,7 +392,7 @@ struct
                     Pretty.str "; (",
                     pretty_edge_dir_or_undir bd,
                     Pretty.str ") ",
-                    EData.pretty_data e
+                    G.pretty_edata e
                    ]
 
   fun output_graph graphName format state =
@@ -461,8 +406,6 @@ struct
            in
              (DataResponse { data = Json.encode json}, state)
            end
-       | XmlGraphFormat =>
-           (XmlResponse { data = OutputXML.Graph.output graph}, state)
        | JsonGraphFormat =>
            (JsonResponse { data = TheoryIO.OutputGraphJSON.output v}, state)
        | PrettyGraphFormat =>
@@ -492,23 +435,7 @@ struct
           in
             (StringResponse { data = GraphName.dest nm },state_)
           end;
-          fun load_graph_xml suggestedName data =
-                (let
-                   val xml = XMLReader.read_from_string data
-                   val graph = InputXML.Graph.input xml
-                   val ud = GraphUserDataInputXML.input xml
-                 in
-                   add_graph_to_table suggestedName (graph,ud)
-                 end
-                 handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
-                        (ErrorResponse { errorCode = "BADDATA",
-                           message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state)
-                      | InputXML.Graph.bad_input_exp (s1,s2) =>
-                        (ErrorResponse { errorCode = "BADDATA",
-                           message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state)
-                      | XMLReader.bad_input_exp _ =>
-                        (ErrorResponse { errorCode = "BADDATA",
-                           message = ("The file is neither valid JSON nor XML") }, state));
+
           fun load_graph suggestedName data =
             let
               val json = Json.of_string data
@@ -516,7 +443,9 @@ struct
             in
               add_graph_to_table suggestedName g_and_ud
             end
-            handle Json.parse_exn _ => load_graph_xml suggestedName data
+            handle Json.parse_exn _ =>
+                        (ErrorResponse { errorCode = "BADDATA",
+                           message = ("Invalid JSON") }, state)
                  | TheoryIO.InputGraphJSON.bad_input_exp (s1,s2) =>
                         (ErrorResponse { errorCode = "BADDATA",
                            message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state);
@@ -532,13 +461,10 @@ struct
                 (StringResponse { data = GraphName.dest nm },state')
               end
           | LoadGraphFromFileRequest { fileName } =>
-             (load_graph (OS.Path.file fileName) (slurp fileName)
-              handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn,...} =>
-                     (ErrorResponse { errorCode = "FILEACCESS",
-                                      message = ("The file could not be read ("^msg^")") }, state)
-                   | IO.Io {name : string, function : string, ...} =>
-                     (ErrorResponse { errorCode = "FILEACCESS",
-                                      message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
+             (load_graph (OS.Path.file fileName) (File_Io.read_string fileName)
+            handle File_Io.io_exn msg =>
+                   (ErrorResponse { errorCode = "FILEACCESS",
+                    message = msg }, state))
           | LoadGraphFromDataRequest { data, requestedName } =>
              load_graph requestedName data
           | CopyGraphRequest { graphName } =>
@@ -559,19 +485,14 @@ struct
           val graph = get_graph graphName state
           val ud = get_graph_ud graphName state
           val json = TheoryIO.OutputGraphJSON.output (graph,ud)
-          val _ = write_json_to_file fileName json
+          val _ = File_Io.write_json fileName json
         in
           (OkResponse, state)
         end
-        handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
+        handle File_Io.io_exn msg =>
                (ErrorResponse {
                   errorCode = "FILEACCESS",
-                  message = ("The file could not be written to ("^msg^")")
-                }, state)
-             | IO.Io {name : string, function : string, ...} =>
-               (ErrorResponse {
-                  errorCode = "FILEACCESS",
-                  message = ("The file could not be written to (unknown error in "^function^" of "^name^")")
+                  message = msg
                 }, state))
 
     | serviceRequest' (RenameGraphRequest { oldName, newName }) state =
@@ -607,21 +528,21 @@ fun hilb ([format], graph) =
                     let
                       val g = GraphName.mk graphName
                     in
-                       case State.lookup_graph_ud_property state g dataName
+                       case State.get_graph_ud_property_opt state g dataName
                          of SOME data => DataResponse { data = data }
                           | NONE => raise State.no_such_graph_user_data_exp (g, dataName)
                     end
                | ListVertices =>
                     StringListResponse {
-                      data = (map V.dest (V.NSet.list_of (G.get_vnames graph)))
+                      data = (map V.dest (V.NSet.list_of (G.get_vertices graph)))
                     }
                | ListEdges =>
                     StringListResponse {
-                      data = (map E.dest (E.NSet.list_of (G.get_enames graph)))
+                      data = (map E.dest (E.NSet.list_of (G.get_edges graph)))
                     }
                | ListBangBoxes =>
                     StringListResponse {
-                      data = (map B.dest (G.get_bbox_list graph))
+                      data = (map B.dest (B.NSet.list_of (G.get_bboxes graph)))
                     }
                | VertexData { vertexName, format } =>
                     let
@@ -629,32 +550,20 @@ fun hilb ([format], graph) =
                     in
                       case format
                         of BasicFormat =>
-                              let
-                                val (_,data_string) = VCD.type_and_string_of vdata
-                              in
                                 StringResponse {
-                                  data = data_string
+                                  data = G.typestring_of_vdata vdata
                                 }
-                              end
                          | PrettyFormat =>
                               PrettyResponse {
-                                data = OVData.pretty_data vdata
+                                data = G.pretty_vdata vdata
                               }
-                         | XmlFormat =>
-                              let
-                                val (_,data_xml_list) = VCD.type_and_xml_of vdata
-                              in
-                                XmlResponse {
-                                  data = (XML.Elem (("data",[]),data_xml_list))
-                                }
-                              end
                          | JsonFormat =>
                               JsonResponse {
                                 data = TheoryIO.VDataOutputJSON.output vdata
                               }
                          | DescriptionFormat =>
                               ComponentDataResponse {
-                                data = VCD.cdata_of vdata
+                                data = JsonCData (TheoryIO.VDataOutputJSON.output vdata)
                               }
                     end
                | VertexUserData { vertexName, dataName } =>
@@ -662,7 +571,7 @@ fun hilb ([format], graph) =
                       val g = GraphName.mk graphName
                       val v = V.mk vertexName
                     in
-                       case State.lookup_vertex_ud_property state g v dataName
+                       case State.get_vertex_ud_property_opt state g v dataName
                          of SOME data => DataResponse { data = data }
                           | NONE => raise State.no_such_vertex_user_data_exp (v, dataName)
                     end
@@ -673,7 +582,7 @@ fun hilb ([format], graph) =
                       case format
                         of BasicFormat =>
                               let
-                                val (_,data_string) = ECD.type_and_string_of edata
+                                val data_string = G.typestring_of_edata edata
                               in
                                 StringResponse {
                                   data = data_string
@@ -681,16 +590,8 @@ fun hilb ([format], graph) =
                               end
                          | PrettyFormat =>
                               PrettyResponse {
-                                data = EData.pretty_data edata
+                                data = G.pretty_edata edata
                               }
-                         | XmlFormat =>
-                              let
-                                val (_,data_xml_list) = ECD.type_and_xml_of edata
-                              in
-                                XmlResponse {
-                                  data = (XML.Elem (("data",[]),data_xml_list))
-                                }
-                              end
                          | JsonFormat =>
                               JsonResponse {
                                 data = Json.Object (
@@ -701,7 +602,7 @@ fun hilb ([format], graph) =
                               }
                          | DescriptionFormat =>
                               ComponentDataResponse {
-                                data = ECD.cdata_of edata
+                                data = JsonCData (TheoryIO.EDataOutputJSON.output edata)
                               }
                     end
                | EdgeUserData { edgeName , dataName} =>
@@ -709,22 +610,22 @@ fun hilb ([format], graph) =
                       val g = GraphName.mk graphName
                       val e = E.mk edgeName
                     in
-                       case State.lookup_edge_ud_property state g e dataName
+                       case State.get_edge_ud_property_opt state g e dataName
                          of SOME data => DataResponse { data = data }
                           | NONE => raise State.no_such_edge_user_data_exp (e, dataName)
                     end
                | BangBoxVertices { bangBoxName } =>
                     StringListResponse {
-                      data = (map V.dest (V.NSet.list_of (G.get_bbox_contents graph (B.mk bangBoxName))))
+                      data = (map V.dest (V.NSet.list_of (G.get_vertices_in_bbox graph (B.mk bangBoxName))))
                     }
                | BangBoxUserData { bangBoxName, dataName } =>
                     let
                       val g = GraphName.mk graphName
                       val b = B.mk bangBoxName
                     in
-                       case State.lookup_bangbox_ud_property state g b dataName
+                       case State.get_bbox_ud_property_opt state g b dataName
                          of SOME data => DataResponse { data = data }
-                          | NONE => raise State.no_such_bangbox_user_data_exp (b, dataName)
+                          | NONE => raise State.no_such_bbox_user_data_exp (b, dataName)
                     end
 
                | PrintUserData =>
@@ -736,9 +637,9 @@ fun hilb ([format], graph) =
 
             ), state)
            end
-        handle G.no_such_vname_exp (_,vname,_) =>
+        handle G.no_such_vertex_exp (_,vname,_) =>
                 raise State.no_such_vertex_exp (vname,GraphName.mk graphName)
-             | G.no_such_ename_exp (_,ename,_) =>
+             | G.no_such_edge_exp (_,ename,_) =>
                 raise State.no_such_edge_exp (ename,GraphName.mk graphName)
         )
 
@@ -780,7 +681,6 @@ fun hilb ([format], graph) =
             in
               case resultFormat
                 of BasicFormat => (StringResponse { data = V.dest vn }, state')
-                 | XmlFormat => (XmlResponse { data = OutputXML.Vertex.output v }, state')
                  | JsonFormat =>
                        (JsonResponse {
                           data = TheoryIO.OutputGraphJSON.output_vertex
@@ -813,15 +713,18 @@ fun hilb ([format], graph) =
            (let
               val updater =
                 case vertexData
-                  of (StringCData s)      => VCD.update_from_string s
-                   | (XmlCData xml)       => VCD.update_from_xml xml
-                   | (DescriptionCData d) => VCD.update (K d)
+                  of StringCData s => K (TheoryIO.VDataInputJSON.input (Json.of_string s))
+                   | JsonCData json => K (TheoryIO.VDataInputJSON.input json)
             in
               (OkResponse,
                State.update_vertex_data updater (V.mk vertexName) (GraphName.mk graphName) state)
             end
-            handle (ComponentData.bad_format_exp s) =>
-                      (ErrorResponse { errorCode = "BADDATA", message = s }, state))
+            handle TheoryIO.VDataInputJSON.bad_input_exp (m,_) =>
+                      (ErrorResponse { errorCode = "BADFORMAT",
+                        message = ("Error setting vertex data: " ^ m) }, state)
+                 | Json.parse_exn m =>
+                      (ErrorResponse { errorCode = "BADFORMAT",
+                        message = ("JSON parse error while setting vertex data: " ^ m) }, state))
         | SetVertexUserDataAction { vertexName, dataName, userData } =>
             (OkResponse,
               State.set_vertex_ud_property dataName userData (V.mk vertexName) (GraphName.mk graphName) state)
@@ -831,12 +734,11 @@ fun hilb ([format], graph) =
                 (GraphName.mk graphName) state)
         | AddEdgeAction { edgeType, directed, source, target, resultFormat } =>
             let
-              val dir_or_undir = if directed then G.Directed else G.UnDirected
+              val dir_or_undir = if directed then Directed else Undirected
               val (e as (en,_),state') = State.add_edge edgeType dir_or_undir (V.mk source) (V.mk target) (GraphName.mk graphName) state
             in
               case resultFormat
                 of BasicFormat => (StringResponse { data = E.dest en }, state')
-                 | XmlFormat => (XmlResponse { data = OutputXML.Edge.output e }, state')
                  | JsonFormat =>
                        (JsonResponse {
                           data = TheoryIO.OutputGraphJSON.output_edge
@@ -859,15 +761,18 @@ fun hilb ([format], graph) =
            (let
               val updater =
                 case edgeData
-                  of (StringCData s)      => ECD.update_from_string s
-                   | (XmlCData xml)       => ECD.update_from_xml xml
-                   | (DescriptionCData d) => ECD.update (K d)
+                  of (StringCData s)  => K (TheoryIO.EDataInputJSON.input (Json.of_string s))
+                   | (JsonCData json) => K (TheoryIO.EDataInputJSON.input json)
             in
               (OkResponse,
                State.update_edge_data updater (E.mk edgeName) (GraphName.mk graphName) state)
             end
-            handle (ComponentData.bad_format_exp s) =>
-                      (ErrorResponse { errorCode = "BADFORMAT", message = s }, state))
+            handle TheoryIO.EDataInputJSON.bad_input_exp (m,_) =>
+                      (ErrorResponse { errorCode = "BADFORMAT",
+                        message = ("Error setting edge data: " ^ m) }, state)
+                 | Json.parse_exn m =>
+                      (ErrorResponse { errorCode = "BADFORMAT",
+                        message = ("JSON parse error while setting edge data: " ^ m) }, state))
         | SetEdgeUserDataAction { edgeName, dataName, userData } =>
             (OkResponse,
               State.set_edge_ud_property dataName userData (E.mk edgeName) (GraphName.mk graphName) state)
@@ -886,28 +791,19 @@ fun hilb ([format], graph) =
               case resultFormat
                 of BasicFormat => (StringResponse { data = B.dest nm }, state'')
                  | PrettyFormat => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
-                 | XmlFormat  =>  let
-                                    val graph = State.get_graph state'' gname
-                                    val verts = G.get_bbox_contents graph nm
-                                    val bbox  = (nm,verts)
-                                  in
-                                   (XmlResponse {
-                                      data = OutputXML.BBox.output bbox
-                                    }, state'')
-                                  end
                  | JsonFormat =>
                        (JsonResponse {
-                          data = TheoryIO.OutputGraphJSON.output_bangbox
+                          data = TheoryIO.OutputGraphJSON.output_bbox
                                   (get_graph_and_ud graphName state'')
                                   nm
                         },state'')
                  | DescriptionFormat => let
                                           val graph = State.get_graph state'' gname
-                                          val verts = G.get_bbox_contents graph nm
+                                          val verts = G.get_vertices_in_bbox graph nm
                                           val bbox  = (nm,verts)
                                         in
                                          (BangBoxDescriptionResponse {
-                                            bangBox = describe_bangbox bbox
+                                            bangBox = describe_bbox bbox
                                           }, state'')
                                         end
             end
@@ -955,23 +851,20 @@ fun hilb ([format], graph) =
             end
         | SetBangBoxUserDataAction { bangBoxName, dataName, userData } =>
             (OkResponse,
-              State.set_bangbox_ud_property dataName userData (B.mk bangBoxName) (GraphName.mk graphName) state)
+              State.set_bbox_ud_property dataName userData (B.mk bangBoxName) (GraphName.mk graphName) state)
         | DeleteBangBoxUserDataAction { bangBoxName, dataName } =>
             (OkResponse,
-              State.delete_bangbox_ud_property dataName (B.mk bangBoxName) 
+              State.delete_bbox_ud_property dataName (B.mk bangBoxName) 
                 (GraphName.mk graphName) state)
         )
 
 
     (* Rulesets *)
     | serviceRequest' (ImportRulesetFromFileRequest { fileName, replace }) state =
-       (load_ruleset (slurp fileName) replace state
-        handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
+       (load_ruleset (File_Io.read_string fileName) replace state
+        handle File_Io.io_exn msg =>
                (ErrorResponse { errorCode = "FILEACCESS",
-                                message = ("The file could not be read ("^msg^")") }, state)
-             | IO.Io {name : string, function : string, ...} =>
-               (ErrorResponse { errorCode = "FILEACCESS",
-                                message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
+                message = msg }, state))
 
     | serviceRequest' (ImportRulesetFromDataRequest { data, replace }) state =
         load_ruleset data replace state
@@ -981,16 +874,14 @@ fun hilb ([format], graph) =
           val rs = State.get_rset state
           val ud = State.get_rset_ud state
           val json = TheoryIO.OutputRulesetJSON.output (rs,ud)
-          val _ = write_json_to_file fileName json
+          val _ = File_Io.write_json fileName json
         in
           (OkResponse, state)
         end
-        handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
-               (ErrorResponse { errorCode = "FILEACCESS",
-                                message = ("The file could not be written to ("^msg^")") }, state)
-             | IO.Io {name : string, function : string, ...} =>
-               (ErrorResponse { errorCode = "FILEACCESS",
-                                message = ("The file could not be written to (unknown error in "^function^" of "^name^")") }, state))
+        handle File_Io.io_exn msg =>
+               (ErrorResponse {
+                  errorCode = "FILEACCESS",
+                  message = msg }, state))
 
     | serviceRequest' (ExportRulesetAsDataRequest) state =
         let
@@ -1051,7 +942,7 @@ fun hilb ([format], graph) =
         let
           val r = R.mk ruleName
         in
-           case State.lookup_rule_ud_property state r dataName
+           case State.get_rule_ud_property_opt state r dataName
              of SOME data => (DataResponse { data = data },state)
               | NONE => raise State.no_such_rule_user_data_exp (r, dataName)
         end
@@ -1097,7 +988,7 @@ fun hilb ([format], graph) =
           val verts = if vertexNames <> [] then
                         map V.mk vertexNames
                       else
-                        (V.NSet.list_of (G.get_vnames graph))
+                        (V.NSet.list_of (G.get_vertices graph))
           val (count,state') = State.attach_rewrites gname verts state
         in
           (CountResponse { count = count }, state')
@@ -1110,7 +1001,7 @@ fun hilb ([format], graph) =
           val verts = if vertexNames <> [] then
                         map V.mk vertexNames
                       else
-                        (V.NSet.list_of (G.get_vnames graph))
+                        (V.NSet.list_of (G.get_vertices graph))
           val (count,state') = State.attach_first_rewrite gname verts state
         in
           (CountResponse { count = count }, state')
@@ -1124,10 +1015,6 @@ fun hilb ([format], graph) =
             of BasicFormat =>
                  (StringListResponse {
                     data = map (fn ((rn,_),_) => R.dest rn) rewrites
-                  }, state)
-             | XmlFormat =>
-                 (XmlResponse {
-                    data = OutputXML.RewriteList.output rewrites
                   }, state)
              | JsonFormat =>
                  let
@@ -1212,7 +1099,7 @@ fun hilb ([format], graph) =
                              "\" has no user data named \""^
                              (dataName)^"\"")
                 }
-           | State.no_such_bangbox_user_data_exp (bbName, dataName) =>
+           | State.no_such_bbox_user_data_exp (bbName, dataName) =>
                 ErrorResponse {
                   errorCode = "NOSUCHBANGBOXUSERDATA",
                   message = ("!-Box \""^

@@ -130,7 +130,7 @@ local
   val lhs = g
           |> add_bbox "b1" []
           |> add_bbox "b2" ["in1","in2"]
-          |> add_child_bbox "b3" "b2" ["in1"];
+          |> add_bbox_with_parent "b3" "b2" ["in1"];
   val rhs = lhs;
   val _ = Testing.test "same bboxes" Rule.mk (lhs,rhs);
 
@@ -151,7 +151,7 @@ local
   val lhs = g
           |> add_bbox "b1" []
           |> add_bbox "b2" ["in1","in2"]
-          |> add_child_bbox "b3" "b2" ["in1"];
+          |> add_bbox_with_parent "b3" "b2" ["in1"];
   val rhs = g
           |> add_bbox "b1" []
           |> add_bbox "b2" ["in1","in2"]

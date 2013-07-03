@@ -60,9 +60,8 @@ structure ConsoleCommands : CONSOLE_COMMANDS
     | parse_response (Commands.StringResponse { data }) = data
     | parse_response (Commands.StringListResponse { data }) = (String.concatWith "\n" data)
     | parse_response (Commands.CountResponse { count }) = Int.toString count
-    | parse_response (Commands.ComponentDataResponse { data as (ComponentData.Unit) }) = ""
-    | parse_response (Commands.ComponentDataResponse { data as (ComponentData.String s) }) = s
-    | parse_response (Commands.ComponentDataResponse { data as (ComponentData.LinratAngleExpr a) }) = Pretty.string_of (LinratAngleExpr.pretty a)
+    | parse_response (Commands.ComponentDataResponse { data as (Commands.StringCData s) }) = s
+    | parse_response (Commands.ComponentDataResponse { data as (Commands.JsonCData j) }) = Json.string_of j
     | parse_response (Commands.MetricResponse { data }) = (String.concatWith "\n" (List.map Int.toString data))
     | parse_response _ = raise unexpected_response_exp;
 

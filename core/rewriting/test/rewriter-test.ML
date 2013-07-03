@@ -1,14 +1,23 @@
 structure Test_BangGraphRewriter = BangGraphRewriter(
   structure Rule = Test_BG_Rule
   structure Matcher = Test_GreedyMatcher
+  structure BBoxOperableGraph = Test_BBoxOperableGraph
 );
 (* set to 4 for really detailed messages *)
 (* Test_BangGraphRewriter.Log.level_ref := 2; *)
 
 local
-  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
-  open Tools;
-  structure RW = Test_BangGraphRewriter;
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph)
+  open Tools
+  structure RW = Test_BangGraphRewriter
+
+  structure IsoMatcher = ConcreteMatchSearch(Test_Bang_Graph)
+  
+  fun is_concrete_iso g1 g2 =
+    (V.NSet.cardinality (Test_Bang_Graph.get_vertices g1) =
+     V.NSet.cardinality (Test_Bang_Graph.get_vertices g2)) andalso
+    (is_some (Seq.pull (IsoMatcher.match g1 g2)))
+
 
   type test_data = {
     name     : string,
@@ -19,6 +28,8 @@ local
     expected : string
   };
   exception graph_load_exn of (string*exn);
+
+
 
   fun test_f ({ name = nm,
                 subgraph = subg,
@@ -51,18 +62,19 @@ local
         case Seq.pull rw_seq
           of SOME x => x
            | NONE => raise ERROR "No matches!"
+      val (exp,result) = (G.normalise exp, G.normalise result)
       (* make sure the remaining rewrites actually succeed *)
       val _ = Seq.list_of rw_seq'
     in
-      if GIso.test exp result
+      if is_concrete_iso exp result
       then result
       else (
         save_dot_graph result (tgt_f^".result.dot");
         save_dot_graph exp (exp_f^".dot");
-        writeln "Result (minimised):";
+        writeln "Result (normalised):";
         writeln ("  (written to "^tgt_f^".result.dot)");
         G.print result;
-        writeln "Expected (minimised):";
+        writeln "Expected (normalised):";
         writeln ("  (written to "^exp_f^".dot)");
         G.print exp;
         raise ERROR "Got wrong rewrite result"

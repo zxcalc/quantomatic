@@ -55,8 +55,8 @@ struct
   
   fun update synth ruleset = let
     fun add_rule tag rhs lhs rs = let
-      val tryname = R.mk ((TagName.string_of_name tag) ^ "_a")
-      val (nm,rs') = rs |> Ruleset.add_fresh_rule (tryname, Rule.mk (lhs,rhs))
+      (*val tryname = R.mk ((TagName.string_of_name tag) ^ "_a")*)
+      val (nm,rs') = rs |> Ruleset.add_fresh_rule (Rule.mk (lhs,rhs))
     in rs' |> Ruleset.tag_rule nm tag
     end
     fun process_class class rs =
@@ -83,7 +83,7 @@ struct
   end*)
   
   (* iso of lhs and rhs need to respect boundaries *)
-  fun cong_trivial r = Rule.GraphIso.test (Rule.get_lhs r) (Rule.get_rhs r)
+  fun cong_trivial r = false (* FIXME: Rule.GraphIso.test (Rule.get_lhs r) (Rule.get_rhs r)*)
   
   
   fun has_match rs target_rn =
@@ -91,7 +91,7 @@ struct
                            (Rule.get_lhs (Ruleset.get_rule rs target_rn))
   
   fun reduce ruleset = let
-    val all_rules = R.NTab.get_nameset o Ruleset.get_allrules
+    val all_rules = RTab.get_dom_set o Ruleset.get_allrules
     fun iso_filter rn rs = if cong_trivial (Ruleset.get_rule rs rn) then rs |> Ruleset.delete_rule rn else rs
     fun match_filter rn rs = if has_match rs rn
                              then rs |> Ruleset.delete_rule rn else rs

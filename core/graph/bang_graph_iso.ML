@@ -22,7 +22,7 @@ functor BangGraphIso(Graph : BANG_GRAPH)
   
   type graph = Graph.T;
   type subst = Param.subst;
-  type T = (VInjEndo.T * EInjEndo.T * BInjEndo.T * subst);  
+  type T = (VVInj.T * EEInj.T * BInjEndo.T * subst);  
   
   structure Sharing =
   struct
@@ -52,7 +52,7 @@ functor BangGraphIso(Graph : BANG_GRAPH)
        * is in h_unm, and remove bbox from g_unm and its
        * image from h_unm *)
       fun unmatched bbox (g_unm,h_unm) =
-        case BInjEndo.lookup_domf b bbox of
+        case BInjEndo.lookup_get b bbox of
              NONE => (g_unm,h_unm)
            | SOME bbox' =>
                 (B.NSet.delete' bbox g_unm,B.NSet.delete' bbox' h_unm)
@@ -109,8 +109,8 @@ functor BangGraphIso(Graph : BANG_GRAPH)
               if dir1 <> dir2 (* andalso EData.data_eq(d1,d2) *) 
               then NONE 
               else SOME
-                (v |> VInjEndo.add (otherend n1 g) (otherend n2 h),
-                 e |> EInjEndo.add n1 n2,
+                (v |> VVInj.add (otherend n1 g) (otherend n2 h),
+                 e |> EEInj.add n1 n2,
                  b,
                  u |> match_edge_both_ways d1 d2,
                  Seq.append t  (* push match of the target vertex of
@@ -119,7 +119,7 @@ functor BangGraphIso(Graph : BANG_GRAPH)
                                 otherend n2 h)),
                  g |> Graph.delete_edge n1,
                  h |> Graph.delete_edge n2)
-                 handle VInjEndo.add_exp _ => NONE
+                 handle VVInj.add_exp _ => NONE
                       | Param.match_exp _ => NONE
              end)
           (E.NSet.seq_of hs))
@@ -159,7 +159,7 @@ functor BangGraphIso(Graph : BANG_GRAPH)
             (* no (more) edges; match up *)
             (true,true,true,true) =>
               let
-                val v' = v |> VInjEndo.add vng vnh
+                val v' = v |> VVInj.add vng vnh
                 val u' = u |> match_vertex_both_ways gd hd
                 val g' = g |> Graph.delete_vertex vng
                 val h' = h |> Graph.delete_vertex vnh
@@ -176,12 +176,12 @@ functor BangGraphIso(Graph : BANG_GRAPH)
             (* edge mismatch *)
           | _ => Seq.empty
          else Seq.empty (* Mismatching vertex data *)
-       end handle Graph.no_such_vname_exp(_,_,_)
+       end handle Graph.no_such_vertex_exp(_,_,_)
                                          (* consequence of multiple edges. 
                                             Vertex has already been successfully
                                             matched; skip. *)
                => get_isomorphisms_match_next (v,e,b,u,t',g,h)
-    ) handle VInjEndo.add_exp _ => Seq.empty
+    ) handle VVInj.add_exp _ => Seq.empty
            | Param.match_exp _  => Seq.empty
            | box_mismatch_exp _ => Seq.empty
   
@@ -207,7 +207,7 @@ functor BangGraphIso(Graph : BANG_GRAPH)
   (* in:  graphs g, h *)
   (* out: lazy list of (Vertex isomorphism*Edge isomorphism) containing all
           isomorphisms between g and h *)
-  val get = get_with_endos (VInjEndo.empty,EInjEndo.empty)
+  val get = get_with_endos (VVInj.empty,EEInj.empty)
   
   (* in:  graphs g, h *)
   (* out: true if g~=h, false otherwise *)

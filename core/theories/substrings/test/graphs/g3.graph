@@ -1,2 +1,1 @@
-<?xml version="1.0"?>
-<graph><vertex name="Vc"><type>String</type><data><string_of>blah.bar.</string_of></data></vertex><vertex name="Vb"><type>String</type><data><string_of>blah.foo.</string_of></data></vertex><vertex name="Va"><type>edge-point</type><data/></vertex><edge name="Ec" dir="false" source="Vc" target="Vc"><type>unit</type><data/></edge><edge name="Eb" dir="true" source="Vb" target="Vc"><type>unit</type><data/></edge><edge name="Ea" dir="true" source="Va" target="Vb"><type>unit</type><data/></edge></graph>
+{"wire_vertices":{"Va":{}},"node_vertices":{"Vb":{"data":"blah.foo."},"Vc":{"data":"blah.bar."}},"undir_edges":{"Ec":{"src":"Vc","tgt":"Vc"}},"dir_edges":{"Ea":{"src":"Va","tgt":"Vb"},"Eb":{"src":"Vb","tgt":"Vc"}}}
