@@ -36,7 +36,7 @@ struct
           )
       | output (Theory.Graph.NVert d) =
           Json.Object (
-            Json.empty_obj |> update ("is_wire_vertex",Json.Bool true)
+            Json.empty_obj |> update ("is_wire_vertex",Json.Bool false)
                            |> update ("data",IVDataOutputJSON.output d)
           )
   end;
@@ -45,16 +45,16 @@ struct
    * by context. *)
   structure VDataInputJSON : INPUT_JSON =
   struct
-    type T = Json.json
-    exception bad_input_exp of string * string
-    type data = Theory.Graph.vdata;
+    open JsonInputUtils
+    type data = Theory.Graph.vdata
     fun input (json as Json.Object obj) = (
           case Json.lookup obj "is_wire_vertex"
             of SOME (Json.Bool true) => Theory.Graph.WVert
-             | _ => Theory.Graph.NVert (IVDataInputJSON.input json)
+             | _ => Theory.Graph.NVert
+                (IVDataInputJSON.input (get_easy Json.Null obj "data"))
         )
       | input _ = raise bad_input_exp ("expected: JSON object","0")
-  end;
+  end
   structure EDataInputJSON = GraphComponentDataIO.EDataInputJSON;
   structure EDataOutputJSON = GraphComponentDataIO.EDataOutputJSON;
 

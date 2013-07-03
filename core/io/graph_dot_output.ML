@@ -42,12 +42,15 @@ struct
   fun edge_block graph = let
     fun f e lst = let
       val (s,t) = (Graph.get_edge_source graph e, Graph.get_edge_target graph e)
+      val dir = Graph.get_edge_dir graph e
     in (V.pretty_name s)::
        (Pretty.str " -> ")::
        (V.pretty_name t)::
        (Pretty.str " [label=")::
        (E.pretty_name e)::
-       (Pretty.str "];\n")::lst
+       (if dir = Directed then I
+        else (fn l => (Pretty.str ",arrowhead=none")::l))
+       ((Pretty.str "];\n")::lst)
     end
   in E.NSet.fold_rev f (Graph.get_edges graph) []
   end;

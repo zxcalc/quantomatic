@@ -52,6 +52,7 @@ struct
   structure Theory = GraphEnum.Theory
   structure Ruleset = Theory.Ruleset
   structure Rule = Theory.Rule
+  structure HomeoFinder = BangGraphHomeomorphismSearcher(Theory.Graph)
   
   fun update synth ruleset = let
     fun add_rule tag rhs lhs rs = let
@@ -83,7 +84,7 @@ struct
   end*)
   
   (* iso of lhs and rhs need to respect boundaries *)
-  fun cong_trivial r = false (* FIXME: Rule.GraphIso.test (Rule.get_lhs r) (Rule.get_rhs r)*)
+  fun cong_trivial r = HomeoFinder.is_homeomorphic (Rule.get_lhs r) (Rule.get_rhs r)
   
   
   fun has_match rs target_rn =

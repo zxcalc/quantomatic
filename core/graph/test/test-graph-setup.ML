@@ -348,7 +348,6 @@ functor Test_OGraph_Tools(
 = struct
   structure G    = G
   structure Data = Test_Graph_Data
-  (*structure GIso = GraphIsoFun(structure Graph = G)*)
   structure Expr = LinratAngleExpr
 
   val vert = G.NVert
@@ -496,17 +495,6 @@ functor Test_OGraph_Tools(
     | unwrap_nv (G.NVert vd) = vd
   val nv = G.NVert
   fun add_wv n = G.add_named_vertex (V.mk n) G.WVert
-
-  (* TODO: re-introduce tests requiring iso checks *)
-  (*fun assert_iso_graph msg exp actual =
-    if GIso.test exp actual
-    then actual
-    else (writeln "Expected:" G.print exp
-          writeln "Got:" G.print actual
-          raise Testing.assertion_failed_exp msg)
-
-  fun assert_iso_graph_up_to_wires msg exp actual =
-    assert_iso_graph msg (G.minimise exp) (G.minimise actual)*)
 end
 
 (* Some helpful tools for creating graphs *)
@@ -520,7 +508,6 @@ struct
   open Test_OG_Tools
 
   structure G = BG
-  (*structure GIso = BangGraphIso(G)*)
   structure GJsonInput = Test_Bang_Graph_IO.InputGraphJSON
   structure GJsonOutput = Test_Bang_Graph_IO.OutputGraphJSON
   structure GDotOutput = Test_Bang_Graph_IO.OutputGraphDot
@@ -573,15 +560,5 @@ struct
     then () else raise ERROR(
       "expected: " ^ Int.toString n ^ " bboxes, "^
       "got: " ^ Int.toString (num_bboxes g))
-
-  (*fun assert_iso_graph msg exp actual =
-    if GIso.test exp actual
-    then actual
-    else (writeln "Expected:" G.print exp
-          writeln "Got:" G.print actual
-          raise Testing.assertion_failed_exp msg)
-
-  fun assert_iso_graph_up_to_wires msg exp actual =
-    assert_iso_graph msg (G.minimise exp) (G.minimise actual)*)
 end
 

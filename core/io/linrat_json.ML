@@ -1,3 +1,28 @@
+(**
+ * JSON graph parsing and writing
+ *
+ * LINRAT = Null | String | LINRAT_OBJ
+ * LINRAT_OBJ ::=
+ * {
+ *   "pi": RATIONAL,
+ *   "vars": RATIONAL_MAP
+ * }
+ * RATIONAL_MAP ::=
+ * {
+ *   "num": Int,
+ *   [, "denom": Int
+ * }
+ * RATIONAL_MAP   ::= { VARNAME : RATIONAL (, VARNAME : RATIONAL)* } | {} | Null
+ * VARNAME ::= String
+ * RATIONAL ::= Null |
+ * {
+ *   "num": Int,
+ *   "denom": Int
+ * }
+ *
+ * Json.Null is treated as zero.  Json.String is parsed in a "natural" way.
+ *)
+
 structure InputLinratJSON : INPUT_JSON where type data = LinratAngleExpr.T
 = struct
   open JsonInputUtils;

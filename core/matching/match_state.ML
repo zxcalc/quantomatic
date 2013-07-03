@@ -225,8 +225,11 @@ functor OGraphMatchState(Graph : OGRAPH) : OGRAPH_MATCH_STATE
   val extend_tgt_verts    = update_tgt_verts o V.NSet.union_merge
 
   fun add_edge_to_match (ep, vp) (et, vt) ms = let
-  in ms |> update_vmap (VVInj.add (vp, vt))
-        |> update_emap (EEInj.add (ep, et))
+    val ms' = update_emap (EEInj.add (ep, et)) ms
+  in
+    if VVInj.is_mapped (get_vmap ms) (vp,vt)
+    then ms'
+    else update_vmap (VVInj.add (vp, vt)) ms'
   end
   
   fun add_circle_to_match (cp, ct) ms = let

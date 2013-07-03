@@ -1,13 +1,9 @@
 local
   structure Rule = RG_Theory.Rule
   structure Ruleset = RG_Theory.Ruleset
-  structure BBoxOperableGraph = ReplayableBBoxOperableGraph(
-    structure Graph = RG_Theory.Graph
-  )
   structure Rewriter = BangGraphRewriter(
     structure Rule = Ruleset.BangGraphRule
     structure Matcher = RG_Theory.MatchSearch
-    structure BBoxOperableGraph = BBoxOperableGraph
   )
   structure RulesetRewriter = RG_Theory.RulesetRewriter
   structure MatchSearch = RG_Theory.MatchSearch
@@ -20,8 +16,8 @@ local
   val x_abelian1_rule = Ruleset.get_rule ruleset (R.mk "x_abelian1")
 
   fun list_of_rule_matches r g =
-      let val (r', matches) = Rewriter.find_matches r g in
-        (r', Seq.list_of matches)
+      let val matches = Rewriter.find_matches r g in
+        Seq.list_of matches
       end
 
   val zero_angle = LinratAngleExpr.zero
@@ -44,7 +40,7 @@ val _ = Testing.test "rule2: !match(isom_rule, X - X - Z)" (fn () => let
   val (_,  g) = g |> G.add_edge undir_edge n2 n3;
   (*val _ = G.print g;*)
   val _ = case list_of_rule_matches isom_rule g
-            of (_,[]) => ()
+            of [] => ()
              | _ => raise ERROR "Expected no matches"
   in () end) ();
 
@@ -64,7 +60,7 @@ val _ = Testing.test "rule3: [g1,g2,g3,g4] = subst(isom_lhs, isom_lhs)" (fn () =
 
   val _ =
     case list_of_rule_matches isom_rule g
-      of (r',[m1,m2,m3,m4]) =>
+      of [m1,m2,m3,m4] =>
           let
             (*
             val _ = Rule.print r';
@@ -74,10 +70,10 @@ val _ = Testing.test "rule3: [g1,g2,g3,g4] = subst(isom_lhs, isom_lhs)" (fn () =
             val inst_isom_rule = Rewriter.instantiate_rule m1 r';
             val _ = Rule.print inst_isom_rule;
             *)
-            val _ = Rewriter.rewrite_at r' m1;
-            val _ = Rewriter.rewrite_at r' m2;
-            val _ = Rewriter.rewrite_at r' m3;
-            val _ = Rewriter.rewrite_at r' m4;
+            val _ = Rewriter.rewrite_at isom_rule m1
+            val _ = Rewriter.rewrite_at isom_rule m2
+            val _ = Rewriter.rewrite_at isom_rule m3
+            val _ = Rewriter.rewrite_at isom_rule m4
           in () end
        | _ => raise ERROR "Expected four matches"
   in () end) ();
@@ -87,7 +83,7 @@ val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
   val g = Rule.get_lhs r;
   val _ =
     case list_of_rule_matches r g
-      of (r',[m1,m2,m3,m4]) =>
+      of [m1,m2,m3,m4] =>
           let
             (*
             val _ = Rule.print r';
@@ -97,10 +93,10 @@ val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
             val inst_isom_rule = Rewriter.instantiate_rule m1 r';
             val _ = Rule.print inst_isom_rule;
             *)
-            val _ = Rewriter.rewrite_at r' m1;
-            val _ = Rewriter.rewrite_at r' m2;
-            val _ = Rewriter.rewrite_at r' m3;
-            val _ = Rewriter.rewrite_at r' m4;
+            val _ = Rewriter.rewrite_at r m1
+            val _ = Rewriter.rewrite_at r m2
+            val _ = Rewriter.rewrite_at r m3
+            val _ = Rewriter.rewrite_at r m4
           in () end
        | _ => raise ERROR "Expected four matches"
   in () end) ();  
@@ -116,15 +112,14 @@ val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
   val (_,  g) = g |> G.add_edge undir_edge n2 n2;
   (*val _ = G.print g;*)
 
-  val (r', m1) = list_of_rule_matches x_abelian1_rule g;
+  val m1 = list_of_rule_matches x_abelian1_rule g
   (*
-  val _ = Rule.print r';
-  val _ = Rewriter.print_match (hd m1);
+  val _ = Rewriter.print_match (hd m1)
   *)
-  val (_,g) = Rewriter.rewrite_at r' (hd m1);
-  val (r', m1) = list_of_rule_matches x_abelian1_rule g;
-  val (_,g) = Rewriter.rewrite_at r' (hd m1);
-  (*val _ = G.print g;*)
+  val (_,g) = Rewriter.rewrite_at x_abelian1_rule (hd m1)
+  val m1 = list_of_rule_matches x_abelian1_rule g
+  val (_,g) = Rewriter.rewrite_at x_abelian1_rule (hd m1)
+  (*val _ = G.print g*)
 
   in () end) ();  
 
@@ -155,8 +150,7 @@ val _ = Testing.test "rule6: X(a+b)- => X(a)-X(b)-, matching X(c)-Z(b): renaming
       val (_,  g) = g |> G.add_edge undir_edge x1 x2;
   in g end
   
-  val (rule', _) = list_of_rule_matches rule tgt;
-  (*val _ = Rule.print rule';*)
+  val _ = list_of_rule_matches rule tgt
   
   in () end) ();
 
@@ -240,24 +234,19 @@ val _ = Testing.test "rule7: isom_rule rewrites subgraph" (fn () => let
     |> G.add_edge_anon dir_edge Vb Va
 
   val _ = Testing.test "rule with interior node in bbox on RHS" (fn () => let
-  val (r', m1) = list_of_rule_matches rule tgt;
-  
-  (*
-  val _ = Pretty.writeln (Pretty.str "*** rule (after freshening):")
-  val _ = Rule.print r';
-  *)
+  val m1 = list_of_rule_matches rule tgt
   
   (*
   val _ = Pretty.writeln (Pretty.str "*** match state:")
   val match = hd m1
   val _ = Rewriter.print_match match
   *)
-  (*val rhs' = (MatchSearch.BGMatchState.replay_pat_bbox_ops match (Rule.get_rhs r'))
+  (*val rhs' = (MatchSearch.BGMatchState.replay_pat_bbox_ops match (Rule.get_rhs rule))
   *)
   
   (*exception die_exp of unit
   val _ = raise die_exp ()*)
-  (*val (_,g) = Rewriter.rewrite_at r' (hd m1);
+  (*val (_,g) = Rewriter.rewrite_at rule (hd m1)
   val _ = G.print g;*)
 
   in () end) ();

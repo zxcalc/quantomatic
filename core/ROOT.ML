@@ -69,6 +69,8 @@ PolyML.Project.make "expressions/semiring.ML";
 PolyML.Project.make "expressions/tensor.ML";
 PolyML.Project.make "expressions/linrat_matcher.ML";
 
+PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
+
 (* I/O *)
 PolyML.Project.make "io/linrat_json.ML";
 
@@ -87,8 +89,6 @@ PolyML.Project.make "graph/ograph.sig.ML";
 PolyML.Project.make "graph/bang_graph.sig.ML";
 PolyML.Project.make "graph/bang_graph.ML";
 
-(*PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)*)
-
 PolyML.Project.make "graph/graph_annotations.ML"; (* graph annotations *)
 
 (* I/O *)
@@ -99,12 +99,15 @@ PolyML.Project.make "io/graph_dot_output.ML";
 Testing.make_test "graph/test/test-graph-setup.ML";
 Testing.make_test "graph/test/test-ograph.ML";
 Testing.make_test "graph/test/test-bang-graph.ML";
-(*Testing.make_test "graph/test/test-bang-graph-iso.ML";*)
 
 Testing.make_test "io/test/graph-json-test.ML";
 
-
-PolyML.Project.make "stub_run.ML";
+(*
+ * Misc stuff
+ *)
+PolyML.Project.make "stub_run.ML"; (* ? *)
+(* hilbert space stuff: depends on OGRAPH *)
+PolyML.Project.make "expressions/hilb.ML";
 
 (*
  * Metrics
@@ -139,7 +142,7 @@ PolyML.Project.make "theories/ruleset_annotations.ML";
 PolyML.Project.make "io/ruleset_json.ML";
 PolyML.Project.make "io/ruleset_annotations_json.ML";
 
-(*Testing.make_test "theories/test/ruleset-test.ML";*)
+Testing.make_test "theories/test/ruleset-test.ML";
 
 
 (*
@@ -159,11 +162,13 @@ PolyML.Project.make "matching/match_search.ML";
 PolyML.Project.make "matching/concrete_match_search.ML";
 (* naive pattern-graph wrapper *)
 PolyML.Project.make "matching/greedy_match_search.ML";
+PolyML.Project.make "matching/bang_graph_homeomorphism_search.ML";
 
 Testing.make_test "matching/test/test-matching-setup.ML";
 Testing.make_test "matching/test/test-bang-match-state.ML";
 Testing.make_test "matching/test/test-string-graph-matching.ML";
 Testing.make_test "matching/test/test-bang-graph-matching.ML";
+Testing.make_test "matching/test/test-bang-graph-homeomorphism-search.ML";
 
 
 (*
@@ -173,16 +178,12 @@ Testing.make_test "matching/test/test-bang-graph-matching.ML";
 PolyML.Project.make "rewriting/rewriter.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriter.ML";
-(*
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
-*)
 (* I/O *)
 PolyML.Project.make "io/rewrite_json.ML";
-(*Testing.make_test "rewriting/test/rewriter-test.ML";*)
-(*
+Testing.make_test "rewriting/test/rewriter-test.ML";
 Testing.make_test "rewriting/test/ruleset_rewriter-tests.ML";
-*)
 
 (*
  * Theories
@@ -201,11 +202,6 @@ PolyML.Project.make "theories/string_ve/io.ML";*)
 (* graph-derived expressions for R-G graphs *)
 PolyML.Project.make "theories/red_green/theory.ML";
 PolyML.Project.make "theories/red_green/io.ML";
-
-(*
-PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
-PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
-*)
 
 (* ghz-w specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/ghz_w/theory.ML";
@@ -297,12 +293,8 @@ PolyML.Project.make "json_interface/run.ML";
 (*
  * Top-level testing
  *)
-(* FIXME: some tests fail
 Testing.make_test "test/old-rg-ruleset-rewriter-tests.ML";
-*)
-(* FIXME: some tests fail
 Testing.make_test "test/regression-tests.ML";
-*)
 (* Metrics tests depend on Substrings_Theory *)
 Testing.make_test "metrics/test/test.ML";
 Testing.make_test "example_code/ROOT.ML";

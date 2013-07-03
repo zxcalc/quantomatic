@@ -1746,6 +1746,55 @@ functor OGraph_Interface_Tests(
     val _ = (G.merge g6 g8;
               raise ERROR "merge g6,g8 should have failed")
             handle G.bad_graph_merge_exp _ => ()
+
+    val g9 = G.empty
+        |> add_wv "a"
+    val g10 = G.empty
+        |> add_vunit2 "k"
+        |> add_wv "a"
+        |> add_undir_eunit1 "Eq" "a" "k"
+    val g_exp = g10
+    val _ = assert_g_eq "merge of g9 and g10" g_exp (G.merge g9 g10)
+
+    val g11 = G.empty
+        |> add_vunit1 "j"
+        |> add_vunit1 "s"
+        |> add_wv "a"
+        |> add_wv "b"
+        |> add_wv "c"
+        |> add_wv "d"
+        |> add_wv "Va"
+        |> add_wv "Vb"
+        |> add_wv "Ve"
+        |> add_wv "Vf"
+        |> add_wv "Vg"
+        |> add_wv "Vh"
+        |> add_undir_eunit1 "Ea" "j" "Va"
+        |> add_undir_eunit1 "Eb" "Va" "Vb"
+        |> add_undir_eunit1 "Eg" "j" "Ve"
+        |> add_undir_eunit1 "Eh" "Ve" "Vf"
+        |> add_undir_eunit1 "Ei" "Vf" "s"
+        |> add_undir_eunit1 "Ek" "j" "c"
+        |> add_undir_eunit1 "El" "s" "Vg"
+        |> add_undir_eunit1 "En" "Vg" "Vh"
+        |> add_undir_eunit1 "Ev" "b" "s"
+    val g12 = G.empty
+        |> add_vunit2 "k"
+        |> add_wv "a"
+        |> add_wv "d"
+        |> add_wv "Vb"
+        |> add_wv "Vh"
+        |> add_undir_eunit1 "Eo" "k" "d"
+        |> add_undir_eunit1 "Ep" "Vh" "k"
+        |> add_undir_eunit1 "Eq" "a" "k"
+        |> add_undir_eunit1 "Er" "k" "Vb"
+    val g_exp = g11
+        |> add_vunit2 "k"
+        |> add_undir_eunit1 "Eo" "k" "d"
+        |> add_undir_eunit1 "Ep" "Vh" "k"
+        |> add_undir_eunit1 "Eq" "a" "k"
+        |> add_undir_eunit1 "Er" "k" "Vb"
+    val _ = assert_g_eq "merge of g11 and g12" g_exp (G.merge g11 g12)
     in () end) ();
 
 

@@ -11,9 +11,9 @@ sig
   structure Log : LOG
 
   (* NB: we don't require the Rule.Graph and Graph to be the same *)
-  structure Rule : OGRAPH_RULE;
-  structure Graph : OGRAPH;
-  type match;
+  structure Rule : OGRAPH_RULE
+  structure Graph : OGRAPH
+  type match
 
   (**
    * Find all matches of a rule's LHS in a graph
@@ -23,7 +23,7 @@ sig
    *)
   val find_matches : Rule.T
                   -> Graph.T
-                  -> (Rule.T * match Seq.seq);
+                  -> match Seq.seq
 
   (**
    * Find all matches of a rule's LHS in a subgraph of a graph
@@ -36,14 +36,14 @@ sig
   val find_matches_in_subgraph : Rule.T
                               -> Graph.T
                               -> V.NSet.T
-                              -> (Rule.T * match Seq.seq);
+                              -> match Seq.seq
 
   (**
    * Find all rewrites for a rule in a graph
    *)
   val find_rewrites : Rule.T
                    -> Graph.T
-                   -> (Rule.T * Graph.T) Seq.seq;
+                   -> (Rule.T * Graph.T) Seq.seq
 
   (**
    * Find all rewrites for a rule in a subgraph of a graph
@@ -53,16 +53,16 @@ sig
   val find_rewrites_in_subgraph : Rule.T
                                -> Graph.T
                                -> V.NSet.T
-                               -> (Rule.T * Graph.T) Seq.seq;
+                               -> (Rule.T * Graph.T) Seq.seq
 
   val rewrite_at : Rule.T
                 -> match
-                -> (Rule.T * Graph.T);
+                -> (Rule.T * Graph.T)
 
   (* a couple of helpful fns because match is opaque *)
-  val print_match : match -> unit;
-  val pretty_match : match -> Pretty.T;
-end;
+  val print_match : match -> unit
+  val pretty_match : match -> Pretty.T
+end
 
 (**
  * Rewriter for !-graphs.
@@ -79,10 +79,10 @@ functor BangGraphRewriter(
 struct
   structure Log : LOG = Log(val init_level = 0)
 
-  structure Rule = Rule;
-  structure Graph = Rule.Graph;
-  type match = Matcher.Match.T;
-  structure Match = Matcher.Match;
+  structure Rule = Rule
+  structure Graph = Rule.Graph
+  type match = Matcher.Match.T
+  structure Match = Matcher.Match
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
@@ -92,33 +92,10 @@ struct
   val log_vrnm = log_p V.Rnm.pretty
   val log_ernm = log_p E.Rnm.pretty
 
-  (*fun prepare_rule rule target =
-      let
-        (* (Boundary) vertices and variables must be renamed
-         * away from those in g, otherwise the rewriting will
-         * fail (a quirk of the implementations of LinRatExpr
-         * and V.CRnm) *)
-        val g_norm = Graph.normalise target
-        val rnms = (
-          VSub.empty |> VSub.avoid_set_in_cod (Graph.get_vertices g_norm)
-                     |> VSub.extend_fresh (Rule.get_vertices rule),
-          ESub.empty, BSub.empty)
-        val (_,rule) = Rule.rename_bang_graph_rule rnms rule;
-        val lhs = Graph.normalise (Rule.get_lhs rule);
-        val rhs = Graph.normalise (Rule.get_rhs rule);
-        val avoid = V.NSet.union_merge (Graph.get_vertices g_norm) (Graph.get_vertices rhs);
-        val track = Rule.get_boundary_vertices rule;
-      in
-        (Rule.mk (lhs,rhs),
-         BBOp.init lhs avoid track,
-         g_norm)
-      end;*)
-
-  fun find_matches rule graph =
-    (rule, Matcher.match_normalised (Rule.get_lhs rule) graph)
+  fun find_matches rule graph = Matcher.match (Rule.get_lhs rule) graph
 
   fun find_matches_in_subgraph rule graph vset =
-    (rule, Matcher.match_subgraph_normalised (Rule.get_lhs rule) graph vset)
+    Matcher.match_subgraph (Rule.get_lhs rule) graph vset
 
   fun sg_rewrite_at m rhs = let
     val g = Match.get_tgt m
@@ -152,7 +129,7 @@ struct
 
   in
     (rule', Graph.merge (Rule.get_rhs rule') h)
-  end;
+  end
 
   fun rewrite_at rule m = let
     val rhs = Rule.get_rhs rule
@@ -164,18 +141,18 @@ struct
   end
 
   fun find_rewrites r g = let
-    val (r',mseq) = find_matches r g
+    val mseq = find_matches r g
   in
-    Seq.map (rewrite_at r') mseq
+    Seq.map (rewrite_at r) mseq
   end
 
   fun find_rewrites_in_subgraph r g vset = let
-    val (r',mseq) = find_matches_in_subgraph r g vset
+    val mseq = find_matches_in_subgraph r g vset
   in
-    Seq.map (rewrite_at r') mseq
+    Seq.map (rewrite_at r) mseq
   end
 
-  val print_match = Matcher.Match.print;
-  val pretty_match = Matcher.Match.pretty;
-end;
+  val print_match = Matcher.Match.print
+  val pretty_match = Matcher.Match.pretty
+end
 
