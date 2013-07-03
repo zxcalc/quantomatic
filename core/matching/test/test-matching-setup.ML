@@ -45,14 +45,17 @@ struct
   structure Match = M.Match
   type match = Match.T
 
-  (* TODO: fix with iso implementation *)
   fun assert_match_correct orig_pat orig_tgt tgt_verts m = let
     val pat = Match.get_pat m
     val tgt = Match.get_tgt m
     val vmap = Match.get_vmap m
 
-    (*val _ = assert_iso_graph_up_to_wires "Pattern correct" orig_pat pat
-    val _ = assert_iso_graph_up_to_wires "Target correct" orig_tgt tgt*)
+    (* FIXME: no homeo-checker for OGRAPH
+    val _ = Testing.assert "Pattern correct"
+              (HomeoFinder.is_homeomorphic orig_pat pat)
+    val _ = Testing.assert "Target correct"
+              (HomeoFinder.is_homeomorphic orig_tgt tgt)
+    *)
     (* FIXME: normalisation
     val _ = Testing.assert "T subset of tgt verts"
         (V.NSet.sub_set tgt_verts (G.get_vertices tgt))
@@ -91,8 +94,8 @@ struct
   structure Match = M.Match;
   type match = Match.T
   structure G = Match.Graph
+  structure HomeoFinder = BangGraphHomeomorphismSearcher(G)
 
-  (* TODO: re-introduce iso checks *)
   fun assert_match_correct orig_pat orig_tgt tgt_verts m = let
     val init_pat = Match.get_init_pat m
     val pat = Match.get_pat m
@@ -100,8 +103,10 @@ struct
     val tgt = Match.get_tgt m
     val vmap = Match.get_vmap m
 
-    (*val _ = assert_iso_graph_up_to_wires "Pattern correct" full_pat pat
-    val _ = assert_iso_graph_up_to_wires "Target correct" orig_tgt tgt*)
+    val _ = Testing.assert "Pattern correct"
+              (HomeoFinder.is_homeomorphic replayed_pat pat)
+    val _ = Testing.assert "Target correct"
+              (HomeoFinder.is_homeomorphic orig_tgt tgt)
     (* FIXME: normalisation
     val _ = Testing.assert "T subset of tgt verts"
         (V.NSet.sub_set tgt_verts (G.get_vertices tgt))

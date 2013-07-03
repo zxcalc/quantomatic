@@ -3,7 +3,7 @@ local
   open RG_Theory
   structure IO = RG_GraphicalTheoryIO
   structure G = Graph
-  (*structure GIso = BangGraphIso(G)*)
+  structure HomeoFinder = BangGraphHomeomorphismSearcher(Graph)
 in
 val _ = Testing.test "ruleset rewriting 1: ladder with red spider (all)" (fn () => let
   val ruleset = "rulesets/red_green/basic.rules"
@@ -49,12 +49,10 @@ val _ = Testing.test "ruleset rewriting 2: ladder with red spider (rpt)" (fn () 
        | SOME (_,g') => do_rw g'
 
   val new_graph = do_rw graph
-  (* FIXME:
-  val _ = if GIso.test new_graph exp_graph then ()
-          else (writeln "Expected"; G.print exp_graph
-                writeln "Got"; G.print new_graph
+  val _ = if HomeoFinder.is_homeomorphic new_graph exp_graph then ()
+          else (writeln "Expected"; G.print exp_graph;
+                writeln "Got"; G.print new_graph;
                 raise ERROR "Rewriting gave wrong graph")
-  *)
   in () end) ()
 end
 
@@ -64,7 +62,7 @@ local
   structure Controller = GHZW_Controller
   structure IO = GHZW_GraphicalTheoryIO
   structure G = Graph
-  (*structure GIso = BangGraphIso(G)*)
+  structure HomeoFinder = BangGraphHomeomorphismSearcher(Graph)
   fun ctrlr_assert_ok Commands.OkResponse = ()
     | ctrlr_assert_ok _ = raise ERROR "Unexpected response from controller"
   fun ctrlr_assert_string (Commands.StringResponse { data }) = data
@@ -95,12 +93,10 @@ val _ = Testing.test "GHZ/W ruleset rewriting 1: 2x2" (fn () => let
   end
 
   val new_graph = do_rw graph
-  (* FIXME:
-  val _ = if GIso.test new_graph exp_graph then ()
-          else (writeln "Expected"; G.print exp_graph
-                writeln "Got"; G.print new_graph
+  val _ = if HomeoFinder.is_homeomorphic new_graph exp_graph then ()
+          else (writeln "Expected"; G.print exp_graph;
+                writeln "Got"; G.print new_graph;
                 raise ERROR "Rewriting gave wrong graph")
-  *)
   in () end) ()
 
 val _ = Testing.test "GHZ/W ruleset rewriting 1: 2x2 (controller)" (fn () => let

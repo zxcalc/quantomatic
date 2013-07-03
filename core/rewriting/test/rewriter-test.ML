@@ -10,12 +10,7 @@ local
   open Tools
   structure RW = Test_BangGraphRewriter
 
-  structure IsoMatcher = ConcreteMatchSearch(Test_Bang_Graph)
-  
-  fun is_concrete_iso g1 g2 =
-    (V.NSet.cardinality (Test_Bang_Graph.get_vertices g1) =
-     V.NSet.cardinality (Test_Bang_Graph.get_vertices g2)) andalso
-    (is_some (Seq.pull (IsoMatcher.match g1 g2)))
+  structure HomeoFinder = BangGraphHomeomorphismSearcher(Test_Bang_Graph)
 
 
   type test_data = {
@@ -65,7 +60,7 @@ local
       (* make sure the remaining rewrites actually succeed *)
       val _ = Seq.list_of rw_seq'
     in
-      if is_concrete_iso exp result
+      if HomeoFinder.is_homeomorphic exp result
       then result
       else (
         save_dot_graph result (tgt_f^".result.dot");
