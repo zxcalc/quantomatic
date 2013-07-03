@@ -55,8 +55,7 @@ struct
   end
   (* fun dft (Lf s) vs = s::vs | dft (Br (s,ch)) vs = s::(fold dft ch vs); *)
   
-  structure BBoxOp = DumbBBoxOperableGraph(Graph)
-  structure MatchSearch = GreedyMatchSearch(BBoxOp)
+  structure MatchSearch = GreedyMatchSearch(Graph)
   (* precondition: g contains no !-boxes *)
   fun rule_matches_concrete_graph r g = let
     val lhs = Theory.Rule.get_lhs r
