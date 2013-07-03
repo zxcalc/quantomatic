@@ -68,10 +68,7 @@ PolyML.Project.make "expressions/semiring.ML";
 PolyML.Project.make "expressions/tensor.ML";
 PolyML.Project.make "expressions/linrat_matcher.ML";
 
-(*
 PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
-PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
-*)
 
 (* I/O *)
 PolyML.Project.make "io/linrat_json.ML";
@@ -104,8 +101,12 @@ Testing.make_test "graph/test/test-bang-graph.ML";
 
 Testing.make_test "io/test/graph-json-test.ML";
 
-
-PolyML.Project.make "stub_run.ML";
+(*
+ * Misc stuff
+ *)
+PolyML.Project.make "stub_run.ML"; (* ? *)
+(* hilbert space stuff: depends on OGRAPH *)
+PolyML.Project.make "expressions/hilb.ML";
 
 (*
  * Metrics
@@ -176,10 +177,8 @@ Testing.make_test "matching/test/test-bang-graph-homeomorphism-search.ML";
 PolyML.Project.make "rewriting/rewriter.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriter.ML";
-(*
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
-*)
 (* I/O *)
 PolyML.Project.make "io/rewrite_json.ML";
 Testing.make_test "rewriting/test/rewriter-test.ML";
