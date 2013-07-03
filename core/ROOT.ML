@@ -145,7 +145,6 @@ PolyML.Project.make "io/ruleset_annotations_json.ML";
 (*
  * Matching
  *)
-PolyML.Project.make "matching/bbox_operable.ML";
 PolyML.Project.make "matching/match.ML";
 PolyML.Project.make "matching/bg_match.ML";
 PolyML.Project.make "matching/match_state.ML";

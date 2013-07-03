@@ -26,8 +26,8 @@ sig
   (* Sets of rules and matching for those sets *)
   structure RulesetRewriter : RULESET_REWRITER
   sharing RulesetRewriter.Sharing.Ruleset = Ruleset.Sharing 
-  sharing type RulesetRewriter.Sharing.match = Match.T;
-end;
+  sharing type RulesetRewriter.Sharing.match = Match.T
+end
 
 
 
@@ -40,17 +40,14 @@ struct
   structure Graph = BangGraph(structure Data = Data)
   structure Rule = BangGraphRule(Graph)
   structure Ruleset = BangGraphRuleset(Rule)
-
-  structure BBoxOperableGraph = ReplayableBBoxOperableGraph(structure Graph = Graph)
-  structure MatchSearch = GreedyMatchSearch(BBoxOperableGraph)
-  structure Match = MatchSearch.Match;
+  structure MatchSearch = GreedyMatchSearch(Graph)
+  structure Match = MatchSearch.Match
 
   structure RulesetRewriter = RulesetRewriter(
     structure Ruleset = Ruleset;
     structure Rewriter = BangGraphRewriter(
-      structure Rule = Ruleset.BangGraphRule;
-      structure Matcher = MatchSearch;
-      structure BBoxOperableGraph = BBoxOperableGraph;
+      structure Rule = Ruleset.BangGraphRule
+      structure Matcher = MatchSearch
     )
   )
 end

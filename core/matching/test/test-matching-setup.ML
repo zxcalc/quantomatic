@@ -1,11 +1,8 @@
 structure Test_ConcreteMatcher =
   ConcreteMatchSearch(Test_OGraph);
 
-structure Test_BBoxOperableGraph =
-  ReplayableBBoxOperableGraph(structure Graph = Test_Bang_Graph);
-
 structure Test_GreedyMatcher =
-  GreedyMatchSearch(Test_BBoxOperableGraph);
+  GreedyMatchSearch(Test_Bang_Graph);
 (* set to 4 for really detailed messages *)
 (*
 Test_ConcreteMatcher.Log.level_ref := 2;
@@ -23,8 +20,7 @@ signature TEST_BG_MATCH_SEARCH = BG_MATCH_SEARCH
       and type Graph.edata  = Test_Graph_Data.edata
       and type Graph.psubst = Test_Graph_Data.psubst
       and type Graph.subst  = Test_Graph_Data.subst
-      and type Match.BBoxOperableGraph.T = Test_BBoxOperableGraph.T
-      and type Match.BBoxOperableGraph.Graph.T = Test_BBoxOperableGraph.Graph.T
+      and type Match.Graph.T = Test_Bang_Graph.T
 
 
 signature MATCH_TESTER =
@@ -98,9 +94,9 @@ struct
 
   (* TODO: re-introduce iso checks *)
   fun assert_match_correct orig_pat orig_tgt tgt_verts m = let
-    val bbox_oper = Match.get_pat m
-    val full_pat = Test_BBoxOperableGraph.replay_bbox_ops bbox_oper orig_pat
-    val pat = Test_BBoxOperableGraph.get_current_graph bbox_oper
+    val init_pat = Match.get_init_pat m
+    val pat = Match.get_pat m
+    val replayed_pat = Test_Bang_Graph.replay_bbox_ops (Match.get_bbox_ops m) init_pat
     val tgt = Match.get_tgt m
     val vmap = Match.get_vmap m
 
@@ -131,16 +127,9 @@ struct
     Testing.assert ((Int.toString n)^" wild !-boxes") (B.NSet.cardinality ws = n)
   end
 
-  fun find_n_matches n (pat,tgt) = let
-    val oper = Test_BBoxOperableGraph.init pat V.NSet.empty V.NSet.empty
-  in
-    assert_n_match n (M.match oper tgt) ()
-  end;
+  fun find_n_matches n (pat,tgt) = assert_n_match n (M.match pat tgt) ()
 
-  fun find_n_correct_matches n (pat,tgt) = let
-    val oper = Test_BBoxOperableGraph.init pat V.NSet.empty V.NSet.empty
-  in
+  fun find_n_correct_matches n (pat,tgt) =
     map (assert_match_correct pat tgt (G.get_vertices tgt))
-    (assert_n_match n (M.match oper tgt) ())
-  end;
+    (assert_n_match n (M.match pat tgt) ())
 end;

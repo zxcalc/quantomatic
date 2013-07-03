@@ -74,9 +74,7 @@ end;
 functor BangGraphRewriter(
   structure Rule : BANG_GRAPH_RULE
   structure Matcher : BG_MATCH_SEARCH
-  structure BBoxOperableGraph : REPLAYABLE_BBOX_OPERABLE_GRAPH
   sharing Matcher.Sharing.Graph = Rule.Sharing.Graph
-  sharing Matcher.Match.BBoxOperableGraph.Sharing = BBoxOperableGraph.Sharing
 ) : REWRITER =
 struct
   structure Log : LOG = Log(val init_level = 0)
@@ -85,7 +83,6 @@ struct
   structure Graph = Rule.Graph;
   type match = Matcher.Match.T;
   structure Match = Matcher.Match;
-  structure BBOp = BBoxOperableGraph;
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
@@ -95,7 +92,7 @@ struct
   val log_vrnm = log_p V.Rnm.pretty
   val log_ernm = log_p E.Rnm.pretty
 
-  fun prepare_rule rule target =
+  (*fun prepare_rule rule target =
       let
         (* (Boundary) vertices and variables must be renamed
          * away from those in g, otherwise the rewriting will
@@ -115,27 +112,17 @@ struct
         (Rule.mk (lhs,rhs),
          BBOp.init lhs avoid track,
          g_norm)
-      end;
+      end;*)
 
-  fun find_matches r g =
-      let
-        val (rule,oper,graph) = prepare_rule r g;
-      in
-        (rule,
-         Matcher.match_normalised oper graph)
-      end;
+  fun find_matches rule graph =
+    (rule, Matcher.match_normalised (Rule.get_lhs rule) graph)
 
-  fun find_matches_in_subgraph r g vset =
-      let
-        val (rule,oper,graph) = prepare_rule r g;
-      in
-        (rule,
-         Matcher.match_subgraph_normalised oper graph vset)
-      end;
+  fun find_matches_in_subgraph rule graph vset =
+    (rule, Matcher.match_subgraph_normalised (Rule.get_lhs rule) graph vset)
 
   fun sg_rewrite_at m rhs = let
     val g = Match.get_tgt m
-    val pat = BBoxOperableGraph.get_current_graph (Match.get_pat m)
+    val pat = Match.get_pat m
     val (vmap,emap) = (Match.get_vmap m, Match.get_emap m)
     val rhs' = snd (rhs |> Graph.apply_data_subst (Match.get_subst m))
 
@@ -169,8 +156,8 @@ struct
 
   fun rewrite_at rule m = let
     val rhs = Rule.get_rhs rule
-    val oper = Match.get_pat m
-    val sg_rhs = BBOp.replay_bbox_ops oper rhs
+    val oper = Match.get_bbox_ops m
+    val sg_rhs = Graph.replay_bbox_ops oper rhs
     val (final_rule,g') = sg_rewrite_at m sg_rhs
   in
     (final_rule, Graph.minimise g')

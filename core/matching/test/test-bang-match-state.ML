@@ -1,7 +1,6 @@
 local (* Test  functionality *)
   structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
   open Tools;
-  structure BBOp = Test_BBoxOperableGraph;
 
   local
     structure Rule = BangGraphRule(G);
@@ -14,7 +13,7 @@ local (* Test  functionality *)
     end
   end
 
-  val g = G.empty |> add_wv "v1"
+  (*val g = G.empty |> add_wv "v1"
                   |> add_vunit1 "v2"
                   |> add_wv "v3"
                   |> add_dir_eunit1 "e1" "v1" "v2"
@@ -55,7 +54,7 @@ local (* Test  functionality *)
   val _ = case rhs
             of SOME g => Testing.test "Expanded graphs coherent"
                          assert_boundary_coherent (new_g,g)
-             | NONE => NONE
+             | NONE => NONE*)
 in
   val _ = Testing.assert_no_failed_tests();
 end

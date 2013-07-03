@@ -55,36 +55,33 @@ sig
 
   structure Graph : BANG_GRAPH;
   structure Match: BANG_GRAPH_MATCH;
-  structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH;
   structure Sharing : MATCH_SEARCH_SHARING
     sharing Sharing.Graph = Graph.Sharing
     sharing Sharing.Match = Match.Sharing
-    sharing Graph.Sharing = BBoxOperableGraph.Graph.Sharing
-    sharing Match.BBoxOperableGraph.Sharing = BBoxOperableGraph.Sharing
   
   (* Searches for matches *)
   val match
-     : BBoxOperableGraph.T  (* pattern graph + operator *)
-    -> Graph.T                  (* target graph *)
+     : Graph.T              (* pattern graph *)
+    -> Graph.T              (* target graph *)
     -> Match.T Seq.seq      (* (lazy) list of matches *)
   
   (* Searches for matches *)
   val match_subgraph
-     : BBoxOperableGraph.T  (* pattern graph + operator *)
-    -> Graph.T                  (* target graph *)
+     : Graph.T              (* pattern graph *)
+    -> Graph.T              (* target graph *)
     -> V.NSet.T             (* target subgraph verts *)
     -> Match.T Seq.seq      (* (lazy) list of matches *)
   
   (* Searches for matches *)
   val match_normalised
-     : BBoxOperableGraph.T  (* pattern graph + operator *)
-    -> Graph.T                  (* target graph (normalised) *)
+     : Graph.T              (* pattern graph *)
+    -> Graph.T              (* target graph (normalised) *)
     -> Match.T Seq.seq      (* (lazy) list of matches *)
   
   (* Searches for matches *)
   val match_subgraph_normalised
-     : BBoxOperableGraph.T  (* pattern graph + operator *)
-    -> Graph.T                  (* target graph (normalised) *)
+     : Graph.T              (* pattern graph *)
+    -> Graph.T              (* target graph (normalised) *)
     -> V.NSet.T             (* target subgraph verts *)
     -> Match.T Seq.seq      (* (lazy) list of matches *)
 end
