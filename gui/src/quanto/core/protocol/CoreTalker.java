@@ -163,27 +163,6 @@ public class CoreTalker {
         return getNameListResponse();
     }
 
-    public String[] consoleHelp(String command) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("CH", generateRequestId());
-            writer.addStringArg(command);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        Response resp = getResponse(Response.MessageType.ConsoleHelp);
-        String[] result = new String[]{
-            resp.getCommandArgs(),
-            resp.getCommandHelp()
-        };
-        return result;
-    }
-
     public void changeTheory(String theory) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
@@ -199,49 +178,13 @@ public class CoreTalker {
         getOkResponse();
     }
 
-    public String currentTheory() throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("TG", generateRequestId());
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-        return getNameResponse();
-    }
-
-    public String[] listGraphs() throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GL", generateRequestId());
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getNameListResponse();
-    }
-
     public String loadEmptyGraph() throws CoreException {
-        return loadEmptyGraph(null);
-    }
-
-    public String loadEmptyGraph(String suggestedName) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
         }
 
         try {
             writer.addHeader("GOE", generateRequestId());
-            if (suggestedName != null) {
-                writer.addStringArg(suggestedName);
-            }
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -258,39 +201,6 @@ public class CoreTalker {
         try {
             writer.addHeader("GOF", generateRequestId());
             writer.addStringArg(fileName);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getNameResponse();
-    }
-
-    public String loadGraphFromData(String suggestedName, byte[] data) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GOD", generateRequestId());
-            writer.addStringArg(suggestedName == null ? "" : suggestedName);
-            writer.addDataChunkArg(data);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getNameResponse();
-    }
-
-    public String copyGraph(String graph) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GOG", generateRequestId());
-            writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -351,79 +261,6 @@ public class CoreTalker {
         return getNameResponse();
     }
 
-    public void discardGraph(String graph) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GD", generateRequestId());
-            writer.addStringArg(graph);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        getOkResponse();
-    }
-
-    public byte[] saveGraphToData(String graph) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GE", generateRequestId());
-            writer.addStringArg(graph);
-            writer.addStringArg("native");
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getRawDataResponse();
-    }
-
-    public enum GraphExportFormat {
-
-        HilbertTerm,
-        Mathematica,
-        Matlab,
-        Tikz
-    }
-
-    public String exportGraph(String graph, GraphExportFormat format) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GE", generateRequestId());
-            writer.addStringArg(graph);
-            switch (format) {
-                case HilbertTerm:
-                    writer.addStringArg("hilb");
-                    break;
-                case Mathematica:
-                    writer.addStringArg("mathematica");
-                    break;
-                case Matlab:
-                    writer.addStringArg("matlab");
-                    break;
-                case Tikz:
-                    writer.addStringArg("tikz");
-                    break;
-                default:
-                    throw new IllegalArgumentException("Bad format");
-            }
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return utf8ToString(getRawDataResponse());
-    }
-
     public String exportGraphAsJson(String graph) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
@@ -432,29 +269,12 @@ public class CoreTalker {
         try {
             writer.addHeader("GE", generateRequestId());
             writer.addStringArg(graph);
-            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
         return getJsonResponse();
-    }
-
-    public String[] listVertices(String graph) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GVVL", generateRequestId());
-            writer.addStringArg(graph);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getNameListResponse();
     }
 
     public String graphUserData(String graph, String dataName) throws CoreException {
@@ -472,56 +292,6 @@ public class CoreTalker {
         }
         
         return utf8ToString(getRawDataResponse());
-    }
-    
-    public String[] listEdges(String graph) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GVEL", generateRequestId());
-            writer.addStringArg(graph);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getNameListResponse();
-    }
-
-    public String[] listBangBoxes(String graph) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GVBL", generateRequestId());
-            writer.addStringArg(graph);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getNameListResponse();
-    }
-
-    public String vertexDataAsJson(String graph, String vertex) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GVVD", generateRequestId());
-            writer.addStringArg(graph);
-            writer.addStringArg(vertex);
-            writer.addStringArg("json");
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getJsonResponse();
     }
 
     public String vertexUserData(String graph, String vertex, String dataName) throws CoreException {
@@ -542,24 +312,6 @@ public class CoreTalker {
         return utf8ToString(getRawDataResponse());
     }
 
-    public String edgeDataAsJson(String graph, String edge) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GVED", generateRequestId());
-            writer.addStringArg(graph);
-            writer.addStringArg(edge);
-            writer.addStringArg("json");
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getJsonResponse();
-    }
-
     public String edgeUserData(String graph, String edge, String dataName) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
@@ -578,30 +330,13 @@ public class CoreTalker {
         return utf8ToString(getRawDataResponse());
     }
 
-    public String[] bangBoxVertices(String graph, String bangBox) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GVBV", generateRequestId());
-            writer.addStringArg(graph);
-            writer.addStringArg(bangBox);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getNameListResponse();
-    }
-
     public String bangBoxUserData(String graph, String bangBox, String dataName) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
         }
 
         try {
-            writer.addHeader("GVVU", generateRequestId());
+            writer.addHeader("GVBU", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(bangBox);
             writer.addStringArg(dataName);
@@ -770,7 +505,6 @@ public class CoreTalker {
             writer.addHeader("GMVA", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(vertexType);
-            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -880,31 +614,12 @@ public class CoreTalker {
             writer.addStringArg(directed ? "d" : "u");
             writer.addStringArg(sourceVertex);
             writer.addStringArg(targetVertex);
-            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
         return getJsonResponse();
-    }
-
-    public String renameEdge(String graph, String from, String to) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GMER", generateRequestId());
-            writer.addStringArg(graph);
-            writer.addStringArg(from);
-            writer.addStringArg(to);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getNameResponse();
     }
 
     public void deleteEdges(String graph, Collection<String> edges) throws CoreException {
@@ -916,24 +631,6 @@ public class CoreTalker {
             writer.addHeader("GMED", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringListArg(edges);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        getOkResponse();
-    }
-
-    public void setEdgeData(String graph, String edge, String data) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("GMES", generateRequestId());
-            writer.addStringArg(graph);
-            writer.addStringArg(edge);
-            writer.addTaggedDataChunkArg('N', data);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -988,7 +685,6 @@ public class CoreTalker {
             writer.addHeader("GMBA", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringListArg(vertices != null ? vertices : Collections.<String>emptyList());
-            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -1171,22 +867,6 @@ public class CoreTalker {
         getOkResponse();
     }
 
-    public void importRulesetFromData(byte[] data) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("RSI", generateRequestId());
-            writer.addDataChunkArg(data);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        getOkResponse();
-    }
-
     public void replaceRulesetFromFile(String fileName) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
@@ -1195,22 +875,6 @@ public class CoreTalker {
         try {
             writer.addHeader("RSP", generateRequestId());
             writer.addStringArg(fileName);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        getOkResponse();
-    }
-
-    public void replaceRulesetFromData(byte[] data) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("RSJ", generateRequestId());
-            writer.addDataChunkArg(data);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -1233,21 +897,6 @@ public class CoreTalker {
         }
 
         getOkResponse();
-    }
-
-    public byte[] exportRulesetToData() throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("RSE", generateRequestId());
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getRawDataResponse();
     }
 
     public String[] listRules() throws CoreException {
@@ -1492,22 +1141,6 @@ public class CoreTalker {
         getOkResponse();
     }
 
-    public void forgetTag(String tag) throws CoreException {
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("RTF", generateRequestId());
-            writer.addStringArg(tag);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        getOkResponse();
-    }
-
     public void deleteRulesByTag(String tag) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
@@ -1554,10 +1187,6 @@ public class CoreTalker {
         }
 
         getOkResponse();
-    }
-
-    public int attachRewrites(String graph) throws CoreException {
-        return attachRewrites(graph, Collections.<String>emptyList());
     }
 
     public int attachRewrites(String graph, Collection<String> vertices) throws CoreException {
@@ -1624,109 +1253,11 @@ public class CoreTalker {
         try {
             writer.addHeader("WL", generateRequestId());
             writer.addStringArg(graph);
-            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
         return getJsonResponse();
-    }
-
-    public String[] listMetricsNames() throws CoreException {
-
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("MNL", generateRequestId());
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getNameListResponse();
-    }
-        public String[] listMetricsDescs() throws CoreException {
-
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("MDL", generateRequestId());
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getNameListResponse();
-    }
-
-     public String getCurrentMetricNameRequest() throws CoreException {
-
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("MCMN", generateRequestId());
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getNameResponse();
-    }
-    public void setMetricRequest(String metricName) throws CoreException {
-
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("MSM", generateRequestId());
-            writer.addStringArg(metricName);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        getOkResponse();
-    }
-     public void computeMetricRequest(String graphName) throws CoreException {
-
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("MCM", generateRequestId());
-            writer.addStringArg(graphName);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        getOkResponse();
-    }
-
-    public int ordMetricRequest(int[] metric1, int[] metric2) throws CoreException {
-
-        if (writer == null) {
-            throw new IllegalStateException("Not connected to the core");
-        }
-
-        try {
-            writer.addHeader("MOM", generateRequestId());
-            writer.addIntListArg(metric1);
-            writer.addIntListArg(metric2);
-            writer.closeMessage();
-        } catch (IOException ex) {
-            throw writeFailure(ex);
-        }
-
-        return getCountResponse();
     }
  }

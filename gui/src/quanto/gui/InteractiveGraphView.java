@@ -1510,27 +1510,6 @@ public class InteractiveGraphView
 				}
 			}
 		});
-
-		actionMap.put(CommandManager.Command.DumpHilbertTermAsText.toString(), new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				try {
-					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Plain));
-				} catch (CoreException ex) {
-					coreErrorDialog("Could not create Hilbert term", ex);
-				}
-			}
-		});
-		actionMap.put(CommandManager.Command.DumpHilbertTermAsMathematica.toString(), new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				try {
-					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Mathematica));
-				} catch (CoreException ex) {
-					coreErrorDialog("Could not create Hilbert term", ex);
-				}
-			}
-		});
 		actionMap.put(CommandManager.Command.Refresh.toString(), new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {

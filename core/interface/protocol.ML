@@ -92,12 +92,6 @@
  * Desc: "Pretty-print" data, for displaying to humans; not
  *       intended to be parsed.
  *
- * Name: XmlResponse
- * Code: "X"
- * Args:
- *   XmlResponseBody ::= DataChunk ;
- * Desc: XML-formatted data.
- *
  * Name: CountResponse
  * Code: "I"
  * Args:
@@ -306,7 +300,7 @@
  *       the latter two suitable for input into those
  *       applications.
  *       "tikz" is a LaTeX-suitable format.
- * Responses: DataResponse | XmlResponse | PrettyResponse
+ * Responses: DataResponse | PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | BADFORMAT
  *
  * Name: DescribeGraphRequest
@@ -358,7 +352,7 @@
  *   VertexName: String
  *   ComponentDataFormat: "pretty" | "json"
  * Desc: Get the component data attached to a vertex
- * Response: XmlResponse | PrettyResponse
+ * Response: PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX | BADFORMAT
  *
  * Name: VertexUserDataRequest
@@ -379,7 +373,7 @@
  *   EdgeName: String
  *   ComponentDataFormat: "pretty" | "json"
  * Desc: Get the component data attached to an edge
- * Response: XmlResponse | PrettyResponse
+ * Response: PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE | BADFORMAT
  *
  * Name: EdgeUserDataRequest
@@ -493,7 +487,7 @@
  *   VertexType: String
  *   ResultFormat: ObjectResultFormat
  * Desc: Add a vertex to a graph
- * Response: StringResponse | XmlResponse | PrettyResponse | StructuredDataResponse
+ * Response: StringResponse | PrettyResponse | StructuredDataResponse
  * ErrorResponses: NOSUCHGRAPH | BADVERTEXTYPE | BADFORMAT
  *
  * Name: RenameVertexRequest
@@ -558,7 +552,7 @@
  *   TargetVertex: String
  *   ResultFormat: ObjectResultFormat
  * Desc: Add an edge to a graph.
- * Response: StringResponse | XmlResponse | PrettyResponse | StructuredDataResponse
+ * Response: StringResponse | PrettyResponse | StructuredDataResponse
  * ErrorResponses: NOSUCHGRAPH | BAD_BBOX | BAD_WIRE_VERTEX | BADEDGETYPE | BADFORMAT
  *
  * Name: RenameEdgeRequest
@@ -620,7 +614,7 @@
  *   ResultFormat: ObjectResultFormat
  * Desc: Add a !-box to a graph.  A list of vertices to include in
  *       the !-box may be provided
- * Response: StringResponse | XmlResponse | PrettyResponse | StructuredDataResponse
+ * Response: StringResponse | PrettyResponse | StructuredDataResponse
  * ErrorResponses: NOSUCHGRAPH | BADFORMAT
  *
  * Name: RenameBangBoxRequest
@@ -936,7 +930,7 @@
  *       result format is "name", only the rule applied will be returned
  *       for each attached rewrite.  Note that the same rule may well
  *       appear more than once in the list.
- * Response: StructuredDataResponse | XmlResponse | StringListResponse
+ * Response: StructuredDataResponse | StringListResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE
  *
  * Name: ApplyAttachedRewriteRequest
@@ -1293,9 +1287,7 @@ struct
     (* {{{ readRequestBody *)
     fun readRequestBody commandCode =
       case commandCode
-        of "TG"   => (assertAtEnd (); TheoryNameRequest)
-         | "GL"   => (assertAtEnd (); ListGraphsRequest)
-         | "GOE"  =>  LoadGraphRequest {
+        of "GOE"  =>  LoadGraphRequest {
                         details = LoadEmptyGraphRequest {
                           requestedName = readToEnd ()
                         }
@@ -1305,18 +1297,6 @@ struct
                           fileName = readToEnd()
                         }
                       }
-         | "GOD"  =>  let
-                        val requestedName = readToDelim ()
-                        val data = readDataChunk ()
-                        val () = assertAtEnd ()
-                      in
-                        LoadGraphRequest {
-                          details = LoadGraphFromDataRequest {
-                            data = data,
-                            requestedName = requestedName
-                          }
-                        }
-                      end
          | "GOG"  =>  LoadGraphRequest {
                         details = CopyGraphRequest {
                           graphName = readToEnd ()
@@ -1357,42 +1337,14 @@ struct
                         }
                       end
 
-         | "GD"   =>  DiscardGraphRequest {
-                        graphName = readToEnd ()
-                      }
-
          | "GE"   =>  let
-                        val graphName  = readToDelim ()
-                        val formatName = readToEnd ()
-                        val format     = case formatName
-                                           of "native"      => SOME NativeGraphFormat
-                                            | "json"        => SOME JsonGraphFormat
-                                            | "pretty"      => SOME PrettyGraphFormat
-                                            | "hilb"        => SOME HilbertSpaceGraphFormat
-                                            | "mathematica" => SOME MathematicaGraphFormat
-                                            | "matlab"      => SOME MatlabGraphFormat
-                                            | "tikz"        => SOME TikzGraphFormat
-                                            | _             => NONE
+                        val graphName  = readToEnd ()
                       in
-                        case format
-                          of (SOME f) =>
-                                ExportGraphRequest {
-                                  graphName = graphName,
-                                  format = f
-                                }
-                           | NONE =>
-                                DummyRequest { response =
-                                  ErrorResponse {
-                                    errorCode = "BADFORMAT",
-                                    message = "Unknown format requested"
-                                  }
-                                }
+                        ExportGraphRequest {
+                          graphName = graphName,
+                          format = JsonGraphFormat
+                        }
                       end
-
-         | "GVA"  =>  DescribeGraphRequest {
-                        graphName = readToEnd (),
-                        desc = DescribeFullGraph
-                      }
 
          | "GVGU" => let
                         val graphName = readToDelim()
@@ -1403,47 +1355,6 @@ struct
                          desc = GraphUserData { dataName = dataName }
                        }
                      end
-         | "GVVL" =>  DescribeGraphRequest {
-                        graphName = readToEnd (),
-                        desc = ListVertices
-                      }
-
-         | "GVEL" =>  DescribeGraphRequest {
-                        graphName = readToEnd (),
-                        desc = ListEdges
-                      }
-
-         | "GVBL" =>  DescribeGraphRequest {
-                        graphName = readToEnd (),
-                        desc = ListBangBoxes
-                      }
-
-         | "GVVD" =>  let
-                        val graphName  = readToDelim ()
-                        val vertexName  = readToDelim ()
-                        val format = case readToEnd ()
-                                       of "json"   => SOME JsonFormat
-                                        (*| "native" => SOME DescriptionFormat*)
-                                        | "pretty" => SOME PrettyFormat
-                                        | _        => NONE
-                      in
-                        case format
-                          of (SOME f) =>
-                              DescribeGraphRequest {
-                                graphName = graphName,
-                                desc = VertexData {
-                                  vertexName = vertexName,
-                                  format = f
-                                }
-                              }
-                           | NONE =>
-                              DummyRequest { response =
-                                ErrorResponse {
-                                  errorCode = "BADFORMAT",
-                                  message = "Unknown format requested"
-                                }
-                              }
-                      end
 
          | "GVVU" =>  let
                         val graphName  = readToDelim ()
@@ -1457,33 +1368,6 @@ struct
                         }
                       end
 
-         | "GVED" =>  let
-                        val graphName = readToDelim ()
-                        val edgeName  = readToDelim ()
-                        val format = case readToEnd ()
-                                       of "json"   => SOME JsonFormat
-                                        (*| "native" => SOME DescriptionFormat*)
-                                        | "pretty" => SOME PrettyFormat
-                                        | _        => NONE
-                      in
-                        case format
-                          of (SOME f) =>
-                              DescribeGraphRequest {
-                                graphName = graphName,
-                                desc = EdgeData {
-                                  edgeName = edgeName,
-                                  format = f
-                                }
-                              }
-                           | NONE =>
-                              DummyRequest { response =
-                                ErrorResponse {
-                                  errorCode = "BADFORMAT",
-                                  message = "Unknown format requested"
-                                }
-                              }
-                      end
-
          | "GVEU" =>  let
                         val graphName  = readToDelim ()
                         val edgeName = readToDelim ()
@@ -1493,16 +1377,6 @@ struct
                           graphName = graphName,
                           desc = EdgeUserData { edgeName = edgeName,
                                                   dataName = dataName }
-                        }
-                      end
-
-         | "GVBV" =>  let
-                        val graphName   = readToEscape #";"
-                        val bangBoxName = readToEnd ()
-                      in
-                        DescribeGraphRequest {
-                          graphName = graphName,
-                          desc = BangBoxVertices { bangBoxName = bangBoxName }
                         }
                       end
 
@@ -1588,30 +1462,15 @@ struct
 
          | "GMVA" =>  let
                         val graphName = readToDelim ()
-                        val vertexType = readToDelim ()
-                        val format = case readToEnd ()
-                                       of "json"   => SOME JsonFormat
-                                        | "native" => SOME DescriptionFormat
-                                        | "pretty" => SOME PrettyFormat
-                                        | "name"   => SOME BasicFormat
-                                        | _        => NONE
+                        val vertexType = readToEnd ()
                       in
-                        case format
-                          of (SOME f) =>
-                              EditGraphRequest {
-                                graphName = graphName,
-                                action =  AddVertexAction {
-                                            vertexType = vertexType,
-                                            resultFormat = f
-                                          }
-                              }
-                           | NONE =>
-                              DummyRequest { response =
-                                ErrorResponse {
-                                  errorCode = "BADFORMAT",
-                                  message = "Unknown format requested"
-                                }
-                              }
+                        EditGraphRequest {
+                          graphName = graphName,
+                          action =  AddVertexAction {
+                                      vertexType = vertexType,
+                                      resultFormat = JsonFormat
+                                    }
+                        }
                       end
 
          | "GMVR" =>  let
@@ -1710,45 +1569,16 @@ struct
                                        if d_or_u = "u" then false else
                                        protocolError "Expected \"d\" or \"u\""
                         val source = readToDelim ()
-                        val target = readToDelim ()
-                        val format = case readToEnd ()
-                                       of "json"   => SOME JsonFormat
-                                        | "native" => SOME DescriptionFormat
-                                        | "pretty" => SOME PrettyFormat
-                                        | "name"   => SOME BasicFormat
-                                        | _        => NONE
-                      in
-                        case format
-                          of (SOME f) =>
-                              EditGraphRequest {
-                                graphName = graphName,
-                                action =  AddEdgeAction {
-                                            source = source,
-                                            target = target,
-                                            directed = directed,
-                                            edgeType = edgeType,
-                                            resultFormat = f
-                                          }
-                              }
-                           | NONE =>
-                              DummyRequest { response =
-                                ErrorResponse {
-                                  errorCode = "BADFORMAT",
-                                  message = "Unknown format requested"
-                                }
-                              }
-                      end
-
-         | "GMER" =>  let
-                        val graphName = readToDelim ()
-                        val oldName = readToDelim ()
-                        val newName = readToEnd ()
+                        val target = readToEnd ()
                       in
                         EditGraphRequest {
                           graphName = graphName,
-                          action =  RenameEdgeAction {
-                                      oldName = oldName,
-                                      newName = newName
+                          action =  AddEdgeAction {
+                                      source = source,
+                                      target = target,
+                                      directed = directed,
+                                      edgeType = edgeType,
+                                      resultFormat = JsonFormat
                                     }
                         }
                       end
@@ -1764,37 +1594,6 @@ struct
                                     }
                         }
                       end
-
-         | "GMES" => (let
-                        val graphName = readToDelim ()
-                        val edgeName = readToDelim ()
-                        val data = readComponentData ()
-                        val () = assertAtEnd ()
-                      in
-                        case data
-                          of (SOME d) =>
-                              EditGraphRequest {
-                                graphName = graphName,
-                                action =  SetEdgeDataAction {
-                                            edgeName = edgeName,
-                                            edgeData = d
-                                          }
-                              }
-                           | NONE =>
-                              DummyRequest { response =
-                                ErrorResponse {
-                                  errorCode = "BADFORMAT",
-                                  message = "Unknown vertex data format"
-                                }
-                              }
-                      end
-                      handle Json.parse_exn msg =>
-                              DummyRequest { response =
-                                ErrorResponse {
-                                  errorCode = "BADDATA",
-                                  message = ("Malformed JSON ("^msg^")")
-                                }
-                              })
 
          | "GMEU" =>  let
                         val graphName = readToDelim ()
@@ -1829,30 +1628,15 @@ struct
 
          | "GMBA" =>  let
                         val graphName = readToDelim ()
-                        val vertexNames = readListToDelim ()
-                        val format = case readToEnd ()
-                                       of "json"   => SOME JsonFormat
-                                        | "native" => SOME DescriptionFormat
-                                        | "pretty" => SOME PrettyFormat
-                                        | "name"   => SOME BasicFormat
-                                        | _        => NONE
+                        val vertexNames = readListToEnd ()
                       in
-                        case format
-                          of (SOME f) =>
-                              EditGraphRequest {
-                                graphName = graphName,
-                                action =  AddBangBoxAction {
-                                            vertexNames = vertexNames,
-                                            resultFormat = f
-                                          }
-                              }
-                           | NONE =>
-                              DummyRequest { response =
-                                ErrorResponse {
-                                  errorCode = "BADFORMAT",
-                                  message = "Unknown format requested"
-                                }
-                              }
+                        EditGraphRequest {
+                          graphName = graphName,
+                          action =  AddBangBoxAction {
+                                      vertexNames = vertexNames,
+                                      resultFormat = JsonFormat
+                                    }
+                        }
                       end
 
          | "GMBR" =>  let
@@ -1943,20 +1727,6 @@ struct
                         }
                       end
 
-         | "GMBX" =>  let
-                        val graphName = readToDelim ()
-                        val bangBoxName = readToDelim ()
-                        val vertexNames = readListToEnd ()
-                      in
-                        EditGraphRequest {
-                          graphName = graphName,
-                          action =  UnbangVerticesAction {
-                                      bangBoxName = bangBoxName,
-                                      vertexNames = vertexNames
-                                    }
-                        }
-                      end
-
          | "GMBU" =>  let
                         val graphName = readToDelim ()
                         val bangBoxName = readToDelim ()
@@ -1998,31 +1768,9 @@ struct
                                 replace = true
                               }
 
-         | "RSI"  =>  let
-                        val data = readDataChunk ()
-                        val () = assertAtEnd ()
-                      in
-                        ImportRulesetFromDataRequest {
-                          data = data,
-                          replace = false
-                        }
-                      end
-
-         | "RSJ"  =>  let
-                        val data = readDataChunk ()
-                        val () = assertAtEnd ()
-                      in
-                        ImportRulesetFromDataRequest {
-                          data = data,
-                          replace = true
-                        }
-                      end
-
          | "RSS"  =>  ExportRulesetToFileRequest {
                         fileName = readToEnd()
                       }
-
-         | "RSE"  => (assertAtEnd (); ExportRulesetAsDataRequest)
 
          | "RRL"  => (assertAtEnd (); ListRulesRequest)
 
@@ -2108,10 +1856,6 @@ struct
                         }
                       end
 
-         | "RTF"  =>  ForgetTagRequest {
-                        tagName = readToEnd ()
-                      }
-
          | "RTD"  =>  DeleteRulesByTagRequest {
                         tagName = readToEnd ()
                       }
@@ -2145,80 +1889,25 @@ struct
                       end
 
          | "WL" =>    let
-                        val graphName = readToDelim ()
-                        val format = case readToEnd ()
-                                       of "json"   => SOME JsonFormat
-                                        | "native" => SOME DescriptionFormat
-                                        | "pretty" => SOME PrettyFormat
-                                        | "name"   => SOME BasicFormat
-                                        | _        => NONE
+                        val graphName = readToEnd ()
                       in
-                        case format
-                          of (SOME f) =>
-                              ListAttachedRewritesRequest {
-                                graphName = graphName,
-                                format = f
-                              }
-                           | NONE =>
-                              DummyRequest { response =
-                                ErrorResponse {
-                                  errorCode = "BADFORMAT",
-                                  message = "Unknown format requested"
-                                }
-                              }
+                        ListAttachedRewritesRequest {
+                          graphName = graphName,
+                          format = JsonFormat
+                        }
                       end
 
          | "WW"   =>  let
                         val graphName = readToDelim ()
-                        val index = readInt #";"
-                        val format = case readToEnd ()
-                                       of "native"      => SOME NativeGraphFormat
-                                        | "json"        => SOME JsonGraphFormat
-                                        | "pretty"      => SOME PrettyGraphFormat
-                                        | _             => NONE
+                        val index = readInt #">"
                       in
-                        case format
-                          of (SOME f) =>
-                                ApplyAttachedRewriteRequest {
-                                  graphName = graphName,
-                                  index = index,
-                                  format = f
-                                }
-                           | NONE =>
-                                DummyRequest { response =
-                                  ErrorResponse {
-                                    errorCode = "BADFORMAT",
-                                    message = "Unknown format requested"
-                                  }
-                                }
+                        ApplyAttachedRewriteRequest {
+                          graphName = graphName,
+                          index = index,
+                          format = JsonGraphFormat
+                        }
                       end
 
-         | "MNL" => (assertAtEnd (); ListMetricsNamesRequest)
-         | "MDL" => (assertAtEnd (); ListMetricsDescsRequest)
-         | "MCMN" => (assertAtEnd (); GetCurrentMetricNameRequest)
-         | "MSM" => let
-                      val metricName = readToEnd()
-                    in
-                      SetMetricRequest {
-                        metricName = metricName
-                      }
-                    end
-         | "MCM" => let
-                      val gn = readToEnd()
-                    in
-                      ComputeMetricRequest {
-                        graphName = gn
-                      }
-                    end
-         | "MOM" => let
-                      val metric1 = readListToDelim ()
-                      val metric2 = readListToEnd ()
-                    in
-                      OrdMetricRequest {
-                        metric1 = metric1,
-                        metric2 = metric2
-                      }
-                    end 
          | code   =>  (* Something else.  Reply with empty response. *)
                      (skipToBodyEnd ();
                       UnknownRequest {
@@ -2264,17 +1953,6 @@ struct
                     printClose ();
                     next_loop ())
 
-         | "CH" =>  let
-                      val commandName = readToEnd ()
-                    in
-                      printOpen #"H" requestId;
-                      print (the (Console.get_command_args commandName));
-                      printDelim ();
-                      print (the (Console.get_command_help commandName));
-                      printClose ();
-                      next_loop ()
-                    end
-
          | "TS" => (let
                       val theoryName = readToEnd ()
                     in
@@ -2302,7 +1980,7 @@ struct
     print "1.0";
     printClose ();
     run_in_textstreams' DummyController.serviceRequest
-  end;
+  end
 
   fun flushIn () = case TextIO.canInput (TextIO.stdIn, 1)
                         of SOME n => (TextIO.input1 TextIO.stdIn;())
