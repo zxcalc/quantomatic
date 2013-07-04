@@ -19,6 +19,7 @@ POLYFLAGS=-H 200 $(if $(FAST),--disable-tests) $(if $(V),--test-log-level=$(V))
 # dynamic variables checked on call to make. 
 ################################
 ML_SRC_FILES = $(shell find . | grep ".ML$$" | grep -v "test/protocol/" | grep -v "test/PROTOCOLTEST.ML$$" | grep -v "toplevel/")
+COSY_ML_SRC_FILES = $(shell find ../cosy | grep ".ML$$")
 ISAP_ML_SRC_FILES = $(ISAPLIB_SOURCES)/Makefile $(shell find $(ISAPLIB_SOURCES)/* | grep ".ML$$")
 
 ################################
@@ -35,7 +36,7 @@ ALL_BINS=$(CORE_BIN) bin/quanto-xml-to-json
 ################################
 default: all
 
-$(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAP_ML_SRC_FILES)
+$(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAP_ML_SRC_FILES) $(COSY_ML_SRC_FILES)
 	@mkdir -p heaps
 	POLYFLAGS="$(POLYFLAGS)" ../tools/poly-build-heap -p -o $@ ROOT.ML
 
