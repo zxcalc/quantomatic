@@ -8,6 +8,8 @@ code_name = sys.argv[1]
 types = sys.argv[3:]
 maxlen = len(max(types,key=len))
 
+print('(* Generated using {0} *)'.format(' '.join(sys.argv)))
+
 print('''structure {0}_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
 = struct
   type nvdata = {0}_Data.nvdata
@@ -18,14 +20,19 @@ print('''structure {0}_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
     open JsonInputUtils
     type data = nvdata
     val to_lower = String.implode o (map Char.toLower) o String.explode
-    fun input (Json.String t) =
+    fun get_type t =
           (case to_lower t'''.format(code_name))
 pad = ' '*(maxlen - len(types[0]))
 print('             of "{2}" {3}=> {0}_Data.{1}'.format(code_name,types[0],types[0].lower(),pad))
 for t in types[1:]:
     pad = ' '*(maxlen - len(t))
     print('              | "{2}" {3}=> {0}_Data.{1}'.format(code_name,t,t.lower(),pad))
-print('''              | _      => raise bad_input_exp ("Unknown vertex type "^t,"type"))
+print('''              | _      => raise bad_input_exp ("Unknown vertex type "^t,""))
+    fun input (Json.String t) = get_type t
+      | input (Json.Object obj) =
+         (get_type (get_string obj "type")
+            handle bad_input_exp (m,l) =>
+              raise bad_input_exp (m, prepend_prop "type" l))
       | input _ = raise bad_input_exp ("Expected string","type")
   end
   structure IVDataOutputJSON : OUTPUT_JSON =
@@ -33,11 +40,12 @@ print('''              | _      => raise bad_input_exp ("Unknown vertex type "^t
     open JsonOutputUtils
     type data = nvdata'''.format(code_name))
 pad = ' '*(maxlen - len(types[0]))
-print('    fun output {0}_Data.{1} {2}= Json.String "{1}"'.format(code_name,types[0],pad))
+print('    fun typestr {0}_Data.{1} {2}= "{1}"'.format(code_name,types[0],pad))
 for t in types[1:]:
     pad = ' '*(maxlen - len(t))
-    print('      | output {0}_Data.{1} {2}= Json.String "{1}"'.format(code_name,t,pad))
-print('''  end
+    print('      | typestr {0}_Data.{1} {2}= "{1}"'.format(code_name,t,pad))
+print('''    fun output d = Json.mk_record [("type",typestr d)]
+  end
   structure EDataInputJSON = InputUnitJSON
   structure EDataOutputJSON = OutputUnitJSON
 

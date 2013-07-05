@@ -7,14 +7,15 @@ structure Substrings_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
   struct
     open JsonInputUtils
     type data = nvdata
-    fun input (Json.String str) = str
+    fun input (Json.Object obj) = get_string_easy "" obj "value"
+      | input (Json.String str) = str
       | input _ = raise bad_input_exp ("Expected string","type")
   end
   structure IVDataOutputJSON : OUTPUT_JSON =
   struct
     open JsonOutputUtils
     type data = nvdata
-    val output = Json.String
+    fun output s = Json.mk_record [("type", "string"), ("label",s), ("value", s)]
   end
   structure EDataInputJSON = InputUnitJSON
   structure EDataOutputJSON = OutputUnitJSON

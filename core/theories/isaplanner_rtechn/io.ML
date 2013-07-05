@@ -23,16 +23,28 @@ structure RTechn_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
       | goal_name_from_json _ _ = raise bad_input_exp ("Expected object","")
     fun get_goal_names obj prop =
           fold_arr_easy goal_name_from_json obj prop StrIntName.NSet.empty
+    fun decode_goalnode obj =
+          RTechn_Data.GoalNode
+            (get_string_easy "" obj "goal_type",
+             get_goal_names obj "goal_names")
+            handle bad_input_exp (m,l) =>
+              raise bad_input_exp (m,prepend_prop "goal" l)
     fun input (Json.Object obj) =
           (case to_lower (get_string obj "type")
              of "rt" => RTechn_Data.RTechnNode
-                              (get_string_easy "?" obj "tactic")
+                          (case Json.lookup obj "value"
+                             of SOME (Json.String s) => s
+                              | SOME Json.Null => "?"
+                              | SOME _ => raise bad_input_exp ("Expected string","value")
+                              | NONE => get_string_easy "?" obj "tactic")
               | "gs" =>
-                  (RTechn_Data.GoalNode
-                     (get_string_easy "" obj "goal_type",
-                     get_goal_names obj "goal_names")
-                     handle bad_input_exp (m,l) =>
-                       raise bad_input_exp (m,prepend_prop "goal" l))
+                  (case Json.lookup obj "value"
+                     of SOME (Json.Object obj') =>
+                          (decode_goalnode obj'
+                           handle bad_input_exp (m,l) =>
+                             raise bad_input_exp (m,prepend_prop "value" l))
+                      | SOME _ => raise bad_input_exp ("Expected object","value")
+                      | NONE => decode_goalnode obj)
               | t   => raise bad_input_exp ("Unknown vertex type "^t,"type"))
       | input _ = raise bad_input_exp ("Expected object","")
   end
@@ -41,10 +53,7 @@ structure RTechn_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
     open JsonOutputUtils
     type data = nvdata
     fun output (RTechn_Data.RTechnNode n) =
-          Json.Object (
-            Json.empty_obj |> update ("type",Json.String "RT")
-                           |> update ("tactic",Json.String n)
-          )
+          Json.mk_record [("type", "RT"), ("label",n), ("value", n)]
       | output (RTechn_Data.GoalNode (n,gset)) =
           let
             fun to_json (str,i) =
@@ -53,11 +62,16 @@ structure RTechn_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
                                |> update ("number",Json.Int i)
               )
             val gns = map to_json (StrIntName.NSet.list_of gset)
+            val value =
+              Json.Object (
+                Json.empty_obj |> update ("goal_type",Json.String n)
+                               |> update ("goal_names",Json.Array gns)
+              )
           in
             Json.Object (
               Json.empty_obj |> update ("type",Json.String "Gs")
-                             |> update ("goal_type",Json.String n)
-                             |> update ("goal_names",Json.Array gns)
+                             |> update ("label",Json.String n)
+                             |> update ("value",value)
             )
           end
   end

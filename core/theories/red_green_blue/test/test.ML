@@ -23,6 +23,10 @@ in
           |> File_Io.read_json
           |> IO.InputGraphJSON.input
           |> assert_g_eq "input v1_format.graph = g" g
+    val _ = "graphs/v2_format.graph"
+          |> File_Io.read_json
+          |> IO.InputGraphJSON.input
+          |> assert_g_eq "input v2_format.graph = g" g
     (* if the file format changes, do
      * cp graphs/current_format.graph graphs/v<n>_format.graph
      * and add a new read test (see above) *)

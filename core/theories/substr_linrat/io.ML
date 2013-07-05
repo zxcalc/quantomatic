@@ -9,25 +9,41 @@ structure Substr_Linrat_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
     type data = nvdata
     structure L = InputLinratJSON
     val get_angle = L.input oo (get_easy Json.Null)
-    fun input (Json.Object obj) =
+    fun decode_data obj =
           let
             val str = get_string_easy "" obj "string"
             val angle = get_angle obj "angle"
           in
             (str,angle)
           end
-      | input _ = raise bad_input_exp ("Expected string","type")
+    fun input (Json.Object obj) =
+          (case Json.lookup obj "value"
+             of SOME (Json.Object obj') =>
+                  (decode_data obj'
+                   handle bad_input_exp (m,l) =>
+                     raise bad_input_exp (m,prepend_prop "value" l))
+              | SOME _ => raise bad_input_exp ("Expected object","value")
+              | NONE => decode_data obj)
+      | input _ = raise bad_input_exp ("Expected string","")
   end
   structure IVDataOutputJSON : OUTPUT_JSON =
   struct
     open JsonOutputUtils
     structure L = OutputLinratJSON
     type data = nvdata
-    fun output (str,angle) =
-          Json.Object (
-            Json.empty_obj |> Json.update ("string",Json.String str)
-                           |> Json.update ("angle",L.output angle)
-          )
+    fun output (str,angle) = let
+      val value =
+        Json.Object (
+          Json.empty_obj |> Json.update ("string",Json.String str)
+                         |> Json.update ("angle",L.output angle)
+        )
+    in
+      Json.Object (
+        Json.empty_obj |> Json.update ("type",Json.String "string_linrat")
+                       |> Json.update ("label",Json.String str)
+                       |> Json.update ("value",value)
+      )
+    end
   end
   structure EDataInputJSON = InputUnitJSON
   structure EDataOutputJSON = OutputUnitJSON

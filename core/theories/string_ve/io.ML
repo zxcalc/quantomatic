@@ -7,10 +7,8 @@ struct
   struct
     open JsonInputUtils
     type data = StringVE_Data.nvdata
-    fun input (Json.Object obj) =
-          (case Json.lookup obj "value"
-             of SOME(Json.String(s)) => s
-              | _  => raise bad_input_exp ("Expected: field \"value\" containing string", "type"))
+    fun input (Json.Object obj) = get_string_easy "" obj "value"
+      | input (Json.String s) = s
       | input _ = raise bad_input_exp ("Expected object","type")
   end
 
@@ -18,17 +16,15 @@ struct
   struct
     open JsonOutputUtils
     type data = StringVE_Data.nvdata
-    fun output s = Json.mk_record [("type", "string"), ("value", s)]
+    fun output s = Json.mk_record [("type", "string"), ("label",s), ("value", s)]
   end
 
   structure EDataInputJSON = 
   struct
     open JsonInputUtils
     type data = StringVE_Data.edata
-    fun input (Json.Object obj) =
-          (case Json.lookup obj "value"
-             of SOME(Json.String(s)) => s
-              | _  => raise bad_input_exp ("Expected: field \"value\" containing string", "type"))
+    fun input (Json.Object obj) = get_string_easy "" obj "value"
+      | input (Json.String s) = s
       | input _ = raise bad_input_exp ("Expected object","type")
   end
 
@@ -36,7 +32,7 @@ struct
   struct
     open JsonOutputUtils
     type data = StringVE_Data.edata
-    fun output s = Json.mk_record [("type", "string"), ("value", s)]
+    fun output s = Json.mk_record [("type", "string"), ("label",s), ("value", s)]
   end
 
   structure DotStyle =
@@ -51,8 +47,3 @@ structure StringVE_IO = GraphicalTheoryIO(
   structure Theory = StringVE_Theory
   structure GraphComponentDataIO = StringVE_ComponentDataIO
 )
-
-(*structure StringVE_IO = JsonObjectAnnotatedGraphicalTheoryIO(
-  structure Theory = StringVE_Theory
-  structure GraphComponentDataIO = StringVE_GraphComponentDataIO
-)*)

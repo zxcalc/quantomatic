@@ -1,3 +1,4 @@
+(* Generated using theories/generate-no-data-io.py Petri petri COPY SWITCH BUF0 BUF1 *)
 structure Petri_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
 = struct
   type nvdata = Petri_Data.nvdata
@@ -8,23 +9,29 @@ structure Petri_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
     open JsonInputUtils
     type data = nvdata
     val to_lower = String.implode o (map Char.toLower) o String.explode
-    fun input (Json.String t) =
+    fun get_type t =
           (case to_lower t
              of "copy"   => Petri_Data.COPY
               | "switch" => Petri_Data.SWITCH
               | "buf0"   => Petri_Data.BUF0
               | "buf1"   => Petri_Data.BUF1
-              | _      => raise bad_input_exp ("Unknown vertex type "^t,"type"))
+              | _      => raise bad_input_exp ("Unknown vertex type "^t,""))
+    fun input (Json.String t) = get_type t
+      | input (Json.Object obj) =
+         (get_type (get_string obj "type")
+            handle bad_input_exp (m,l) =>
+              raise bad_input_exp (m, prepend_prop "type" l))
       | input _ = raise bad_input_exp ("Expected string","type")
   end
   structure IVDataOutputJSON : OUTPUT_JSON =
   struct
     open JsonOutputUtils
     type data = nvdata
-    fun output Petri_Data.COPY   = Json.String "COPY"
-      | output Petri_Data.SWITCH = Json.String "SWITCH"
-      | output Petri_Data.BUF0   = Json.String "BUF0"
-      | output Petri_Data.BUF1   = Json.String "BUF1"
+    fun typestr Petri_Data.COPY   = "COPY"
+      | typestr Petri_Data.SWITCH = "SWITCH"
+      | typestr Petri_Data.BUF0   = "BUF0"
+      | typestr Petri_Data.BUF1   = "BUF1"
+    fun output d = Json.mk_record [("type",typestr d)]
   end
   structure EDataInputJSON = InputUnitJSON
   structure EDataOutputJSON = OutputUnitJSON
