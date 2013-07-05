@@ -1,5 +1,5 @@
 local
-  structure IO = Substr_Linrat_GraphicalTheoryIO
+  structure IO = RTechn_GraphicalTheoryIO
   open IO.Theory
   fun assert_g_eq msg exp actual =
     if Graph.exact_eq exp actual then ()
@@ -12,12 +12,13 @@ in
   val _ = Testing.test (theory_name^" theory save/restore") (fn () => let
     val g = Graph.empty
         |> Graph.add_named_vertex (V.mk "a")
-            (Graph.NVert ("foo",LinratAngleExpr.zero))
+            (Graph.NVert (RTechn_Data.RTechnNode "foo"))
         |> Graph.add_named_vertex (V.mk "b")
-            (Graph.NVert ("bar",LinratAngleExpr.parse "a + b"))
+            (Graph.NVert (RTechn_Data.GoalNode ("bar",
+              StrIntName.NSet.of_list [("x",1),("y",~1)])))
         |> Graph.add_named_vertex (V.mk "w") Graph.WVert
-        |> Graph.add_named_edge (E.mk "e1") (Directed,()) (V.mk "a") (V.mk "w")
-        |> Graph.add_named_edge (E.mk "e2") (Directed,()) (V.mk "w") (V.mk "b")
+        |> Graph.add_named_edge (E.mk "e1") (Directed,"z") (V.mk "a") (V.mk "w")
+        |> Graph.add_named_edge (E.mk "e2") (Directed,"z") (V.mk "w") (V.mk "b")
     val g' = IO.InputGraphJSON.input (IO.OutputGraphJSON.output g)
     val _ = assert_g_eq "input (output g) = g" g g'
     val _ = "graphs/v1_format.graph"

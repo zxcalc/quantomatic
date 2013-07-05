@@ -195,20 +195,23 @@ PolyML.Project.make "io/graphical_theory_io.ML";
 (* string vertex/edge graphs *)
 PolyML.Project.make "theories/string_ve/theory.ML";
 PolyML.Project.make "theories/string_ve/io.ML";
-
+PolyML.Project.make "theories/string_ve/test/test.ML";
 
 (* red-green specific vertices, graphs and matching *)
 (* graph-derived expressions for R-G graphs *)
 PolyML.Project.make "theories/red_green/theory.ML";
 PolyML.Project.make "theories/red_green/io.ML";
+Testing.make_test "theories/red_green/test/test.ML";
 
 (* ghz-w specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/ghz_w/theory.ML";
 PolyML.Project.make "theories/ghz_w/io.ML";
+Testing.make_test "theories/ghz_w/test/test.ML";
 
 (* Graphs having vertices with strings as data, substring as matching *)
 PolyML.Project.make "theories/substrings/theory.ML";
 PolyML.Project.make "theories/substrings/io.ML";
+Testing.make_test "theories/substrings/test/test.ML";
 
 (* Graphs having strings as types, linrat as data and both substrings and linrat
  * as matching *)
@@ -219,14 +222,17 @@ Testing.make_test "theories/substr_linrat/test/test.ML";
 (* rgb specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/red_green_blue/theory.ML";
 PolyML.Project.make "theories/red_green_blue/io.ML";
+Testing.make_test "theories/red_green_blue/test/test.ML";
 
 (* petri specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/petri/theory.ML";
 PolyML.Project.make "theories/petri/io.ML";
+Testing.make_test "theories/petri/test/test.ML";
 
 (* Tactics as Graphs in Isabelle *)
 PolyML.Project.make "theories/isaplanner_rtechn/theory.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
+Testing.make_test "theories/isaplanner_rtechn/test/test.ML";
 
 
 (*

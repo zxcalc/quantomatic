@@ -1,5 +1,5 @@
 local
-  structure IO = Substr_Linrat_GraphicalTheoryIO
+  structure IO = Petri_GraphicalTheoryIO
   open IO.Theory
   fun assert_g_eq msg exp actual =
     if Graph.exact_eq exp actual then ()
@@ -11,13 +11,13 @@ local
 in
   val _ = Testing.test (theory_name^" theory save/restore") (fn () => let
     val g = Graph.empty
-        |> Graph.add_named_vertex (V.mk "a")
-            (Graph.NVert ("foo",LinratAngleExpr.zero))
-        |> Graph.add_named_vertex (V.mk "b")
-            (Graph.NVert ("bar",LinratAngleExpr.parse "a + b"))
+        |> Graph.add_named_vertex (V.mk "c") (Graph.NVert Petri_Data.COPY)
+        |> Graph.add_named_vertex (V.mk "s") (Graph.NVert Petri_Data.SWITCH)
+        |> Graph.add_named_vertex (V.mk "0") (Graph.NVert Petri_Data.BUF0)
+        |> Graph.add_named_vertex (V.mk "1") (Graph.NVert Petri_Data.BUF1)
         |> Graph.add_named_vertex (V.mk "w") Graph.WVert
-        |> Graph.add_named_edge (E.mk "e1") (Directed,()) (V.mk "a") (V.mk "w")
-        |> Graph.add_named_edge (E.mk "e2") (Directed,()) (V.mk "w") (V.mk "b")
+        |> Graph.add_named_edge (E.mk "e1") (Directed,()) (V.mk "c") (V.mk "w")
+        |> Graph.add_named_edge (E.mk "e2") (Directed,()) (V.mk "w") (V.mk "s")
     val g' = IO.InputGraphJSON.input (IO.OutputGraphJSON.output g)
     val _ = assert_g_eq "input (output g) = g" g g'
     val _ = "graphs/v1_format.graph"

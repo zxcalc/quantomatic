@@ -1,5 +1,5 @@
 local
-  structure IO = Substr_Linrat_GraphicalTheoryIO
+  structure IO = RG_GraphicalTheoryIO
   open IO.Theory
   fun assert_g_eq msg exp actual =
     if Graph.exact_eq exp actual then ()
@@ -12,9 +12,13 @@ in
   val _ = Testing.test (theory_name^" theory save/restore") (fn () => let
     val g = Graph.empty
         |> Graph.add_named_vertex (V.mk "a")
-            (Graph.NVert ("foo",LinratAngleExpr.zero))
+              (Graph.NVert (RG_Data.Znd (LinratAngleExpr.zero)))
         |> Graph.add_named_vertex (V.mk "b")
-            (Graph.NVert ("bar",LinratAngleExpr.parse "a + b"))
+              (Graph.NVert (RG_Data.Znd (LinratAngleExpr.parse "a + b")))
+        |> Graph.add_named_vertex (V.mk "c")
+              (Graph.NVert (RG_Data.Xnd (LinratAngleExpr.zero)))
+        |> Graph.add_named_vertex (V.mk "d")
+              (Graph.NVert (RG_Data.Xnd (LinratAngleExpr.parse "c")))
         |> Graph.add_named_vertex (V.mk "w") Graph.WVert
         |> Graph.add_named_edge (E.mk "e1") (Directed,()) (V.mk "a") (V.mk "w")
         |> Graph.add_named_edge (E.mk "e2") (Directed,()) (V.mk "w") (V.mk "b")
