@@ -1018,63 +1018,6 @@ struct
       | printList [s] = (print "1"; printEsc #":"; printString s)
       | printList (s::ss) = (print (Int.toString (1 + (length ss))); printEsc #":"; printString s; List.app (fn e => (printEsc #","; printString e)) ss)
     fun printIntList s = printList (List.map (Int.toString) s)
-    fun printWrappedString ch str = (printEsc ch; printString str; printEsc (Char.toLower ch))
-    fun printWrappedData ch data = (printEsc ch; printDataChunk data; printEsc (Char.toLower ch))
-    fun printComponentData ch (Commands.StringCData str) = (
-          printEsc ch;
-          printWrappedString #"S" str;
-          printEsc (Char.toLower ch))
-      | printComponentData ch (Commands.JsonCData json) = (
-          printEsc ch;
-          printWrappedString #"S" (Json.string_of json);
-          printEsc (Char.toLower ch))
-    fun printVertexDesc { name, vType, data, userData } = (
-          printEsc #"V";
-          printWrappedString #"N" name;
-          printWrappedString #"T" vType;
-          printComponentData #"D" data;
-          printWrappedData #"U" userData;
-          printEsc #"v");
-    fun printEdgeDesc' { name, eType, sourceName, targetName, directed, data, userData } = (
-          printWrappedString #"N" name;
-          printWrappedString #"T" eType;
-          printEsc #"A"; printString sourceName; printEsc #"a";
-          printEsc #"B"; printString targetName; printEsc #"b";
-          printComponentData #"D" data;
-          printWrappedData #"U" userData)
-    fun printEdgeDesc (desc as { name, eType, sourceName, targetName, directed as true, data, userData }) = (
-          printEsc #"E";
-          printEdgeDesc' desc;
-          printEsc #"e")
-      | printEdgeDesc (desc as { name, eType, sourceName, targetName, directed as false, data, userData }) = (
-          printEsc #"F";
-          printEdgeDesc' desc;
-          printEsc #"f");
-    fun printBangBoxDesc { name, vertexNames } = (
-          printEsc #"B";
-          printWrappedString #"N" name;
-          map (printWrappedString #"V") vertexNames;
-          printEsc #"b");
-    fun printGraphDesc { name, vertices, edges, bangBoxen } = (
-          printEsc #"G";
-          printWrappedString #"N" name;
-          map (printVertexDesc) vertices;
-          map (printEdgeDesc) edges;
-          map (printBangBoxDesc) bangBoxen;
-          printEsc #"g");
-    fun printRewriteDesc { ruleName, result, lhs, rhs } = (
-          printEsc #"W";
-          printEsc #"R";
-            printWrappedString #"N" ruleName;
-            printEsc #"L"; printGraphDesc lhs; printEsc #"l";
-            printEsc #"R"; printGraphDesc rhs; printEsc #"r";
-          printEsc #"r";
-          printGraphDesc result;
-          printEsc #"w");
-    fun printRewriteListDesc rws = (
-          printEsc #"L";
-          map printRewriteDesc rws;
-          printEsc #"l");
     (* }}} *)
 
     (* {{{ outputResponse *)
@@ -1118,30 +1061,6 @@ struct
         (printOpen #"M" requestId;
           printIntList data;
           printClose())
-      | outputResponse (requestId, GraphDescriptionResponse { graph }) =
-         (printOpen #"S" requestId;
-          printGraphDesc graph;
-          printClose ())
-      | outputResponse (requestId, VertexDescriptionResponse { vertex }) =
-         (printOpen #"S" requestId;
-          printVertexDesc vertex;
-          printClose ())
-      | outputResponse (requestId, EdgeDescriptionResponse { edge }) =
-         (printOpen #"S" requestId;
-          printEdgeDesc edge;
-          printClose ())
-      | outputResponse (requestId, BangBoxDescriptionResponse { bangBox }) =
-         (printOpen #"S" requestId;
-          printBangBoxDesc bangBox;
-          printClose ())
-      | outputResponse (requestId, ComponentDataResponse { data }) =
-         (printOpen #"S" requestId;
-          printComponentData #"D" data;
-          printClose ())
-      | outputResponse (requestId, RewriteListResponse { rewrites }) =
-         (printOpen #"S" requestId;
-          printRewriteListDesc rewrites;
-          printClose ())
       | outputResponse (requestId, UnknownResponse { code }) =
          (printOpen #"Z" requestId;
           print code;
@@ -1350,9 +1269,9 @@ struct
                         val graphName = readToDelim()
                         val dataName = readToEnd ()
                      in
-                       DescribeGraphRequest {
+                       GetGraphUserDataRequest {
                          graphName = graphName,
-                         desc = GraphUserData { dataName = dataName }
+                         dataName = dataName
                        }
                      end
 
@@ -1361,10 +1280,10 @@ struct
                         val vertexName = readToDelim ()
                         val dataName = readToEnd ()
                       in
-                        DescribeGraphRequest {
+                        GetVertexUserDataRequest {
                           graphName = graphName,
-                          desc = VertexUserData { vertexName = vertexName,
-                                                  dataName = dataName }
+                          vertexName = vertexName,
+                          dataName = dataName
                         }
                       end
 
@@ -1373,10 +1292,10 @@ struct
                         val edgeName = readToDelim ()
                         val dataName = readToEnd ()
                       in
-                        DescribeGraphRequest {
+                        GetEdgeUserDataRequest {
                           graphName = graphName,
-                          desc = EdgeUserData { edgeName = edgeName,
-                                                  dataName = dataName }
+                          edgeName = edgeName,
+                          dataName = dataName
                         }
                       end
 
@@ -1385,10 +1304,10 @@ struct
                         val bangBoxName = readToDelim ()
                         val dataName = readToEnd ()
                       in
-                        DescribeGraphRequest {
+                        GetBangBoxUserDataRequest {
                           graphName = graphName,
-                          desc = BangBoxUserData { bangBoxName = bangBoxName,
-                                                  dataName = dataName }
+                          bangBoxName = bangBoxName,
+                          dataName = dataName
                         }
                       end
 

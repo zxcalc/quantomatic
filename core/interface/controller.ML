@@ -16,19 +16,14 @@ struct
   datatype componentData = StringCData of string
                          | JsonCData of Json.json
 
-  type vertexDesc = { name: string, vType: string, data: componentData, userData: string };
-  type edgeDesc = { name: string, eType: string, sourceName: string, targetName: string, directed: bool, data: componentData, userData: string };
-  type bangBoxDesc = { name: string, vertexNames: string list };
-  type graphDesc = { name: string, vertices: vertexDesc list, edges: edgeDesc list, bangBoxen: bangBoxDesc list };
-  type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
   (* BasicFormat is the name of a graph or component, and the string value of
    * component data *)
   datatype resultFormat = BasicFormat
                         | PrettyFormat
                         | JsonFormat
-                        | DescriptionFormat
 
-                     (* A dummy request does not change the state, and simply produces the given response *)
+                     (* A dummy request does not change the state, and
+                      * simply produces the given response *)
   datatype request = DummyRequest of { response: response }
 
                    | TheoryNameRequest
@@ -47,7 +42,11 @@ struct
                      (* OkResponse | ErrorResponse *)
                    | ExportGraphRequest of { graphName: string, format: graphFormat }
                      (* DataResponse | ErrorResponse *)
-                   | DescribeGraphRequest of { graphName: string, desc: graphDescribeAction }
+                   | GetGraphUserDataRequest of { graphName: string, dataName: string }
+                   | GetVertexUserDataRequest of { graphName: string, vertexName: string, dataName: string }
+                   | GetEdgeUserDataRequest of { graphName: string, edgeName: string, dataName: string }
+                   | GetBangBoxUserDataRequest of { graphName: string, bangBoxName: string, dataName: string }
+                   | PrettyUserDataRequest of { graphName: string }
                    | EditGraphRequest of { graphName: string, action: graphEditAction }
 
                    (*** Ruleset commands ***)
@@ -135,36 +134,6 @@ struct
        and graphFormat = NativeGraphFormat
                        | JsonGraphFormat
                        | PrettyGraphFormat
-                       | HilbertSpaceGraphFormat
-                       | MathematicaGraphFormat
-                       | MatlabGraphFormat
-                       | TikzGraphFormat
-
-       and graphDescribeAction = DescribeFullGraph
-                                 (* GraphDescriptionResponse | ErrorResponse *)
-                               | GraphUserData of { dataName: string }
-                                 (* UserDataResponse | ErrorResponse *)
-                               | ListVertices
-                                 (* StringListResponse | ErrorResponse *)
-                               | ListEdges
-                                 (* StringListResponse | ErrorResponse *)
-                               | ListBangBoxes
-                                 (* StringListResponse | ErrorResponse *)
-                               | VertexData of { vertexName: string, format: resultFormat }
-                                 (* ComponentDataResponse | ErrorResponse *)
-                               | VertexUserData of { vertexName: string, dataName: string}
-                                 (* UserDataResponse | ErrorResponse *)
-                               | EdgeData of { edgeName: string, format: resultFormat }
-                                 (* ComponentDataResponse | ErrorResponse *)
-                               | EdgeUserData of { edgeName: string, dataName: string }
-                                 (* UserDataResponse | ErrorResponse *)
-                               | BangBoxVertices of { bangBoxName: string }
-                                 (* StringListResponse | ErrorResponse *)
-                               | BangBoxUserData of { bangBoxName: string,
-                                                      dataName: string }
-                                 (* UserDataResponse | ErrorResponse *)
-                               | PrintUserData
-                                 (* PrettyResponse | ErrorResponse *)
 
        and graphEditAction = UndoAction
                              (* OkResponse | ErrorResponse *)
@@ -246,27 +215,19 @@ struct
                     | MetricResponse of { data: int list}
 
                     | DataResponse of { data: string }
-                    | ComponentDataResponse of { data : componentData }
                     | PrettyResponse of { data: Pretty.T }
                     | JsonResponse of { data: Json.json }
                     | CountResponse of { count: int }
 
-                    | GraphDescriptionResponse of { graph: graphDesc }
-                    | VertexDescriptionResponse of { vertex: vertexDesc }
-                    | EdgeDescriptionResponse of { edge: edgeDesc }
-                    | BangBoxDescriptionResponse of { bangBox: bangBoxDesc }
-                    | RewriteListResponse of { rewrites: rewriteDesc list }
-
                     | UnknownResponse of { code: string }
-                    ;
-  type requestMessage = (string * request);
-  type responseMessage = (string * response);
+  type requestMessage = (string * request)
+  type responseMessage = (string * response)
 
   fun serviceRequestMessage
       (serviceRequest : request -> response)
       ((requestId,req) : requestMessage)
       : responseMessage
-    = (requestId,serviceRequest req);
+    = (requestId,serviceRequest req)
 end;
 
 
@@ -334,43 +295,6 @@ struct
              (ErrorResponse { errorCode = "BADDATA",
                 message = "The file is not valid JSON" }, state))
 
-  fun describe_vertex (n, (nd, (ins,outs))) =
-    { name = V.dest n, vType = G.typestring_of_vdata nd,
-      data = JsonCData (TheoryIO.VDataOutputJSON.output nd), userData = "" }
-
-  fun describe_edge (en, ((bd,ed), (n1, n2))) =
-    { name = E.dest en, eType = G.typestring_of_edata ed,
-      sourceName = V.dest n1, targetName = V.dest n2,
-      directed = (bd = Directed), data = JsonCData (TheoryIO.EDataOutputJSON.output ed),
-      userData = "" }
-
-  fun describe_bbox (bn, vs) =
-    { name = B.dest bn, vertexNames = map V.dest (V.NSet.list_of vs) }
-
-  fun describe_graph (n, graph) =
-      { name = n,
-        vertices = VTab.fold (fn (v,vd) => (
-          cons (describe_vertex (v,(vd,(G.get_in_edges graph v,G.get_out_edges graph v))))
-        )) (G.get_vdata_tab graph) [],
-        edges = E.NSet.fold (fn e => (
-          cons (describe_edge (e,(
-            G.get_edge_dir_and_data graph e,
-            (G.get_edge_source graph e,G.get_edge_target graph e)
-          )))
-        )) (G.get_edges graph) [],
-        bangBoxen = B.NSet.fold (fn b => (
-          cons (describe_bbox (b, G.get_vertices_in_bbox graph b))
-        )) (G.get_bboxes graph) [] }
-
-  fun describe_rewrite ((rn, rule), result) =
-    let
-      val lhs = State.Theory.Rule.get_lhs rule
-      val rhs = State.Theory.Rule.get_rhs rule
-    in
-      { ruleName = R.dest rn, result = describe_graph ("",result),
-        lhs = describe_graph ("",lhs), rhs = describe_graph ("",rhs) }
-    end
-
   fun pretty_vert (n, (nd,(ins,outs))) =
       Pretty.block [V.pretty_name n,
                     Pretty.str "; ",
@@ -410,7 +334,6 @@ struct
            (JsonResponse { data = TheoryIO.OutputGraphJSON.output v}, state)
        | PrettyGraphFormat =>
            (PrettyResponse { data = G.pretty graph}, state)
-       | _ => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
   end
 
 
@@ -505,143 +428,52 @@ struct
 
     | serviceRequest' (ExportGraphRequest { graphName, format }) state =
         output_graph graphName format state
-(*
-fun hilb ([format], graph) =
-    (DATA (Pretty.string_of (
-     RGHilbTerm.pretty (AlgFormat.of_string format)
-              (RGHilbTerm.of_graph graph)))
-    handle AlgFormat.not_supported_exp =>
-       raise State.user_exp "Term format not supported.")
-  | hilb (_, graph) = raise wrong_args_exp ()
-*)
 
-    | serviceRequest' (DescribeGraphRequest { graphName, desc }) state =
+    | serviceRequest' (GetGraphUserDataRequest { graphName, dataName }) state =
        (let
-          val graph = get_graph graphName state
+          val g = GraphName.mk graphName
         in
-          ((case desc
-              of DescribeFullGraph =>
-                    GraphDescriptionResponse {
-                      graph = describe_graph (graphName, graph)
-                    }
-               | GraphUserData { dataName }=>
-                    let
-                      val g = GraphName.mk graphName
-                    in
-                       case State.get_graph_ud_property_opt state g dataName
-                         of SOME data => DataResponse { data = data }
-                          | NONE => raise State.no_such_graph_user_data_exp (g, dataName)
-                    end
-               | ListVertices =>
-                    StringListResponse {
-                      data = (map V.dest (V.NSet.list_of (G.get_vertices graph)))
-                    }
-               | ListEdges =>
-                    StringListResponse {
-                      data = (map E.dest (E.NSet.list_of (G.get_edges graph)))
-                    }
-               | ListBangBoxes =>
-                    StringListResponse {
-                      data = (map B.dest (B.NSet.list_of (G.get_bboxes graph)))
-                    }
-               | VertexData { vertexName, format } =>
-                    let
-                      val vdata = G.get_vertex_data graph (V.mk vertexName)
-                    in
-                      case format
-                        of BasicFormat =>
-                                StringResponse {
-                                  data = G.typestring_of_vdata vdata
-                                }
-                         | PrettyFormat =>
-                              PrettyResponse {
-                                data = G.pretty_vdata vdata
-                              }
-                         | JsonFormat =>
-                              JsonResponse {
-                                data = TheoryIO.VDataOutputJSON.output vdata
-                              }
-                         | DescriptionFormat =>
-                              ComponentDataResponse {
-                                data = JsonCData (TheoryIO.VDataOutputJSON.output vdata)
-                              }
-                    end
-               | VertexUserData { vertexName, dataName } =>
-                    let
-                      val g = GraphName.mk graphName
-                      val v = V.mk vertexName
-                    in
-                       case State.get_vertex_ud_property_opt state g v dataName
-                         of SOME data => DataResponse { data = data }
-                          | NONE => raise State.no_such_vertex_user_data_exp (v, dataName)
-                    end
-               | EdgeData { edgeName, format } =>
-                    let
-                      val edata = G.get_edge_data graph (E.mk edgeName)
-                    in
-                      case format
-                        of BasicFormat =>
-                              let
-                                val data_string = G.typestring_of_edata edata
-                              in
-                                StringResponse {
-                                  data = data_string
-                                }
-                              end
-                         | PrettyFormat =>
-                              PrettyResponse {
-                                data = G.pretty_edata edata
-                              }
-                         | JsonFormat =>
-                              JsonResponse {
-                                data = Json.Object (
-                                  Json.update
-                                    ("data",TheoryIO.EDataOutputJSON.output edata)
-                                    Json.empty_obj
-                                )
-                              }
-                         | DescriptionFormat =>
-                              ComponentDataResponse {
-                                data = JsonCData (TheoryIO.EDataOutputJSON.output edata)
-                              }
-                    end
-               | EdgeUserData { edgeName , dataName} =>
-                    let
-                      val g = GraphName.mk graphName
-                      val e = E.mk edgeName
-                    in
-                       case State.get_edge_ud_property_opt state g e dataName
-                         of SOME data => DataResponse { data = data }
-                          | NONE => raise State.no_such_edge_user_data_exp (e, dataName)
-                    end
-               | BangBoxVertices { bangBoxName } =>
-                    StringListResponse {
-                      data = (map V.dest (V.NSet.list_of (G.get_vertices_in_bbox graph (B.mk bangBoxName))))
-                    }
-               | BangBoxUserData { bangBoxName, dataName } =>
-                    let
-                      val g = GraphName.mk graphName
-                      val b = B.mk bangBoxName
-                    in
-                       case State.get_bbox_ud_property_opt state g b dataName
-                         of SOME data => DataResponse { data = data }
-                          | NONE => raise State.no_such_bbox_user_data_exp (b, dataName)
-                    end
+           case State.get_graph_ud_property_opt state g dataName
+             of SOME data => DataResponse { data = data }
+              | NONE => raise State.no_such_graph_user_data_exp (g, dataName)
+        end,state)
 
-               | PrintUserData =>
-                let
-                  val ud = State.get_graph_ud state (GraphName.mk graphName)
-                in
-                  PrettyResponse {data = State.GraphUserData.pretty ud}
-                end
+    | serviceRequest' (GetVertexUserDataRequest { graphName, vertexName, dataName }) state =
+       (let
+          val g = GraphName.mk graphName
+          val v = V.mk vertexName
+        in
+           case State.get_vertex_ud_property_opt state g v dataName
+             of SOME data => DataResponse { data = data }
+              | NONE => raise State.no_such_vertex_user_data_exp (v, dataName)
+        end,state)
 
-            ), state)
-           end
-        handle G.no_such_vertex_exp (_,vname,_) =>
-                raise State.no_such_vertex_exp (vname,GraphName.mk graphName)
-             | G.no_such_edge_exp (_,ename,_) =>
-                raise State.no_such_edge_exp (ename,GraphName.mk graphName)
-        )
+    | serviceRequest' (GetEdgeUserDataRequest { graphName, edgeName, dataName }) state =
+       (let
+          val g = GraphName.mk graphName
+          val e = E.mk edgeName
+        in
+           case State.get_edge_ud_property_opt state g e dataName
+             of SOME data => DataResponse { data = data }
+              | NONE => raise State.no_such_edge_user_data_exp (e, dataName)
+        end,state)
+
+    | serviceRequest' (GetBangBoxUserDataRequest { graphName, bangBoxName, dataName }) state =
+       (let
+          val g = GraphName.mk graphName
+          val b = B.mk bangBoxName
+        in
+           case State.get_bbox_ud_property_opt state g b dataName
+             of SOME data => DataResponse { data = data }
+              | NONE => raise State.no_such_bbox_user_data_exp (b, dataName)
+        end,state)
+
+    | serviceRequest' (PrettyUserDataRequest { graphName }) state =
+       (let
+          val ud = State.get_graph_ud state (GraphName.mk graphName)
+        in
+          PrettyResponse {data = State.GraphUserData.pretty ud}
+        end,state)
 
     | serviceRequest' (EditGraphRequest { graphName, action }) state =
        (case action of
@@ -688,10 +520,6 @@ fun hilb ([format], graph) =
                                   vn
                         },state')
                  | PrettyFormat => (PrettyResponse { data = pretty_vert v }, state')
-                 | DescriptionFormat =>
-                     (VertexDescriptionResponse {
-                        vertex = describe_vertex v
-                      }, state')
             end
         | RenameVertexAction { oldName, newName } =>
           let
@@ -746,10 +574,6 @@ fun hilb ([format], graph) =
                                   en
                         },state')
                  | PrettyFormat => (PrettyResponse { data = pretty_edge e }, state')
-                 | DescriptionFormat => 
-                     (EdgeDescriptionResponse {
-                        edge = describe_edge e
-                      }, state')
             end
         | RenameEdgeAction { oldName, newName } =>
             (OkResponse,
@@ -797,15 +621,6 @@ fun hilb ([format], graph) =
                                   (get_graph_and_ud graphName state'')
                                   nm
                         },state'')
-                 | DescriptionFormat => let
-                                          val graph = State.get_graph state'' gname
-                                          val verts = G.get_vertices_in_bbox graph nm
-                                          val bbox  = (nm,verts)
-                                        in
-                                         (BangBoxDescriptionResponse {
-                                            bangBox = describe_bbox bbox
-                                          }, state'')
-                                        end
             end
         | RenameBangBoxAction { oldName, newName } =>
             (OkResponse,
@@ -1033,10 +848,6 @@ fun hilb ([format], graph) =
                  (ErrorResponse {
                     errorCode = "NOTIMP",
                     message = "Not implemented"
-                  }, state)
-             | DescriptionFormat =>
-                 (RewriteListResponse {
-                    rewrites = map describe_rewrite rewrites
                   }, state)
         end
 

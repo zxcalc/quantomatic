@@ -24,22 +24,6 @@ functor StringTableAnnotatedGraphicalTheoryIO (
 struct
   structure Theory = Theory;
 
-  structure IVDataInputJSON = GraphComponentDataIO.IVDataInputJSON;
-  structure IVDataOutputJSON = GraphComponentDataIO.IVDataOutputJSON;
-  structure VDataOutputJSON : OUTPUT_JSON =
-  struct
-    open JsonOutputUtils;
-    type data = Theory.Graph.vdata;
-    fun output Theory.Graph.WVert =
-          Json.Object (
-            Json.empty_obj |> update ("is_wire_vertex",Json.Bool true)
-          )
-      | output (Theory.Graph.NVert d) =
-          Json.Object (
-            Json.empty_obj |> update ("is_wire_vertex",Json.Bool false)
-                           |> update ("data",IVDataOutputJSON.output d)
-          )
-  end;
   (* This structure is only used when vertices are input/output in isolation, as it
    * makes use of the optional extra field is_wire_vertex, which is normally determined
    * by context. *)
@@ -51,12 +35,11 @@ struct
           case Json.lookup obj "is_wire_vertex"
             of SOME (Json.Bool true) => Theory.Graph.WVert
              | _ => Theory.Graph.NVert
-                (IVDataInputJSON.input (get_easy Json.Null obj "data"))
+                (GraphComponentDataIO.IVDataInputJSON.input (get_easy Json.Null obj "data"))
         )
       | input _ = raise bad_input_exp ("expected: JSON object","0")
   end
   structure EDataInputJSON = GraphComponentDataIO.EDataInputJSON;
-  structure EDataOutputJSON = GraphComponentDataIO.EDataOutputJSON;
 
   structure RulesetAnnotations = RulesetStringTableAnnotations;
   structure GraphAnnotations = GraphStringTableAnnotations;
@@ -117,25 +100,6 @@ functor GraphicalTheoryIO (
 ) =
 struct
   structure Theory = Theory;
-
-  structure IVDataInputJSON = GraphComponentDataIO.IVDataInputJSON;
-  structure IVDataOutputJSON = GraphComponentDataIO.IVDataOutputJSON;
-  structure VDataOutputJSON : OUTPUT_JSON =
-  struct
-    open JsonOutputUtils;
-    type data = Theory.Graph.vdata;
-    fun output Theory.Graph.WVert =
-          Json.Object (
-            Json.empty_obj |> update ("is_wire_vertex",Json.Bool true)
-          )
-      | output (Theory.Graph.NVert d) =
-          Json.Object (
-            Json.empty_obj |> update ("is_wire_vertex",Json.Bool false)
-                           |> update ("data",IVDataOutputJSON.output d)
-          )
-  end;
-  structure EDataInputJSON = GraphComponentDataIO.EDataInputJSON;
-  structure EDataOutputJSON = GraphComponentDataIO.EDataOutputJSON;
 
   structure InputGraphJSON = InputGraphJSON(
     structure Graph = Theory.Graph
