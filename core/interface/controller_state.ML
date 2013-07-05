@@ -563,8 +563,10 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
                raise no_such_edge_exp (ename,gname);
 
 
+  fun get_vertex_type "wire-vertex" = Graph.WVert
+    | get_vertex_type s = Graph.default_nv_vdata_of_typestring s
   fun add_vertex_internal vt graph =
-      (let val (n,g) = graph |> Graph.add_vertex (Theory.Graph.default_vdata_of_typestring vt) in
+      (let val (n,g) = graph |> Graph.add_vertex (get_vertex_type vt) in
           ((n,(Graph.get_vertex_data g n, (Graph.get_in_edges g n, Graph.get_out_edges g n))), g)
        end
        handle unknown_typestring_exp _ => raise no_such_vertex_type_exp vt)

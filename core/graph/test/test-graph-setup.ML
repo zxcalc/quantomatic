@@ -18,7 +18,6 @@ struct
                  | EString2 of string
   
   (* node-vertex data *)
-  val nvdata_typestrings = ["unit1","unit2","expr1","expr2","string1","string2"]
   fun default_nvdata_of_typestring s =
     case s of "unit1"   => VUnit1
             | "unit2"   => VUnit2
@@ -27,13 +26,6 @@ struct
             | "string1" => VString1 ""
             | "string2" => VString2 ""
             | _ => raise unknown_typestring_exp s
-  fun typestring_of_nvdata d =
-    case d of VUnit1     => "unit1"
-            | VUnit2     => "unit2"
-            | VExpr1 _   => "expr1"
-            | VExpr2 _   => "expr2"
-            | VString1 _ => "string1"
-            | VString2 _ => "string2"
   val default_nvdata = VUnit1
 
   fun nvdata_eq (VUnit1, VUnit1) = true
@@ -56,7 +48,6 @@ struct
         Pretty.block [Pretty.str "VString2(", Pretty.str s, Pretty.str ")"]
 
   (* edge data *)
-  val edata_typestrings = ["unit1","unit2","expr1","expr2","string1","string2"]
   fun default_edata_of_typestring s =
     case s of "unit1"   => EUnit1
             | "unit2"   => EUnit2
@@ -65,13 +56,6 @@ struct
             | "string1" => EString1 ""
             | "string2" => EString2 ""
             | _ => raise unknown_typestring_exp s
-  fun typestring_of_edata d =
-    case d of EUnit1     => "unit1"
-            | EUnit2     => "unit2"
-            | EExpr1 _   => "expr1"
-            | EExpr2 _   => "expr2"
-            | EString1 _ => "string1"
-            | EString2 _ => "string2"
   val default_edata = EUnit1
 
   fun edata_eq (EUnit1, EUnit1) = true

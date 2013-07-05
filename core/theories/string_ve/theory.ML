@@ -19,12 +19,8 @@ struct
   fun subst_in_nvdata _ s = ((),s)
   fun subst_in_edata _ s = ((),s)
 
-  val nvdata_typestrings = ["string"]
   fun default_nvdata_of_typestring _ = ""
-  fun typestring_of_nvdata _ = "string"
-  val edata_typestrings = ["string"]
   fun default_edata_of_typestring _ = ""
-  fun typestring_of_edata _ = "string"
 
   val pretty_nvdata = Pretty.str
   val pretty_edata = Pretty.str

@@ -11,14 +11,10 @@ struct
                                  * StrIntName.NSet.T; (* goal names of this type *)
   val default_nvdata = RTechnNode "?"
 
-  val nvdata_typestrings = ["RT","Gs"]
   fun default_nvdata_of_typestring s =
     case s of "RT" => RTechnNode "?"
             | "Gs" => GoalNode ("?", StrIntName.NSet.empty)
             | _ => raise unknown_typestring_exp s
-  fun typestring_of_nvdata d =
-    case d of RTechnNode _ => "RT"
-            | GoalNode   _ => "Gs"
 
   fun nvdata_eq (RTechnNode k1, RTechnNode k2) = RTechnKey.name_eq (k1,k2)
     | nvdata_eq (GoalNode (n1,s1), GoalNode (n2,s2)) =
@@ -42,10 +38,7 @@ struct
   type edata = string
   val default_edata = ""
 
-  val edata_typestrings = ["String"]
-  fun default_edata_of_typestring "String" = ""
-    | default_edata_of_typestring s = raise unknown_typestring_exp s
-  fun typestring_of_edata _ = "String"
+  fun default_edata_of_typestring _ = ""
 
   fun edata_eq (s1,s2) = s1 = s2
 

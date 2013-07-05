@@ -8,10 +8,8 @@ struct
   type nvdata = string
   val default_nvdata = "undefined"
 
-  val nvdata_typestrings = ["String"]
   fun default_nvdata_of_typestring "String" = default_nvdata
     | default_nvdata_of_typestring s = raise unknown_typestring_exp s
-  fun typestring_of_nvdata _ = "String"
 
   fun nvdata_eq (s1,s2) = s1 = s2
 

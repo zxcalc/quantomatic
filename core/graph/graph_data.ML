@@ -30,12 +30,10 @@ sig
   val default_nvdata : nvdata
   val default_edata : edata
 
-  val nvdata_typestrings : string list
+  (* COMPAT: needed for old controller *)
   val default_nvdata_of_typestring : string -> nvdata
-  val typestring_of_nvdata : nvdata -> string
-  val edata_typestrings  : string list
+  (* COMPAT: needed for old controller *)
   val default_edata_of_typestring  : string -> edata
-  val typestring_of_edata : edata -> string
 
   val pretty_nvdata : nvdata -> Pretty.T
   val pretty_edata : edata -> Pretty.T
@@ -60,7 +58,5 @@ struct
   fun match_edata ((),()) m = SOME m
   fun subst_in_edata sub () = (sub, ())
   fun pretty_edata () = Pretty.str "()"
-  val edata_typestrings = ["()"]
   fun default_edata_of_typestring _ = ()
-  fun typestring_of_edata _ = "()"
 end

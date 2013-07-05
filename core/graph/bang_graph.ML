@@ -215,10 +215,7 @@ fun get_nvdata_tab g = VTab.fold (fn (k,v) => case v of NVert nv => VTab.add (k,
 val get_vdata_tab    = get_vdata
 fun get_edata_tab  g = ETab.fold (fn (k,v) => ETab.add (k, snd v)) (get_edata g) ETab.empty
 val default_vdata = WVert
-fun default_vdata_of_typestring "wire-vertex" = WVert
-  | default_vdata_of_typestring s = NVert (default_nvdata_of_typestring s)
-fun typestring_of_vdata WVert = "wire-vertex"
-  | typestring_of_vdata (NVert d) = typestring_of_nvdata d
+fun default_nv_vdata_of_typestring s = NVert (default_nvdata_of_typestring s)
 
 fun subst_in_vdata sub (NVert nv) =
       let val (sub', nv') = subst_in_nvdata sub nv

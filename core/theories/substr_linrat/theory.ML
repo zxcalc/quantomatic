@@ -7,10 +7,8 @@ struct
   type nvdata = string * LinratAngleExpr.T
   val default_nvdata = ("",LinratAngleExpr.zero)
 
-  val nvdata_typestrings = ["Default"]
   fun default_nvdata_of_typestring "Default" = default_nvdata
     | default_nvdata_of_typestring s = raise unknown_typestring_exp s
-  fun typestring_of_nvdata _ = "Default"
 
   fun nvdata_eq ((s1,a1),(s2,a2)) = s1 = s2 andalso LinratAngleExpr.eq a1 a2
       
