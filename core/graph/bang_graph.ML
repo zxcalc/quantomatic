@@ -214,7 +214,8 @@ fun is_bboxed g v = if has_vertex g v
 fun get_nvdata_tab g = VTab.fold (fn (k,v) => case v of NVert nv => VTab.add (k, nv) | _ => I) (get_vdata g) VTab.empty
 val get_vdata_tab    = get_vdata
 fun get_edata_tab  g = ETab.fold (fn (k,v) => ETab.add (k, snd v)) (get_edata g) ETab.empty
-val default_vdata = WVert
+val default_wv_vdata = WVert
+val default_nv_vdata = NVert default_nvdata
 fun default_nv_vdata_of_typestring s = NVert (default_nvdata_of_typestring s)
 
 fun subst_in_vdata sub (NVert nv) =

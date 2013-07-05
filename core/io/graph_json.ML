@@ -144,13 +144,13 @@ functor InputAnnotatedGraphJSON(
   open JsonInputUtils
   type data = Graph.T * InputAnnotation.data
 
-  fun get_vdata obj propName =
+  fun get_nv_vdata obj propName =
     case Json.lookup obj propName
-      of SOME Json.Null => Graph.default_vdata
+      of SOME Json.Null => Graph.default_nv_vdata
        | SOME data => (Graph.NVert (InputVertexData.input data)
                        handle InputVertexData.bad_input_exp (m,l) =>
                          raise bad_input_exp (m,prepend_prop propName l))
-       | NONE => Graph.default_vdata
+       | NONE => Graph.default_nv_vdata
 
   fun get_edata obj propName =
     case Json.lookup obj propName
@@ -180,12 +180,12 @@ functor InputAnnotatedGraphJSON(
 
   fun get_nverts obj prop = let
     fun add_def_vert (Json.String vn) (g,ann) =
-          (Graph.add_named_vertex (V.mk vn) Graph.default_vdata g,
+          (Graph.add_named_vertex (V.mk vn) Graph.default_nv_vdata g,
            IA.input_vertex_annotation (V.mk vn) Json.Null ann)
       | add_def_vert _ _ = raise bad_input_exp ("Expected string","")
     fun add_vert (vn,Json.Null) (g,ann) = add_def_vert (Json.String vn) (g,ann)
       | add_vert (vn,Json.Object obj') (g,ann) =
-          (Graph.add_named_vertex (V.mk vn) (get_vdata obj' "data") g,
+          (Graph.add_named_vertex (V.mk vn) (get_nv_vdata obj' "data") g,
            IA.input_vertex_annotation (V.mk vn) (get_easy Json.Null obj' "annotation") ann
              handle IA.bad_input_exp (m,l) =>
                raise bad_input_exp (m,prepend_prop "annotation" l))

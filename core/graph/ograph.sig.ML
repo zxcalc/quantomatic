@@ -41,7 +41,8 @@ val match_vdata : vdata * vdata -> psubst -> psubst option
 val match_edata : edata * edata -> psubst -> psubst option
 val vdata_eq : vdata * vdata -> bool
 val edata_eq : edata * edata -> bool
-val default_vdata : vdata
+val default_nv_vdata : vdata
+val default_wv_vdata : vdata
 val default_edata : edata
 (* COMPAT: needed for old controller *)
 val default_nv_vdata_of_typestring : string -> vdata
