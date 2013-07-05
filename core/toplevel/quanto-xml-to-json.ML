@@ -153,6 +153,8 @@ let
     then Rule
     else if String.isSuffix ".rules" (#infile args)
     then Ruleset
+    else if String.isSuffix ".ruleset" (#infile args)
+    then Ruleset
     else (TextIO.print "Cannot guess file type; please specify --graph or --ruleset";
           OS.Process.exit OS.Process.failure)
   val convert =
