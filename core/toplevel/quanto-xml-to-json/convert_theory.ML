@@ -59,36 +59,64 @@ functor ConvertTheory(
     OutputRuleset.output (InputRuleset.input xml,RulesetAnnInput.input xml)
 end
 
-functor InputSimpleEnumData(Graph : BANG_GRAPH): INPUT_XML =
+functor ConvertSimpleEnumTheory(
+  structure Theory : GRAPHICAL_THEORY where type Graph.edata = unit
+  structure GraphComponentDataIO : GRAPH_COMPONENT_DATA_IO where type edata = unit
+  val nvdata_from_typestring : string -> Theory.Graph.nvdata option
+  sharing type Theory.Graph.nvdata = GraphComponentDataIO.nvdata
+) =
 struct
-  open XML_Parse_Utils
-  type T = XML.tree
-  type data = Graph.vdata
-  fun input xml =
-    let
-      val () = assert_tag "vertex" xml
-      val children = get_children xml
-      val typename = get_unique_child_text (get_unique_elem "type" children)
-    in
-      if typename = "edge-point" then Graph.WVert
-      else Graph.default_vdata_of_typestring typename
-           handle unknown_typestring_exp t =>
-             raise bad_input_exp ("Unknown typestring "^t,"type")
-    end
+  structure InputSimpleEnumData : INPUT_XML =
+  struct
+    open XML_Parse_Utils
+    type T = XML.tree
+    type data = Theory.Graph.vdata
+    fun input xml =
+      let
+        val () = assert_tag "vertex" xml
+        val children = get_children xml
+        val typename = get_unique_child_text (get_unique_elem "type" children)
+        val to_lower = String.implode o (map Char.toLower) o String.explode
+      in
+        case typename
+          of "edge-point" => Theory.Graph.WVert
+           | "wire-vertex" => Theory.Graph.WVert
+           | s =>
+               (case nvdata_from_typestring (to_lower s)
+                  of SOME d => Theory.Graph.NVert d
+                   | NONE => raise bad_input_exp ("Unknown vertex type "^s,"type"))
+      end
+  end
+  structure Converter = ConvertTheory(
+    structure Theory = Theory
+    structure GraphComponentDataIO = GraphComponentDataIO
+    structure InputVData = InputSimpleEnumData
+    structure InputEData = InputNoData
+  )
+  open Converter
 end
 
-structure GHZW_Converter = ConvertTheory(
+
+structure GHZW_Converter = ConvertSimpleEnumTheory(
   structure Theory = GHZW_Theory
   structure GraphComponentDataIO = GHZW_ComponentDataIO
-  structure InputVData = InputSimpleEnumData(GHZW_Theory.Graph)
-  structure InputEData = InputNoData
+  val nvdata_from_typestring =
+    (fn "ghz"  => SOME GHZW_Data.GHZ
+      | "w"    => SOME GHZW_Data.W
+      | "tick" => SOME GHZW_Data.TICK
+      | "zero" => SOME GHZW_Data.ZERO
+      | _      => NONE)
 )
 
-structure Petri_Converter = ConvertTheory(
+structure Petri_Converter = ConvertSimpleEnumTheory(
   structure Theory = Petri_Theory
   structure GraphComponentDataIO = Petri_ComponentDataIO
-  structure InputVData = InputSimpleEnumData(Petri_Theory.Graph)
-  structure InputEData = InputNoData
+  val nvdata_from_typestring =
+    (fn "copy"   => SOME Petri_Data.COPY
+      | "switch" => SOME Petri_Data.SWITCH
+      | "buf0"   => SOME Petri_Data.BUF0
+      | "buf1"   => SOME Petri_Data.BUF1
+      | _        => NONE)
 )
 
 structure RG_Converter
@@ -159,11 +187,14 @@ structure RG_Converter
     handle e => (convert_ruleset_v1 xml handle _ => raise e)
 end
 
-structure RGB_Converter = ConvertTheory(
+structure RGB_Converter = ConvertSimpleEnumTheory(
   structure Theory = RGB_Theory
   structure GraphComponentDataIO = RGB_ComponentDataIO
-  structure InputVData = InputSimpleEnumData(RGB_Theory.Graph)
-  structure InputEData = InputNoData
+  val nvdata_from_typestring =
+    (fn "red"   => SOME RGB_Data.Red
+      | "green" => SOME RGB_Data.Green
+      | "blue"  => SOME RGB_Data.Blue
+      | _       => NONE)
 )
 
 structure RTechn_Converter
