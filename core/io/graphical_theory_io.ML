@@ -24,22 +24,11 @@ functor StringTableAnnotatedGraphicalTheoryIO (
 struct
   structure Theory = Theory;
 
-  (* This structure is only used when vertices are input/output in isolation, as it
-   * makes use of the optional extra field is_wire_vertex, which is normally determined
-   * by context. *)
-  structure VDataInputJSON : INPUT_JSON =
-  struct
-    open JsonInputUtils
-    type data = Theory.Graph.vdata
-    fun input (json as Json.Object obj) = (
-          case Json.lookup obj "is_wire_vertex"
-            of SOME (Json.Bool true) => Theory.Graph.WVert
-             | _ => Theory.Graph.NVert
-                (GraphComponentDataIO.IVDataInputJSON.input (get_easy Json.Null obj "data"))
-        )
-      | input _ = raise bad_input_exp ("expected: JSON object","0")
-  end
+  (* COMPAT: needed by the old controller code *)
+  structure IVDataInputJSON = GraphComponentDataIO.IVDataInputJSON;
+  structure IVDataOutputJSON = GraphComponentDataIO.IVDataOutputJSON;
   structure EDataInputJSON = GraphComponentDataIO.EDataInputJSON;
+  structure EDataOutputJSON = GraphComponentDataIO.EDataOutputJSON;
 
   structure RulesetAnnotations = RulesetStringTableAnnotations;
   structure GraphAnnotations = GraphStringTableAnnotations;

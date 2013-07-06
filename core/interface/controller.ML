@@ -538,21 +538,43 @@ struct
             (OkResponse,
              State.delete_vertices (map V.mk vertexNames) (GraphName.mk graphName) state)
         | SetVertexDataAction { vertexName, vertexData } =>
-           (let
+            let
+              exception odd_theory_format
+              fun hack_json_obj s Theory.Graph.WVert = raise odd_theory_format
+                | hack_json_obj s (Theory.Graph.NVert d) =
+                    let
+                      val old_obj = TheoryIO.IVDataOutputJSON.output d
+                    in
+                      case old_obj
+                        of (Json.Object obj) =>
+                             Json.Object (Json.update ("value",Json.String s) obj)
+                         | _ => raise odd_theory_format
+                    end
+                    handle TheoryIO.IVDataInputJSON.bad_input_exp _ => raise odd_theory_format
+              fun update_from_string s =
+                    Theory.Graph.NVert o TheoryIO.IVDataInputJSON.input
+                                       o (hack_json_obj s)
+              fun update_from_json _     Theory.Graph.WVert    =
+                    raise odd_theory_format
+                | update_from_json json (Theory.Graph.NVert _) =
+                    Theory.Graph.NVert (TheoryIO.IVDataInputJSON.input json)
               val updater =
                 case vertexData
-                  of StringCData s => K (TheoryIO.VDataInputJSON.input (Json.of_string s))
-                   | JsonCData json => K (TheoryIO.VDataInputJSON.input json)
+                  of StringCData s => update_from_string s
+                   | JsonCData json => update_from_json json
             in
               (OkResponse,
                State.update_vertex_data updater (V.mk vertexName) (GraphName.mk graphName) state)
+              handle TheoryIO.IVDataInputJSON.bad_input_exp (m,_) =>
+                        (ErrorResponse { errorCode = "BADFORMAT",
+                          message = ("Error setting vertex data: " ^ m) }, state)
+                   | Json.parse_exn m =>
+                        (ErrorResponse { errorCode = "BADFORMAT",
+                          message = ("JSON parse error while setting vertex data: " ^ m) }, state)
+                   | odd_theory_format =>
+                        (ErrorResponse { errorCode = "NOTUPDATABLE",
+                          message = "That vertex cannot be updated with a string; use JSON instead" }, state)
             end
-            handle TheoryIO.VDataInputJSON.bad_input_exp (m,_) =>
-                      (ErrorResponse { errorCode = "BADFORMAT",
-                        message = ("Error setting vertex data: " ^ m) }, state)
-                 | Json.parse_exn m =>
-                      (ErrorResponse { errorCode = "BADFORMAT",
-                        message = ("JSON parse error while setting vertex data: " ^ m) }, state))
         | SetVertexUserDataAction { vertexName, dataName, userData } =>
             (OkResponse,
               State.set_vertex_ud_property dataName userData (V.mk vertexName) (GraphName.mk graphName) state)
@@ -582,21 +604,39 @@ struct
             (OkResponse,
              State.delete_edges (map E.mk edgeNames) (GraphName.mk graphName) state)
         | SetEdgeDataAction { edgeName, edgeData } =>
-           (let
+            let
+              exception odd_theory_format
+              fun hack_json_obj s d =
+                    let
+                      val old_obj = TheoryIO.EDataOutputJSON.output d
+                    in
+                      case old_obj
+                        of (Json.Object obj) =>
+                             Json.Object (Json.update ("value",Json.String s) obj)
+                         | _ => raise odd_theory_format
+                    end
+                    handle TheoryIO.EDataInputJSON.bad_input_exp _ => raise odd_theory_format
+              fun update_from_string s =
+                    TheoryIO.EDataInputJSON.input o (hack_json_obj s)
+              fun update_from_json json _ =
+                    TheoryIO.EDataInputJSON.input json
               val updater =
                 case edgeData
-                  of (StringCData s)  => K (TheoryIO.EDataInputJSON.input (Json.of_string s))
-                   | (JsonCData json) => K (TheoryIO.EDataInputJSON.input json)
+                  of StringCData s => update_from_string s
+                   | JsonCData json => update_from_json json
             in
               (OkResponse,
                State.update_edge_data updater (E.mk edgeName) (GraphName.mk graphName) state)
+              handle TheoryIO.EDataInputJSON.bad_input_exp (m,_) =>
+                        (ErrorResponse { errorCode = "BADFORMAT",
+                          message = ("Error setting edge data: " ^ m) }, state)
+                   | Json.parse_exn m =>
+                        (ErrorResponse { errorCode = "BADFORMAT",
+                          message = ("JSON parse error while setting edge data: " ^ m) }, state)
+                   | odd_theory_format =>
+                        (ErrorResponse { errorCode = "NOTUPDATABLE",
+                          message = "That edge cannot be updated with a string; use JSON instead" }, state)
             end
-            handle TheoryIO.EDataInputJSON.bad_input_exp (m,_) =>
-                      (ErrorResponse { errorCode = "BADFORMAT",
-                        message = ("Error setting edge data: " ^ m) }, state)
-                 | Json.parse_exn m =>
-                      (ErrorResponse { errorCode = "BADFORMAT",
-                        message = ("JSON parse error while setting edge data: " ^ m) }, state))
         | SetEdgeUserDataAction { edgeName, dataName, userData } =>
             (OkResponse,
               State.set_edge_ud_property dataName userData (E.mk edgeName) (GraphName.mk graphName) state)

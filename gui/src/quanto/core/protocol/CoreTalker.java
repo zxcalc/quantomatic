@@ -1236,7 +1236,6 @@ public class CoreTalker {
             writer.addHeader("WW", generateRequestId());
             writer.addStringArg(graph);
             writer.addIntArg(offset);
-            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
