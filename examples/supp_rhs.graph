@@ -1,2 +1,0 @@
-<?xml version="1.0"?>
-<graph><vertex name="d"><type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex><vertex name="c"><type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex><vertex name="b"><type>edge-point</type><data/></vertex><vertex name="a"><type>edge-point</type><data/></vertex><edge name="Eb" dir="false" source="c" target="b"><type>unit</type><data/></edge><edge name="Ea" dir="false" source="a" target="d"><type>unit</type><data/></edge></graph>

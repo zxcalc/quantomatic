@@ -1,0 +1,1 @@
+{"wire_vertices":{"c":{},"d":{}},"node_vertices":{"i":{"data":{"type":"X","label":"\\pi","value":{"pi":{"denom":1,"num":1},"pretty":"\\pi"}}},"j":{"data":{"type":"Z","label":"-a","value":{"vars":{"a":{"denom":1,"num":-1}},"pretty":"-a"}}}},"undir_edges":{"Eg":{"src":"j","tgt":"c"},"Eh":{"src":"i","tgt":"j"},"Ei":{"src":"d","tgt":"i"}}}
