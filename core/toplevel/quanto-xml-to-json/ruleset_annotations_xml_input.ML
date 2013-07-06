@@ -43,8 +43,11 @@ structure InputRulesetStringTableAnnotationsXML : INPUT_XML
       val () = assert_tag "rule" xml
       val children = get_children xml
       val rulename = input_rulename (get_unique_elem "rulename" children)
-      val rule_ud = (input_data_on_rule o (get_unique_elem "rule_userdata") o
-                        get_children o (get_unique_elem "rule_data"))  children
+      val rule_ud_elem = get_unique_elem "rule_userdata"
+              (get_children (get_unique_elem "rule_data" children))
+          (* we don't care if it's missing *)
+          handle bad_input_exp _ => XML.Elem (("rule_userdata",[]),[])
+      val rule_ud = input_data_on_rule rule_ud_elem
       val lhs_ud = (GAInput.input o (get_unique_elem "user_data") o get_children o (get_unique_elem "lhs")) children
       val rhs_ud = (GAInput.input o (get_unique_elem "user_data") o get_children o (get_unique_elem "rhs")) children
     in
