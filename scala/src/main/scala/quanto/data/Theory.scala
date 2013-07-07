@@ -84,7 +84,6 @@ object Theory {
   type EdgeLabelPosition = EdgeLabelPosition.Value
 
   case class ValueDesc(
-    path: JsonPath = JsonPath("$"),
     typ: ValueType = ValueType.Empty,
     enumOptions: List[String] = List[String](),
     latexConstants: Boolean = false,
@@ -93,7 +92,6 @@ object Theory {
   object ValueDesc {
     implicit def fromJson(json: Json): ValueDesc =
       ValueDesc(
-        path = JsonPath(json / "path"),
         typ  = json / "type",
         enumOptions = (json ?@ "enum_options").toList.map(_.stringValue),
         latexConstants = json.getOrElse("latex_constants", false),
@@ -102,7 +100,6 @@ object Theory {
 
     implicit def toJson(v: ValueDesc) =
       JsonObject(
-        "path" -> v.path.toString,
         "type" -> v.typ,
         "enum_options" -> v.enumOptions,
         "latex_constants" -> v.latexConstants,
@@ -275,7 +272,6 @@ object Theory {
     vertexTypes = Map(
       "string" -> VertexDesc(
         value = ValueDesc(
-          path = JsonPath("$.value"),
           typ = ValueType.String
         ),
         style = VertexStyleDesc(

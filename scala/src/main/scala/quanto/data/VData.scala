@@ -58,15 +58,16 @@ case class NodeV(
   /** Type of the vertex */
   def typ = (data / "type").stringValue
 
-  def value = (data.getPath(theory.vertexTypes(typ).value.path)).stringValue
+  def label = data.getOrElse("label","").stringValue
+  def value = data ? "value"
   def typeInfo = theory.vertexTypes(typ)
 
   def withCoord(c: (Double,Double)) =
-    copy(annotation = (annotation + ("coord" -> JsonArray(c._1, c._2))))
+    copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
   
   /** Create a copy of the current vertex with the new value */
   def withValue(s: String) =
-    copy(data = data.setPath(theory.vertexTypes(typ).value.path, s).asObject)
+    copy(data = data.setPath("$.value", s).setPath("$.label", s).asObject)
 
   def isWireVertex = false
 
@@ -99,6 +100,7 @@ object NodeV {
     // if any of these throw an exception, they should do it here
     n.coord
     n.value
+    n.label
     val typ = n.typ
     if (!thy.vertexTypes.keySet.contains(typ)) throw new GraphLoadException("Unrecognized vertex type: " + typ)
 

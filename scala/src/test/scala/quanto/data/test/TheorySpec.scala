@@ -9,14 +9,12 @@ class TheorySpec extends FlatSpec {
   behavior of "A theory"
 
   val rgValueDesc = Theory.ValueDesc(
-    path = JsonPath("$.angle.pretty"),
     typ = Theory.ValueType.String,
     latexConstants = true,
     validateWithCore = true
   )
 
   val hValueDesc = Theory.ValueDesc(
-    path = JsonPath("$"),
     typ = Theory.ValueType.Empty,
     latexConstants = false,
     validateWithCore = false
@@ -46,12 +44,12 @@ class TheorySpec extends FlatSpec {
       "red" -> Theory.VertexDesc(
         value = rgValueDesc,
         style = rStyleDesc,
-        defaultData = JsonObject("type"->"red", "angle" -> JsonObject("pretty"->"0"))
+        defaultData = JsonObject("type"->"red", "label"->"0", "value" -> JsonObject("pretty"->"0"))
       ),
       "green" -> Theory.VertexDesc(
         value = rgValueDesc,
         style = gStyleDesc,
-        defaultData = JsonObject("type"->"green", "angle" -> JsonObject("pretty"->"0"))
+        defaultData = JsonObject("type"->"green", "label"->"0", "value" -> JsonObject("pretty"->"0"))
       ),
       "hadamard" -> Theory.VertexDesc(
         value = hValueDesc,
@@ -70,7 +68,6 @@ class TheorySpec extends FlatSpec {
       |  "vertex_types" : {
       |    "red" : {
       |      "value" : {
-      |        "path" : "$.angle.pretty",
       |        "validate_with_core" : true,
       |        "latex_constants" : true,
       |        "type" : "string"
@@ -86,14 +83,14 @@ class TheorySpec extends FlatSpec {
       |      },
       |      "default_data" : {
       |        "type" : "red",
-      |        "angle" : {
+      |        "label" : "0",
+      |        "value" : {
       |          "pretty" : "0"
       |        }
       |      }
       |    },
       |    "green" : {
       |      "value" : {
-      |        "path" : "$.angle.pretty",
       |        "validate_with_core" : true,
       |        "latex_constants" : true,
       |        "type" : "string"
@@ -109,14 +106,14 @@ class TheorySpec extends FlatSpec {
       |      },
       |      "default_data" : {
       |        "type" : "green",
-      |        "angle" : {
+      |        "label" : "0",
+      |        "value" : {
       |          "pretty" : "0"
       |        }
       |      }
       |    },
       |    "hadamard" : {
       |      "value" : {
-      |        "path" : "$",
       |        "validate_with_core" : false,
       |        "latex_constants" : false,
       |        "type" : "empty"
@@ -138,7 +135,6 @@ class TheorySpec extends FlatSpec {
       |  "edge_types" : {
       |    "plain" : {
       |      "value" : {
-      |        "path" : "$",
       |        "validate_with_core" : false,
       |        "latex_constants" : false,
       |        "type" : "empty"

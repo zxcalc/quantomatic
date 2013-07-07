@@ -48,10 +48,11 @@ trait VertexDisplayData { self: GraphView =>
       vertexDisplay(v) = data match {
         case vertexData : NodeV =>
           val style = vertexData.typeInfo.style
-          val text = vertexData.typeInfo.value.typ match {
+          val text = vertexData.label
+            /*vertexData.typeInfo.value.typ match {
             case Theory.ValueType.String => vertexData.value
             case _ => ""
-          }
+          }*/
 
           val fm = peer.getGraphics.getFontMetrics(GraphView.VertexLabelFont)
           val labelDisplay = LabelDisplayData(

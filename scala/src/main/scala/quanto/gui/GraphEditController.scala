@@ -148,7 +148,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
   private def setEdgeValue(e: EName, str: String) {
     val data = graph.edata(e)
-    val oldVal = data.value
+    val oldVal = data.label
     graph = graph.updateEData(e) { _ => data.withValue(str) }
     graph.edgesBetween(graph.source(e), graph.target(e)).foreach { view.invalidateEdge(_) }
     undoStack.register("Set Edge Data") { setEdgeValue(e, oldVal) }
@@ -157,7 +157,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   private def setVertexValue(v: VName, str: String) {
     graph.vdata(v) match {
       case data: NodeV =>
-        val oldVal = data.value
+        val oldVal = data.label
         graph = graph.updateVData(v) { _ => data.withValue(str) }
         view.invalidateVertex(v)
         graph.adjacentEdges(v).foreach { view.invalidateEdge(_) }
@@ -183,7 +183,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
                   Dialog.showInput(
                     title = "Vertex data",
                     message = "Vertex data",
-                    initial = data.value).map { newVal => setVertexValue(v, newVal) }
+                    initial = data.label).map { newVal => setVertexValue(v, newVal) }
                 case _ =>
                   val edgeHit = view.edgeDisplay find { _._2.pointHit(pt) } map { _._1 }
                   edgeHit.map { e =>
@@ -191,7 +191,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
                     Dialog.showInput(
                       title = "Edge data",
                       message = "Edge data",
-                      initial = data.value).map { newVal => setEdgeValue(e, newVal) }
+                      initial = data.label).map { newVal => setEdgeValue(e, newVal) }
                     view.repaint()
                   }
               }
