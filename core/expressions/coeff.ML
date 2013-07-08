@@ -1,4 +1,4 @@
-signature COEFF =
+signature FIELD =
 sig
   type T;
   val add : T -> T -> T;
@@ -15,13 +15,16 @@ sig
   val ord : (T * T) -> General.order;
   val pretty : T -> Pretty.T;
   val print : T -> unit;
-  exception BadExpression of string;
 end
 
 signature RATIONAL = 
 sig
-  include COEFF;
-  val mk : int -> int -> T
+  include FIELD;
+  val mk : int * int -> T
+
+  val get_num    : T -> int
+  val get_denom  : T -> int
+  val reduce_mod : int -> T -> T
 end
 
 
@@ -32,7 +35,6 @@ type T =
      int (* numerator *)
      * int; (* denominator *)
 
-exception BadExpression of string;
 
 fun ord ((d1,n1), (d2,n2)) = 
     let val (lhs,rhs) = (d1*n2,d2*n1)
@@ -56,8 +58,7 @@ fun gcd (m,n) =
              if m<n then gcd((n-m) div 2, m) else gcd((m-n) div 2, n);
 *)
 
-fun rat_reduce (_,0) = raise BadExpression 
-			       "Divide by zero in rational coeffiecient"
+fun rat_reduce (_,0) = raise Div
   | rat_reduce (0,_) = (0,1)
   | rat_reduce (n,d)  = 
     if d < 0 then rat_reduce (~n, ~d)
@@ -74,10 +75,20 @@ fun rat_subtr (n1,d1) (n2,d2) = rat_add (n1,d1) (~n2,d2)
 fun rat_mult (n1,d1) (n2,d2) = rat_reduce (n1*n2, d1*d2)
 fun rat_div (n1,d1) (n2,d2) = rat_mult (n1,d1) (d2,n2)
 
-fun mk n d = rat_reduce (n,d)
+fun reduce_mod i r = 
+  let 
+    val (n,d) = rat_reduce r
+    val i_d = (i * d)
+    val n' = n mod i_d
+  in (if n < 0 then n' - i_d else n', d)
+  end
 
-val zero = mk 0 1
-val one = mk 1 1
+fun mk (n,d) = rat_reduce (n,d)
+fun get_num   (n,_) = n
+fun get_denom (_,d) = d
+
+val zero = mk (0, 1)
+val one = mk (1, 1)
 fun is_zero r = eq r zero
 fun is_one r = eq r one
 fun negate (n1,d1) = (~n1,d1);
@@ -122,9 +133,9 @@ fun rat_reduce r =
 fun add (n1,d1) (n2,d2) =  rat_reduce (n1*d2 + n2*d1, d1*d2)
 fun subtr (n1,d1) (n2,d2) = add (n1,d1) (~n2,d2)
 fun mult (n1,d1) (n2,d2) = rat_reduce (n1*n2, d1*d2)
-fun op div (n1,d1) (n2,d2) = mult (n1,d1) (d2,n2)
+fun divide (n1,d1) (n2,d2) = mult (n1,d1) (d2,n2)
 
-fun mk n d = rat_reduce (n,d);
+fun mk (n, d) = rat_reduce (n,d);
 
 end;
 

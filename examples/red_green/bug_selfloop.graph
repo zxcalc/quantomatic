@@ -1,0 +1,1 @@
+{"node_vertices":{"a":{"data":{"type":"X","label":"0","value":{"pretty":"0"}}},"b":{"data":{"type":"X","label":"0","value":{"pretty":"0"}}}},"undir_edges":{"Ea":{"src":"b","tgt":"a"},"Eb":{"src":"b","tgt":"b"}}}

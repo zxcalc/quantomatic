@@ -4,12 +4,14 @@ sig
   type tree
   structure G : BANG_GRAPH
   structure CL : CONTOUR_LIST
+  sharing G.Sharing = CL.G.Sharing
   
   (* CONSTRUCTORS *)
   val empty : T
   val mk : G.T GraphName.NTab.T -> T
   val add_cl_to_dnet : T -> CL.T -> GraphName.name -> T
   val add_cl_list_to_dnet : T -> CL.T list -> GraphName.name list -> T
+  val add_graph : (GraphName.name * G.T) -> T -> T
 
   (* PRUNING FUNCTIONS *)
   val extended_pruning : T -> G.T -> (V.name * GraphName.name list) list
@@ -17,6 +19,7 @@ sig
   val extended_prune : V.name -> G.T -> T -> T
   val standard_prune : V.name -> G.T -> T -> T
   val graphs : T -> GraphName.name list
+  val get_match_candidates : T -> G.T -> GraphName.NSet.T
 
   (* FOLD FUNCTION *)
   val fold : (('a * 'b) -> G.T GraphName.NTab.T -> G.T GraphName.NTab.T) -> 'a list -> 'b list -> G.T GraphName.NTab.T -> G.T GraphName.NTab.T
@@ -140,6 +143,8 @@ struct
   fun add_cl_list_to_dnet d (cl::[]) (gn::[]) = add_cl_to_dnet d cl gn
     | add_cl_list_to_dnet d (cl::cll) (gn::gns) = add_cl_list_to_dnet (add_cl_to_dnet d cl gn) cll gns
     | add_cl_list_to_dnet d _ _ = raise ERROR "Contour and graph list lengths differ"
+
+  fun add_graph (n,g) dnet = add_cl_to_dnet dnet (CL.mk g) n
 
 	(* This function builds a tree given a set of pattern graphs tab *)
 	fun mk(tab) =
@@ -359,6 +364,8 @@ struct
       nodelist ~~ graphslist
     end
 
+  fun get_match_candidates dnet target =
+    fold GraphName.NSet.add (flat (map snd (extended_pruning dnet target))) GraphName.NSet.empty
 
   (* This function checks if two graphs g1 and g2 are equal *)
   (* TRUE iff the graphs have the same name *)

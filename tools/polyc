@@ -7,52 +7,51 @@ usage () {
 	echo "  where <file> is the SML file to be used."
 	echo
 	echo "OPTIONS"
-	echo "-h          print this message"
-	echo "-m m        use the ML function 'm' as main-function"
-	echo "-o b        set the name of the generated binary to 'b'"
-	echo "-t          build custom top-level"
-	echo "-l <heap>   load <heap> before using <file>"
+	echo "-h --help        print this message"
+	echo "-m --main m      use the ML function 'm' as main-function"
+	echo "-o --output b    set the name of the generated binary to 'b'"
+	echo "-t --top-level   build custom top-level"
+	echo "-l --load <heap> load <heap> before using <file>"
 }
 
-while getopts "htm:o:l:" opt
+while true
 do
-	case "$opt" in
-		h)
+	case "$1" in
+		-h|--help)
 			usage
 			exit 0
 		;;
-		o)
-			PROG="$OPTARG"
+		-o|--output)
+			PROG="$2"
+			shift 2
 		;;
-		m)
-			MAIN="$OPTARG"
+		-m|--main)
+			MAIN="$2"
+			shift 2
 		;;
-		t)
+		-t|--top-level)
 			TOP=1
+			shift 1
 		;;
-		l)
-			HEAP="$OPTARG"
+		-l|--load)
+			HEAP="$2"
+			shift 2
 		;;
-		\?)
-			usage >&2
-			exit 1
+		--)
+			shift
+			break
+		;;
+		*)
+			break
 		;;
 	esac
 done
-shift $((OPTIND-1))
 
-if [[ $# < 1 ]]
+if [[ $# != 1 ]]
 then
-  echo "No SML file given" >&2
-  usage >&2
-  exit 1
-elif [[ $# > 1 ]]
-then
-  echo "Too many file arguments" >&2
-  usage >&2
-  exit 1
+	usage >&2
+	exit 1
 fi
-FILE="$1"
 
 TOOLS_DIR="$(cd "$(dirname $0)"; pwd)";
 POLYML_HOME="$($TOOLS_DIR/findpoly.sh)"
@@ -63,6 +62,8 @@ fi
 POLY="$POLYML_HOME/bin/poly"
 POLYML_LIB="$POLYML_HOME/lib"
 
+DIR="$(dirname "$1")"
+FILE="$(basename "$1")"
 NAME="${FILE%%.*}"
 if [[ $PROG == "" ]]; then PROG=$NAME; fi
 if [[ $TOP ]]
@@ -111,6 +112,8 @@ if [[ $HEAP != "" ]]; then
 fi
 
 cat >> "$BUILDFILE" <<- EOF
+	val polyc____oldDir = OS.FileSys.getDir();
+	OS.FileSys.chDir "${DIR}";
 	PolyML.exception_trace (fn () => use "${FILE}")
 	    handle IO.Io {name="${FILE}",cause=(OS.SysErr (msg,_)),...} =>
 	           (TextIO.print ("Could not open file \"${FILE}\": "^msg^"\n");
@@ -118,10 +121,12 @@ cat >> "$BUILDFILE" <<- EOF
 	         | _ =>
 	           (TextIO.print ("Exception raised when usiing file \"${FILE}\"\n");
 	            OS.Process.exit OS.Process.failure);
+	OS.FileSys.chDir polyc____oldDir;
 	fun trap f () = (PolyML.exception_trace f; OS.Process.exit OS.Process.success)
 	                handle _ => OS.Process.exit OS.Process.failure;
 	PolyML.shareCommonData ${MAIN};
 	PolyML.fullGC();
+	val _ = TextIO.print "Exporting \"${PROG}${OBJEXT}\"\n";
 	PolyML.export("${PROG}", trap ${MAIN});
 	val _ = OS.Process.exit OS.Process.success;
 	EOF
@@ -131,6 +136,7 @@ rm -f "$BUILDFILE"
 
 if [[ $POLYEXIT == 0 ]]; then
 	export LD_RUN_PATH="$POLYML_LIB:$LD_RUN_PATH"
+	echo "cc $LDFLAGS \"-L${POLYML_LIB}\" -lpolymain -lpolyml -o \"${PROG}\" \"${PROG}${OBJEXT}\""
 	cc $LDFLAGS "-L${POLYML_LIB}" -lpolymain -lpolyml -o "${PROG}" "${PROG}${OBJEXT}"
 	rm -f "${PROG}${OBJEXT}"
 else

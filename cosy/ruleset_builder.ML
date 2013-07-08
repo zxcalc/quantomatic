@@ -1,5 +1,39 @@
-
 signature RULESET_BUILDER =
+sig
+  structure Theory : GRAPHICAL_THEORY
+  structure EqClassTab : EQ_CLASS_TAB
+  val get_ruleset : EqClassTab.T -> Theory.Ruleset.T
+end
+
+
+functor RulesetBuilder(
+  structure Theory : GRAPHICAL_THEORY
+  structure EqClassTab : EQ_CLASS_TAB
+  sharing Theory.Graph.SharingOGraph =
+          EqClassTab.GraphEntry.Equiv.Graph.SharingOGraph) =
+struct
+  structure Theory = Theory
+  structure EqClassTab = EqClassTab
+  
+  fun get_ruleset eq_tab =
+  let
+    val tag_redex = TagName.mk "redex"
+    val tag_cong = TagName.mk "cong"
+    fun add_rule pair is_redex rs =
+    let
+      val (nm, rs') = rs |> Theory.Ruleset.add_fresh_rule
+        (R.mk (if is_redex then "r_0" else "c_0"), Theory.Rule.mk pair)
+    in
+      rs' |> Theory.Ruleset.tag_rule nm
+        (if is_redex then tag_redex else tag_cong)
+    end
+  in
+    EqClassTab.fold_rule_pairs add_rule eq_tab Theory.Ruleset.empty
+  end 
+end
+
+
+(* signature RULESET_BUILDER =
 sig
   structure Synthesize : SYNTHESIZE
   
@@ -18,11 +52,12 @@ struct
   structure Theory = GraphEnum.Theory
   structure Ruleset = Theory.Ruleset
   structure Rule = Theory.Rule
+  structure HomeoFinder = BangGraphHomeomorphismSearcher(Theory.Graph)
   
   fun update synth ruleset = let
     fun add_rule tag rhs lhs rs = let
-      val tryname = R.mk ((TagName.string_of_name tag) ^ "_a")
-      val (nm,rs') = rs |> Ruleset.add_fresh_rule (tryname, Rule.mk (lhs,rhs))
+      (*val tryname = R.mk ((TagName.string_of_name tag) ^ "_a")*)
+      val (nm,rs') = rs |> Ruleset.add_fresh_rule (Rule.mk (lhs,rhs))
     in rs' |> Ruleset.tag_rule nm tag
     end
     fun process_class class rs =
@@ -49,7 +84,7 @@ struct
   end*)
   
   (* iso of lhs and rhs need to respect boundaries *)
-  fun cong_trivial r = Rule.GraphIso.test (Rule.get_lhs r) (Rule.get_rhs r)
+  fun cong_trivial r = HomeoFinder.is_homeomorphic (Rule.get_lhs r) (Rule.get_rhs r)
   
   
   fun has_match rs target_rn =
@@ -57,7 +92,7 @@ struct
                            (Rule.get_lhs (Ruleset.get_rule rs target_rn))
   
   fun reduce ruleset = let
-    val all_rules = R.NTab.get_nameset o Ruleset.get_allrules
+    val all_rules = RTab.get_dom_set o Ruleset.get_allrules
     fun iso_filter rn rs = if cong_trivial (Ruleset.get_rule rs rn) then rs |> Ruleset.delete_rule rn else rs
     fun match_filter rn rs = if has_match rs rn
                              then rs |> Ruleset.delete_rule rn else rs
@@ -65,4 +100,4 @@ struct
   in R.NSet.fold match_filter (all_rules ruleset') ruleset'
   end
   
-end
+end *)

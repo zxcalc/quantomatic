@@ -43,6 +43,15 @@ structure InputRulesetStringTableAnnotationsJSON
   open InputAnn;
 end;
 
+structure InputRulesetJsonObjectAnnotationsJSON
+  : RULESET_ANN_INPUT_JSON where type data = RulesetJsonObjectAnnotations.T
+= InputRulesetAnnotationsJSON(
+  structure Annotations = RulesetJsonObjectAnnotations
+  fun json_to_annotation Json.Null = Json.empty_obj
+    | json_to_annotation (Json.Object obj) = obj
+    | json_to_annotation _ = raise JsonInputUtils.bad_input_exp ("Expected object","")
+)
+
 functor OutputRulesetAnnotationsJSON(
   structure Annotations : RULESET_ANNOTATIONS
   val annotation_to_json : Annotations.data -> Json.json
@@ -87,5 +96,13 @@ structure OutputRulesetStringTableAnnotationsJSON
   );
   open OutputAnn;
 end;
+
+structure OutputRulesetJsonObjectAnnotationsJSON
+  : RULESET_ANN_OUTPUT_JSON where type data = RulesetJsonObjectAnnotations.T
+= OutputRulesetAnnotationsJSON(
+  structure Annotations = RulesetJsonObjectAnnotations
+  fun annotation_to_json obj = Json.Object obj
+)
+
 
 

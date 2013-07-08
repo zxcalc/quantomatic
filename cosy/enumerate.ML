@@ -32,10 +32,16 @@ struct
       of SOME a => SOME (a, the (V.NSet.get_first (Plugs.domf rel a)))
        | NONE   => NONE
   
-  fun add_gen gen gr = Graph.merge_by_vertices gr (snd (Graph.rename_apart gr gen))
+  fun disjoint_union g1 g2 = let
+    val vrn = VSub.mk_from_avoids (Graph.get_vertices g2)
+    val ern = ESub.mk_from_avoids (Graph.get_edges g2)
+  in
+    Graph.merge g1 (Graph.rename_ograph_anon (vrn,ern) g2)
+  end
   fun get_plugs gr = let
-    fun not_adj_to_boundary v = Graph.fold_adj (fn (_,v',_) => fn a =>
-      a andalso (not (Graph.is_boundary_vertex gr v'))) gr v true
+    fun not_adj_to_boundary v =
+      V.NSet.forall (not o (Graph.is_boundary gr))
+                    (Graph.get_adj_vertices gr v)
     val filt = V.NSet.filter not_adj_to_boundary
     val (ins,outs) = (Graph.get_inputs gr, Graph.get_outputs gr)
     val (ins',outs') = (filt ins, filt outs)
@@ -43,12 +49,13 @@ struct
      then Plugs.empty else Plugs.empty |> Plugs.add_many ins' outs'
   end
   fun delete_plugs_like gr (p,q) plugs = let (* remove all plugs that are essentially (p,q) because of commutativity *)
-    val ps = Graph.pred_vnames gr (the (V.NSet.get_first (Graph.succ_vnames gr p)))
-    val qs = Graph.succ_vnames gr (the (V.NSet.get_first (Graph.pred_vnames gr q)))
+    val ps = Graph.get_predecessor_vertices gr (the (V.NSet.get_first (Graph.get_successor_vertices gr p)))
+    val qs = Graph.get_successor_vertices gr (the (V.NSet.get_first (Graph.get_predecessor_vertices gr q)))
   in plugs |> Plugs.del_many ps qs
   end
   (* fun dft (Lf s) vs = s::vs | dft (Br (s,ch)) vs = s::(fold dft ch vs); *)
   
+  structure MatchSearch = GreedyMatchSearch(Graph)
   (* precondition: g contains no !-boxes *)
   fun rule_matches_concrete_graph r g = let
     val lhs = Theory.Rule.get_lhs r
@@ -57,7 +64,7 @@ struct
       (fold Graph.add_to_vnames  gs V.NSet.empty,
        fold Graph.add_to_enames  gs E.NSet.empty,
        fold Graph.add_to_bboxes gs B.NSet.empty)*)
-    val matches = Theory.MatchSearch.match lhs g
+    val matches = MatchSearch.match lhs g
   in case Seq.pull matches of NONE=>false | _=>true
   end
   
@@ -87,7 +94,7 @@ struct
       else (if ins = total_ins then f gr else I)
               (case first_plug plugs
                  of SOME (p,q) =>
-                      enum_plugs (gr |> Graph.do_plug p q |> Graph.minimise, (* do plug *)
+                      enum_plugs (gr |> Graph.plug_anon p q |> Graph.minimise, (* do plug *)
                                   ins-1,
                                   plugs |> Plugs.del_dom p |> Plugs.del_cod q,
                                   plug_count+1)
@@ -101,7 +108,7 @@ struct
           if (verts > max_verts orelse
               ins > total_ins + max_plugs orelse
               outs > total_outs + max_plugs) then accum                       (* return if impossible *)
-          else (enum_gens (add_gen g gr, gens, ins+gin, outs+gout, verts+1)   (* add gen *)
+          else (enum_gens (disjoint_union g gr, gens, ins+gin, outs+gout, verts+1)   (* add gen *)
                 (enum_gens (gr, gens', ins, outs, verts) accum))              (* pop and don't add gen *)
       | enum_gens (gr, [], ins, outs, _) accum =                              (* ready for plugging *)
           if ins >= total_ins andalso ins - total_ins = outs - total_outs     (* plugging is possible *)

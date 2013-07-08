@@ -1,2 +1,1 @@
-<?xml version="1.0"?>
-<ruleset><allrules><rule><name>broken</name><definition><lhs><graph><vertex name="a"><type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex></graph></lhs><rhs><graph><vertex name="c"><type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex><vertex name="b"><type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex></graph></rhs></definition></rule></allrules><tags/><active/></ruleset>
+{"rules":{"broken":{"lhs":{"node_vertices":{"a":{"data":{"type":"X","label":"0","value":{"pretty":"0"}}}}},"rhs":{"node_vertices":{"b":{"data":{"type":"X","label":"0","value":{"pretty":"0"}}},"c":{"data":{"type":"X","label":"0","value":{"pretty":"0"}}}}}}},"tags":{},"active_rules":[]}

@@ -78,7 +78,7 @@ functor InputAnnotatedRulesetJSON(
         raise bad_input_exp (m,prepend_prop n l)
     val rn = R.mk n
   in
-    (R.NTab.ins (rn,rule) tab,
+    (RTab.add (rn,rule) tab,
      IA.set_rule_annotation rn r_ann ann)
   end
 
@@ -86,7 +86,7 @@ functor InputAnnotatedRulesetJSON(
         case get_easy Json.Null obj prop
           of Json.Object obj =>
               let
-                val (rules,ann') = (Json.fold map_rule obj (R.NTab.empty,ann)
+                val (rules,ann') = (Json.fold map_rule obj (RTab.empty,ann)
                                     handle bad_input_exp (m,l) =>
                                       raise bad_input_exp (m,prepend_prop prop l))
               in
@@ -99,8 +99,9 @@ functor InputAnnotatedRulesetJSON(
         let
           fun map_rulename (Json.String s) = R.mk s
             | map_rulename _ = raise bad_input_exp ("Expected strings in array","")
+          val tag = TagName.mk n
         in
-          TagRel.add_to_cod (TagName.mk n) (R.NSet.of_list (map map_rulename a))
+          fold (fn r => RTagRel.add (r,tag)) (map map_rulename a)
         end
     | map_tag _ = raise bad_input_exp ("Expected array","")
 
@@ -108,7 +109,7 @@ functor InputAnnotatedRulesetJSON(
         case get_easy Json.Null obj prop
           of Json.Object obj =>
               let
-                val tags = (Json.fold map_tag obj TagRel.empty
+                val tags = (Json.fold map_tag obj RTagRel.empty
                            handle bad_input_exp (m,l) =>
                              raise bad_input_exp (m,prepend_prop prop l))
               in
@@ -176,14 +177,14 @@ functor OutputAnnotatedRulesetJSON(
     val get_ann = OA.get_rule_annotation ann
     fun upd_rule (r,v) = update (R.dest r,OutputRule.output (v,get_ann r))
   in
-    Json.Object (R.NTab.fold upd_rule ruletab Json.empty_obj)
+    Json.Object (RTab.fold upd_rule ruletab Json.empty_obj)
   end
 
   fun output_tags rs = let
-    val tagtab = TagRel.get_codtab (Ruleset.get_tagrel rs)
-    fun upd_tag (t,v) = update (TagName.dest t,rule_list v)
+    val tagrel = Ruleset.get_tagrel rs
+    fun upd_tag t = update (TagName.dest t, rule_list (RTagRel.inv_img tagrel t))
   in
-    Json.Object (TagName.NTab.fold upd_tag tagtab Json.empty_obj)
+    Json.Object (TagName.NSet.fold upd_tag (RTagRel.get_cod_set tagrel) Json.empty_obj)
   end
 
   val output_active_rules = rule_list o Ruleset.get_active;

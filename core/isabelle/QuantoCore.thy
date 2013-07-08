@@ -2,14 +2,16 @@ theory QuantoCore
 imports Main io
 uses
 
-(* more expression code; this time expresions derived from graphs, 
-   e.g. for interaction with Mathematica/Maple/etc. *)
-(* These depend on the red-green theory for now *)
- "../../core/expressions/alg.ML" (* algebraic expression utils *)
- "../../core/expressions/hilb.ML" (* hilbert space stuff *)
+(* string vertex/edge graphs *)
+ "../../core/theories/string_ve/graph.ML"
+ "../../core/theories/string_ve/theory.ML"
+ "../../core/theories/string_ve/io.ML"
 
 
 (* red-green specific vertices, graphs and matching *)
+(* graph-derived expressions for R-G graphs *)
+ "../../core/expressions/alg.ML" (* algebraic expression utils *)
+ "../../core/expressions/hilb.ML" (* hilbert space stuff *)
  "../../core/theories/red_green/vertex.ML"
  "../../core/theories/red_green/graph.ML"
  "../../core/theories/red_green/theory.ML"
@@ -52,23 +54,37 @@ uses
  "../../core/theories/isaplanner_rtechn/theory.ML"
  "../../core/theories/isaplanner_rtechn/io.ML"
 
+(*
+ * Decisions nets
+ *)
+ "../../core/dnets/DNetsLib.ML"
+ "../../core/dnets/Literal.ML"
+ "../../core/dnets/Contour.ML"
+ "../../core/dnets/ContourList.ML"
+ "../../core/dnets/TopDNet.ML"
+
 (* Overall controller for theories *)
  "../../core/interface/controller_state.ML" (* control state for quanto *)
  "../../core/interface/controller.ML" (* commands *)
  "../../core/interface/controller_registry.ML" (* theory lists *)
 
-(* interface protocol/console *)
+
+
+(* OLD interface protocol/console *)
  "../../core/interface/console_commands.ML" (* console commands and help *)
  "../../core/interface/console_lexer.ML" (* lexer for quanto console *)
  "../../core/interface/console.ML" (* generic protocol using commands *)
  "../../core/interface/console_interface.ML" (* generic protocol using commands *)
  "../../core/interface/protocol.ML" (* protocol for tools *)
- "../../core/interface/run.ML" 
 
-
-
-
-
+(* new modular controller *)
+ "../../core/json_interface/controller_util.ML"
+ "../../core/json_interface/controller_module.ML"
+ "../../core/json_interface/modules/test.ML"
+ "../../core/json_interface/controller.ML"
+ "../../core/json_interface/controller_registry.ML"
+ "../../core/json_interface/protocol.ML"
+ "../../core/json_interface/run.ML" 
 
 begin
 

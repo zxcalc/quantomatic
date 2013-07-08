@@ -1,0 +1,1 @@
+{"wire_vertices":{"w":{}},"node_vertices":{"a":{"data":{"value":"foo","label":"foo","type":"RT"}},"b":{"data":{"type":"Gs","label":"bar","value":{"goal_type":"bar","goal_names":[{"string":"x","number":1},{"string":"y","number":-1}]}}}},"dir_edges":{"e1":{"src":"a","tgt":"w","data":"z"},"e2":{"src":"w","tgt":"b","data":"z"}}}

@@ -1,8 +1,10 @@
+core/heaps
 .DS_Store
 **/build/
 /gui/dist/
 .polysave
 *.heap
+*.polyml-heap
 *.o
 *.log
 .*.swp

@@ -145,44 +145,11 @@ public class Core {
 		}
 	}
 
-	public enum RepresentationType {
-
-		Plain, Latex, Mathematica, Matlab
-	}
-
-	public String hilbertSpaceRepresentation(CoreGraph graph,
-			RepresentationType format) throws CoreException {
-		CoreTalker.GraphExportFormat exportFormat;
-		switch (format) {
-			case Plain:
-				exportFormat = CoreTalker.GraphExportFormat.HilbertTerm;
-				break;
-			case Latex:
-				exportFormat = CoreTalker.GraphExportFormat.Tikz;
-				break;
-			case Mathematica:
-				exportFormat = CoreTalker.GraphExportFormat.Mathematica;
-				break;
-			case Matlab:
-				exportFormat = CoreTalker.GraphExportFormat.Matlab;
-				break;
-			default:
-				throw new IllegalArgumentException("Invalid format");
-		}
-		return talker.exportGraph(graph.getCoreName(), exportFormat);
-	}
-
 	public void renameGraph(CoreGraph graph, String suggestedNewName)
 			throws CoreException {
 		assertCoreGraph(graph);
 		graph.updateCoreName(talker.renameGraph(graph.getCoreName(),
 				suggestedNewName));
-	}
-
-	public void forgetGraph(CoreGraph graph) throws CoreException {
-		assertCoreGraph(graph);
-		talker.discardGraph(graph.getCoreName());
-		graph.updateCoreName(null);
 	}
 
 	public void undo(CoreGraph graph) throws CoreException {
@@ -217,11 +184,6 @@ public class Core {
 	public void endUndoGroup(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.endUndoGroup(graph.getCoreName());
-	}
-
-	public Vertex addVertex(CoreGraph graph, VertexType vertexType)
-			throws CoreException {
-		return addVertex(graph, vertexType.getTypeName());
 	}
 
 	public Vertex addVertex(CoreGraph graph, String vertexType)
@@ -407,11 +369,6 @@ public class Core {
 		this.ruleset.reload();
 	}
 
-	public void replaceRuleset(byte[] ruleset) throws CoreException, IOException {
-		talker.replaceRulesetFromData(ruleset);
-		this.ruleset.reload();
-	}
-
 	public void renameBangBox(CoreGraph graph, String oldName, String newName)
 			throws CoreException {
 		assertCoreGraph(graph);
@@ -423,17 +380,8 @@ public class Core {
 		this.ruleset.reload();
 	}
 
-	public void loadRuleset(byte[] ruleset) throws CoreException, IOException {
-		talker.importRulesetFromData(ruleset);
-		this.ruleset.reload();
-	}
-
 	public void saveRuleset(File location) throws CoreException, IOException {
 		talker.exportRulesetToFile(location.getAbsolutePath());
-	}
-
-	public byte[] getRulesetEncoded() throws CoreException, IOException {
-		return talker.exportRulesetToData();
 	}
 
 	/**

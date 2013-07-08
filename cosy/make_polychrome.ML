@@ -38,6 +38,8 @@ OS.FileSys.chDir "../../PolyChrome/polychrome/poly";
 PolyML.Project.basic_use "ROOT.ML";
 OS.FileSys.chDir "../../../quantomatic/cosy";
 
+PolyML.Project.make "chromeui/cosy_util.sml";
+
 PolyML.shareCommonData run; PolyML.fullGC ();
 
 PolyML.Project.Log.log 2 "finished garbage collection";
