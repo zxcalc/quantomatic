@@ -23,7 +23,28 @@
         "appf" : {"type" : "Identity"},
         "type" : "RT"
       }
-    }
+    },
+    "GN" : {
+      "value" : {
+        "path" : "$.gn_name",
+        "validate_with_core" : false,
+        "latex_constants" : false,
+        "type" : "string"
+      },
+      "style" : {
+        "label" : {
+          "position" : "inside",
+          "fg_color" : [ 0.0, 0.2, 0.0 ]
+        },
+        "stroke_color" : [ 0.0, 0.2, 0.0 ],
+        "fill_color" : [ 0.8, 1.0, 1.0 ],
+        "shape" : "circle"
+      },
+      "default_data" : {
+        "gn_name" : "g",
+        "type" : "GN"
+      }
+     }
   },
   "edge_types" : {
     "GT" : {
