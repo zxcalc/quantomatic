@@ -564,6 +564,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
 
 
   fun get_vertex_type "wire-vertex" = Graph.WVert
+    | get_vertex_type "edge-point" = Graph.WVert
     | get_vertex_type s = Graph.default_nv_vdata_of_typestring s
   fun add_vertex_internal vt graph =
       (let val (n,g) = graph |> Graph.add_vertex (get_vertex_type vt) in
