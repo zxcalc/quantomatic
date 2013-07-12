@@ -72,7 +72,6 @@ class GraphDocument(view: GraphView) extends Publisher {
 
       file = Some(f)
       graph_=(g)
-      reLayout();
     } catch {
       case _: JsonParseException => error("load", "mal-formed JSON")
       case _: GraphLoadException => error("load", "invalid graph")
