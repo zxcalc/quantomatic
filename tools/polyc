@@ -138,7 +138,9 @@ if [[ $POLYEXIT == 0 ]]; then
 	export LD_RUN_PATH="$POLYML_LIB:$LD_RUN_PATH"
 	echo "cc $LDFLAGS \"-L${POLYML_LIB}\" -lpolymain -lpolyml -o \"${PROG}\" \"${PROG}${OBJEXT}\""
 	cc $LDFLAGS "-L${POLYML_LIB}" -lpolymain -lpolyml -o "${PROG}" "${PROG}${OBJEXT}"
+	CCEXIT=$?
 	rm -f "${PROG}${OBJEXT}"
+	exit $CCEXIT
 else
 	exit $POLYEXIT
 fi
