@@ -43,12 +43,14 @@ class DotLayout extends GraphLayout {
 
     sb ++= "}\n"
 
+    System.out.println (sb.toString);
     (vid,sb.toString)
   }
 
   protected def compute() {
     val (vid,dotStr) = generateDot(graph)
     dotString = dotStr
+    //System.out.println (dotString);
     var xMax = 0.0
     var yMax = 0.0
 
@@ -61,9 +63,11 @@ class DotLayout extends GraphLayout {
       line match {
         case Graph(xbd,_, ybd,_) =>
           xMax = xbd.toDouble
-          yMax = ybd.toDouble
+          yMax = - ybd.toDouble
+          //System.out.println("Graph",xMax, yMax)
         case Node(id, x,_, y,_) => //change layout from top to buttom by LYH
           coordMap += id.toInt -> ((x.toDouble - 0.5 * xMax) / 10, (0.5 * yMax + y.toDouble) / 10)
+          //System.out.println("Node",((x.toDouble - 0.5 * xMax) / 10, (0.5 * yMax + y.toDouble) / 10))
         case _ => ()
       }
     }
