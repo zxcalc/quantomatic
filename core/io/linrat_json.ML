@@ -45,6 +45,10 @@ structure InputLinratJSON : INPUT_JSON where type data = LinratAngleExpr.T
   
   fun parse_vars obj =
     map (fn n => (X.mk n,get_rational_easy C.zero obj n)) (Json.properties obj)
+
+  fun parse_str s = LinratAngleExpr.parse s
+        handle LinratAngleExpr.parse_exp =>
+          raise bad_input_exp ("Could not parse \""^s^"\"","")
   
   fun input (Json.Object obj) =
         let
@@ -53,9 +57,9 @@ structure InputLinratJSON : INPUT_JSON where type data = LinratAngleExpr.T
         in
           LinratAngleExpr.mk pi (parse_vars vars)
         end
-    | input (Json.String s) = LinratAngleExpr.parse s
+    | input (Json.String s) = parse_str s
     | input Json.Null = LinratAngleExpr.zero
-    | input _ = raise bad_input_exp ("Expected object or string","");
+    | input _ = raise bad_input_exp ("Expected object or string","")
 
 end;
 
