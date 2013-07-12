@@ -62,8 +62,8 @@ class DotLayout extends GraphLayout {
         case Graph(xbd,_, ybd,_) =>
           xMax = xbd.toDouble
           yMax = ybd.toDouble
-        case Node(id, x,_, y,_) =>
-          coordMap += id.toInt -> ((x.toDouble - 0.5 * xMax) / 10, (0.5 * yMax - y.toDouble) / 10)
+        case Node(id, x,_, y,_) => //change layout from top to buttom by LYH
+          coordMap += id.toInt -> ((x.toDouble - 0.5 * xMax) / 10, (0.5 * yMax + y.toDouble) / 10)
         case _ => ()
       }
     }

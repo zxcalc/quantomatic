@@ -6,6 +6,7 @@ import swing.event.Event
 import swing.{FileChooser, Dialog, Publisher}
 import quanto.data.{GraphLoadException, Graph}
 import quanto.util.json.{JsonParseException, Json}
+import quanto.layout.DotLayout
 
 abstract class GraphDocumentEvent extends Event
 case class GraphChanged(sender: GraphDocument) extends GraphDocumentEvent
@@ -22,6 +23,8 @@ class GraphDocument(view: GraphView) extends Publisher {
   def graph = view.graph
   def graph_=(g: Graph) {
     undoStack.clear()
+
+
     storedGraph = g
     view.graph = g
     view.invalidateGraph()
@@ -56,6 +59,12 @@ class GraphDocument(view: GraphView) extends Publisher {
       messageType = Dialog.Message.Error)
   }
 
+  def reLayout () {
+    val dotLayout = new DotLayout();
+    val g = dotLayout.layout(view.graph);
+    graph_=(g);
+  }
+
   def loadGraph(f: File) {
     try {
       val json = Json.parse(f)
@@ -63,11 +72,23 @@ class GraphDocument(view: GraphView) extends Publisher {
 
       file = Some(f)
       graph_=(g)
+      reLayout();
     } catch {
       case _: JsonParseException => error("load", "mal-formed JSON")
       case _: GraphLoadException => error("load", "invalid graph")
       case _: FileNotFoundException => error("load", "not found")
       case _: IOException => error("load", "file unreadable")
+    }
+  }
+
+  def loadGraph(json : Json) {
+    try {
+
+      val g = Graph.fromJson(json, view.theory)
+      graph_=(g)
+    } catch {
+      case _: JsonParseException => error("load", "mal-formed JSON")
+      case _: GraphLoadException => error("load", "invalid graph")
     }
   }
 
@@ -109,6 +130,8 @@ class GraphDocument(view: GraphView) extends Publisher {
         case _ =>
       }
     }
+
+
   }
 
 //  def graph_=(g: Graph) {

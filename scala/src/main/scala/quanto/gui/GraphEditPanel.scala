@@ -6,6 +6,7 @@ import swing._
 import swing.event._
 import javax.swing.ImageIcon
 import quanto.util.swing.ToolBar
+import quanto.util.SockJson
 
 class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends BorderPanel {
   // GUI components
@@ -67,13 +68,33 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     tool = AddBangBoxTool()
   }
 
-  val GraphToolGroup = new ButtonGroup(SelectButton, 
+  val ReLayoutButton = new Button("Re-Layout")
+  val ConnectButton = new Button("Connect")
+  val PrevButton = new Button("Prev")
+  val NextButton = new Button("Next")
+  val DisconnectButton = new Button("Disconnect")
+
+   def setEvalButtonStatus (con : Boolean, discon : Boolean, prev : Boolean, next : Boolean) {
+     PrevButton.enabled_=(prev);
+     NextButton.enabled_=(next);
+     ConnectButton.enabled_=(con);
+     DisconnectButton.enabled_=(discon);
+
+   }
+
+  val GraphToolGroup = new ButtonGroup(SelectButton,
                                        AddVertexButton, 
                                        AddEdgeButton,
-                                       AddBangBoxButton)
+                                       AddBangBoxButton,
+                                       ReLayoutButton
+                                      )
 
   val MainToolBar = new ToolBar {
-    contents += (SelectButton, AddVertexButton, AddEdgeButton, AddBangBoxButton)
+    contents += (SelectButton, AddVertexButton, AddEdgeButton, AddBangBoxButton);
+    addSeparator();
+    contents += (ReLayoutButton)
+    addSeparator();
+    contents += (ConnectButton, DisconnectButton, PrevButton, NextButton)
   }
 
 
@@ -118,5 +139,18 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
           EdgeDirected.enabled = false
         case _ =>
       }
+    case ButtonClicked (ReLayoutButton) =>
+      graphDocument.reLayout();
+    case ButtonClicked (ConnectButton) =>
+      SockJson.connect_sock();
+      val edata = SockJson.request_init();
+      graphDocument.loadGraph (edata);
+      graphDocument.reLayout();
+      setEvalButtonStatus (false, true, false, true)
+    case ButtonClicked (DisconnectButton) =>
+      SockJson.request_deinit ();
+      SockJson.close_sock ();
+      setEvalButtonStatus (true, false, false, false);
+
   }
 }
