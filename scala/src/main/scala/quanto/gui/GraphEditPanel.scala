@@ -6,7 +6,7 @@ import swing._
 import swing.event._
 import javax.swing.ImageIcon
 import quanto.util.swing.ToolBar
-import quanto.util.SockJson
+import quanto.util.{SockJson,SockJsonError,SockJsonErrorType}
 
 class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends BorderPanel {
   // GUI components
@@ -72,7 +72,7 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
   val ConnectButton = new Button("Connect")
   val PrevButton = new Button("Prev")
   val NextButton = new Button("Next")
-  val DisconnectButton = new Button("Disconnect")
+  val DisconnectButton = new Button("Finish")
 
    def setEvalButtonStatus (con : Boolean, discon : Boolean, prev : Boolean, next : Boolean) {
      PrevButton.enabled_=(prev);
@@ -82,11 +82,23 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
    }
 
+  setEvalButtonStatus (true, false, false, false);
+
+   private def error(action: String, reason: String) {
+    Dialog.showMessage(
+      title = "Info",
+      message = action + " (" + reason + ") ")
+  }
+
   val GraphToolGroup = new ButtonGroup(SelectButton,
                                        AddVertexButton, 
                                        AddEdgeButton,
                                        AddBangBoxButton,
-                                       ReLayoutButton
+                                       ReLayoutButton,
+                                       ConnectButton,
+                                       DisconnectButton,
+                                       NextButton,
+                                       PrevButton
                                       )
 
   val MainToolBar = new ToolBar {
@@ -141,16 +153,60 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
       }
     case ButtonClicked (ReLayoutButton) =>
       graphDocument.reLayout();
-    case ButtonClicked (ConnectButton) =>
-      SockJson.connect_sock();
-      val edata = SockJson.request_init();
-      graphDocument.loadGraph (edata);
-      graphDocument.reLayout();
-      setEvalButtonStatus (false, true, false, true)
-    case ButtonClicked (DisconnectButton) =>
-      SockJson.request_deinit ();
-      SockJson.close_sock ();
-      setEvalButtonStatus (true, false, false, false);
 
+    case ButtonClicked (ConnectButton) =>
+     try{
+        SockJson.connectSock();
+        val edata = SockJson.requestInit();
+        graphDocument.loadGraph (edata);
+        graphDocument.reLayout();
+        setEvalButtonStatus (false, true, false, true)
+     }
+     catch{
+       case _ => error ("Can't connect to Isabelle", "have you started the psgraph interative mode in isabelle ?")
+     }
+
+    case ButtonClicked (DisconnectButton) =>
+      SockJson.requestDeinit ();
+      SockJson.closeSock ();
+      setEvalButtonStatus (true, false, false, false);
+    case ButtonClicked (PrevButton) =>
+      try{
+        val edata = SockJson.requestPrev();
+        graphDocument.loadGraph (edata);
+        graphDocument.reLayout();
+        setEvalButtonStatus (false, true, true, true);
+      }
+      catch{
+        case SockJsonError(_, SockJsonErrorType.ErrEval) =>
+          setEvalButtonStatus (false, true, false, false);
+          error ("Can't show the current step", "eval error")
+
+        case SockJsonError(_, SockJsonErrorType.NoPrev) =>
+          PrevButton.enabled_=(false)
+          error ("No prev step", "already very begining now")
+
+        case _ =>
+          error ("Can't show the previous step", "unknown error")
+      }
+    case ButtonClicked (NextButton) =>
+      try{
+        val edata = SockJson.requestNext();
+        graphDocument.loadGraph (edata);
+        graphDocument.reLayout();
+        setEvalButtonStatus (false, true, true, true);
+      }
+      catch{
+        case SockJsonError(_, SockJsonErrorType.ErrEval) =>
+          setEvalButtonStatus (false, true, false, false);
+          error ("Can't show the current step", "eval error")
+
+        case SockJsonError(_, SockJsonErrorType.GoodEval) =>
+          NextButton.enabled_=(false)
+          error ("Congratulations", "proof has been discharged !")
+
+        case _ =>
+          error ("Can't show the next step", "unknown error")
+    }
   }
 }

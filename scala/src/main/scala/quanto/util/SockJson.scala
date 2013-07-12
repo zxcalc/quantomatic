@@ -5,10 +5,18 @@ import java.io._
 import scala.io._
 import quanto.util.json._
 
+
+object SockJsonErrorType extends Enumeration {
+  val NoPrev, GoodEval, ErrEval = Value
+}
+
+case class SockJsonError(message: String, errorType: SockJsonErrorType.Value) extends Exception(message)
+
+
 object SockJson {
   private var socket : Socket = null;
-  private var sock_in : Json.Input  = null;
-  private var sock_out : Json.Output = null;
+  private var sockIn : Json.Input  = null;
+  private var sockOut : Json.Output = null;
 
   val ctrl = "PSGraphCtrl"
   val module = "JsonSocket"
@@ -23,12 +31,12 @@ object SockJson {
       "module"     -> module,
       "function"   -> function,
       "input"      -> input
-    ).writeTo(sock_out)
+    ).writeTo(sockOut)
 
-    sock_out.flush()
+    sockOut.flush()
 
     if (resp){
-      Json.parse(sock_in) match {
+      Json.parse(sockIn) match {
         case JsonObject(map) => map("output")
       }
     }
@@ -38,35 +46,59 @@ object SockJson {
 
   }
 
-  def connect_sock () {
-    socket = new Socket(InetAddress.getByName("localhost"), 4230);
+  def connectSock () {
+    socket = new Socket(InetAddress.getByName("localhost"), 4234);
 
-    sock_out = new Json.Output(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream)))
-    sock_in = new Json.Input(new BufferedReader(new InputStreamReader(socket.getInputStream)))
+    sockOut = new Json.Output(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream)))
+    sockIn = new Json.Input(new BufferedReader(new InputStreamReader(socket.getInputStream)))
   }
 
-  def close_sock () {
-    sock_in.close();
-    sock_out.close();
+  def closeSock () {
+    sockIn.close();
+    sockOut.close();
     socket.close();
     socket = null
-    sock_in = null;
-    sock_out = null;
+    sockIn = null;
+    sockOut = null;
   }
 
-  def request_init () = {
+  def requestInit () = {
     request("current_status", true);
   }
 
-  def request_next () = {
-    request("next_status", true);
+  def requestNext () = {
+    val json = request("next_status", true);
+
+    json match{
+      case JsonNull() =>
+        throw new SockJsonError ("Eval error !", SockJsonErrorType.ErrEval)
+      case JsonString(v) =>
+        if (json.stringValue == "SUCCESS")
+          throw new SockJsonError ("Proof success !", SockJsonErrorType.GoodEval)
+        else
+          json
+      case _ =>
+        json
+    }
   }
 
-  def request_prev () = {
-    request("previous_status", true);
+  def requestPrev () = {
+    val json = request("previous_status", true);
+    json match{
+      case JsonNull() =>
+        throw new SockJsonError ("Eval error !", SockJsonErrorType.ErrEval)
+      case JsonString(v) =>
+        if (json.stringValue == "TOP")
+          throw new SockJsonError ("No Prev !", SockJsonErrorType.NoPrev)
+        else
+          json
+      case _ =>
+        json
+    }
   }
 
-  def request_deinit () = {
+
+  def requestDeinit () = {
     request("close", false);
   }
 }

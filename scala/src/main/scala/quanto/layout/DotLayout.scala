@@ -43,7 +43,7 @@ class DotLayout extends GraphLayout {
 
     sb ++= "}\n"
 
-    System.out.println (sb.toString);
+    //System.out.println (sb.toString);
     (vid,sb.toString)
   }
 
