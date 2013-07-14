@@ -25,7 +25,7 @@ sig
   exception bad_rule_exp of string * Graph.T * Graph.T
   val mk : (Graph.T * Graph.T) -> T
   (* returns the renamings applied to the RHS *)
-  val mk_with_renamings : (Graph.T * Graph.T) -> T * (VSub.T * ESub.T)
+  (*val mk_with_renamings : (Graph.T * Graph.T) -> T * (VSub.T * ESub.T)*)
 
   (* generate a boundary graph, including bboxes? *)
   val get_boundary_vertices : T -> V.NSet.T
@@ -60,7 +60,7 @@ sig
   exception bad_rule_exp of string * Graph.T * Graph.T
   val mk : (Graph.T * Graph.T) -> T
   (* returns the renamings applied to the RHS *)
-  val mk_with_renamings : (Graph.T * Graph.T) -> T * (VSub.T * ESub.T)
+  (*val mk_with_renamings : (Graph.T * Graph.T) -> T * (VSub.T * ESub.T)*)
 
   (* generate a boundary graph, including bboxes? *)
   val get_boundary_vertices : T -> V.NSet.T
@@ -183,7 +183,7 @@ fun get_rule_bounds lhs rhs =
         raise bad_rule_exp ("get_rule_bounds: Left and right hand side boundaries are different", lhs, rhs)
    end
 
-fun mk_with_renamings (lhs,rhs) =
+(*fun mk_with_renamings (lhs,rhs) =
     let
       val bnd = get_rule_bounds lhs rhs
       val lhs_int = V.NSet.subtract (Graph.get_vertices lhs) bnd
@@ -202,6 +202,13 @@ fun mk_with_renamings (lhs,rhs) =
         (vrn,ern))
     end;
 val mk = fst o mk_with_renamings
+*)
+
+fun mk (lhs,rhs) =
+  let
+    val bnd = get_rule_bounds lhs rhs
+  in (Rule { lhs = lhs, rhs = rhs, boundary_vertices = bnd })
+  end
 
 fun get_lhs (Rule rep) = #lhs rep;
 fun get_rhs (Rule rep) = #rhs rep;

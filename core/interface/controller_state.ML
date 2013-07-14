@@ -425,11 +425,13 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
         (* build graphs for the LHS and RHS *)
         val lgr = get_graph state lhs
         val rgr = get_graph state rhs
-        val (rule,(vrn,ern)) = Ruleset.Rule.mk_with_renamings (lgr, rgr)
+        (*val (rule,(vrn,ern)) = Ruleset.Rule.mk_with_renamings (lgr, rgr)*)
+        val rule = Ruleset.Rule.mk (lgr, rgr)
         val lgr_ud = get_graph_ud state lhs
-        val rgr_ud = GraphUserData.apply_renaming
+        (*val rgr_ud = GraphUserData.apply_renaming
                       (vrn,ern,BSub.empty)
-                      (get_graph_ud state rhs)
+                      (get_graph_ud state rhs)*)
+        val rgr_ud = get_graph_ud state rhs
         val upd_ud = (RulesetUserData.set_rule_lhs_annotation rule_name lgr_ud)
                      o (RulesetUserData.set_rule_rhs_annotation rule_name rgr_ud)
       in
