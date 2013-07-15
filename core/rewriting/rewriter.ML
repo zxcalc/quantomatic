@@ -119,7 +119,7 @@ struct
     val rule = Rule.mk (Graph.minimise pat, Graph.minimise rhs')
     val vrn = VSub.empty
       |> V.NSet.fold (fn b => VSub.add (b, VVInj.get vmap b)) shared_boundary
-      |> VSub.avoid_set_in_cod (V.NSet.subtract (Graph.get_vertices h) shared_boundary_img)
+      |> VSub.avoid_set_in_cod (V.NSet.subtract (Graph.get_vertices g) shared_boundary_img)
       |> VSub.extend_fresh (Rule.get_vertices rule)
     val ern = ESub.mk_from_avoids (Graph.get_edges h) |> ESub.extend_fresh (Rule.get_edges rule)
     val (_,rule') = rule |> Rule.rename_bang_graph_rule (vrn,ern,BSub.empty)
