@@ -278,18 +278,6 @@
 	  accel="control D"
           desc="Duplicate the selected bang box"/>
 
-	<!-- Hilbert space menu commands -->
-
-	<action id="hilbert-as-text-command"
-          name="Hilbert space term as text"
-          mnemonic="t"
-          desc="Get the Hilbert space term for the graph in text format"/>
-
-	<action id="hilbert-as-mathematica-command"
-          name="Hilbert space term as Mathematica"
-          mnemonic="M"
-          desc="Get the Hilbert space term for the graph in Mathematica format"/>
-
 	<!-- Rule menu commands -->
 
 	<!--action id="use-rule-command"
@@ -371,11 +359,6 @@
 				<action idref="kill-bang-box-command" />
 				<action idref="duplicate-bang-box-command" />
 			</action-list>
-		</action-list>
-
-		<action-list id="hilbert-menu" name="Hilbert space" mnemonic="b">
-			<action idref="hilbert-as-text-command" />
-			<action idref="hilbert-as-mathematica-command" />
 		</action-list>
 
 		<!--action-list id="rule-menu" name="Rule" mnemonic="R">

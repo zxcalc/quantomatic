@@ -15,6 +15,9 @@
   <property name="resources" location="resources"/>
   <property environment="env" />
 
+  <!-- Java version we are compatible with -->
+  <property name="ant.build.javac.source" value="1.6"/>
+
 
   <!-- classpath we use for building, just all the JARs in ${lib} -->
   <path id="quanto.classpath.build">
@@ -47,7 +50,7 @@
     <mkdir dir="${build.debug}"/>
     <!-- Make sure quanto core is up to date -->
     <exec executable="make" dir="../core" failonerror="true">
-      <arg value="bin" />
+      <arg value="bin/quanto-core" />
     </exec>
     <mkdir dir="generated/org/lindenb/svg/path"/>
     <javacc target="lindenb-src/org/lindenb/svg/path/SVGPathParser.jj" javacchome="lib" outputdirectory="generated/org/lindenb/svg/path"/>

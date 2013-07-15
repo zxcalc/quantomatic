@@ -4,11 +4,11 @@ sig
 	type multiplicity
 	structure G : BANG_GRAPH
 
-	val boundary : G.VData.data
+	val boundary : G.vdata
 
     (* CONSTRUCTOR *)
 	val mk : G.T -> V.name -> T
-	val build : V.name * G.VData.data * multiplicity * int * multiplicity * int * multiplicity -> T
+	val build : V.name * G.vdata * multiplicity * int * multiplicity * int * multiplicity -> T
 	
 	(* COMPARISON FUNCTIONS *)
 	val eq : T * T -> bool
@@ -21,7 +21,7 @@ sig
 	val get_succ : G.T -> T -> T list
 
 	val get_name : T -> V.name
-	val get_kind : T -> G.VData.data
+	val get_kind : T -> G.vdata
 	val get_kind_mult : T -> multiplicity
 	val get_input_arity : T -> int
 	val get_input_mult : T -> multiplicity
@@ -54,14 +54,14 @@ struct
 	datatype multiplicity = None | Star | QM
 
 	type T = { name : V.name,
-			   kind : G.VData.data,
+			   kind : G.vdata,
 	           kind_mult : multiplicity,
 	           input_arity : int,
 	           input_mult : multiplicity, 
 	           output_arity : int,
 	           output_mult : multiplicity }	
 
-	val boundary = G.OVData.WVert
+	val boundary = G.WVert
 
 	val mult_none = None
 	val mult_qm = QM
@@ -88,11 +88,11 @@ struct
 	(* HELPER FUNCTIONS to compare literal matching *)
 	(* This function checks if one literal between l1 and l2 has a boundary kind *)
     fun one_is_a_bondary(l1,l2) = 
-        if (G.VData.data_eq(#kind l1, boundary) orelse G.VData.data_eq(#kind l2, boundary)) then true else false 
+        if (G.vdata_eq(#kind l1, boundary) orelse G.vdata_eq(#kind l2, boundary)) then true else false 
 
 	(* This functions checks if the kinds of two literals l1 and l2 match *)
 	fun match_kind(l1,l2) = 
-		G.VData.data_eq(#kind l1, #kind l2) orelse one_is_a_bondary(l1,l2)
+		G.vdata_eq(#kind l1, #kind l2) orelse one_is_a_bondary(l1,l2)
 
 	(* This functions checks if the input arity of two literals l1 and l2 match *)
 	fun match_input(l1,l2) = 
@@ -121,7 +121,7 @@ struct
 
 	(* This functions checks if the kinds of two literals l1 and l2 are equivalent *)
 	fun equiv_kind(l1,l2) = 
-		if (G.VData.data_eq(#kind l1, #kind l2)) andalso
+		if (G.vdata_eq(#kind l1, #kind l2)) andalso
 		   ( (#input_mult l1 = None andalso #input_mult l2 = None) orelse
 		   	 (#input_mult l1 = Star andalso #input_mult l2 = Star) orelse
 		   	 (#input_mult l1 = QM andalso #input_mult l2 = QM) )
@@ -177,7 +177,7 @@ struct
 	(* This function returns the literals of all the adjacent nodes to the literal l in the graph g *)
 	fun get_adj g l =
 		let
-	      val adj_vert = G.adj_vnames g (#name l)
+	      val adj_vert = G.get_adj_vertices g (#name l)
 	      val v_list = V.NSet.list_of adj_vert
 
 	      val g_list = replicate (length v_list) g
@@ -188,7 +188,7 @@ struct
 	(* This function returns the literals of all the predecessor nodes of the literal l in the graph g *)
 	fun get_pred g l =
 		let
-	      val adj_vert = G.pred_vnames g (#name l)
+	      val adj_vert = G.get_predecessor_vertices g (#name l)
 	      val v_list = V.NSet.list_of adj_vert
 
 	      val g_list = replicate (length v_list) g
@@ -199,7 +199,7 @@ struct
 	(* This function returns the literals of all the successor nodes of the literal l in the graph g *)
 	fun get_succ g l =
 		let
-	      val adj_vert = G.succ_vnames g (#name l)
+	      val adj_vert = G.get_successor_vertices g (#name l)
 	      val v_list = V.NSet.list_of adj_vert
 
 	      val g_list = replicate (length v_list) g
@@ -208,7 +208,7 @@ struct
 	    end
 
 	(* This function checks if a literal is a boundary node-vertex *)
-	fun is_boundary(l) = G.VData.data_eq(#kind l, boundary)
+	fun is_boundary(l) = G.vdata_eq(#kind l, boundary)
 
 
 	(* Functions to work with multiplicity *)

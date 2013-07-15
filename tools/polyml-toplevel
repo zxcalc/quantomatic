@@ -1,0 +1,88 @@
+#!/bin/bash
+
+PRG="$(basename "$0")"
+
+usage () {
+	echo "usage: ${PRG} [opts] [-- [polyopts]]"
+	echo "Runs an interactive Poly/ML session, wrapped in rlwrap or similar"
+	echo
+	echo "OPTIONS"
+	echo "  -h             print this message"
+	echo "  -l <heap>      load the initial state store in <heap>"
+	echo "  -w <wrapper>   use the wrapper <wrapper>"
+}
+
+while getopts "hl:w:" opt
+do
+	case "$opt" in
+		h)
+			usage
+			exit 0
+		;;
+		l)
+			HEAP="$OPTARG"
+		;;
+		w)
+			WRAPPER="$OPTARG"
+		;;
+		\?)
+			usage >&2
+			exit 1
+		;;
+	esac
+done
+shift $((OPTIND-1))
+
+TOOLS_DIR="$(cd "$(dirname $0)"; pwd)";
+POLYML_HOME="$($TOOLS_DIR/findpoly.sh)"
+if [ "$POLYML_HOME" == "" ]; then
+	echo 'Cannot find Poly/ML (try setting $POLYML_HOME)'
+	exit 1
+fi
+POLY="$POLYML_HOME/bin/poly"
+
+if [ -z "$TMPDIR" ]; then
+  TMPDIR="/tmp"
+fi
+PRE_USE="$(mktemp $TMPDIR/tmp.XXXXXXXXXX.ML)"
+
+echo "val _ = PolyML.Compiler.printDepth := 0;" > "$PRE_USE"
+if [[ $HEAP != "" ]]; then
+	cat >> "$PRE_USE" <<- EOF
+		local
+		  fun bad_load msg =
+		    (TextIO.print ("Could not load heap \\"${HEAP}\\": "^msg^"\\n");
+		     OS.Process.exit OS.Process.failure);
+		  fun bad_load_exn exp =
+		    (TextIO.print ("Could not load heap \\"${HEAP}\\"\\n");
+		     PolyML.prettyPrint (TextIO.print,80)
+		                        (PolyML.prettyRepresentation (exp,5));
+		     OS.Process.exit OS.Process.failure);
+		in
+		  val _ = PolyML.SaveState.loadState "${HEAP}"
+		    handle OS.SysErr (msg,_) => bad_load msg
+		         | Fail msg => bad_load msg
+		         | exp => bad_load_exn exp;
+		end;
+		EOF
+fi
+cat >> "$PRE_USE" <<- EOF
+	PolyML.Compiler.printDepth:=10;
+	EOF
+
+if [ "$WRAPPER" = "" ]; then
+	if which rlwrap > /dev/null 2>/dev/null; then
+		WRAPPER=rlwrap
+	elif [ "$EMACS" != "t" ] && which ledit > /dev/null 2>/dev/null; then
+		WRAPPER=ledit
+	else
+		echo "No line editor found; you will not get any command history"
+		echo "Try installing rlwrap (http://freecode.com/projects/rlwrap)"
+	fi
+fi
+
+$WRAPPER ${POLY} --use "${PRE_USE}" "$@"
+
+rm -f "$PRE_USE"
+
+# vi:ts=4:sts=4:sw=4:noet

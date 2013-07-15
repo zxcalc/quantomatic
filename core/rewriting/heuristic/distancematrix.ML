@@ -30,7 +30,7 @@ sig
 end;
 
 functor DistanceMatrixFun(
-  structure Graph : GRAPH
+  structure Graph : OGRAPH
   ) : DISTANCE_MATRIX
 = struct
 
@@ -69,9 +69,10 @@ functor DistanceMatrixFun(
   (* Calculate a distance matrix given a graph. *)
   fun calculate g = let
         (* Keep track of list of names = indexing set of matrix *)
-        val l = Graph.get_vnames g
+        val l = Graph.get_vertices g
         fun calc g v t = let
-              val (_,(efrom,eto)) = Graph.get_vertex g v
+              val efrom = Graph.get_in_edges g v
+              val eto = Graph.get_out_edges g v
               val gnext = g |> Graph.delete_vertex v
               (* update distances to/from vwith around directed edge vfrom->vto *)
               fun update_dist vfrom vto vwith t =
@@ -83,9 +84,9 @@ functor DistanceMatrixFun(
                           (distplusone (get_distance t vto vwith))
               (* update distances around edge named en *)
               fun calc_edge en t = let
-                    val ((dir,_),(vs,vt)) = Graph.get_edge g en
+                    val ((dir,_),(vs,vt)) = Graph.get_edge_info g en
                   in t |> V.NSet.fold (update_dist vs vt) l
-                       |> (if dir=Graph.Directed then I else
+                       |> (if dir=Directed then I else
                            V.NSet.fold (update_dist vt vs) l)
                   end;
               (* update distances around edge set es *)
@@ -94,7 +95,7 @@ functor DistanceMatrixFun(
                  |> calc_edges efrom
                  |> calc_edges eto
                  |> (calc gnext (the (V.NSet.get_local_bot
-                                      (Graph.get_vnames gnext)))
+                                      (Graph.get_vertices gnext)))
                      handle Option => I)
             end;
       in calc g (the (V.NSet.get_local_bot l)) NTab.empty end;

@@ -149,7 +149,7 @@ fun out (Cosy.SYNTH s) = output_synth s
 (*   SYNTH FUNCTIONS   *)
 (***********************)
 
-fun synth run = Cosy.SYNTH (Cosy.Synth.synth Cosy.gens run)
+(*fun synth run = Cosy.SYNTH (Cosy.Synth.synth Cosy.gens run)
 fun synth_with_rs (Cosy.RS rs) run = Cosy.SYNTH (Cosy.Synth.synth_with_rs rs Cosy.gens run)
 
 fun update (Cosy.SYNTH s) (Cosy.RS rs) = Cosy.RS (rs |> Cosy.RSBuilder.update s)
@@ -157,7 +157,7 @@ fun reduce (Cosy.RS rs) = Cosy.RS (Cosy.RSBuilder.reduce rs)
 
 fun update_redex run rs = rs |> update (synth_with_rs rs run) |> reduce
 fun update_naive run rs = rs |> update (synth run)
-
+*)
 
 
 
@@ -165,7 +165,7 @@ fun update_naive run rs = rs |> update (synth run)
 (*   RULESET FUNCTIONS   *)
 (*************************)
 
-fun size (Cosy.RS rs) = R.NTab.cardinality (Cosy.Theory.Ruleset.get_allrules rs)
+(*fun size (Cosy.RS rs) = R.NTab.cardinality (Cosy.Theory.Ruleset.get_allrules rs)
 fun rule_matches_rule (Cosy.RULE r1) (Cosy.RULE r2) = Cosy.RSBuilder.rule_matches_rule r1 r2
 
 fun match_rule (Cosy.RULE rule) (Cosy.GRAPH target) = Cosy.rule_matches_graph rule target
@@ -206,7 +206,7 @@ fun as_data list = fold2
 
 
 val cosy = process update_redex Cosy.initial_rs
-
+*)
 
 (********************)
 (*   IO FUNCTIONS   *)

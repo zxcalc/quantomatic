@@ -2,14 +2,14 @@
  * Tests matching of !-graphs against string graphs
  *)
 functor Bang_Graph_Matching_Tests(
-  Matcher : BG_MATCH_SEARCH where type G.EData.data = Test_Graph_Data.edata
-                              and type G.OVData.IData.data = Test_Graph_Data.vdata
+  Matcher : TEST_BG_MATCH_SEARCH
 ) =
 struct
-  (* test matching with concrete graphs *)
-  structure SG_Matcher_Tests = String_Graph_Matching_Tests(Matcher);
-
   structure Tools = Test_Bang_Match_Tools(Matcher);
+
+  (* test matching with concrete graphs *)
+  structure SG_Matcher_Tests = String_Graph_Matching_Tests(Tools);
+
   open Tools;
 
   (*
@@ -97,39 +97,39 @@ struct
       |> add_undir_eunit1 "e3" "c" "s3";
 
   val _ = Testing.test "M.match - circles pattern --> empty"
-                       (find_n_matches 1) (circles_pat,G.empty);
+                       (find_n_correct_matches 1) (circles_pat,G.empty);
   val _ = Testing.test "M.match - circles pattern --> one circle"
-                       (find_n_matches 2) (circles_pat,one_circle);
+                       (find_n_correct_matches 2) (circles_pat,one_circle);
   val _ = Testing.test "M.match - circles pattern --> two circles"
-                       (find_n_matches 5) (circles_pat,two_circles);
+                       (find_n_correct_matches 5) (circles_pat,two_circles);
   val _ = Testing.test "M.match - circles pattern --> three circles"
-                       (find_n_matches 16) (circles_pat,three_circles);
+                       (find_n_correct_matches 16) (circles_pat,three_circles);
   val _ = Testing.test "M.match - circles+wire pattern --> one circle"
-                       (find_n_matches 1) (circle_wire_pat,one_circle);
+                       (find_n_correct_matches 1) (circle_wire_pat,one_circle);
   val _ = Testing.test "M.match - circles+wire pattern --> two circles"
-                       (find_n_matches 3) (circle_wire_pat,two_circles);
+                       (find_n_correct_matches 3) (circle_wire_pat,two_circles);
   val _ = Testing.test "M.match - v any ins or outs pattern --> one circle"
-                       (find_n_matches 0) (v_any_ins_outs_pat,one_circle);
+                       (find_n_correct_matches 0) (v_any_ins_outs_pat,one_circle);
   val _ = Testing.test "M.match - v any ins or outs pattern --> single vertex"
-                       (find_n_matches 1) (v_any_ins_outs_pat,single_v);
+                       (find_n_correct_matches 1) (v_any_ins_outs_pat,single_v);
   val _ = Testing.test "M.match - v any ins or outs pattern --> v->1"
-                       (find_n_matches 1) (v_any_ins_outs_pat,v_out);
+                       (find_n_correct_matches 1) (v_any_ins_outs_pat,v_out);
   val _ = Testing.test "M.match - v any ins or outs pattern --> 2->v->1"
-                       (find_n_matches 2) (v_any_ins_outs_pat,in_in_v_out);
+                       (find_n_correct_matches 2) (v_any_ins_outs_pat,in_in_v_out);
   val _ = Testing.test "M.match - v any ins or outs pattern --> v->v"
-                       (find_n_matches 2) (v_any_ins_outs_pat,v_to_v);
+                       (find_n_correct_matches 2) (v_any_ins_outs_pat,v_to_v);
   val _ = Testing.test "M.match - v any ins or outs pattern --> v with loop"
-                       (find_n_matches 1) (v_any_ins_outs_pat,loop);
+                       (find_n_correct_matches 1) (v_any_ins_outs_pat,loop);
   val _ = Testing.test "M.match - star pattern --> lonely spoke"
-                       (find_n_matches 0) (star_pat,lonely_spoke);
+                       (find_n_correct_matches 0) (star_pat,lonely_spoke);
   val _ = Testing.test "M.match - star pattern --> zero-spoke star"
-                       (find_n_matches 1) (star_pat,star_zero);
+                       (find_n_correct_matches 1) (star_pat,star_zero);
   val _ = Testing.test "M.match - star pattern --> one-spoke star"
-                       (find_n_matches 1) (star_pat,star_one);
+                       (find_n_correct_matches 1) (star_pat,star_one);
   val _ = Testing.test "M.match - star pattern --> two-spoke star"
-                       (find_n_matches 2) (star_pat,star_two);
+                       (find_n_correct_matches 2) (star_pat,star_two);
   val _ = Testing.test "M.match - star pattern --> three-spoke star"
-                       (find_n_matches 6) (star_pat,star_three);
+                       (find_n_correct_matches 6) (star_pat,star_three);
 
 
   (*
@@ -152,7 +152,7 @@ struct
       |> add_bbox "B1" ["l2-a"];
 
   val arbitrary_tree_pat = balanced_tree_pat
-      |> G.set_bbox_parent (B.mk "B1") (B.mk "B0");
+      |> G.add_child_to_bbox (B.mk "B0") (B.mk "B1");
 
   val min_tree = G.empty
       |> add_vunit1 "l0";
@@ -186,18 +186,18 @@ struct
       |> add_dir_eunit1 "e22" "l1-b" "l2-b";
 
   val _ = Testing.test "M.match - balanced tree --> tree {}"
-          ((assert_n_warnings 1) o List.hd o (find_n_matches 1))
+          ((assert_n_wild_bboxes 1) o List.hd o (find_n_correct_matches 1))
           (balanced_tree_pat,min_tree);
   val _ = Testing.test "M.match - arbitrary tree --> tree {}"
-                       (find_n_matches 1) (arbitrary_tree_pat,min_tree);
+                       (find_n_correct_matches 1) (arbitrary_tree_pat,min_tree);
   val _ = Testing.test "M.match - balanced tree --> tree {1}"
-                       (find_n_matches 1) (balanced_tree_pat,tree_1);
+                       (find_n_correct_matches 1) (balanced_tree_pat,tree_1);
   val _ = Testing.test "M.match - arbitrary tree --> tree {1}"
-                       (find_n_matches 1) (arbitrary_tree_pat,tree_1);
+                       (find_n_correct_matches 1) (arbitrary_tree_pat,tree_1);
   val _ = Testing.test "M.match - balanced tree --> tree {2}"
-                       (find_n_matches 2) (balanced_tree_pat,tree_2);
+                       (find_n_correct_matches 2) (balanced_tree_pat,tree_2);
   val _ = Testing.test "M.match - arbitrary tree --> tree {2}"
-                       (find_n_matches 2) (arbitrary_tree_pat,tree_2);
+                       (find_n_correct_matches 2) (arbitrary_tree_pat,tree_2);
 
 
   val _ = Testing.assert_no_failed_tests();

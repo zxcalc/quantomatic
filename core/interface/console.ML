@@ -43,14 +43,14 @@ structure Console : CONSOLE
 (*
   structure G = Commands.ControllerState.Theory.Graph;
   fun handle_bug_in_function f args = f args
-      handle G.no_such_vname_exp (s, v, g) => 
-        raise ControllerState.user_exp ("BUG: G.no_such_vname_exp")
-      | G.vname_already_exists_exp (v,g) =>
-        raise ControllerState.user_exp ("BUG: G.vname_already_exists_exp")
-      | G.no_such_ename_exp (s, e, g) =>
-        raise ControllerState.user_exp ("BUG: G.no_such_ename_exp")
-      | G.ename_already_exists_exp (e,g) => 
-        raise ControllerState.user_exp ("BUG: G.ename_already_exists_exp")
+      handle G.no_such_vertex_exp (s, v, g) => 
+        raise ControllerState.user_exp ("BUG: G.no_such_vertex_exp")
+      | G.duplicate_vertex_exp (v,g) =>
+        raise ControllerState.user_exp ("BUG: G.duplicate_vertex_exp")
+      | G.no_such_edge_exp (s, e, g) =>
+        raise ControllerState.user_exp ("BUG: G.no_such_edge_exp")
+      | G.duplicate_edge_exp (e,g) => 
+        raise ControllerState.user_exp ("BUG: G.duplicate_edge_exp")
       | G.merge_bbox_exp s => 
         raise ControllerState.user_exp ("BUG: G.merge_bbox_exp")
       | G.overlapping_bbox_exp (vs,g) =>

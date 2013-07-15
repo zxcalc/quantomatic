@@ -41,6 +41,10 @@ sig
   val update_in : (int -> int) -> T -> T
   val update_out : (int -> int) -> T -> T
   val update_undir : (int -> int) -> T -> T
+  
+  val set_in : int -> T -> T
+  val set_out : int -> T -> T
+  val set_undir : int -> T -> T
 
   val rep_of : T -> {no_in : int, (* number of incoming edges *)
              no_out : int, (* number of outgoig edges *)
@@ -52,7 +56,7 @@ sig
 end;
 
 (* *)
-structure Arity = 
+structure Arity : ARITY = 
 struct
   
   (* not every *)
@@ -82,6 +86,10 @@ struct
   fun update_undir f (Arity rep) = 
       Arity { no_in = #no_in rep, no_out = #no_out rep, 
               no_undir = f(#no_undir rep) };
+
+  val set_in = update_in o K
+  val set_out = update_out o K
+  val set_undir = update_undir o K
 
   (* *)  
   fun add (Arity rep1) (Arity rep2) = 
@@ -120,6 +128,11 @@ struct
         no_out = non_zero_div (#no_out rep1) (#no_out rep2),
         no_undir = non_zero_div (#no_undir rep1) (#no_undir rep2) };
   
+  fun mult (Arity rep1) (Arity rep2) = (* rep1 * rep2 *)
+      Arity { no_in = (#no_in rep1) * (#no_in rep2),
+        no_out = (#no_out rep1) * (#no_out rep2),
+        no_undir = (#no_undir rep1) * (#no_undir rep2) };
+  
   fun max_incidence (Arity rep) = 
       Int.max(Int.max (#no_in rep, #no_out rep), #no_undir rep);
 
@@ -133,14 +146,16 @@ struct
          [#no_in rep, #no_out rep, #no_undir rep]
          NONE;
 
+  fun rep_of (Arity rep) = rep
+
   fun pretty (Arity rep) = 
       Pretty.block 
         ( [Pretty.str "(in:",
            Pretty.str (Int.toString (#no_in rep))]
         @ [Pretty.str ", out:",
-           Pretty.str (Int.toString (#no_in rep))]
+           Pretty.str (Int.toString (#no_out rep))]
         @ [Pretty.str ", undir:",
-           Pretty.str (Int.toString (#no_in rep))]
+           Pretty.str (Int.toString (#no_undir rep))]
         @ [Pretty.str ")"] );
 
   val print = Pretty.writeln o pretty;

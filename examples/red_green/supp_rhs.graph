@@ -1,0 +1,1 @@
+{"wire_vertices":{"a":{},"b":{}},"node_vertices":{"c":{"data":{"type":"X","label":"0","value":{"pretty":"0"}}},"d":{"data":{"type":"X","label":"0","value":{"pretty":"0"}}}},"undir_edges":{"Ea":{"src":"a","tgt":"d"},"Eb":{"src":"c","tgt":"b"}}}

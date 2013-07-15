@@ -8,137 +8,291 @@
  * both expanding it and killing it.
  *)
 functor GreedyMatchSearch(
-    structure InnerMatchSearch : INNER_MATCH_SEARCH
-    (* This arg is required to make typing work sanely. *)
-    (* It must be the same structure as the one in InnerMatchSearch *)
-    structure BGMatchState : BANG_GRAPH_MATCH_STATE
-    sharing InnerMatchSearch.MatchState.Sharing = BGMatchState.Sharing
+  Graph : BANG_GRAPH
 ) : BG_MATCH_SEARCH =
 struct
 
   structure Log : LOG = Log(val init_level = 0);
+  structure Graph = Graph;
+  structure InnerMatchState = OGraphMatchState(Graph);
+  structure InnerMatchSearch = ProgressiveMatchSearch(InnerMatchState);
+  structure Match = BangGraphMatch(Graph);
 
-  structure BGMatchState = BGMatchState
-  structure BG = BGMatchState.BG
-  structure MatchState = InnerMatchSearch.MatchState
-  structure G = InnerMatchSearch.G
+  datatype State = MatchState of {
+    init_pat     : Graph.T,
+    bbox_ops     : bbox_op list,
+    wild_bboxes  : B.NSet.T,
+    inner_state  : InnerMatchState.T
+  }
+
+  fun update_init_pat f (MatchState r) = MatchState {init_pat=f(#init_pat r),bbox_ops= #bbox_ops r,wild_bboxes= #wild_bboxes r,inner_state= #inner_state r}
+  fun update_bbox_ops f (MatchState r) = MatchState {init_pat= #init_pat r,bbox_ops=f(#bbox_ops r),wild_bboxes= #wild_bboxes r,inner_state= #inner_state r}
+  fun update_wild_bboxes f (MatchState r) = MatchState {init_pat= #init_pat r,bbox_ops= #bbox_ops r,wild_bboxes=f(#wild_bboxes r),inner_state= #inner_state r}
+  fun update_inner_state f (MatchState r) = MatchState {init_pat= #init_pat r,bbox_ops= #bbox_ops r,wild_bboxes= #wild_bboxes r,inner_state=f(#inner_state r)}
+
+  fun get_init_pat    (MatchState r) = #init_pat r
+  fun get_bbox_ops    (MatchState r) = #bbox_ops r
+  fun get_wild_bboxes (MatchState r) = #wild_bboxes r
+  fun get_inner_state (MatchState r) = #inner_state r
+
+  fun set_init_pat    x  = update_init_pat    (fn _ => x)
+  fun set_bbox_ops    x  = update_bbox_ops    (fn _ => x)
+  fun set_wild_bboxes x  = update_wild_bboxes (fn _ => x)
+  fun set_inner_state x  = update_inner_state (fn _ => x)
+
+  (* the inner match state actually holds the canonical reference to the expanded pattern graph *)
+  val get_pat = InnerMatchState.get_pat o get_inner_state
+  val update_pat = update_inner_state o InnerMatchState.update_pat
+  fun set_pat x = update_pat (fn _ => x)
+
+  fun add_wild_bbox bb = update_wild_bboxes (B.NSet.add bb)
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
         (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
-  val log_graph = log_p G.pretty
+  val log_graph = log_p Graph.pretty
   val log_v_nset = log_p V.NSet.pretty
+
+  fun init pat tgt = MatchState {
+    init_pat = pat,
+    bbox_ops = [],
+    wild_bboxes = B.NSet.empty,
+    inner_state = InnerMatchState.init pat tgt
+  }
+
+  fun schedule_concrete new_vs new_es bms = let
+    val ms = get_inner_state bms
+    val pat = InnerMatchState.get_pat ms
+
+    val touched = Graph.get_adj_vertices_to_set pat new_vs
+    val to_sched = V.NSet.intersect (InnerMatchState.get_p_nodeverts ms) touched
+
+    val unbboxed = V.NSet.subtract new_vs (Graph.get_bboxed pat)
+    val wires = Graph.get_wires_for_edges pat new_es
+    fun delete_wvs_in_wire (s,t,wv,_) set =
+      set |> V.NSet.remove_set wv
+          |> (if Graph.is_wire_vertex pat s then V.NSet.delete s else I)
+          |> (if Graph.is_wire_vertex pat t then V.NSet.delete t else I)
+    val circles = filter (fn (s,t,_,_) =>
+                    V.name_eq (s,t) andalso
+                    Graph.is_wire_vertex pat s andalso
+                    V.NSet.contains unbboxed s
+                  ) wires
+    val bare_wires = filter (fn (s,t,_,_) =>
+                       not (V.name_eq (s,t)) andalso
+                       Graph.is_wire_vertex pat s andalso
+                       Graph.is_wire_vertex pat t andalso
+                       V.NSet.contains unbboxed s
+                     ) wires
+    val nvs = V.NSet.filter (Graph.is_node_vertex pat) new_vs
+    val wvs' = V.NSet.filter (Graph.is_wire_vertex pat) new_vs
+    val wvs = fold delete_wvs_in_wire (circles @ bare_wires) wvs'
+    val circle_wvs = fold (fn (s,_,_,_) => fn set => set |> V.NSet.add s) circles V.NSet.empty
+    val bare_wire_es = fold (fn (_,_,_,es) => E.NSet.add ((the o E.NSet.get_min) es)) bare_wires E.NSet.empty  
+  in
+    set_inner_state
+    (ms |> InnerMatchState.extend_u_circles circle_wvs
+        |> InnerMatchState.extend_u_nodeverts (V.NSet.intersect unbboxed nvs)
+        |> InnerMatchState.extend_u_wireverts (V.NSet.intersect unbboxed wvs)
+        |> InnerMatchState.extend_u_bare_wires bare_wire_es
+        |> InnerMatchState.extend_ps_nodeverts to_sched)
+    bms
+  end
+
+  fun schedule_new_concrete bms = let
+    val ms = get_inner_state bms
+    val pat = InnerMatchState.get_pat ms
+    val new_vs = V.NSet.subtract (Graph.get_vertices pat)
+                                 (VVInj.get_dom_set (InnerMatchState.get_vmap ms))
+    val new_es = E.NSet.subtract (Graph.get_edges pat)
+                                 (EEInj.get_dom_set (InnerMatchState.get_emap ms))
+  in
+    schedule_concrete new_vs new_es bms
+  end
+  fun schedule_concrete_pat bms = let
+    val pat = InnerMatchState.get_pat (get_inner_state bms)
+    val vs = Graph.get_vertices pat
+    val es = Graph.get_edges pat
+  in
+    schedule_concrete vs es bms
+  end
 
   (* TODO: it is probably worth optimising this some more *)
   fun doomedf ms pv = let
-    val pat = BGMatchState.get_pat ms
-    val tgt = BGMatchState.get_tgt ms
-    val tv = VInjEndo.domf (BGMatchState.get_vmap ms) pv
-    val parity = BG.get_arity pat pv
-    val tarity = BG.get_arity tgt tv
-    fun has_bbox es = let
-      fun other_end_in_bbox e =
-        BG.is_bboxed pat (BG.edge_get_other_vertex pat e pv)
-    in
-      E.NSet.exists other_end_in_bbox es
-    end
-    val need_more_ins = Arity.get_in parity < Arity.get_in tarity
-    val need_more_outs = Arity.get_out parity < Arity.get_out tarity
-    val need_more_undir = Arity.get_undir parity < Arity.get_undir tarity
-    fun chk_bbox (inctyp,v,(e,(dirtyp,_))) (nmins,nmouts,nmundir) =
-      (* we can ignore selfloops, as the graph is normalised *)
-      case (inctyp,dirtyp)
-        of (BG.SelfLoop,_) => raise ERROR ("Unexpected self-loop in normed graph ("^
-                V.string_of_name pv^","^E.string_of_name e^")")
-         | (_,BG.UnDirected) => (nmins,nmouts,nmundir andalso not (BG.is_bboxed pat v))
-         | (BG.Incoming,BG.Directed) => (nmins andalso not (BG.is_bboxed pat v),nmouts,nmundir)
-         | (BG.Outgoing,BG.Directed) => (nmins,nmouts andalso not (BG.is_bboxed pat v),nmundir)
+    val pat = InnerMatchState.get_pat ms
+    val tgt = InnerMatchState.get_tgt ms
+    val tv = VVInj.get (InnerMatchState.get_vmap ms) pv
+    val p_arity = Graph.get_arity pat pv
+    val t_arity = Graph.get_arity tgt tv
   in
-    (need_more_ins orelse need_more_outs orelse need_more_undir)
-    andalso
-    (let val (nmins,nmouts,nmundir) =
-      BG.fold_adj chk_bbox pat pv (need_more_ins,need_more_outs,need_more_undir)
-     in nmins orelse nmouts orelse nmundir end)
+    (
+      (Arity.get_in p_arity < Arity.get_in t_arity) andalso
+      not (V.NSet.exists (Graph.is_bboxed pat) (Graph.get_predecessor_vertices pat pv))
+    )
+    orelse
+    (
+      (Arity.get_out p_arity < Arity.get_out t_arity) andalso
+      not (V.NSet.exists (Graph.is_bboxed pat) (Graph.get_successor_vertices pat pv))
+    )
+    orelse
+    (
+      (Arity.get_undir p_arity < Arity.get_undir t_arity) andalso
+      not (V.NSet.exists (Graph.is_bboxed pat) (Graph.get_sibling_vertices pat pv))
+    )
   end
 
   fun get_next_bbox g =
-    B.NSet.get_exists (not o (BG.bbox_has_parent g)) (BG.get_bboxes g)
+    B.NSet.get_exists (not o (Graph.bbox_has_parents g)) (Graph.get_bboxes g)
+
+  val is_total = InnerMatchState.is_total o get_inner_state;
+  val get_current_pat = InnerMatchState.get_pat o get_inner_state;
+  fun match_bare_wires ms = let
+    val ims = get_inner_state ms
+  in
+    Seq.map (fn ims => set_inner_state ims ms)
+            (InnerMatchSearch.match_bare_wires ims)
+  end;
+  fun match_pending ms = let
+    val ims = get_inner_state ms
+  in
+    Seq.map (fn ims => set_inner_state ims ms)
+            (InnerMatchSearch.match_pending doomedf ims)
+  end;
 
   fun finish_match ms =
-      Seq.filter BGMatchState.is_total
-        (InnerMatchSearch.match_bare_wires ms)
+      Seq.filter is_total
+        (match_bare_wires ms)
+
+  fun expand_pat_bbox b ms = let
+    val _ = Log.logf 2 (fn () => "Expanding !-box "^(B.string_of_name b)) ()
+    val (bb_op, pat') = Graph.expand_bbox_op b (get_pat ms)
+  in
+    ms |> set_pat pat'
+       |> update_bbox_ops (cons bb_op)
+  end;
 
   fun kill_pat_bbox b ms = let
     val _ = Log.logf 2 (fn () => "Killing !-box "^(B.string_of_name b)) ()
+    val (bb_op, pat') = Graph.kill_bbox_op b (get_pat ms)
   in
-    BGMatchState.kill_pat_bbox b ms
-  end
-  fun expand_pat_bbox b ms = let
-    val _ = Log.logf 2 (fn () => "Expanding !-box "^(B.string_of_name b)) ()
+    ms |> set_pat pat'
+       |> update_bbox_ops (cons bb_op)
+  end;
+
+  fun kill_bboxes_adj_to_complete_nvs bms = let
+    val ms = get_inner_state bms
+    val pat = InnerMatchState.get_pat ms
+    val complete = InnerMatchState.get_complete_nodeverts ms
+    val touched = Graph.get_adj_vertices_to_set pat complete
+    fun kill_all_bboxes v bms = let
+      val pat = InnerMatchState.get_pat (get_inner_state bms)
+    in
+      B.NSet.fold kill_pat_bbox (Graph.get_bboxes_containing_vertex pat v) bms
+      handle Graph.no_such_vertex_exp _ => bms
+    end
   in
-    BGMatchState.expand_pat_bbox b ms
+    V.NSet.fold kill_all_bboxes touched bms
   end
+
+  fun kill_wild_bboxes ms = let
+    fun is_end_of_bare_wire g v =
+      if Graph.is_input g v
+      then
+        case E.NSet.tryget_singleton (Graph.get_out_edges g v)
+          of NONE => false (* this shouldn't happen, but isn't strictly impossible *)
+           | SOME e => Graph.is_output g (Graph.get_edge_target g e)
+      else
+        if Graph.is_output g v
+        then
+          case E.NSet.tryget_singleton (Graph.get_in_edges g v)
+            of NONE => false (* this shouldn't happen, but isn't strictly impossible *)
+             | SOME e => Graph.is_input g (Graph.get_edge_source g e)
+        else
+          false
+    fun is_wild g bbox =
+      V.NSet.forall (is_end_of_bare_wire g) (Graph.get_vertices_in_bbox g bbox)
+    fun kill_pat_bbox' bbox ms =
+      ms |> kill_pat_bbox bbox
+         |> add_wild_bbox bbox
+    fun kill_if_wild bbox ms =
+      (if is_wild (InnerMatchState.get_pat (get_inner_state ms)) bbox
+       then kill_pat_bbox' bbox ms
+       else ms)
+      handle Graph.no_such_bbox_exp _ => ms
+    val pat = InnerMatchState.get_pat (get_inner_state ms)
+  in
+    B.NSet.fold kill_if_wild (Graph.get_bboxes pat) ms
+  end
+
+  val kill_impossible_bboxes = kill_wild_bboxes
+                             o kill_bboxes_adj_to_complete_nvs
 
   fun match_loop ms' = let
     fun kill_and_expand b ms = let
       val do_kill = choose_next_bbox o (kill_pat_bbox b)
-      val do_copy = match_loop o BGMatchState.schedule_new_concrete
+      val do_copy = match_loop o schedule_new_concrete
                                o (expand_pat_bbox b)
     in
       Seq.append (Seq.maps do_kill (Seq.single ms))
                  (Seq.maps do_copy (Seq.single ms))
     end
     and choose_next_bbox ms =
-      case get_next_bbox (BGMatchState.get_pat ms) of
+      case get_next_bbox (get_current_pat ms) of
            NONE => finish_match ms
          | SOME b => kill_and_expand b ms
   in
     Seq.maps choose_next_bbox
-    (Seq.map BGMatchState.kill_impossible_bboxes
-        (InnerMatchSearch.match_pending doomedf ms'))
+      (Seq.map kill_impossible_bboxes
+        (match_pending ms'))
   end
 
-  fun match_normalised_avoiding_tracking (avoid,track) pat tgt = let
-    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
-    val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
-    val _ = log_v_nset 3 "GreedyMatchSearch: avoids" avoid
-    val _ = log_v_nset 3 "GreedyMatchSearch: tracked" track
-    val ms = BGMatchState.init_and_schedule_concrete pat tgt
-              |> BGMatchState.set_pat_avoids avoid
-              |> BGMatchState.set_pat_tracked track
+  fun matches_from_ms ms = let
+    val ims = get_inner_state ms
+    val (init_pat,pat,bbox_ops,tgt,vmap,emap,wild) = (
+      get_init_pat ms,
+      get_pat ms,
+      get_bbox_ops ms,
+      InnerMatchState.get_tgt ims,
+      InnerMatchState.get_vmap ims,
+      InnerMatchState.get_emap ims,
+      get_wild_bboxes ms
+    )
   in
-    match_loop ms
-  end
-  fun match_avoiding_tracking at pat tgt = let
-    val pat' = G.normalise pat
-    val tgt' = G.normalise tgt
-  in match_normalised_avoiding_tracking at pat' tgt' end
+    Seq.map (Match.mk init_pat pat bbox_ops tgt vmap emap BBInj.empty wild)
+            (Graph.solve_psubst (InnerMatchState.get_match_psubst ims))
+  end;
 
-  fun match_subgraph_normalised_avoiding_tracking (avoid,track) pat tgt tgt_verts = let
+  fun find_matches ms = Seq.maps matches_from_ms (match_loop ms);
+
+  fun match_normalised pat tgt = let
     val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
     val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
-    val _ = log_v_nset 3 "GreedyMatchSearch: avoids" avoid
-    val _ = log_v_nset 3 "GreedyMatchSearch: tracked" track
+    val ms = init pat tgt
+           |> schedule_concrete_pat
+           |> update_inner_state (InnerMatchState.schedule_all_tgt)
+  in
+    find_matches ms
+  end
+
+  fun match pat tgt =
+    match_normalised (Graph.normalise pat) (Graph.normalise tgt)
+
+  fun match_subgraph_normalised pat tgt tgt_verts = let
+    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
+    val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
     val _ = log_v_nset 4 "GreedyMatchSearch: target vertices" tgt_verts
-    val ms = BGMatchState.init_subgraph_and_schedule_concrete pat tgt tgt_verts
-              |> BGMatchState.set_pat_avoids avoid
-              |> BGMatchState.set_pat_tracked track
+    val ms = init pat tgt
+           |> schedule_concrete_pat
+           |> update_inner_state (InnerMatchState.schedule_tgt_subgraph tgt_verts)
   in
-    match_loop ms
+    find_matches ms
   end
-  fun match_subgraph_avoiding_tracking at pat tgt = let
-    val pat' = G.normalise pat
-    val tgt' = G.normalise tgt
-  in match_subgraph_normalised_avoiding_tracking at pat' tgt' end
-
-  val match = match_avoiding_tracking (V.NSet.empty, V.NSet.empty)
-  val match_subgraph = match_subgraph_avoiding_tracking (V.NSet.empty, V.NSet.empty)
-  val match_normalised = match_normalised_avoiding_tracking (V.NSet.empty, V.NSet.empty)
-  val match_subgraph_normalised = match_subgraph_normalised_avoiding_tracking (V.NSet.empty, V.NSet.empty)
+  fun match_subgraph pat tgt =
+    match_subgraph_normalised (Graph.normalise pat) (Graph.normalise tgt)
 
   structure Sharing =
   struct
-    structure G = G.SharingOGraph
-    structure MatchState = MatchState.Sharing
+    structure Graph = Graph.Sharing
+    structure Match = Match.Sharing
   end
 end

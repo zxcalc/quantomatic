@@ -9,8 +9,13 @@
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="cosy.js"></script>
 
-<script type="application/x-polyml" src="cosy_rg.sml"></script>
-<script type="application/x-polyml" src="cosy.sml"></script>
+<script type="application/x-polyml">
+val here = the (DOM.getElementById DOM.document "cosy_content")
+                  handle Option => DOM.HTMLElement "NULL"
+</script>
+
+<!--script type="application/x-polyml" src="cosy_rg.sml"></script>
+<script type="application/x-polyml" src="cosy.sml"></script-->
 
 
 <script type="application/x-polyml">

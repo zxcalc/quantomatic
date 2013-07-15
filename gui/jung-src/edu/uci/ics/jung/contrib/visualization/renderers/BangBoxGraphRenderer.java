@@ -24,7 +24,6 @@ public interface BangBoxGraphRenderer<V, E, B> extends Renderer<V, E>
 	}
 	interface BangBoxLabel<V, E, B> {
 		class NOOP implements BangBoxLabel {
-               @Override
                public void labelBangBox(BangBoxGraphRenderContext rc,
                          Layout layout, Object e, String label) {
                }

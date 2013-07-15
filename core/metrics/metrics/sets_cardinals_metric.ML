@@ -20,8 +20,8 @@ struct
   val bottom = Tup2 (0,0)
  
   fun compute graph = let
-    val n_verts = V.NSet.cardinality (Graph.get_vnames graph)
-    val n_edges = E.NSet.cardinality (Graph.get_enames graph)
+    val n_verts = V.NSet.cardinality (Graph.get_vertices graph)
+    val n_edges = E.NSet.cardinality (Graph.get_edges graph)
   in
     SOME (Tup2 (n_verts, n_edges))
   end 

@@ -1,0 +1,52 @@
+{
+  "name" : "String vertex/edge theory",
+  "core_name" : "string_ve_theory",
+  "vertex_types" : {
+    "string" : {
+      "value" : {
+        "path" : "$.value",
+        "validate_with_core" : false,
+        "latex_constants" : false,
+        "type" : "string"
+      },
+      "style" : {
+        "label" : {
+          "position" : "inside",
+          "fg_color" : [ 0.0, 0.2, 0.0 ]
+        },
+        "stroke_color" : [ 0.0, 0.2, 0.0 ],
+        "fill_color" : [ 0.9, 1.0, 0.9 ],
+        "shape" : "rectangle"
+      },
+      "default_data" : {
+        "type" : "string",
+        "value" : ""
+      }
+    }
+  },
+  "edge_types" : {
+    "string" : {
+      "value" : {
+        "path" : "$.value",
+        "validate_with_core" : false,
+        "latex_constants" : false,
+        "type" : "string"
+      },
+      "style" : {
+        "stroke_color" : [ 0.0, 0.0, 0.0 ],
+        "stroke_width" : 1,
+        "label" : {
+          "position" : "center",
+          "fg_color" : [ 0.0, 0.0, 1.0 ],
+          "bg_color" : [ 0.8, 0.8, 1.0, 0.7 ]
+        }
+      },
+      "default_data" : {
+        "type" : "string",
+        "value" : ""
+      }
+    }
+  },
+  "default_vertex_type" : "string",
+  "default_edge_type" : "string"
+}

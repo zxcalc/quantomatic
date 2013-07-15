@@ -22,14 +22,14 @@ struct
   
   fun compute graph = let
     fun vert_weight v = let
-      val edges = E.NSet.cardinality (E.NSet.union_merge 
-                                      (Graph.in_enames graph v)
-                                      (Graph.out_enames graph v))
+      val edges = E.NSet.cardinality (E.NSet.union_merge
+                                      (Graph.get_in_edges graph v)
+                                      (Graph.get_out_edges graph v))
       in if edges > 2 then edges else 0
       end
     fun vfld v (ec,count) = (ec + vert_weight v, count+1)
-    val (ec,verts) = V.NSet.fold vfld (Graph.get_vnames graph) (0,0)
-    val edges = (E.NSet.cardinality o Graph.get_enames) graph
+    val (ec,verts) = V.NSet.fold vfld (Graph.get_vertices graph) (0,0)
+    val edges = (E.NSet.cardinality o Graph.get_edges) graph
   in (ec, verts, edges)
   end
   
@@ -38,7 +38,7 @@ end
 
 functor WeightedArityMetric(
   structure Graph : BANG_GRAPH
-  val weight_for_data : Graph.VData.data -> int
+  val weight_for_data : Graph.vdata -> int
 ) : GRAPH_METRIC =
 struct
   type T = int
@@ -77,13 +77,13 @@ struct
   
   fun compute graph = let
     fun vert_weights v tot = let
-      val loops = E.NTab.cardinality (Graph.get_self_loops graph v)
-      val ins = E.NSet.cardinality (Graph.in_enames graph v) - loops
-      val outs = E.NSet.cardinality (Graph.out_enames graph v) - loops
-      val dat = fst (Graph.get_vertex graph v)
+      val loops = E.NSet.cardinality (Graph.get_self_loops graph v)
+      val ins = E.NSet.cardinality (Graph.get_in_edges graph v) - loops
+      val outs = E.NSet.cardinality (Graph.get_out_edges graph v) - loops
+      val dat = Graph.get_vertex_data graph v
     in (weight_for_data dat * weight_for_arity ins outs loops) + tot
     end
-  in V.NSet.fold vert_weights (Graph.get_vnames graph) 0
+  in V.NSet.fold vert_weights (Graph.get_vertices graph) 0
   end
 
   val ord_graph = ord o (apfst compute) o (apsnd compute)
