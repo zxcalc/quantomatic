@@ -70,7 +70,7 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
   val ReLayoutButton = new Button("Re-Layout")
   val ConnectButton = new Button("Connect")
-  val PrevButton = new Button("Prev")
+  val PrevButton = new Button("Backtracking")
   val NextButton = new Button("Next")
   val DisconnectButton = new Button("Finish")
 
