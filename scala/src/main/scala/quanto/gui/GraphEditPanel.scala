@@ -70,7 +70,7 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
   val ReLayoutButton = new Button("Re-Layout")
   val ConnectButton = new Button("Connect")
-  val PrevButton = new Button("Backtracking")
+  val PrevButton = new Button("Backtrack")
   val NextButton = new Button("Next")
   val DisconnectButton = new Button("Finish")
 
@@ -157,13 +157,18 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     case ButtonClicked (ConnectButton) =>
      try{
         SockJson.connectSock();
+     }
+     catch{
+       case _ => error ("Can't connect to Isabelle or init graph", "socket err")
+     }
+     try{
         val edata = SockJson.requestInit();
         graphDocument.loadGraph (edata);
         graphDocument.reLayout();
         setEvalButtonStatus (false, true, false, true)
      }
      catch{
-       case _ => error ("Can't connect to Isabelle", "have you started the psgraph interative mode in isabelle ?")
+       case _ => error ("Can't init graph", "graph can't be initialised")
      }
 
     case ButtonClicked (DisconnectButton) =>
