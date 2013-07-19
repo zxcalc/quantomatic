@@ -63,7 +63,7 @@
           "bg_color" : [ 0.8, 0.8, 1.0, 0.7 ]
         }
       },
-      "default_data" : {"gtyp_name" : "t", "type" : "GT"}
+      "default_data" : {"gtyp_name" : "any", "type" : "GT"}
     }
   },
   "default_vertex_type" : "RT",

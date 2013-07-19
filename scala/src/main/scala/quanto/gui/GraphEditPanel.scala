@@ -159,7 +159,7 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
         SockJson.connectSock();
      }
      catch{
-       case _ => error ("Can't connect to Isabelle or init graph", "socket err")
+       case _ => error ("Can't connect to Isabelle", "socket err")
      }
      try{
         val edata = SockJson.requestInit();
