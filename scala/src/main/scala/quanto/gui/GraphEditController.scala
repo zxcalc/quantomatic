@@ -181,16 +181,16 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
               vertexHit.map{v => (v,graph.vdata(v))} match {
                 case Some((v, data: NodeV)) =>
                   Dialog.showInput(
-                    title = "Vertex data",
-                    message = "Vertex data",
+                    title = "Set RTechn",
+                    message = "RTechn: ",
                     initial = data.value).map { newVal => setVertexValue(v, newVal) }
                 case _ =>
                   val edgeHit = view.edgeDisplay find { _._2.pointHit(pt) } map { _._1 }
                   edgeHit.map { e =>
                     val data = graph.edata(e)
                     Dialog.showInput(
-                      title = "Edge data",
-                      message = "Edge data",
+                      title = "Set Goal Type",
+                      message = "Goal Type: ",
                       initial = data.value).map { newVal => setEdgeValue(e, newVal) }
                     view.repaint()
                   }
