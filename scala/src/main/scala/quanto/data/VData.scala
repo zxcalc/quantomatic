@@ -71,7 +71,8 @@ case class NodeV(
   def isWireVertex = false
 
   override def toJson = JsonObject(
-    "data" -> (if (data == theory.vertexTypes(typ).defaultData) JsonNull() else data),
+    //"data" -> (if (data == theory.vertexTypes(typ).defaultData) JsonNull() else data),
+    "data" -> (data),   /* by LYH, save the default type for isabelle parsing */
     "annotation" -> annotation).noEmpty
 }
 
@@ -88,7 +89,8 @@ object NodeV {
   def apply(coord: (Double,Double)): NodeV = NodeV(annotation = JsonObject("coord" -> JsonArray(coord._1,coord._2)))
 
   def toJson(d: NodeV, theory: Theory) = JsonObject(
-    "data" -> (if (d.data == theory.vertexTypes(d.typ).defaultData) JsonNull() else d.data),
+    //"data" -> (if (d.data == theory.vertexTypes(d.typ).defaultData) JsonNull() else d.data),
+    "data" -> (d.data),   /* by LYH, save the default type for isabelle parsing */
     "annotation" -> d.annotation).noEmpty
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): NodeV = {
     val data = json.getOrElse("data", thy.defaultVertexData).asObject
