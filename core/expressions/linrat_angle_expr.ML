@@ -1,6 +1,6 @@
 (* linear combinations with rational coeffs (and pi) *)
 signature LINRAT_ANGLE_EXPR
-= sig 
+= sig
   type T (* expressions *)
   val ord : T * T -> General.order
   val eq : T -> T -> bool
@@ -28,79 +28,79 @@ signature LINRAT_ANGLE_EXPR
 
   val free_vars : T -> X.NSet.T
 
-  val pretty : T -> Pretty.T;
-  val pretty_math : AlgFormat.format -> T -> Pretty.T;
-  val print : T -> unit;
-end;
+  val pretty : T -> Pretty.T
+  val pretty_math : AlgFormat.format -> T -> Pretty.T
+  val print : T -> unit
+end
 
 structure LinratAngleExpr : LINRAT_ANGLE_EXPR =
-struct 
+struct
 
   (* Variable names in expressions *)
-  exception parse_exp;
-  structure PiCoeff = RationalMod2;
-  structure Coeff = Rational;
+  exception parse_exp
+  structure PiCoeff = RationalMod2
+  structure Coeff = Rational
 
-  type T = PiCoeff.T * (Coeff.T XTab.T);  (* the PiCoeff is for Pi *)
+  type T = PiCoeff.T * (Coeff.T XTab.T)  (* the PiCoeff is for Pi *)
 
   (* =====================================================================*)
 
 
-  fun kv_eq ((k1,v1),(k2,v2)) = 
+  fun kv_eq ((k1,v1),(k2,v2)) =
       X.name_eq (k1, k2) andalso Coeff.eq v1 v2
 
-  (* don't use basis library version because it doesn't raise exception 
+  (* don't use basis library version because it doesn't raise exception
      on unequal length lists *)
   fun forall_pair _ ([],[]) = true
     | forall_pair eq (h1::t1,h2::t2) = eq (h1,h2) andalso forall_pair eq (t1,t2)
-    | forall_pair _ _ = raise ListPair.UnequalLengths;
+    | forall_pair _ _ = raise ListPair.UnequalLengths
 
-  fun eq (x,xT) (y,yT) = 
-      if PiCoeff.eq x y then 
+  fun eq (x,xT) (y,yT) =
+      if PiCoeff.eq x y then
         forall_pair kv_eq (XTab.list_of xT, XTab.list_of yT)
           handle ListPair.UnequalLengths => false
-      else false;
+      else false
 
   (* =====================================================================*)
 
-  fun kv_order ((k1,v1),(k2,v2)) = 
+  fun kv_order ((k1,v1),(k2,v2)) =
       if  X.name_ord(k1,k2) = General.EQUAL
-      then 
+      then
         Coeff.ord(v1,v2)
-      else X.name_ord(k1,k2);
+      else X.name_ord(k1,k2)
 
   fun  kv_list_ord ([],[]) = General.EQUAL
      | kv_list_ord ([],_) = General.LESS
      | kv_list_ord (_,[]) = General.GREATER
-     | kv_list_ord (x::xs,y::ys) = 
-       if  kv_order(x,y) <> General.EQUAL then 
+     | kv_list_ord (x::xs,y::ys) =
+       if  kv_order(x,y) <> General.EQUAL then
          kv_order(x,y)
-       else 
+       else
          kv_list_ord(xs,ys)
 
   fun ord ((x,xT),  (y,yT)) =
       if Coeff.ord(x,y) <> General.EQUAL
       then Coeff.ord(x,y)
-      else let 
+      else let
             val xs = XTab.list_of xT
             val ys = XTab.list_of yT
-        in 
+        in
             kv_list_ord(xs,ys)
         end
 
   (* various mk functions ============================================ *)
-  val empty = XTab.empty : Coeff.T XTab.T;
+  val empty = XTab.empty : Coeff.T XTab.T
 
 
-  val zero = (PiCoeff.zero, empty);
-  fun is_zero (cpi,vars) = 
-      (PiCoeff.is_zero cpi andalso XTab.is_empty vars);
+  val zero = (PiCoeff.zero, empty)
+  fun is_zero (cpi,vars) =
+      (PiCoeff.is_zero cpi andalso XTab.is_empty vars)
 
-  val pi = (PiCoeff.one, empty);
+  val pi = (PiCoeff.one, empty)
 
-  fun mk const kv_list = (const, fold XTab.add kv_list empty);
+  fun mk const kv_list = (const, fold XTab.add kv_list empty)
 
-  fun mk_var nm = mk PiCoeff.zero [(nm, Coeff.mk (1, 1))];
+  fun mk_var nm = mk PiCoeff.zero [(nm, Coeff.mk (1, 1))]
 
   fun coeff_for_var (_,tab) (SOME x) =
         (case XTab.get_opt tab x of SOME r => r | NONE => Rational.zero)
@@ -109,25 +109,25 @@ struct
   fun free_vars (_,tab) = XTab.get_dom_set tab
 
   (* reduce exprs to a normal by removing variables whose Coeff = 0 ======*)
-  fun reduce_expr (p, t) = 
-      let fun red (k,v) tab = 
+  fun reduce_expr (p, t) =
+      let fun red (k,v) tab =
                 if  Coeff.is_zero v
                 then XTab.delete k tab
                 else tab
-      in 
+      in
         (p, XTab.fold red t t)
       end
 
-  (* multiplication of an expression by a scalar ===================*)    
-  fun scale_expr s (e_pi, e_tab) = 
-      (PiCoeff.mult s e_pi, XTab.map_all (Coeff.mult s) e_tab);
+  (* multiplication of an expression by a scalar ===================*)
+  fun scale_expr s (e_pi, e_tab) =
+      (PiCoeff.mult s e_pi, XTab.map_all (Coeff.mult s) e_tab)
 
   fun mk_const k = scale_expr k pi
 
   (* arithmetic addition for expressions ========================*)
-  fun add_expr (pi1,tab1) (pi2,tab2) = 
-      let 
-        fun f (k,v) t = 
+  fun add_expr (pi1,tab1) (pi2,tab2) =
+      let
+        fun f (k,v) t =
               if XTab.dom_contains t k
               then XTab.map_entry (Coeff.add v) k t
               else XTab.set (k, v) t
@@ -135,7 +135,7 @@ struct
       in reduce_expr (PiCoeff.add pi1 pi2, newtab) end
 
   (* arithmetic subtraction for expressions ========================*)
-  fun subtr_expr e1 e2 = 
+  fun subtr_expr e1 e2 =
       add_expr e1 (scale_expr (Coeff.mk (~1, 1)) e2)
 
 
@@ -148,14 +148,14 @@ struct
           else Pretty.block [Coeff.pretty v, Pretty.str (" "^k)]
       val ppi  = if (Coeff.is_zero pi) then [] else [pretty1 ("\\pi", pi)]
       val plist = XTab.fold (cons o pretty1) tab ppi
-      in 
+      in
       case plist of [] => Pretty.str "0"
               | _ => (Pretty.block o Pretty.separate " +" o rev) plist
       end
   *)
 
   fun pretty1 (k,v) =
-      if Coeff.is_one (Coeff.subtr Coeff.zero v) then 
+      if Coeff.is_one (Coeff.subtr Coeff.zero v) then
         Pretty.block [Pretty.str "-", 	X.pretty_name k]
       else if Coeff.is_one v then X.pretty_name k
       else Pretty.block [Coeff.pretty v, Pretty.str " ", X.pretty_name k]
@@ -182,7 +182,7 @@ struct
               | AlgFormat.PLAIN => pretty' (X.mk "pi")
               | _ => raise AlgFormat.not_supported_exp
 
-  val pretty = pretty_math AlgFormat.LATEX;
+  val pretty = pretty_math AlgFormat.LATEX
 
   val print = Pretty.writeln o pretty
 
@@ -217,8 +217,6 @@ struct
       | var_term _ = raise semantic_exp
     fun plus (EXP a, EXP b) = EXP (add_expr a b)
       | plus _ = raise semantic_exp
-    fun minus (EXP a, EXP b) = EXP (subtr_expr a b)
-      | minus _ = raise semantic_exp
     fun neg (EXP a) = EXP (subtr_expr zero a)
       | neg _ = raise semantic_exp
 
@@ -231,10 +229,21 @@ struct
               || (sym "(" |-- (coeff mker) --| sym ")")
               || num >> (whole_num mker))
 
+    fun frac x = let
+      val maybe_num = (num --| (sym "*" || noop))
+                      || (fn x => (TOK(L.INT 1),x))
+      fun mkrat_term ((n,i),d) = rat_term (rat (n,d),i)
+    in
+      x |> (  ((maybe_num --| pi --| sym "/" -- num) >> pirat >> const_term)
+            ||((maybe_num -- ident --| sym "/" -- num) >> mkrat_term)
+            || (sym "(" |-- frac --| sym ")"))
+    end
+
 
     (* first term *)
     fun term x = x|>(
              ((sym "-" |-- term) >> neg)
+             || frac
              || (((coeff pirat) --| (sym "*" || noop) --| pi) >> const_term)
              || (pi >> (K one_pi))
              || (((coeff rat) --| (sym "*" || noop) -- ident) >> rat_term)
@@ -259,7 +268,7 @@ struct
           | _     => raise semantic_exp)
       handle L.MoreTokens _ => raise parse_exp
            | Fail _         => raise parse_exp
-           | semantic_exp   => raise parse_exp;
+           | semantic_exp   => raise parse_exp
 
   end
 
