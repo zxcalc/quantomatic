@@ -157,18 +157,20 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     case ButtonClicked (ConnectButton) =>
      try{
         SockJson.connectSock();
+        try{
+          val mode = SockJson.requestMode ();
+          /* TOOD: LYH - need to check that if the graph is valid, e.g. containing GN ? */
+          val edata = SockJson.requestInit(mode, graphDocument.exportJson());
+          graphDocument.loadGraph (edata);
+          graphDocument.reLayout();
+          setEvalButtonStatus (false, true, false, true)
+        }
+        catch{
+          case _ => error ("Can't init graph", "graph can't be initialised")
+        }
      }
      catch{
        case _ => error ("Can't connect to Isabelle", "socket err")
-     }
-     try{
-        val edata = SockJson.requestInit();
-        graphDocument.loadGraph (edata);
-        graphDocument.reLayout();
-        setEvalButtonStatus (false, true, false, true)
-     }
-     catch{
-       case _ => error ("Can't init graph", "graph can't be initialised")
      }
 
     case ButtonClicked (DisconnectButton) =>

@@ -20,10 +20,9 @@ object SockJson {
 
   val ctrl = "PSGraphCtrl"
   val module = "JsonSocket"
-  var input = JsonNull();
   val rid = 28;
 
-  def request(function: String, resp : Boolean): Json =
+  def request(function: String, input : Json, resp : Boolean): Json =
   {
     JsonObject(
       "request_id" -> rid,
@@ -38,6 +37,7 @@ object SockJson {
     if (resp){
       Json.parse(sockIn) match {
         case JsonObject(map) => map("output")
+        case _ => JsonNull()
       }
     }
     else{
@@ -62,12 +62,27 @@ object SockJson {
     sockOut = null;
   }
 
-  def requestInit () = {
-    request("current_status", true);
+  def requestMode () : Boolean =  {
+    val mode = request ("mode_choice", JsonNull(), true);
+    mode match{
+      case JsonBool(v) => v
+      case _ => true
+    }
+  }
+
+  def requestInit (mode : Boolean, json_graph : Json)  = {
+
+    if (mode) //active mode
+      request("active_init", JsonNull(), true);
+    else // passive mode
+    {
+      request ("passive_init", json_graph , true);
+    }
+
   }
 
   def requestNext () = {
-    val json = request("next_status", true);
+    val json = request("next_status", JsonNull(), true);
 
     json match{
       case JsonNull() =>
@@ -83,7 +98,7 @@ object SockJson {
   }
 
   def requestPrev () = {
-    val json = request("previous_status", true);
+    val json = request("previous_status", JsonNull(), true);
     json match{
       case JsonNull() =>
         throw new SockJsonError ("Eval error !", SockJsonErrorType.ErrEval)
@@ -99,6 +114,6 @@ object SockJson {
 
 
   def requestDeinit () = {
-    request("close", false);
+    request("close", JsonNull(), false);
   }
 }

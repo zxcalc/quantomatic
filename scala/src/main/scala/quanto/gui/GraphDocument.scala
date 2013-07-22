@@ -91,6 +91,10 @@ class GraphDocument(view: GraphView) extends Publisher {
     }
   }
 
+  def exportJson () =  {
+    Graph.toJson(view.graph, view.theory)
+  }
+
   def saveGraph(fopt: Option[File] = None) {
     fopt.orElse(file).map { f =>
       try {
