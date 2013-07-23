@@ -49,7 +49,7 @@ local
       if not (Expr.eq result exp)
       then raise ERROR ("Parsing \""^str^"\" gave \""^(expr_str result)^
                         "\" instead of \""^(expr_str exp)^"\"")
-      else reparse exp
+      else ()
     end
     handle Expr.parse_exp =>
       raise ERROR ("Got parse_exp when parsing "^str)
@@ -59,13 +59,17 @@ local
     handle Expr.parse_exp => ()
          | Div => ()
 
+  fun test_reparse expr =
+    Testing.test ("Reparse "^(expr_str expr)) reparse expr
   fun test_parse str expr =
     Testing.test ("Parse "^str) parse (str,expr)
   fun test_parse_fail str =
     Testing.test ("Parse (fail) "^str) parse_fail str
 in
+  val _ = test_reparse zero
   val _ = test_parse "0" zero
 
+  val _ = test_reparse (const one)
   val _ = test_parse "\\pi" (const one)
   val _ = test_parse "1\\pi" (const one)
   val _ = test_parse "1*\\pi" (const one)
@@ -93,6 +97,7 @@ in
   val _ = test_parse "1*PI/1" (const one)
   val _ = test_parse "PI/1" (const one)
 
+  val _ = test_reparse a
   val _ = test_parse "a" a
   val _ = test_parse "1a" a
   val _ = test_parse "1*a" a
@@ -102,6 +107,7 @@ in
   val _ = test_parse "1*a/1" a
   val _ = test_parse "a/1" a
 
+  val _ = test_reparse (const neg_one)
   val _ = test_parse "-pi" (const neg_one)
   val _ = test_parse "-1pi" (const neg_one)
   val _ = test_parse "-1*pi" (const neg_one)
@@ -111,6 +117,7 @@ in
   val _ = test_parse "-1*pi/1" (const neg_one)
   val _ = test_parse "-pi/1" (const neg_one)
 
+  val _ = test_reparse (neg_one*a)
   val _ = test_parse "-a" (neg_one*a)
   val _ = test_parse "-1a" (neg_one*a)
   val _ = test_parse "-1*a" (neg_one*a)
@@ -120,53 +127,40 @@ in
   val _ = test_parse "-1*a/1" (neg_one*a)
   val _ = test_parse "-a/1" (neg_one*a)
 
+  val _ = test_reparse (const (Coeff.mk (3, 4)))
   val _ = test_parse "3/4" (const (Coeff.mk (3, 4)))
   val _ = test_parse "3/4pi" (const (Coeff.mk (3, 4)))
   val _ = test_parse "3/4*pi" (const (Coeff.mk (3, 4)))
   val _ = test_parse "3pi/4" (const (Coeff.mk (3, 4)))
   val _ = test_parse "3*pi/4" (const (Coeff.mk (3, 4)))
 
+  val _ = test_reparse (const (Coeff.mk (~3, 4)))
   val _ = test_parse "-3/4" (const (Coeff.mk (~3, 4)))
   val _ = test_parse "-3/4pi" (const (Coeff.mk (~3, 4)))
   val _ = test_parse "-3/4*pi" (const (Coeff.mk (~3, 4)))
   val _ = test_parse "-3pi/4" (const (Coeff.mk (~3, 4)))
   val _ = test_parse "-3*pi/4" (const (Coeff.mk (~3, 4)))
 
+  val _ = test_reparse ((Coeff.mk (3, 4))*a)
   val _ = test_parse "3/4a" ((Coeff.mk (3, 4))*a)
   val _ = test_parse "3/4*a" ((Coeff.mk (3, 4))*a)
   val _ = test_parse "3a/4" ((Coeff.mk (3, 4))*a)
   val _ = test_parse "3*a/4" ((Coeff.mk (3, 4))*a)
 
+  val _ = test_reparse ((Coeff.mk (~3, 4))*a)
   val _ = test_parse "-3/4a" ((Coeff.mk (~3, 4))*a)
   val _ = test_parse "-3/4*a" ((Coeff.mk (~3, 4))*a)
   val _ = test_parse "-3a/4" ((Coeff.mk (~3, 4))*a)
   val _ = test_parse "-3*a/4" ((Coeff.mk (~3, 4))*a)
 
-  val _ = test_parse "1/4" (const (Coeff.mk (1, 4)))
-  val _ = test_parse "1/4pi" (const (Coeff.mk (1, 4)))
-  val _ = test_parse "1/4*pi" (const (Coeff.mk (1, 4)))
-  val _ = test_parse "1pi/4" (const (Coeff.mk (1, 4)))
-  val _ = test_parse "1*pi/4" (const (Coeff.mk (1, 4)))
   val _ = test_parse "pi/4" (const (Coeff.mk (1, 4)))
-
-  val _ = test_parse "-1/4" (const (Coeff.mk (~1, 4)))
-  val _ = test_parse "-1/4pi" (const (Coeff.mk (~1, 4)))
-  val _ = test_parse "-1/4*pi" (const (Coeff.mk (~1, 4)))
-  val _ = test_parse "-1pi/4" (const (Coeff.mk (~1, 4)))
-  val _ = test_parse "-1*pi/4" (const (Coeff.mk (~1, 4)))
   val _ = test_parse "-pi/4" (const (Coeff.mk (~1, 4)))
-
-  val _ = test_parse "1/4a" ((Coeff.mk (1, 4))*a)
-  val _ = test_parse "1/4*a" ((Coeff.mk (1, 4))*a)
-  val _ = test_parse "1a/4" ((Coeff.mk (1, 4))*a)
-  val _ = test_parse "1*a/4" ((Coeff.mk (1, 4))*a)
   val _ = test_parse "a/4" ((Coeff.mk (1, 4))*a)
-
-  val _ = test_parse "-1/4a" ((Coeff.mk (~1, 4))*a)
-  val _ = test_parse "-1/4*a" ((Coeff.mk (~1, 4))*a)
-  val _ = test_parse "-1a/4" ((Coeff.mk (~1, 4))*a)
-  val _ = test_parse "-1*a/4" ((Coeff.mk (~1, 4))*a)
   val _ = test_parse "-a/4" ((Coeff.mk (~1, 4))*a)
+
+  val _ = test_reparse (a + b)
+  val _ = test_reparse (a - b)
+  val _ = test_reparse ((neg_one*a) - b)
 
   val _ = test_parse "a + b" (a + b)
   val _ = test_parse "a - b" (a - b)
@@ -176,6 +170,7 @@ in
   val _ = test_parse "-(a - b)" (b - a)
 
   val _ = test_parse "2\\pi + 1" (two*pi + (const one))
+  val _ = test_reparse (two*pi + (const one))
 
   val _ = test_parse_fail "&"
   val _ = test_parse_fail "b/a"
