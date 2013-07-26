@@ -41,6 +41,7 @@ trait Clusters extends Constraints {
               cons ::= { (distance from v1 to v2) <= clusterRadiusPerVertex * clusterSize }
 
             val verts = coordTree.query(lb._1, lb._2, ub._1, ub._2)
+
             for (v <- verts; if !cluster.contains(v)) {
               val vc = coord(v)
               // work out the most efficient shift

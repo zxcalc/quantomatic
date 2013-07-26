@@ -36,7 +36,8 @@ object Geometry {
   def bounds(ps: Iterable[Pt]): Option[(Pt,Pt)] = {
     val it = ps.iterator
     if (it.hasNext) {
-      var upper,lower = it.next()
+      var upper = it.next()
+      var lower = upper
       for (p <- it) {
         lower = (min(lower._1,p._1),min(lower._2,p._2))
         upper = (max(upper._1,p._1),max(upper._2,p._2))
