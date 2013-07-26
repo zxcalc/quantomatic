@@ -1,0 +1,7 @@
+TODO:
+
+* choose which goal to eval  
+* click one hierarchical RT to open a new window showing the sub-graph
+* when finish the eval, add a new button saying "finish"
+* when click one RT, have a label showing more detail.
+* need better layout, no overlapped label
