@@ -191,10 +191,10 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
         case SockJsonError(_, SockJsonErrorType.NoPrev) =>
           PrevButton.enabled_=(false)
-          error ("No prev step", "already very begining now")
+          error ("No prev step", "already the first step begining now")
 
         case _ =>
-          error ("Can't show the previous step", "unknown error")
+          error ("Can't backtrack the previous step", "unknown error")
       }
     case ButtonClicked (NextButton) =>
       try{
@@ -210,10 +210,10 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
         case SockJsonError(_, SockJsonErrorType.GoodEval) =>
           NextButton.enabled_=(false)
-          error ("Congratulations", "proof has been discharged !")
+          error ("Congrats", "proof strategy language succeeds !")
 
         case _ =>
-          error ("Can't show the next step", "unknown error")
+          error ("Can't eval the next step", "unknown error")
     }
   }
 }
