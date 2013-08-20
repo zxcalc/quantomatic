@@ -174,6 +174,8 @@ Testing.make_test "theories/test/ruleset-test.ML";
 (*
  * Rewriting
  *)
+(* a structure which stores a rule and a single application of the rule *)
+PolyML.Project.make "rewriting/rewrite.ML";
 (* substitution of a matched subgraph for another graph *)
 PolyML.Project.make "rewriting/rewriter.ML";
 (* substitution used to provide rewriting with rulesets *)

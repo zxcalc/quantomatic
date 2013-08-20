@@ -39,6 +39,9 @@ sig
 
   (* swaps lhs and rhs *)
   val symmetric : T -> T
+
+  (* applies a given subst to the free variables in the rule *)
+  val apply_data_subst : Graph.subst -> T -> T
   
   (* for pretty printing *)
   val pretty : T -> Pretty.T
@@ -74,6 +77,12 @@ sig
 
   (* swaps lhs and rhs *)
   val symmetric : T -> T
+
+  (* applies a given subst to the free variables in the rule *)
+  val apply_data_subst : Graph.subst -> T -> T
+
+  (* replay the given bbox ops on LHS/RHS to produce a new rule *)
+  val replay_bbox_ops : bbox_op list -> T -> T
   
   (* for pretty printing *)
   val pretty : T -> Pretty.T
@@ -270,6 +279,16 @@ end
 fun rename_ograph_rule (vsub,esub) rule = let
   val ((vrnm,ernm,_),rule') = rename_bang_graph_rule (vsub,esub,BSub.empty) rule
 in ((vrnm,ernm),rule')
+end
+
+fun replay_bbox_ops bbox_ops rule =
+  mk (Graph.replay_bbox_ops bbox_ops (get_lhs rule),
+      Graph.replay_bbox_ops bbox_ops (get_rhs rule))
+
+fun apply_data_subst subst rule = let
+  val (subst',lhs) = Graph.apply_data_subst subst  (get_lhs rule)
+  val (_,     rhs) = Graph.apply_data_subst subst' (get_rhs rule)
+in mk (lhs,rhs)
 end
 
 fun pretty (Rule rep) =
