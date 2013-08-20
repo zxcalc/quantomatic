@@ -15,6 +15,9 @@ signature QUANTO_NAME
   structure V : SSTR_NAME  (* vertices *)
   structure E : SSTR_NAME  (* Edges *)
  
+  datatype ve_name = VERTEX of V.name | EDGE of E.name
+  structure VE : SNAME where type src = ve_name
+
   structure B : SSTR_NAME  (* Bang-boxes *)
   structure X : SSTR_NAME  (* eXpression variables in data *)
   structure R : SSTR_NAME  (* Rules *)
@@ -129,6 +132,24 @@ structure QuantoNames :> QUANTO_NAME
   structure R = struct open SStrName; val default_name = mk "new-rule-1"; end (* Rules *)
   structure T = struct open SStrName; val default_name = mk "new-theory-1"; end  (* Theories *)
   
+  datatype ve_name = VERTEX of V.name | EDGE of E.name
+  structure VE = struct
+    structure SumNamer = SumNamer(
+      structure Namer1 = V.Namer
+      structure Namer2 = E.Namer
+    ) 
+    structure S = NameFun(
+      structure Namer = SumNamer
+      val default_name = SumNamer.IN1 V.default_name
+    )
+    open S
+    type src = ve_name
+    fun mk (VERTEX v) = SumNamer.IN1 v
+      | mk (EDGE e) = SumNamer.IN2 e
+    fun dest (SumNamer.IN1 n) = VERTEX n
+      | dest (SumNamer.IN2 n) = EDGE n
+  end
+
   structure TagName : SSTR_NAME = 
       struct open SStrName; val default_name = mk "new-ruleset-1"; end
   structure GraphName : SSTR_NAME = 
