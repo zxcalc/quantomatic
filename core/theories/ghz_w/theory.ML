@@ -1,7 +1,7 @@
 (* Generated using ./theories/generate-no-data-theory.py GHZW ghzw GHZ W TICK ZERO *)
 structure GHZW_Data =
 struct
-  val pretty_theory_name = Pretty.str "ghzw"
+  val pretty_theory_name = Pretty.str "ghz_w"
   type psubst = unit
   type subst  = psubst
   
