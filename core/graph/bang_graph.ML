@@ -429,8 +429,8 @@ fun add_named_edge e (dir,d) s t g =
                   let val (dod,ed) = get_edge_dir_and_data g e in
                     if dod <> dir
                     then raise wire_vertex_exp ("directedness mismatch",g,v)
-                    else if not (edata_eq (ed,d))
-                    then raise wire_vertex_exp ("data mismatch",g,v)
+                    (*else if not (edata_eq (ed,d))
+                    then raise wire_vertex_exp ("data mismatch",g,v)*)
                     else if dir = Directed andalso
                             V.name_eq (v,get_bad_edge_end g e)
                     then raise wire_vertex_exp ("directed edges clash",g,v)
