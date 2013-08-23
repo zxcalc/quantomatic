@@ -155,9 +155,13 @@ val get_node_vertices : T -> V.NSet.T
 
 val get_edges         : T -> E.NSet.T
 
-(* check if two graphs are exactly the same (names, data, and structure) *)
+(* check if one graph is a subgraph of the other (names, data, and structure) *)
 (* note that the direction of Undirected edges *does* matter *)
 val is_subgraph : T -> T -> bool
+
+(* check of the given vertices and edges define a connected subgraph *)
+val is_connected : T -> V.NSet.T -> E.NSet.T -> bool
+
 (* (exact_eq g1 g2) <=> (is_subgraph g1 g2) andalso (is_subgraph g2 g1) *)
 val exact_eq : T -> T -> bool
 

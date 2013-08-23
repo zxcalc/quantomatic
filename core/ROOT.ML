@@ -89,6 +89,7 @@ PolyML.Project.make "graph/ograph.sig.ML";
 PolyML.Project.make "graph/bang_graph.sig.ML";
 PolyML.Project.make "graph/bang_graph.ML";
 PolyML.Project.make "graph/bang_graph_iso.ML";
+PolyML.Project.make "graph/wire_contraction.ML";
 
 PolyML.Project.make "graph/graph_annotations.ML"; (* graph annotations *)
 

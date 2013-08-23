@@ -322,12 +322,21 @@ fun get_sibling_vertices g v =
        )) (get_in_edges g v)
 
 fun get_adj_vertices g v =
-  V.NSet.empty |> E.NSet.fold (fn e =>
-                   (let val v1 = get_edge_source g e
-                    in if V.name_eq (v,v1) then I else V.NSet.add v1 end)) (get_in_edges g v)
-               |> E.NSet.fold (fn e =>
-                   (let val v1 = get_edge_target g e
-                    in if V.name_eq (v,v1) then I else V.NSet.add v1 end)) (get_out_edges g v)
+  V.NSet.empty |> E.NSet.fold (fn e => (
+                    let
+                      val v1 = get_edge_source g e
+                    in
+                      if not (V.name_eq (v,v1))
+                      then V.NSet.add v1 else I
+                    end)) (get_in_edges g v)
+               |> E.NSet.fold (fn e => (
+                    let
+                      val v1 = get_edge_target g e
+                    in
+                      if not (V.name_eq (v,v1))
+                      then V.NSet.add v1 else I
+                    end)) (get_out_edges g v)
+
 
 fun get_adj_vertices_to_set g vset =
   V.NSet.subtract (V.NSet.fold (V.NSet.union_merge o get_adj_vertices g) vset V.NSet.empty) vset
@@ -362,6 +371,37 @@ fun adj_edge_classes g v = (
 )
 
 fun get_only_edge g v = E.NSet.tryget_singleton (get_adj_edges' g v)
+
+fun is_connected g vs es =
+let
+  (* pull adj vertices, restricted to vs/es *)
+  fun adj v = 
+    E.NSet.fold (fn e => (
+      if E.NSet.contains es e
+      then let
+              val v1 = edge_get_other_vertex g e v
+            in
+              if V.NSet.contains vs v1
+              then V.NSet.add v1 else I
+            end
+      else I
+      )) (get_adj_edges g v) V.NSet.empty
+  (* traverse from initially scheduled verts 'sched', restricted to vs/es *)
+  fun component sched found =
+    case V.NSet.get_local_bot sched
+      of SOME v =>
+          let
+            val found' = V.NSet.add v found
+            val sched' = V.NSet.union_merge (adj v) sched
+          in component (V.NSet.subtract sched' found') found'
+          end
+       | NONE => found
+in
+  case V.NSet.get_local_bot vs
+    of SOME v => V.NSet.eq vs (component (V.NSet.single v) V.NSet.empty)
+     | NONE   => true
+end
+
 
 (* need these here for add_named_edge *)
 fun wv_get_other_edge g wv e = E.NSet.tryget_singleton (E.NSet.delete e (get_adj_edges g wv))
