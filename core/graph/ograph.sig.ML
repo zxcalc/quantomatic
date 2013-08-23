@@ -291,7 +291,7 @@ val normalise : T -> T
  * isolated points, nor will it create any (bare
  * wires always have at least one edge)
  *)
-val minimise : T -> T
+(*val minimise : T -> T*)
 
 (* Split an edge into two edges, connected by a wire-vertex *)
 val split_edge : E.name -> T -> (E.name * V.name * E.name) * T
@@ -328,9 +328,9 @@ val plug_anon : V.name -> V.name -> T -> T
  *
  * Returns the new wire
  *)
-val plug_and_minimise : V.name -> V.name -> T -> (wire * T)
+(*val plug_and_minimise : V.name -> V.name -> T -> (wire * T)*)
 (* Exactly like plug_and_minimise, but does not return the wire. *)
-val plug_and_minimise_anon : V.name -> V.name -> T -> T
+(*val plug_and_minimise_anon : V.name -> V.name -> T -> T*)
 (* Plug two boundary vertices together and normalises the
  * plugged wire.
  *

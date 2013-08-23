@@ -3023,7 +3023,7 @@ functor OGraph_Interface_Tests(
       in () end) ()
 
 
-    val _ = Testing.test "G.minimise" (fn () => let
+    (*val _ = Testing.test "G.minimise" (fn () => let
       val g_exp_min = G.empty
           |> add_wv "w4"
           |> add_wv "c1"
@@ -3054,7 +3054,7 @@ functor OGraph_Interface_Tests(
           |> add_undir_estring1 "bwe4" "bw6" "bw8" "3"
       val g_min = G.minimise g_raw
       val _ = assert_g_iso_and_bounds_same "minimise" g_exp_min g_min
-      in () end) ()
+      in () end) ()*)
 
 
     val _ = Testing.test "G.split_edge" (fn () => let
@@ -3475,7 +3475,7 @@ functor OGraph_Interface_Tests(
     (* TODO: plug_anon *)
 
 
-    val _ = Testing.test "G.plug_and_minimise (in1,out1)"
+    (*val _ = Testing.test "G.plug_and_minimise (in1,out1)"
             (fn () =>
             let
               val in1 = V.mk "in1"
@@ -3516,7 +3516,7 @@ functor OGraph_Interface_Tests(
                    | NONE => raise ERROR "Wrong edge count"
                )
             end
-            ) ();
+            ) ();*)
 
 
     (* TODO: plug_and_minimise_anon *)

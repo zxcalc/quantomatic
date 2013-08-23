@@ -968,13 +968,13 @@ in
                        |> add_edge dir_and_data s t
     in ((s,t,V.NSet.empty,E.NSet.single e), g') end
 end
-fun minimise_wire (wire as (_,_,wvs,_)) g = let
+(*fun minimise_wire (wire as (_,_,wvs,_)) g = let
   val _ = assert_wire_coherent g wire
 in
   if is_wire_minimal g wire then (wire,g)
   else minimise_wire' wire g
 end
-val minimise_wire_anon = snd oo minimise_wire
+val minimise_wire_anon = snd oo minimise_wire*)
 
 fun is_wire_normalised g (s,t,wvs,_) =
   if is_node_vertex g s andalso is_node_vertex g t then
@@ -1017,7 +1017,7 @@ in
 end
 val normalise_wire_anon = snd oo normalise_wire
 
-fun minimise g = g |> fold minimise_wire_anon (get_wire_list g)
+(*fun minimise g = g |> fold minimise_wire_anon (get_wire_list g)*)
 fun normalise g = g |> fold normalise_wire_anon (get_wire_list g)
 
 fun split_edge e g = let
@@ -1067,12 +1067,12 @@ fun plug v1 v2 g =
        NONE => raise plugging_exp (g,v1,v2)
      | SOME (ed,(v1',v2')) => add_edge ed v1' v2' g;
 val plug_anon = snd ooo plug
-fun plug_and_minimise g v1 v2 = let
+(*fun plug_and_minimise g v1 v2 = let
   val (e,g') = plug g v1 v2
 in
   minimise_wire (get_wire_containing_edge g' e) g'
 end
-val plug_and_minimise_anon = snd ooo plug_and_minimise
+val plug_and_minimise_anon = snd ooo plug_and_minimise*)
 fun plug_and_normalise g v1 v2 = let
   val (e,g') = plug g v1 v2
 in

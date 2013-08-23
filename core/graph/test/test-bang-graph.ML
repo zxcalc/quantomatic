@@ -1940,7 +1940,7 @@ functor Bang_Graph_Interface_Tests(
     in () end) ()
 
 
-  val _ = Testing.test "G.minimise (with !-boxes)" (fn () => let
+  (*val _ = Testing.test "G.minimise (with !-boxes)" (fn () => let
     val g = G.empty
         |> add_vunit1 "v1"
         |> add_vunit2 "v2"
@@ -2003,7 +2003,7 @@ functor Bang_Graph_Interface_Tests(
             (V.NSet.cardinality (G.get_vertices g') = 2)
     val _ = Testing.assert "minimise 1: b1 correct size"
             (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 1)
-    in () end) ()
+    in () end) () *)
   (* TODO: tests for !-box openness preservation:
    * merge_by_vertices
    * plug(_anon)

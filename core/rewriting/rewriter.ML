@@ -116,7 +116,7 @@ struct
     val _ = log_graph 3 "OGraphSubst.rewrite: G-pat" h
     val _ = log_graph 4 "OGraphSubst.rewrite: RHS" rhs'
 
-    val rule = Rule.mk (Graph.minimise pat, Graph.minimise rhs')
+    val rule = Rule.mk (Graph.normalise pat, Graph.normalise rhs')
     val vrn = VSub.empty
       |> V.NSet.fold (fn b => VSub.add (b, VVInj.get vmap b)) shared_boundary
       |> VSub.avoid_set_in_cod (V.NSet.subtract (Graph.get_vertices g) shared_boundary_img)
@@ -137,7 +137,7 @@ struct
     val sg_rhs = Graph.replay_bbox_ops oper rhs
     val (final_rule,g') = sg_rewrite_at m sg_rhs
   in
-    (final_rule, Graph.minimise g')
+    (final_rule, Graph.normalise g')
   end
 
   fun find_rewrites r g = let
