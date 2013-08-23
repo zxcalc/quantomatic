@@ -412,6 +412,10 @@ fun add_named_edge e (dir,d) s t g =
                else raise no_such_vertex_exp ("add_named_edge", s, g)
       val () = if has_vertex g t then ()
                else raise no_such_vertex_exp ("add_named_edge", t, g)
+      val () = if is_node_vertex g s andalso is_node_vertex g t
+               (* TODO: better conventions with exceptions *)
+               then raise wire_vertex_exp ("attempted to connect two node-vertices",g,s)
+               else ()
       (* crazy long function to check that we don't add an incompatible
        * edge to a wire vertex *)
       fun can_link get_bad_edge_end v =
