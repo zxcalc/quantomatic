@@ -1423,9 +1423,9 @@ functor OGraph_Interface_Tests(
                raise ERROR "G.add_edge allowed clashing directions (2)")
               handle G.wire_vertex_exp _ => ()
       (* bad type *)
-      val _ = (G.add_edge (Directed,eunit2) (V.mk "w1") (V.mk "n2") g;
+      (*val _ = (G.add_edge (Directed,eunit2) (V.mk "w1") (V.mk "n2") g;
                raise ERROR "G.add_edge allowed clashing types (1)")
-              handle G.wire_vertex_exp _ => ()
+              handle G.wire_vertex_exp _ => ()*)
       (* multiple ins *)
       val _ = (G.add_edge (Directed,eunit1) (V.mk "n2") (V.mk "w1") g;
                raise ERROR "G.add_edge allowed multiple ins on a wv")
@@ -1443,9 +1443,9 @@ functor OGraph_Interface_Tests(
                raise ERROR "G.add_edge allowed clashing directions (4)")
               handle G.wire_vertex_exp _ => ()
       (* bad type *)
-      val _ = (G.add_edge (Directed,eunit2) (V.mk "n1") (V.mk "w1") g;
+      (*val _ = (G.add_edge (Directed,eunit2) (V.mk "n1") (V.mk "w1") g;
                raise ERROR "G.add_edge allowed clashing types (2)")
-              handle G.wire_vertex_exp _ => ()
+              handle G.wire_vertex_exp _ => ()*)
       (* multiple outs *)
       val _ = (G.add_edge (Directed,eunit1) (V.mk "w1") (V.mk "n1") g;
                raise ERROR "G.add_edge allowed multiple outs on a wv")
@@ -1463,9 +1463,9 @@ functor OGraph_Interface_Tests(
                raise ERROR "G.add_edge allowed clashing directions (6)")
               handle G.wire_vertex_exp _ => ()
       (* bad type *)
-      val _ = (G.add_edge (Undirected,eunit2) (V.mk "w1") (V.mk "n2") g;
+      (*val _ = (G.add_edge (Undirected,eunit2) (V.mk "w1") (V.mk "n2") g;
                raise ERROR "G.add_edge allowed clashing types (3)")
-              handle G.wire_vertex_exp _ => ()
+              handle G.wire_vertex_exp _ => ()*)
       (* but these are fine *)
       val _ = G.add_edge (Undirected,eunit1) (V.mk "n2") (V.mk "w1") g;
       val _ = G.add_edge (Undirected,eunit1) (V.mk "w1") (V.mk "n2") g;
