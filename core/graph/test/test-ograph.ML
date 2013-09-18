@@ -2124,14 +2124,12 @@ functor OGraph_Interface_Tests(
           |> ESub.add (E.mk "e1",E.mk "e3")
           |> ESub.add (E.mk "e2",E.mk "e5")
           |> ESub.add (E.mk "e7",E.mk "e8")
-      val _ = (G.rename_ograph (vsub_clash,esub_clash) g;
-               raise ERROR "clashing names should raise exception")
-              handle VSub.name_clash_exp _ => ()
-                   | ESub.name_clash_exp _ => ()
-      val _ = (G.rename_ograph_anon (vsub_clash,esub_clash) g;
-               raise ERROR "clashing names should raise exception")
-              handle VSub.name_clash_exp _ => ()
-                   | ESub.name_clash_exp _ => ()
+      val _ = G.rename_ograph (vsub_clash,esub_clash) g
+              handle VSub.name_clash_exp _ => raise ERROR "clashing names should no longer raise exception"
+                   | ESub.name_clash_exp _ => raise ERROR "clashing names should no longer raise exception"
+      val _ = G.rename_ograph_anon (vsub_clash,esub_clash) g
+              handle VSub.name_clash_exp _ => raise ERROR "clashing names should no longer raise exception"
+                   | ESub.name_clash_exp _ => raise ERROR "clashing names should no longer raise exception"
 
       val vsub_swap = VSub.empty
           |> VSub.add (V.mk "n1",V.mk "n2")

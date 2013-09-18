@@ -1427,12 +1427,14 @@ functor Bang_Graph_Interface_Tests(
           |> VSub.add (V.mk "w2",V.mk "w1")
       val bsub_clash = BSub.empty
           |> BSub.add (B.mk "b1",B.mk "b2")
-      val _ = (G.rename_bang_graph (vsub_swap1,esub_swap,bsub_clash) g;
-               raise ERROR "clashing names should raise exception")
-              handle BSub.name_clash_exp _ => ()
-      val _ = (G.rename_bang_graph_anon (vsub_swap1,esub_swap,bsub_clash) g;
-               raise ERROR "clashing names should raise exception (anon)")
-              handle BSub.name_clash_exp _ => ()
+      val _ = G.rename_bang_graph (vsub_swap1,esub_swap,bsub_clash) g
+              handle VSub.name_clash_exp _ => raise ERROR "clashing names should no longer raise exception"
+                   | ESub.name_clash_exp _ => raise ERROR "clashing names should no longer raise exception"
+                   | BSub.name_clash_exp _ => raise ERROR "clashing names should no longer raise exception"
+      val _ = G.rename_bang_graph_anon (vsub_swap1,esub_swap,bsub_clash) g
+              handle VSub.name_clash_exp _ => raise ERROR "clashing names should no longer raise exception"
+                   | ESub.name_clash_exp _ => raise ERROR "clashing names should no longer raise exception"
+                   | BSub.name_clash_exp _ => raise ERROR "clashing names should no longer raise exception"
 
       val bsub_swap = BSub.empty
           |> BSub.add (B.mk "b1",B.mk "b2")

@@ -676,11 +676,11 @@ fun rename_bbox_opt n1 n2 g = SOME (rename_bbox n1 n2 g)
   handle duplicate_bbox_exp _ => NONE
 
 fun rename_bang_graph (vsub,esub,bsub) g = let
-  val vrnm  = VSub.extend_fixed (get_vertices g) vsub
+  val vrnm  = VSub.extend_fresh (get_vertices g) vsub
   val vrnmi = VSub.inverse_of vrnm
-  val ernm  = ESub.extend_fixed (get_edges g) esub
+  val ernm  = ESub.extend_fresh (get_edges g) esub
   val ernmi = ESub.inverse_of ernm
-  val brnm  = BSub.extend_fixed (get_bboxes g) bsub
+  val brnm  = BSub.extend_fresh (get_bboxes g) bsub
   val brnmi = BSub.inverse_of brnm
 in
   (
