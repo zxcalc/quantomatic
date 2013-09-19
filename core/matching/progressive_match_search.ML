@@ -381,7 +381,7 @@ functor ProgressiveMatchSearch(
                case V.NSet.get_min (MatchState.get_u_nodeverts ms)
                  of SOME next_v => match_and_schedule_new next_v
                   | NONE =>
-                      (Log.log 3 (ind lvl "== All scheduled vertices matched");
+                      (Log.log 2 (ind lvl "==? All scheduled vertices matched");
                        Seq.single ms)
              )
     end (* match_main *)

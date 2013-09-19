@@ -16,6 +16,7 @@ struct
   structure Graph = Graph;
   structure InnerMatchState = OGraphMatchState(Graph);
   structure InnerMatchSearch = ProgressiveMatchSearch(InnerMatchState);
+  structure InnerLog = InnerMatchSearch.Log;
   structure Match = BangGraphMatch(Graph);
 
   datatype State = MatchState of {
@@ -65,7 +66,13 @@ struct
     val pat = InnerMatchState.get_pat ms
 
     val touched = Graph.get_adj_vertices_to_set pat new_vs
-    val to_sched = V.NSet.intersect (InnerMatchState.get_p_nodeverts ms) touched
+    (*val to_sched = V.NSet.intersect (InnerMatchState.get_p_nodeverts ms) touched*)
+    
+    (* re-schedule all partials *)
+    (* TODO: this can be improved by only re-scheduling partials next to expanded or
+     * killed bboxes. The code it replaces is incorrect, as it doesn't reschedule
+     * for killed. *)
+    val to_sched = InnerMatchState.get_p_nodeverts ms
 
     val unbboxed = V.NSet.subtract new_vs (Graph.get_bboxed pat)
     val wires = Graph.get_wires_for_edges pat new_es
@@ -144,7 +151,11 @@ struct
   fun get_next_bbox g =
     B.NSet.get_exists (not o (Graph.bbox_has_parents g)) (Graph.get_bboxes g)
 
-  val is_total = InnerMatchState.is_total o get_inner_state;
+  fun is_total bms =
+    if (InnerMatchState.is_total (get_inner_state bms))
+    then (Log.log 2 "==== total match found ===="; true)
+    else (Log.log 2 "==== match failed to be total ===="; false)
+
   val get_current_pat = InnerMatchState.get_pat o get_inner_state;
   fun match_bare_wires ms = let
     val ims = get_inner_state ms

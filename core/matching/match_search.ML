@@ -52,6 +52,7 @@ signature BG_MATCH_SEARCH =
 sig
 
   structure Log : LOG;
+  structure InnerLog : LOG;
 
   structure Graph : BANG_GRAPH;
   structure Match: BANG_GRAPH_MATCH;
