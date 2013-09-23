@@ -1,7 +1,7 @@
 datatype bbox_op = BBKill of B.name
                  | BBExpand of {
                       bbox : B.name,
-                      boundary_map : VSub.T,
+                      vmap : VSub.T,
                       bbox_map : BSub.T }
 
 signature BANG_GRAPH =

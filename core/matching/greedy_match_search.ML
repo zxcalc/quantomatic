@@ -124,6 +124,8 @@ struct
     schedule_concrete vs es bms
   end
 
+  (*fun get_orbit bbox_ops*)
+
   (* TODO: it is probably worth optimising this some more *)
   fun doomedf ms pv = let
     val pat = InnerMatchState.get_pat ms

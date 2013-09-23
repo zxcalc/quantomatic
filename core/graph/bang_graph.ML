@@ -1292,26 +1292,20 @@ fun expand_bbox_op bb g = let
   val ern = ESub.mk_from_avoids (get_edges g)
   val brn = BSub.mk_from_avoids (get_bboxes g)
   val ((vrn',_,bbox_map),g') = expand_bbox bb ((vrn,ern,brn),g)
-  val boundary_map =
-    V.NSet.fold 
-       (fn v => if is_boundary g v 
-                then VSub.add (v,VSub.get vrn' v)
-                else I)
-       (get_vertices_in_bbox g bb)
-       VSub.empty
-in (BBExpand { bbox=bb, boundary_map=boundary_map, bbox_map=bbox_map }, g')
+  val vmap = VSub.filter_dom (fn v => BVRel.is_mapped (get_bbox_rel g) (bb,v)) vrn'
+in (BBExpand { bbox=bb, vmap=vmap, bbox_map=bbox_map }, g')
 end
 
 fun kill_bbox_op bb g = ( BBKill bb, kill_bbox bb g )
 
-fun replay_bbox_op (BBExpand {bbox,boundary_map,bbox_map}) g =
+fun replay_bbox_op (BBExpand {bbox,vmap,bbox_map}) g =
   let
-    (* freshen the interior of g w.r.t. boundary_map *)
+    (* freshen the interior of g w.r.t. vmap *)
     val g' = g |> rename_vertices (VSub.empty 
                     |> VSub.extend_fixed (get_boundary g)
-                    |> VSub.avoid_set_in_cod (VSub.get_cod_set boundary_map)
+                    |> VSub.avoid_set_in_cod (VSub.get_cod_set vmap)
                     |> VSub.extend_fresh (get_vertices g))
-    val vrn = boundary_map |> VSub.avoid_set_in_cod (get_vertices g')
+    val vrn = vmap |> VSub.avoid_set_in_cod (get_vertices g')
     val ern = ESub.empty   |> ESub.avoid_set_in_cod (get_edges g')
     val brn = bbox_map
   in snd (expand_bbox bbox ((vrn,ern,brn), g'))
