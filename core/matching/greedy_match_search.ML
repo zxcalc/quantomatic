@@ -124,8 +124,6 @@ struct
     schedule_concrete vs es bms
   end
 
-  (*fun get_orbit bbox_ops*)
-
   (* TODO: it is probably worth optimising this some more *)
   fun doomedf ms pv = let
     val pat = InnerMatchState.get_pat ms
@@ -239,6 +237,21 @@ struct
 
   val kill_impossible_bboxes = kill_wild_bboxes
                              o kill_bboxes_adj_to_complete_nvs
+  
+  (* get the orbit of a single vertex under a series of expansions of a single bbox *)
+  fun get_orbit (bbox_ops as (BBExpand {bbox=bbox,vmap=vmap,bbox_map=_} :: ops)) =
+    (case V.NSet.get_local_bot (VSub.get_dom_set vmap)
+       of SOME v =>
+            let
+              fun orb (BBExpand {bbox=bbox',vmap=vmap',bbox_map=_} :: ops) =
+                    if B.name_eq (bbox,bbox')
+                    then V.NSet.add (VSub.get vmap' v) (orb ops)
+                    else V.NSet.empty
+                | orb _ = V.NSet.empty
+            in orb bbox_ops
+            end
+        | NONE => V.NSet.empty)
+    | get_orbit _ = V.NSet.empty
 
   fun match_loop ms' = let
     fun kill_and_expand b ms = let
@@ -250,9 +263,17 @@ struct
                  (Seq.maps do_copy (Seq.single ms))
     end
     and choose_next_bbox ms =
-      case get_next_bbox (get_current_pat ms) of
-           NONE => finish_match ms
-         | SOME b => kill_and_expand b ms
+          let
+            val orbit_map = (InnerMatchState.get_vmap (get_inner_state ms))
+                  |> VVInj.restrict_dom (get_orbit (get_bbox_ops ms))
+          in
+            if VVInj.is_monotone orbit_map
+            then
+              case get_next_bbox (get_current_pat ms)
+                of NONE => finish_match ms
+                 | SOME b => kill_and_expand b ms
+            else Seq.empty
+          end
   in
     Seq.maps choose_next_bbox
       (Seq.map kill_impossible_bboxes
