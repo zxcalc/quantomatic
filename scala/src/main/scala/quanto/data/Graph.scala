@@ -5,6 +5,8 @@ import quanto.util.json._
 import math.sqrt
 import JsonValues._
 import collection.mutable.ArrayBuffer
+import quanto.util._
+
 
 class GraphLoadException(message: String, cause: Throwable = null)
   extends Exception(message, cause)
@@ -28,6 +30,8 @@ case class Graph(
   def isInternal(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).size == 1 && inEdges(v).size == 1
   def inputs  = verts.filter(isInput(_))
   def outputs = verts.filter(isOutput(_))
+  
+
 }
 
 object Graph {
@@ -35,6 +39,7 @@ object Graph {
 
   def apply(theory: Theory): Graph = Graph(data = GData(theory = theory))
 
+  
   def fromJson(s: String, thy: Theory): Graph =
     try   { fromJson(Json.parse(s), thy) }
     catch { case e:JsonParseException => throw new GraphLoadException("Error parsing JSON", e) }

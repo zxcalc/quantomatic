@@ -2,7 +2,7 @@ package quanto.layout
 
 import quanto.util._
 import quanto.data._
-
+import math.{min,max,abs}
 /**
  * Force-directed layout algorithm. Parts are based on:
  *   [1] force.js from the D3 javascript library (see d3js.org)
@@ -119,7 +119,6 @@ class ForceLayout extends GraphLayout with Constraints {
     // apply charge forces
     for (v <- graph.verts) {
       var p = coord(v)
-
       quad.visit { nd =>
         nd.value match {
           case Some((optV,nodeCharge)) =>
@@ -157,7 +156,16 @@ class ForceLayout extends GraphLayout with Constraints {
   }
 
   def recenter() {
-
+	  val (sumCoordx,sumCoordy) = graph.verts.foldLeft(0.0,0.0)((pos,name) 
+			  					=> (pos._1+coord(name)._1,pos._2+coord(name)._2))
+	  val (centerX,centerY) = (sumCoordx/graph.verts.size,sumCoordy/graph.verts.size)
+	  
+//	  if(abs(centerX)> 5|| abs(centerY)> 5){
+		  graph.verts.foreach(name=>{
+		    val (px,py) = coord(name)
+		    setCoord(name, (px-centerX, py-centerY ))
+		  })
+	//  }
   }
 
   def step() {
