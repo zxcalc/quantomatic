@@ -1,7 +1,19 @@
 TODO:
 
-* choose which goal to eval  
-* click one hierarchical RT to open a new window showing the sub-graph
-* when finish the eval, add a new button saying "finish"
+High Priority:
+-------------
+* show hierarchical view of a tactic in a separated panel
+* error msg
+	- can't find related tactics XXX
+	- goal type XXX doesn't fit
+	- fail to apply tactics XXX 
+  
+Medium Priority:
+---------------
 * when click one RT, have a label showing more detail.
+* choose which goal to eval
+* when finish the eval, add a new button saying "finish"
+
+Low Priority:
+------------
 * need better layout, no overlapped label
