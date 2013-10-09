@@ -121,7 +121,7 @@ object LayoutTest extends SimpleSwingApplication {
 ////    addBBox   ("bb3", BBData(), Set("v0","v3"))
 //  )
   
-  val rnd = new Random()
+  val rnd = new Random(0xdeadbeef)
   
   
   graphView.graph = graphView.graph.verts.foldLeft(graphView.graph) {
@@ -140,7 +140,7 @@ object LayoutTest extends SimpleSwingApplication {
   var run = 0
   var constraints = false
 
-  val timer = new javax.swing.Timer(50, new ActionListener {
+  val timer = new javax.swing.Timer(10, new ActionListener {
     def actionPerformed(e: ActionEvent) {
 
       layout.step()
