@@ -17,6 +17,6 @@ trait Ranking extends Constraints {
 
     val dag = g.dagCopy
     for (e <- dag.edges)
-      constraints += (distance from (dag.source(e)) to (dag.target(e)) along (0,1)) >= rankSep
+      constraints += {(distance from (dag.source(e)) to (dag.target(e)) along (0,1)) ~>= rankSep}
   }
 }
