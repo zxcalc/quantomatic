@@ -8,6 +8,7 @@ import event.FocusEvent
 import java.awt.{Font => AWTFont, BasicStroke, RenderingHints, Color}
 import math._
 import java.awt.geom.{Line2D, Rectangle2D}
+import java.awt.Font
 
 
 // a visual overlay for edge drawing
@@ -183,11 +184,25 @@ class GraphView(val theory: Theory) extends Panel
     }
 
     g.setStroke(new BasicStroke(1))
-
+    var a = g.getColor()
     for ((v, VDisplay(shape,color,label)) <- vertexDisplay) {
       g.setColor(color)
       g.fill(shape)
-
+      
+      /// show the vname on the GUI
+      val sh = shape.getBounds().getLocation()
+      val px = sh.getX().toInt
+      val py = sh.getY().toInt
+      
+      //println(sh)
+      
+      a = g.getColor()
+      g.setFont(new Font("Consolas", Font.PLAIN, 15))
+      g.setColor(Color.BLACK)
+      
+      g.drawString(v.toString, px,py)
+      g.setColor(a);
+      
       if (selectedVerts contains v) {
         g.setColor(Color.BLUE)
         g.setStroke(new BasicStroke(2))
@@ -195,8 +210,12 @@ class GraphView(val theory: Theory) extends Panel
         g.setColor(Color.BLACK)
         g.setStroke(new BasicStroke(1))
       }
-
+      
+      
+      
       g.draw(shape)
+     
+      
 
       label.map { ld =>
         ld.backgroundColor.map { bg =>

@@ -18,7 +18,7 @@ class RichRect(val r: Geometry.Rect) {
     r match { case (((lx,ly),(ux,uy))) =>
       ((lx - padding, ly - padding), (ux + padding, uy + padding))
     }
-
+  def coords = (r._1,r._2)
   def center: Geometry.Pt = r match { case (((lx,ly),(ux,uy))) => ((lx+ux)/2.0,(ly+uy)/2.0) }
   def width: Double = r match { case ((lx,ux),_) => ux - lx }
   def height: Double = r match { case (_,(ly,uy)) => uy - ly }
@@ -35,8 +35,11 @@ object Geometry {
   type Rect = (Pt,Pt)
   def bounds(ps: Iterable[Pt]): Option[(Pt,Pt)] = {
     val it = ps.iterator
+    
     if (it.hasNext) {
-      var upper,lower = it.next()
+    	var upper = it.next()
+    	var lower = upper    
+
       for (p <- it) {
         lower = (min(lower._1,p._1),min(lower._2,p._2))
         upper = (max(upper._1,p._1),max(upper._2,p._2))

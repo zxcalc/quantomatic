@@ -82,6 +82,10 @@ abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def edgesBetween(v1: VName, v2: VName) = adjacentEdges(v1) intersect adjacentEdges(v2)
 
   def isBBoxed(v: VName) = !inBBox.domf(v).isEmpty
+  
+  /// by song
+  // to compute whether two vertices are in the same bbox.
+  def isInSameBBox(v1:VName, v2:VName) = !(inBBox.domf(v1) & inBBox.domf(v2)).isEmpty
 
   def addVertex(vn: VName, data: V) = {
     if (vdata contains vn)
