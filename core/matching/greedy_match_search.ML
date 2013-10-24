@@ -12,34 +12,218 @@ functor GreedyMatchSearch(
 ) : BG_MATCH_SEARCH =
 struct
 
-  structure Log : LOG = Log(val init_level = 0);
-  structure Graph = Graph;
-  structure InnerMatchState = OGraphMatchState(Graph);
-  structure InnerMatchSearch = ProgressiveMatchSearch(InnerMatchState);
-  structure InnerLog = InnerMatchSearch.Log;
-  structure Match = BangGraphMatch(Graph);
+  structure Log : LOG = Log(val init_level = 0)
+  structure Graph = Graph
+  structure InnerMatchState = OGraphMatchState(Graph)
+  structure InnerMatchSearch = ProgressiveMatchSearch(InnerMatchState)
+  structure InnerLog = InnerMatchSearch.Log
+  structure Match = BangGraphMatch(Graph)
 
   datatype State = MatchState of {
-    init_pat     : Graph.T,
-    bbox_ops     : bbox_op list,
-    wild_bboxes  : B.NSet.T,
-    inner_state  : InnerMatchState.T
+    init_pat        : Graph.T,
+    bbox_ops        : bbox_op list,
+    wild_bboxes     : B.NSet.T,
+    bmap            : BBInj.T,
+    pending_pat_bbs : B.NSet.T, (* unmatched, fixed !-boxes of pattern *)
+    operable_bbs    : B.NSet.T, (* operable (unfixed, top-level) !-boxes of pattern *)
+    pat_fix_tags    : BFFn.T,   (* fixity tags of pattern *)
+    tgt_fix_tags    : BFFn.T,   (* fixity tags of target *)
+    t_saved         : V.NSet.T, (* saved state of (#tgt_verts innerstate) *)
+    tgt_pool        : V.NSet.T, (* all the vertices we are ever allowed to match *)
+    inner_state     : InnerMatchState.T
   }
 
-  fun update_init_pat f (MatchState r) = MatchState {init_pat=f(#init_pat r),bbox_ops= #bbox_ops r,wild_bboxes= #wild_bboxes r,inner_state= #inner_state r}
-  fun update_bbox_ops f (MatchState r) = MatchState {init_pat= #init_pat r,bbox_ops=f(#bbox_ops r),wild_bboxes= #wild_bboxes r,inner_state= #inner_state r}
-  fun update_wild_bboxes f (MatchState r) = MatchState {init_pat= #init_pat r,bbox_ops= #bbox_ops r,wild_bboxes=f(#wild_bboxes r),inner_state= #inner_state r}
-  fun update_inner_state f (MatchState r) = MatchState {init_pat= #init_pat r,bbox_ops= #bbox_ops r,wild_bboxes= #wild_bboxes r,inner_state=f(#inner_state r)}
+  fun update_init_pat f (MatchState r) = MatchState {
+    init_pat        = f(#init_pat r),
+    bbox_ops        = #bbox_ops r,
+    wild_bboxes     = #wild_bboxes r,
+    bmap            = #bmap r,
+    pending_pat_bbs = #pending_pat_bbs r,
+    operable_bbs    = #operable_bbs r,
+    pat_fix_tags    = #pat_fix_tags r,
+    tgt_fix_tags    = #tgt_fix_tags r,
+    t_saved         = #t_saved r,
+    tgt_pool        = #tgt_pool r,
+    inner_state     = #inner_state r
+  }
 
-  fun get_init_pat    (MatchState r) = #init_pat r
-  fun get_bbox_ops    (MatchState r) = #bbox_ops r
-  fun get_wild_bboxes (MatchState r) = #wild_bboxes r
-  fun get_inner_state (MatchState r) = #inner_state r
+  fun update_bbox_ops f (MatchState r) = MatchState {
+    init_pat        = #init_pat r,
+    bbox_ops        = f(#bbox_ops r),
+    wild_bboxes     = #wild_bboxes r,
+    bmap            = #bmap r,
+    pending_pat_bbs = #pending_pat_bbs r,
+    operable_bbs    = #operable_bbs r,
+    pat_fix_tags    = #pat_fix_tags r,
+    tgt_fix_tags    = #tgt_fix_tags r,
+    t_saved         = #t_saved r,
+    tgt_pool        = #tgt_pool r,
+    inner_state     = #inner_state r
+  }
 
-  fun set_init_pat    x  = update_init_pat    (fn _ => x)
-  fun set_bbox_ops    x  = update_bbox_ops    (fn _ => x)
-  fun set_wild_bboxes x  = update_wild_bboxes (fn _ => x)
-  fun set_inner_state x  = update_inner_state (fn _ => x)
+  fun update_wild_bboxes f (MatchState r) = MatchState {
+    init_pat        = #init_pat r,
+    bbox_ops        = #bbox_ops r,
+    wild_bboxes     = f(#wild_bboxes r),
+    bmap            = #bmap r,
+    pending_pat_bbs = #pending_pat_bbs r,
+    operable_bbs    = #operable_bbs r,
+    pat_fix_tags    = #pat_fix_tags r,
+    tgt_fix_tags    = #tgt_fix_tags r,
+    t_saved         = #t_saved r,
+    tgt_pool        = #tgt_pool r,
+    inner_state     = #inner_state r
+  }
+
+  fun update_bmap f (MatchState r) = MatchState {
+    init_pat        = #init_pat r,
+    bbox_ops        = #bbox_ops r,
+    wild_bboxes     = #wild_bboxes r,
+    bmap            = f(#bmap r),
+    pending_pat_bbs = #pending_pat_bbs r,
+    operable_bbs    = #operable_bbs r,
+    pat_fix_tags    = #pat_fix_tags r,
+    tgt_fix_tags    = #tgt_fix_tags r,
+    t_saved         = #t_saved r,
+    tgt_pool        = #tgt_pool r,
+    inner_state     = #inner_state r
+  }
+
+  fun update_pending_pat_bbs f (MatchState r) = MatchState {
+    init_pat        = #init_pat r,
+    bbox_ops        = #bbox_ops r,
+    wild_bboxes     = #wild_bboxes r,
+    bmap            = #bmap r,
+    pending_pat_bbs = f(#pending_pat_bbs r),
+    operable_bbs    = #operable_bbs r,
+    pat_fix_tags    = #pat_fix_tags r,
+    tgt_fix_tags    = #tgt_fix_tags r,
+    t_saved         = #t_saved r,
+    tgt_pool        = #tgt_pool r,
+    inner_state     = #inner_state r
+  }
+
+  fun update_operable_bbs f (MatchState r) = MatchState {
+    init_pat        = #init_pat r,
+    bbox_ops        = #bbox_ops r,
+    wild_bboxes     = #wild_bboxes r,
+    bmap            = #bmap r,
+    pending_pat_bbs = #pending_pat_bbs r,
+    operable_bbs    = f(#operable_bbs r),
+    pat_fix_tags    = #pat_fix_tags r,
+    tgt_fix_tags    = #tgt_fix_tags r,
+    t_saved         = #t_saved r,
+    tgt_pool        = #tgt_pool r,
+    inner_state     = #inner_state r
+  }
+
+  fun update_pat_fixed f (MatchState r) = MatchState {
+    init_pat        = #init_pat r,
+    bbox_ops        = #bbox_ops r,
+    wild_bboxes     = #wild_bboxes r,
+    bmap            = #bmap r,
+    pending_pat_bbs = #pending_pat_bbs r,
+    operable_bbs    = #operable_bbs r,
+    pat_fix_tags    = #pat_fix_tags r,
+    tgt_fix_tags    = #tgt_fix_tags r,
+    t_saved         = #t_saved r,
+    tgt_pool        = #tgt_pool r,
+    inner_state     = #inner_state r
+  }
+
+  fun update_pat_fix_tags f (MatchState r) = MatchState {
+    init_pat        = #init_pat r,
+    bbox_ops        = #bbox_ops r,
+    wild_bboxes     = #wild_bboxes r,
+    bmap            = #bmap r,
+    pending_pat_bbs = #pending_pat_bbs r,
+    operable_bbs    = #operable_bbs r,
+    pat_fix_tags    = f(#pat_fix_tags r),
+    tgt_fix_tags    = #tgt_fix_tags r,
+    t_saved         = #t_saved r,
+    tgt_pool        = #tgt_pool r,
+    inner_state     = #inner_state r
+  }
+
+  fun update_tgt_fix_tags f (MatchState r) = MatchState {
+    init_pat        = #init_pat r,
+    bbox_ops        = #bbox_ops r,
+    wild_bboxes     = #wild_bboxes r,
+    bmap            = #bmap r,
+    pending_pat_bbs = #pending_pat_bbs r,
+    operable_bbs    = #operable_bbs r,
+    pat_fix_tags    = #pat_fix_tags r,
+    tgt_fix_tags    = f(#tgt_fix_tags r),
+    t_saved         = #t_saved r,
+    tgt_pool        = #tgt_pool r,
+    inner_state     = #inner_state r
+  }
+
+  fun update_t_saved f (MatchState r) = MatchState {
+    init_pat        = #init_pat r,
+    bbox_ops        = #bbox_ops r,
+    wild_bboxes     = #wild_bboxes r,
+    bmap            = #bmap r,
+    pending_pat_bbs = #pending_pat_bbs r,
+    operable_bbs    = #operable_bbs r,
+    pat_fix_tags    = #pat_fix_tags r,
+    tgt_fix_tags    = #tgt_fix_tags r,
+    t_saved         = f(#t_saved r),
+    tgt_pool        = #tgt_pool r,
+    inner_state     = #inner_state r
+  }
+
+  fun update_tgt_pool f (MatchState r) = MatchState {
+    init_pat        = #init_pat r,
+    bbox_ops        = #bbox_ops r,
+    wild_bboxes     = #wild_bboxes r,
+    bmap            = #bmap r,
+    pending_pat_bbs = #pending_pat_bbs r,
+    operable_bbs    = #operable_bbs r,
+    pat_fix_tags    = #pat_fix_tags r,
+    tgt_fix_tags    = #tgt_fix_tags r,
+    t_saved         = #t_saved r,
+    tgt_pool        = f(#tgt_pool r),
+    inner_state     = #inner_state r
+  }
+
+  fun update_inner_state f (MatchState r) = MatchState {
+    init_pat        = #init_pat r,
+    bbox_ops        = #bbox_ops r,
+    wild_bboxes     = #wild_bboxes r,
+    bmap            = #bmap r,
+    pending_pat_bbs = #pending_pat_bbs r,
+    operable_bbs    = #operable_bbs r,
+    pat_fix_tags    = #pat_fix_tags r,
+    tgt_fix_tags    = #tgt_fix_tags r,
+    t_saved         = #t_saved r,
+    tgt_pool        = #tgt_pool r,
+    inner_state     = f(#inner_state r)
+  }
+
+  fun get_init_pat        (MatchState r) = #init_pat r
+  fun get_bbox_ops        (MatchState r) = #bbox_ops r
+  fun get_wild_bboxes     (MatchState r) = #wild_bboxes r
+  fun get_bmap            (MatchState r) = #bmap r
+  fun get_pending_pat_bbs (MatchState r) = #pending_pat_bbs r
+  fun get_operable_bbs    (MatchState r) = #operable_bbs r
+  fun get_pat_fix_tags    (MatchState r) = #pat_fix_tags r
+  fun get_tgt_fix_tags    (MatchState r) = #tgt_fix_tags r
+  fun get_t_saved         (MatchState r) = #t_saved r
+  fun get_tgt_pool        (MatchState r) = #tgt_pool r
+  fun get_inner_state     (MatchState r) = #inner_state r
+
+  fun set_init_pat        x = update_init_pat        (fn _ => x)
+  fun set_bbox_ops        x = update_bbox_ops        (fn _ => x)
+  fun set_wild_bboxes     x = update_wild_bboxes     (fn _ => x)
+  fun set_bmap            x = update_bmap            (fn _ => x)
+  fun set_pending_pat_bbs x = update_pending_pat_bbs (fn _ => x)
+  fun set_operable_bbs    x = update_operable_bbs    (fn _ => x)
+  fun set_pat_fixed       x = update_pat_fixed       (fn _ => x)
+  fun set_pat_fix_tags    x = update_pat_fix_tags    (fn _ => x)
+  fun set_tgt_fix_tags    x = update_tgt_fix_tags    (fn _ => x)
+  fun set_t_saved         x = update_t_saved         (fn _ => x)
+  fun set_inner_state     x = update_inner_state     (fn _ => x)
 
   (* the inner match state actually holds the canonical reference to the expanded pattern graph *)
   val get_pat = InnerMatchState.get_pat o get_inner_state
@@ -53,13 +237,31 @@ struct
         (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
   val log_graph = log_p Graph.pretty
   val log_v_nset = log_p V.NSet.pretty
+  val log_b_nset = log_p B.NSet.pretty
 
-  fun init pat tgt = MatchState {
-    init_pat = pat,
-    bbox_ops = [],
-    wild_bboxes = B.NSet.empty,
-    inner_state = InnerMatchState.init pat tgt
-  }
+  fun init_with_fixed pat tgt tgt_pool pat_fix_tags tgt_fix_tags = let
+    val toplevel_bbs = B.NSet.filter (not o (Graph.bbox_has_parents pat))
+                                     (Graph.get_bboxes pat)
+    val all_tags = F.NSet.union_merge (BFFn.get_cod_set pat_fix_tags)
+                                      (BFFn.get_cod_set tgt_fix_tags)
+    val pat_fixed = BFFn.get_dom_set pat_fix_tags
+  in
+    MatchState {
+      init_pat        = pat,
+      bbox_ops        = [],
+      wild_bboxes     = B.NSet.empty,
+      bmap            = BBInj.empty,
+      pending_pat_bbs = pat_fixed,
+      operable_bbs    = B.NSet.subtract toplevel_bbs pat_fixed,
+      pat_fix_tags    = pat_fix_tags,
+      tgt_fix_tags    = tgt_fix_tags,
+      t_saved         = V.NSet.subtract tgt_pool (Graph.get_bboxed tgt),
+      tgt_pool        = tgt_pool,
+      inner_state     = InnerMatchState.init pat tgt
+    }
+  end
+
+  fun init pat tgt tgt_pool = init_with_fixed pat tgt tgt_pool BFFn.empty BFFn.empty
 
   fun schedule_concrete new_vs new_es bms = let
     val ms = get_inner_state bms
@@ -102,7 +304,8 @@ struct
         |> InnerMatchState.extend_u_nodeverts (V.NSet.intersect unbboxed nvs)
         |> InnerMatchState.extend_u_wireverts (V.NSet.intersect unbboxed wvs)
         |> InnerMatchState.extend_u_bare_wires bare_wire_es
-        |> InnerMatchState.extend_ps_nodeverts to_sched)
+        |> InnerMatchState.extend_ps_nodeverts to_sched
+        |> InnerMatchState.set_tgt_verts (get_t_saved bms))
     bms
   end
 
@@ -116,7 +319,7 @@ struct
   in
     schedule_concrete new_vs new_es bms
   end
-  fun schedule_concrete_pat bms = let
+  fun schedule_all_concrete bms = let
     val pat = InnerMatchState.get_pat (get_inner_state bms)
     val vs = Graph.get_vertices pat
     val es = Graph.get_edges pat
@@ -125,6 +328,7 @@ struct
   end
 
   (* TODO: it is probably worth optimising this some more *)
+  (* TODO: account for fixed/matched !-boxes? *)
   fun doomedf ms pv = let
     val pat = InnerMatchState.get_pat ms
     val tgt = InnerMatchState.get_tgt ms
@@ -148,27 +352,27 @@ struct
     )
   end
 
-  fun get_next_bbox g =
-    B.NSet.get_exists (not o (Graph.bbox_has_parents g)) (Graph.get_bboxes g)
-
   fun is_total bms =
     if (InnerMatchState.is_total (get_inner_state bms))
     then (Log.log 2 "==== total match found ===="; true)
     else (Log.log 2 "==== match failed to be total ===="; false)
 
-  val get_current_pat = InnerMatchState.get_pat o get_inner_state;
+  val get_current_pat = InnerMatchState.get_pat o get_inner_state
   fun match_bare_wires ms = let
     val ims = get_inner_state ms
   in
+    (* TODO: respect !-box containment *)
     Seq.map (fn ims => set_inner_state ims ms)
             (InnerMatchSearch.match_bare_wires ims)
-  end;
+  end
   fun match_pending ms = let
+    fun update_ms ims =
+          ms |> set_inner_state ims
+             |> set_t_saved (InnerMatchState.get_tgt_verts ims)
     val ims = get_inner_state ms
   in
-    Seq.map (fn ims => set_inner_state ims ms)
-            (InnerMatchSearch.match_pending doomedf ims)
-  end;
+    Seq.map update_ms (InnerMatchSearch.match_pending doomedf ims)
+  end
 
   fun finish_match ms =
       Seq.filter is_total
@@ -176,19 +380,25 @@ struct
 
   fun expand_pat_bbox b ms = let
     val _ = Log.logf 2 (fn () => "Expanding !-box "^(B.string_of_name b)) ()
-    val (bb_op, pat') = Graph.expand_bbox_op b (get_pat ms)
+    val pat = get_pat ms
+    val (bb_op, pat') = Graph.expand_bbox_op b pat
+    val new_toplevel = B.NSet.filter (not o (Graph.bbox_has_parents pat'))
+                                     (bbox_op_added_bboxes bb_op)
+    val _ = log_b_nset 4 "  new top-level !-boxes" new_toplevel
   in
     ms |> set_pat pat'
+       |> update_operable_bbs (B.NSet.union_merge new_toplevel)
        |> update_bbox_ops (cons bb_op)
-  end;
+  end
 
   fun kill_pat_bbox b ms = let
     val _ = Log.logf 2 (fn () => "Killing !-box "^(B.string_of_name b)) ()
     val (bb_op, pat') = Graph.kill_bbox_op b (get_pat ms)
   in
     ms |> set_pat pat'
+       |> update_operable_bbs (B.NSet.delete b)
        |> update_bbox_ops (cons bb_op)
-  end;
+  end
 
   fun kill_bboxes_adj_to_complete_nvs bms = let
     val ms = get_inner_state bms
@@ -197,8 +407,10 @@ struct
     val touched = Graph.get_adj_vertices_to_set pat complete
     fun kill_all_bboxes v bms = let
       val pat = InnerMatchState.get_pat (get_inner_state bms)
+      val bbs = Graph.get_bboxes_containing_vertex pat v
+      val operable_bbs = B.NSet.intersect bbs (get_operable_bbs bms)
     in
-      B.NSet.fold kill_pat_bbox (Graph.get_bboxes_containing_vertex pat v) bms
+      B.NSet.fold kill_pat_bbox operable_bbs bms
       handle Graph.no_such_vertex_exp _ => bms
     end
   in
@@ -238,51 +450,75 @@ struct
   val kill_impossible_bboxes = kill_wild_bboxes
                              o kill_bboxes_adj_to_complete_nvs
 
+  fun cfix_pat_bbox b ms = let
+    val _ = Log.logf 2 (fn () => "Copy-fixing !-box "^(B.string_of_name b)) ()
+    val pat = get_pat ms
+    val (bb_op, pat') = Graph.copy_bbox_op b pat
+    val b' = bbox_op_get_bbox_copy bb_op b
+    val b'_singleton = B.NSet.single b'
+    val new_toplevel = B.NSet.filter
+          (fn c => B.NSet.eq (Graph.get_bbox_parents pat' c) b'_singleton)
+          (bbox_op_added_bboxes bb_op)
+    val _ = log_b_nset 4 "  new top-level !-boxes" new_toplevel
+  in
+    ms |> set_pat pat'
+       |> update_operable_bbs (B.NSet.union_merge new_toplevel)
+       |> update_pending_pat_bbs (B.NSet.ins_fresh b')
+       |> update_bbox_ops (cons bb_op)
+  end
+
+  fun match_pending_bbs bms =
+    if B.NSet.is_empty (get_pending_pat_bbs bms)
+    then Seq.single bms
+    else Seq.empty (* TODO *)
+
   fun match_loop ms' = let
-    fun kill_and_expand b ms = let
+    fun bbox_oper_branch b ms = let
       val do_kill = choose_next_bbox o (kill_pat_bbox b)
-      val do_copy = match_loop o schedule_new_concrete
-                               o (expand_pat_bbox b)
+      val do_expand = match_loop o schedule_new_concrete
+                                 o (expand_pat_bbox b)
+      val do_cfix = Seq.maps (choose_next_bbox o kill_impossible_bboxes)
+                             o match_pending_bbs
+                             o (cfix_pat_bbox b)
     in
       Seq.append (Seq.maps do_kill (Seq.single ms))
-                 (Seq.maps do_copy (Seq.single ms))
+      (Seq.append (Seq.maps do_expand (Seq.single ms))
+                  (Seq.maps do_cfix (Seq.single ms)))
     end
     and choose_next_bbox ms =
-      case get_next_bbox (get_current_pat ms) of
+      case B.NSet.get_local_bot (get_operable_bbs ms) of
            NONE => finish_match ms
-         | SOME b => kill_and_expand b ms
+         | SOME b => bbox_oper_branch b ms
   in
-    Seq.maps choose_next_bbox
-      (Seq.map kill_impossible_bboxes
-        (match_pending ms'))
+    Seq.maps (choose_next_bbox o kill_impossible_bboxes)
+      (Seq.maps match_pending_bbs (match_pending ms'))
   end
 
   fun matches_from_ms ms = let
     val ims = get_inner_state ms
-    val (init_pat,pat,bbox_ops,tgt,vmap,emap,wild) = (
+    val (init_pat,pat,bbox_ops,tgt,vmap,emap,bmap,wild) = (
       get_init_pat ms,
       get_pat ms,
       get_bbox_ops ms,
       InnerMatchState.get_tgt ims,
       InnerMatchState.get_vmap ims,
       InnerMatchState.get_emap ims,
+      get_bmap ms,
       get_wild_bboxes ms
     )
   in
-    Seq.map (Match.mk init_pat pat bbox_ops tgt vmap emap BBInj.empty wild)
+    Seq.map (Match.mk init_pat pat bbox_ops tgt vmap emap bmap wild)
             (Graph.solve_psubst (InnerMatchState.get_match_psubst ims))
-  end;
+  end
 
-  fun find_matches ms = Seq.maps matches_from_ms (match_loop ms);
+  fun find_matches ms = Seq.maps matches_from_ms (match_loop ms)
 
   fun match_normalised pat tgt = let
     val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
     val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
-    val ms = init pat tgt
-           |> schedule_concrete_pat
-           |> update_inner_state (InnerMatchState.schedule_all_tgt)
+    val ms = init pat tgt (Graph.get_vertices tgt)
   in
-    find_matches ms
+    find_matches (schedule_all_concrete ms)
   end
 
   fun match pat tgt =
@@ -292,11 +528,10 @@ struct
     val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
     val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
     val _ = log_v_nset 4 "GreedyMatchSearch: target vertices" tgt_verts
-    val ms = init pat tgt
-           |> schedule_concrete_pat
-           |> update_inner_state (InnerMatchState.schedule_tgt_subgraph tgt_verts)
+    val tgt_subgraph = Graph.get_open_subgraph tgt tgt_verts
+    val ms = init pat tgt (Graph.get_vertices tgt_subgraph)
   in
-    find_matches ms
+    find_matches (schedule_all_concrete ms)
   end
   fun match_subgraph pat tgt =
     match_subgraph_normalised (Graph.normalise pat) (Graph.normalise tgt)

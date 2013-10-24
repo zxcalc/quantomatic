@@ -1,3 +1,4 @@
+(* FIXME: put this in a struct? *)
 datatype bbox_op = BBKill of B.name
                  | BBExpand of {
                       bbox : B.name,
@@ -7,6 +8,14 @@ datatype bbox_op = BBKill of B.name
                       bbox : B.name,
                       boundary_map : VSub.T,
                       bbox_map : BSub.T }
+fun bbox_op_added_bboxes (BBKill _) = B.NSet.empty
+  | bbox_op_added_bboxes (BBExpand {bbox_map,...}) = BSub.get_cod_set bbox_map
+  | bbox_op_added_bboxes (BBCopy {bbox_map,...}) = BSub.get_cod_set bbox_map
+fun bbox_op_get_bbox_copy (BBKill _) _ = raise Match
+  | bbox_op_get_bbox_copy (BBExpand {bbox_map,...}) b =
+      BSub.get bbox_map b
+  | bbox_op_get_bbox_copy (BBCopy {bbox_map,...}) b =
+      BSub.get bbox_map b
 
 signature BANG_GRAPH =
 sig

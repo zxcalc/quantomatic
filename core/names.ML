@@ -19,6 +19,7 @@ signature QUANTO_NAME
   structure X : SSTR_NAME  (* eXpression variables in data *)
   structure R : SSTR_NAME  (* Rules *)
   structure T : SSTR_NAME  (* Theories *)
+  structure F : SSTR_NAME  (* Fixing tags *)
   structure TagName : SSTR_NAME
   structure GraphName : SSTR_NAME
 
@@ -51,6 +52,12 @@ signature QUANTO_NAME
         and type DomSet.T = E.NSet.T
         and type cod = V.name
         and type CodSet.T = V.NSet.T
+
+  structure BFFn : NAME_FUNCTION
+      where type dom = B.name
+        and type DomSet.T = B.NSet.T
+        and type cod = F.name
+        and type CodSet.T = F.NSet.T
 
   structure BVRel : NAME_RELATION
     where type dom = B.name
@@ -128,6 +135,7 @@ structure QuantoNames :> QUANTO_NAME
   structure X = struct open SStrName; val default_name = mk "x"; end (* expressions *)
   structure R = struct open SStrName; val default_name = mk "new-rule-1"; end (* Rules *)
   structure T = struct open SStrName; val default_name = mk "new-theory-1"; end  (* Theories *)
+  structure F = struct open SStrName; val default_name = mk "a"; end  (* Fixity tags *)
   
   structure TagName : SSTR_NAME = 
       struct open SStrName; val default_name = mk "new-ruleset-1"; end
@@ -148,6 +156,7 @@ structure QuantoNames :> QUANTO_NAME
   structure TTab = SStrTab
 
   structure EVFn = SStrFn
+  structure BFFn = SStrFn
 
   structure BVRel  = SStrRel
   structure BBRel  = SStrRel
