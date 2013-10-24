@@ -566,6 +566,10 @@ fun add_children_to_bbox bb bb_children g =
 fun add_parents_to_bbox' bb bb_parents g =
   B.NSet.fold (fn bp => add_child_to_bbox' bp bb) bb_parents g
 
+fun add_parents_to_bbox bb bb_parents g =
+  if not (has_bbox g bb) then raise no_such_bbox_exp ("add_parents_to_bbox", bb, g)
+  else B.NSet.fold (fn bp => add_child_to_bbox' bp bb) bb_parents g
+
 (* TODO: these functions need to enforce transitive closure! *)
 
 fun remove_child_from_bbox bb bb_child g =
@@ -1240,12 +1244,12 @@ fun merge_bboxes bnset g =
 
 fun expand_bbox bb ((vsub,esub,bsub),g) = let
   val _ = if has_bbox g bb then () else raise no_such_bbox_exp ("expand_bbox", bb, g) 
-  val old_children = get_bbox_children g bb
+  val old_bb_children = get_bbox_children g bb
   val old_vertices = get_vertices_in_bbox g bb
   val old_edges = V.NSet.fold (E.NSet.union_merge o get_adj_edges' g) old_vertices E.NSet.empty
   val vsub' = VSub.extend_fresh old_vertices vsub
   val esub' = ESub.extend_fresh old_edges esub
-  val bsub' = BSub.extend_fresh old_children bsub
+  val bsub' = BSub.extend_fresh old_bb_children bsub
 
   fun cp_vert v g = let
     val v' = VSub.get vsub' v
@@ -1254,7 +1258,7 @@ fun expand_bbox bb ((vsub,esub,bsub),g) = let
       |> B.NSet.fold
            (fn b => (
              if B.name_eq (bb,b) then I
-             else add_vertex_to_bbox' (if B.NSet.contains old_children b
+             else add_vertex_to_bbox' (if B.NSet.contains old_bb_children b
                                        then BSub.get bsub' b else b) v'
            ))
            (get_bboxes_containing_vertex g v)
@@ -1269,10 +1273,21 @@ fun expand_bbox bb ((vsub,esub,bsub),g) = let
     g |> add_named_edge' e' (get_edge_dir_and_data g e) s t
   end
 
+  fun cp_bbox b g = let
+    val b' = BSub.get bsub' b
+    val old_parents = get_bbox_parents g b
+    val new_parents = B.NSet.subtract (B.NSet.delete bb old_parents)
+                                      old_bb_children
+    val old_children = get_bbox_children g b
+    val new_children = BSub.img_of_set bsub' old_children
+  in
+    g |> add_named_bbox' b'
+      |> add_parents_to_bbox' b' new_parents
+      |> add_children_to_bbox' b' new_children
+  end
+
 in ((vsub',esub',bsub'),
-    g |> B.NSet.fold (add_named_bbox' o BSub.get bsub') old_children
-      |> B.NSet.fold (fn b => add_children_to_bbox' (BSub.get bsub' b)
-                               (BSub.img_of_set bsub' (get_bbox_children g b))) old_children
+    g |> B.NSet.fold cp_bbox old_bb_children
       |> V.NSet.fold cp_vert old_vertices
       |> E.NSet.fold cp_edge old_edges
    )
@@ -1281,13 +1296,15 @@ end
 fun copy_bbox bb ((vsub,esub,bsub),g) = let
   val bsub' = BSub.extend_fresh (B.NSet.single bb) bsub
   val ((vsub',esub',bsub'),g') = expand_bbox bb ((vsub,esub,bsub'),g)
+  val parents = get_bbox_parents g bb
   val new_bb = BSub.get bsub' bb
   val new_children = BSub.img_of_set bsub' (get_bbox_children g bb)
   val new_vertices = VSub.img_of_set vsub' (get_vertices_in_bbox g bb)
 in ((vsub',esub',bsub'),
     g' |> add_named_bbox' new_bb
-       |> add_children_to_bbox' new_bb new_children
-       |> add_vertices_to_bbox' new_bb new_vertices)
+       |> add_vertices_to_bbox' new_bb new_vertices
+       |> add_parents_to_bbox' new_bb parents
+       |> add_children_to_bbox' new_bb new_children)
 end
 
 fun fresh_copy_bbox bb g = let

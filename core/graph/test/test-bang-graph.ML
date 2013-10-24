@@ -1384,7 +1384,126 @@ functor Bang_Graph_Interface_Tests(
 
 
   val _ = Testing.test "G.fresh_copy_bbox" (fn () => let
-    (* TODO: val fresh_copy_bbox : B.name -> T -> (VSub.T * ESub.T * BSub.T) * T *)
+    val g_orig = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_wv "w1"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_bbox "b1" ["v1","w1","v2"]
+        |> add_bbox_with_parent "b2" "b1" ["v2","w1"]
+
+    val ((vsub,esub,bsub),g_actual) = G.fresh_copy_bbox (B.mk "b1") g_orig
+    val get_vsub = V.dest o (VSub.get vsub) o V.mk
+    val get_esub = E.dest o (ESub.get esub) o E.mk
+    val get_bsub = B.dest o (BSub.get bsub) o B.mk
+    val g_exp = g_orig
+        |> add_vunit1 (get_vsub "v1")
+        |> add_vunit2 (get_vsub "v2")
+        |> add_wv (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e1") (get_vsub "v1") (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e2") (get_vsub "w1") (get_vsub "v2")
+        |> add_bbox (get_bsub "b1") (map get_vsub ["v1","w1","v2"])
+        |> add_bbox_with_parent (get_bsub "b2") (get_bsub "b1") (map get_vsub ["v2","w1"])
+    val _ = assert_g_eq "G.fresh_copy_bbox (parent)" g_exp g_actual
+
+    val ((vsub,esub,bsub),g_actual) = G.fresh_copy_bbox (B.mk "b2") g_orig
+    val get_vsub = V.dest o (VSub.get vsub) o V.mk
+    val get_esub = E.dest o (ESub.get esub) o E.mk
+    val get_bsub = B.dest o (BSub.get bsub) o B.mk
+    val g_exp = g_orig
+        |> add_vunit2 (get_vsub "v2")
+        |> add_wv (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e1") "v1" (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e2") (get_vsub "w1") (get_vsub "v2")
+        |> add_to_bbox "b1" (map get_vsub ["v2","w1"])
+        |> add_bbox_with_parent (get_bsub "b2") "b1" (map get_vsub ["v2","w1"])
+    val _ = assert_g_eq "G.fresh_copy_bbox (child)" g_exp g_actual
+
+
+    val g_orig = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_wv "w1"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_bbox "b1" ["v1","w1","v2"]
+        |> add_bbox "b1a" ["v1","w1","v2"]
+        |> add_bbox_with_parents "b2" ["b1","b1a"] ["v2","w1"]
+
+    val ((vsub,esub,bsub),g_actual) = G.fresh_copy_bbox (B.mk "b1") g_orig
+    val get_vsub = V.dest o (VSub.get vsub) o V.mk
+    val get_esub = E.dest o (ESub.get esub) o E.mk
+    val get_bsub = B.dest o (BSub.get bsub) o B.mk
+    val g_exp = g_orig
+        |> add_vunit1 (get_vsub "v1")
+        |> add_vunit2 (get_vsub "v2")
+        |> add_wv (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e1") (get_vsub "v1") (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e2") (get_vsub "w1") (get_vsub "v2")
+        |> add_bbox (get_bsub "b1") (map get_vsub ["v1","w1","v2"])
+        |> add_to_bbox "b1a" (map get_vsub ["v1","w1","v2"])
+        |> add_bbox_with_parents (get_bsub "b2") [(get_bsub "b1"),"b1a"] (map get_vsub ["v2","w1"])
+    val _ = assert_g_eq "G.fresh_copy_bbox (child has other parent)" g_exp g_actual
+
+
+    val g_orig = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_vunit2 "v3"
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_dir_eunit2 "e3" "v2" "w2"
+        |> add_dir_eunit2 "e4" "w2" "v3"
+        |> add_bbox "b1" ["v1","w1","v2","w2","v3"]
+        |> add_bbox_with_parent "b2" "b1" ["w1","v2","w2","v3"]
+        |> add_bbox_with_parents "b3" ["b1","b2"] ["w2","v3"]
+
+    val ((vsub,esub,bsub),g_actual) = G.fresh_copy_bbox (B.mk "b2") g_orig
+    val get_vsub = V.dest o (VSub.get vsub) o V.mk
+    val get_esub = E.dest o (ESub.get esub) o E.mk
+    val get_bsub = B.dest o (BSub.get bsub) o B.mk
+    val g_exp = g_orig
+        |> add_vunit2 (get_vsub "v2")
+        |> add_vunit2 (get_vsub "v3")
+        |> add_wv (get_vsub "w1")
+        |> add_wv (get_vsub "w2")
+        |> add_dir_eunit1 (get_esub "e1") "v1" (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e2") (get_vsub "w1") (get_vsub "v2")
+        |> add_dir_eunit2 (get_esub "e3") (get_vsub "v2") (get_vsub "w2")
+        |> add_dir_eunit2 (get_esub "e4") (get_vsub "w2") (get_vsub "v3")
+        |> add_to_bbox "b1" (map get_vsub ["w1","v2","w2","v3"])
+        |> add_bbox_with_parent (get_bsub "b2") "b1"
+              (map get_vsub ["w1","v2","w2","v3"])
+        |> add_bbox_with_parents (get_bsub "b3") ["b1",get_bsub "b2"]
+              (map get_vsub ["w2","v3"])
+    val _ = assert_g_eq "G.fresh_copy_bbox (parent+child)" g_exp g_actual
+
+
+    val g_orig = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_wv "w1"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_bbox "b1" ["v1","w1"]
+        |> add_bbox "b2" ["v2","w1"]
+
+    val ((vsub,esub,bsub),g_actual) = G.fresh_copy_bbox (B.mk "b1") g_orig
+    val get_vsub = V.dest o (VSub.get vsub) o V.mk
+    val get_esub = E.dest o (ESub.get esub) o E.mk
+    val get_bsub = B.dest o (BSub.get bsub) o B.mk
+
+    val g_exp = g_orig
+        |> add_vunit1 (get_vsub "v1")
+        |> add_wv (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e1") (get_vsub "v1") (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e2") (get_vsub "w1") "v2"
+        |> add_bbox (get_bsub "b1") (map get_vsub ["v1","w1"])
+        |> add_to_bbox "b2" (map get_vsub ["w1"])
+    val _ = assert_g_eq "G.fresh_copy_bbox (overlap)" g_exp g_actual
     in () end) ()
 
 
@@ -1394,7 +1513,143 @@ functor Bang_Graph_Interface_Tests(
 
 
   val _ = Testing.test "G.fresh_expand_bbox" (fn () => let
-    (* TODO: val fresh_expand_bbox : B.name -> T -> (VSub.T * ESub.T * BSub.T) * T *)
+    val g_orig = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_wv "w1"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_bbox "b1" ["v1","w1","v2"]
+        |> add_bbox_with_parent "b2" "b1" ["v2","w1"]
+
+    val ((vsub,esub,bsub),g_actual) = G.fresh_expand_bbox (B.mk "b1") g_orig
+    val get_vsub = V.dest o (VSub.get vsub) o V.mk
+    val get_esub = E.dest o (ESub.get esub) o E.mk
+    val get_bsub = B.dest o (BSub.get bsub) o B.mk
+    val g_exp = g_orig
+        |> add_vunit1 (get_vsub "v1")
+        |> add_vunit2 (get_vsub "v2")
+        |> add_wv (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e1") (get_vsub "v1") (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e2") (get_vsub "w1") (get_vsub "v2")
+        |> add_bbox (get_bsub "b2") (map get_vsub ["v2","w1"])
+    val _ = assert_g_eq "G.fresh_expand_bbox (parent)" g_exp g_actual
+
+    val ((vsub,esub,bsub),g_actual) = G.fresh_expand_bbox (B.mk "b2") g_orig
+    val get_vsub = V.dest o (VSub.get vsub) o V.mk
+    val get_esub = E.dest o (ESub.get esub) o E.mk
+    val get_bsub = B.dest o (BSub.get bsub) o B.mk
+    val g_exp = g_orig
+        |> add_vunit2 (get_vsub "v2")
+        |> add_wv (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e1") "v1" (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e2") (get_vsub "w1") (get_vsub "v2")
+        |> add_to_bbox "b1" (map get_vsub ["v2","w1"])
+    val _ = assert_g_eq "G.fresh_expand_bbox (child)" g_exp g_actual
+
+
+    val g_orig = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_wv "w1"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_bbox "b1" ["v1","w1","v2"]
+        |> add_bbox "b1a" ["v1","w1","v2"]
+        |> add_bbox_with_parents "b2" ["b1","b1a"] ["v2","w1"]
+
+    val ((vsub,esub,bsub),g_actual) = G.fresh_expand_bbox (B.mk "b1") g_orig
+    val get_vsub = V.dest o (VSub.get vsub) o V.mk
+    val get_esub = E.dest o (ESub.get esub) o E.mk
+    val get_bsub = B.dest o (BSub.get bsub) o B.mk
+    val g_exp = g_orig
+        |> add_vunit1 (get_vsub "v1")
+        |> add_vunit2 (get_vsub "v2")
+        |> add_wv (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e1") (get_vsub "v1") (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e2") (get_vsub "w1") (get_vsub "v2")
+        |> add_to_bbox "b1a" (map get_vsub ["v1","w1","v2"])
+        |> add_bbox_with_parent (get_bsub "b2") "b1a" (map get_vsub ["v2","w1"])
+    val _ = assert_g_eq "G.fresh_expand_bbox (child has other parent)" g_exp g_actual
+
+
+    val g_orig = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_vunit2 "v3"
+        |> add_wv "w1"
+        |> add_wv "w2"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_dir_eunit2 "e3" "v2" "w2"
+        |> add_dir_eunit2 "e4" "w2" "v3"
+        |> add_bbox "b1" ["v1","w1","v2","w2","v3"]
+        |> add_bbox_with_parent "b2" "b1" ["w1","v2","w2","v3"]
+        |> add_bbox_with_parents "b3" ["b1","b2"] ["w2","v3"]
+
+    val ((vsub,esub,bsub),g_actual) = G.fresh_expand_bbox (B.mk "b2") g_orig
+    val get_vsub = V.dest o (VSub.get vsub) o V.mk
+    val get_esub = E.dest o (ESub.get esub) o E.mk
+    val get_bsub = B.dest o (BSub.get bsub) o B.mk
+    val g_exp = g_orig
+        |> add_vunit2 (get_vsub "v2")
+        |> add_vunit2 (get_vsub "v3")
+        |> add_wv (get_vsub "w1")
+        |> add_wv (get_vsub "w2")
+        |> add_dir_eunit1 (get_esub "e1") "v1" (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e2") (get_vsub "w1") (get_vsub "v2")
+        |> add_dir_eunit2 (get_esub "e3") (get_vsub "v2") (get_vsub "w2")
+        |> add_dir_eunit2 (get_esub "e4") (get_vsub "w2") (get_vsub "v3")
+        |> add_to_bbox "b1" (map get_vsub ["w1","v2","w2","v3"])
+        |> add_bbox_with_parent (get_bsub "b3") "b1" (map get_vsub ["w2","v3"])
+    val _ = assert_g_eq "G.fresh_expand_bbox (parent+child)" g_exp g_actual
+
+
+    val g_orig = G.empty
+        |> add_vunit1 "v1"
+        |> add_vunit2 "v2"
+        |> add_wv "w1"
+        |> add_dir_eunit1 "e1" "v1" "w1"
+        |> add_dir_eunit1 "e2" "w1" "v2"
+        |> add_bbox "b1" ["v1","w1"]
+        |> add_bbox "b2" ["v2","w1"]
+
+    val ((vsub,esub,bsub),g_actual) = G.fresh_expand_bbox (B.mk "b1") g_orig
+    val get_vsub = V.dest o (VSub.get vsub) o V.mk
+    val get_esub = E.dest o (ESub.get esub) o E.mk
+    val get_bsub = B.dest o (BSub.get bsub) o B.mk
+
+    val g_exp = g_orig
+        |> add_vunit1 (get_vsub "v1")
+        |> add_wv (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e1") (get_vsub "v1") (get_vsub "w1")
+        |> add_dir_eunit1 (get_esub "e2") (get_vsub "w1") "v2"
+        |> add_to_bbox "b2" (map get_vsub ["w1"])
+    val _ = assert_g_eq "G.fresh_expand_bbox (overlap)" g_exp g_actual
+    in () end) ()
+
+
+
+  val _ = Testing.test "G.expand_bbox_op" (fn () => let
+    (* TODO: val expand_bbox_op : B.name -> T -> bbox_op * T *)
+    in () end) ()
+
+
+
+  val _ = Testing.test "G.kill_bbox_op" (fn () => let
+    (* TODO: val kill_bbox_op : B.name -> T -> bbox_op * T *)
+    in () end) ()
+
+
+
+  val _ = Testing.test "G.replay_bbox_op" (fn () => let
+    (* TODO: val replay_bbox_op : bbox_op -> T -> T *)
+    in () end) ()
+
+
+
+  val _ = Testing.test "G.replay_bbox_ops" (fn () => let
+    (* TODO: val replay_bbox_ops : bbox_op list -> T -> T *)
     in () end) ()
 
 
