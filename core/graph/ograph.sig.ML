@@ -178,8 +178,6 @@ val add_named_edge
 val delete_edge : E.name -> T -> T
 val delete_vertex : V.name -> T -> T
 
-val swap_edge_dir : E.name -> T -> T
-
 (* merge two graphs; things with common names are unified *)
 (* raises bad_graph_merge_exp if the graphs could not be merged
  * (eg: it would add too many edges to wire-vertices) *)

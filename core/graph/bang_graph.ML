@@ -558,12 +558,6 @@ fun clear_bbox_children bb g =
   if not (has_bbox g bb) then raise no_such_bbox_exp ("clear_bbox_children", bb, g)
   else g |> update_bbox_child_rel (BBRel.delete bb)
 
-fun swap_edge_dir e g = let
-  val (s,t) = (get_edge_source g e, get_edge_target g e)
-  val dd = (get_edge_dir_and_data g e)
-in g |> delete_edge e |> add_named_edge e dd t s
-end
-
 
 (*************************************)
 (*** OPERATIONS ON MULTIPLE GRAPHS ***)
