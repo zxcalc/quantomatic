@@ -3,6 +3,10 @@ datatype bbox_op = BBKill of B.name
                       bbox : B.name,
                       boundary_map : VSub.T,
                       bbox_map : BSub.T }
+                 | BBCopy of {
+                      bbox : B.name,
+                      boundary_map : VSub.T,
+                      bbox_map : BSub.T }
 
 signature BANG_GRAPH =
 sig
@@ -119,6 +123,7 @@ sig
   (* apply the given operation and return the new graph and a replayable bbox op *)
   val expand_bbox_op : B.name -> T -> bbox_op * T
   val kill_bbox_op   : B.name -> T -> bbox_op * T
+  val copy_bbox_op   : B.name -> T -> bbox_op * T
 
   val replay_bbox_op  : bbox_op -> T -> T
 

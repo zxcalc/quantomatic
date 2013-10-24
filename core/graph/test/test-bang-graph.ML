@@ -1642,6 +1642,12 @@ functor Bang_Graph_Interface_Tests(
 
 
 
+  val _ = Testing.test "G.copy_bbox_op" (fn () => let
+    (* TODO: val copy_bbox_op : B.name -> T -> bbox_op * T *)
+    in () end) ()
+
+
+
   val _ = Testing.test "G.replay_bbox_op" (fn () => let
     (* TODO: val replay_bbox_op : bbox_op -> T -> T *)
     in () end) ()
