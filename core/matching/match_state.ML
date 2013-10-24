@@ -87,8 +87,6 @@ signature OGRAPH_MATCH_STATE
   val extend_ps_nodeverts : V.NSet.T -> T -> T
   val extend_tgt_verts    : V.NSet.T -> T -> T
 
-  (*val empty : T*)
-
   (* initialise MatchState with nothing added *)
   val init : Graph.T -> (* pattern *)
              Graph.T -> (* target *)
