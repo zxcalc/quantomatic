@@ -32,8 +32,22 @@ sig
                       -> MatchState.T Seq.seq
 
   (* Match all the bare wires in u_bare_wires, expanding edge points where
-   * necessary. *)
-  val match_bare_wires : MatchState.T -> MatchState.T Seq.seq
+   * necessary.
+   *
+   * The first argument allows potential matches to be prohibited based on
+   * information not available to ProgressiveMatchSearch (such as !-box
+   * containment).  It is given the current match state, the bare wire in the
+   * pattern (source,edge,target) and the potential edge in the target for
+   * matching (together with its source and target).  The edges will always be
+   * unmatched, but the vertices in the target may already be matched.  At least
+   * one of the target vertices will be a wire-vertex.  It should return true to
+   * *prevent* the match (to be consistent with match_pending).
+   *)
+  val match_bare_wires : (MatchState.T -> (V.name*E.name*V.name)
+                                       -> (V.name*E.name*V.name)
+                                       -> bool)
+                         -> MatchState.T
+                         -> MatchState.T Seq.seq
   
   (* Match all circles.
    *
@@ -453,7 +467,7 @@ functor ProgressiveMatchSearch(
   
   
   (* match the given set of bare wires, expanding wire-vertices where necessary *)
-  fun match_bare_wires' lvl ms = let
+  fun match_bare_wires' lvl disallow ms = let
     val _ = Log.log 2 (ind lvl "== Starting bare wire match")
   in
     if E.NSet.is_empty (MatchState.get_u_bare_wires ms) then Seq.single ms
@@ -474,6 +488,7 @@ functor ProgressiveMatchSearch(
         fun vertex_matchable v =
           (V.NSet.contains tgt_verts v) orelse (VVInj.cod_contains vmap v)
       in
+        not (disallow ms (bw_s,bw,bw_t) (s,e,t)) andalso
         not (EEInj.cod_contains (MatchState.get_emap ms) e) andalso
         d = bw_dir andalso vertex_matchable s andalso vertex_matchable t andalso
         (Graph.is_boundary tgt s orelse Graph.is_boundary tgt t orelse    (* bare and boundary wires *)
@@ -512,10 +527,10 @@ functor ProgressiveMatchSearch(
           of SOME new_subst =>
                let val add_bw' = add_bw new_subst in
                   case bw_dir
-                    of Directed => match_bare_wires' (lvl+1) (add_bw' (s,t))
+                    of Directed => match_bare_wires' (lvl+1) disallow (add_bw' (s,t))
                      | Undirected =>
-                         Seq.append (match_bare_wires' (lvl+1) (add_bw' (s,t)))
-                                    (match_bare_wires' (lvl+1) (add_bw' (t,s)))
+                         Seq.append (match_bare_wires' (lvl+1) disallow (add_bw' (s,t)))
+                                    (match_bare_wires' (lvl+1) disallow (add_bw' (t,s)))
                end
            | NONE => Seq.empty
       end

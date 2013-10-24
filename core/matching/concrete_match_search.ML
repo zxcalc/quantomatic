@@ -15,6 +15,7 @@ struct
   (* We can't provide any information that the inner match search
    * does not already know *)
   fun concrete_doomedf _ _ = false
+  fun bare_wire_preventf _ _ _ = false
 
   fun matches_from_ms ms = let
     val (pat,tgt,vmap,emap) = (MatchState.get_pat ms,
@@ -31,7 +32,7 @@ struct
   fun do_match ms =
     Seq.maps matches_from_ms
       (Seq.filter MatchState.is_total
-       (Seq.maps InnerMatchSearch.match_bare_wires
+       (Seq.maps (InnerMatchSearch.match_bare_wires bare_wire_preventf)
         (InnerMatchSearch.match_pending concrete_doomedf ms)))
 
   fun log_p pretty_f lvl name =

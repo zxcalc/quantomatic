@@ -326,13 +326,23 @@ struct
     then (Log.log 2 "==== total match found ===="; true)
     else (Log.log 2 "==== match failed to be total ===="; false)
 
-  val get_current_pat = InnerMatchState.get_pat o get_inner_state
   fun match_bare_wires ms = let
+    val bmap = get_bmap ms
+    fun bare_wire_prevent_match ims (p_s,_,p_t) (t_s,_,t_t) = let
+      val pat = InnerMatchState.get_pat ims
+      val tgt = InnerMatchState.get_tgt ims
+      val p_wv = if Graph.is_wire_vertex pat p_s then p_s else p_t
+      val t_wv = if Graph.is_wire_vertex tgt t_s then t_s else t_t
+      val p_bs = Graph.get_bboxes_containing_vertex pat p_wv
+      val t_bs = Graph.get_bboxes_containing_vertex tgt t_wv
+      val p_bs' = BBInj.img_of_set bmap p_bs
+    in
+      not (B.NSet.eq t_bs p_bs')
+    end
     val ims = get_inner_state ms
   in
-    (* TODO: respect !-box containment *)
     Seq.map (fn ims => set_inner_state ims ms)
-            (InnerMatchSearch.match_bare_wires ims)
+            (InnerMatchSearch.match_bare_wires bare_wire_prevent_match ims)
   end
   fun match_pending ms = let
     fun update_ms ims =
