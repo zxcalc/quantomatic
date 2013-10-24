@@ -270,15 +270,13 @@ struct
     val new_vs = V.NSet.subtract (Graph.get_vertices pat)
                                  (VVInj.get_dom_set (InnerMatchState.get_vmap ms))
     val unbboxed = V.NSet.filter (not o (Graph.is_bboxed pat)) new_vs
-    (*val touched = Graph.get_adj_vertices_to_set pat new_vs
-    val to_sched = V.NSet.intersect (InnerMatchState.get_p_nodeverts ms) touched*)
-    (* re-schedule all partials *)
-    (* TODO: this can be improved by only re-scheduling partials next to expanded or
-     * killed bboxes. The code it replaces is incorrect, as it doesn't reschedule
-     * for killed. *)
+    val touched = Graph.get_adj_vertices_to_set pat unbboxed
+    (* only need to schedule p verts adjacent to new unbboxed verts;
+     * p verts adjacent to killed verts are scheduled in kill_pat_bbox *)
     fun schedule_p_nvs ims =
         InnerMatchState.extend_ps_nodeverts
-          (InnerMatchState.get_p_nodeverts ims) ims
+          (V.NSet.intersect (InnerMatchState.get_p_nodeverts ims) touched)
+          ims
   in
     update_inner_state
       (InnerMatchState.extend_u unbboxed
@@ -364,11 +362,19 @@ struct
 
   fun kill_pat_bbox b ms = let
     val _ = Log.logf 2 (fn () => "Killing !-box "^(B.string_of_name b)) ()
-    val (bb_op, pat') = Graph.kill_bbox_op b (get_pat ms)
+    val pat = get_pat ms
+    val bb_vs = Graph.get_vertices_in_bbox pat b
+    val adj_vs = Graph.get_adj_vertices_to_set pat bb_vs
+    val (bb_op, pat') = Graph.kill_bbox_op b pat
+    fun sched_adj ims =
+        InnerMatchState.extend_ps_nodeverts
+          (V.NSet.intersect (InnerMatchState.get_p_nodeverts ims) adj_vs)
+          ims
   in
     ms |> set_pat pat'
        |> update_operable_bbs (B.NSet.delete b)
        |> update_bbox_ops (cons bb_op)
+       |> update_inner_state sched_adj
   end
 
   fun kill_bboxes_adj_to_complete_nvs bms = let
