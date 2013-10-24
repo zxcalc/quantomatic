@@ -75,10 +75,10 @@ signature OGRAPH_MATCH_STATE
   val set_tgt_verts       : V.NSet.T -> T -> T
   val set_match_psubst    : Graph.psubst -> T -> T
 
-  val extend_u_circles    : V.NSet.T -> T -> T
-  val extend_u_nodeverts  : V.NSet.T -> T -> T
-  val extend_u_wireverts  : V.NSet.T -> T -> T
-  val extend_u_bare_wires : E.NSet.T -> T -> T
+  (* Add the given unmatched vertices, sorting as appropriate.
+   * For bare wires, you should pass both the input and
+   * the output; the edge connecting them will be added. *)
+  val extend_u            : V.NSet.T -> T -> T
   val extend_p_nodeverts  : V.NSet.T -> T -> T
   val extend_ps_nodeverts : V.NSet.T -> T -> T
   val extend_tgt_verts    : V.NSet.T -> T -> T
@@ -223,6 +223,52 @@ functor OGraphMatchState(Graph : OGRAPH) : OGRAPH_MATCH_STATE
   val extend_p_nodeverts  = update_p_nodeverts o V.NSet.union_merge
   val extend_ps_nodeverts = update_ps_nodeverts o V.NSet.union_merge
   val extend_tgt_verts    = update_tgt_verts o V.NSet.union_merge
+
+  fun extend_u vs ms = let
+    val pat = get_pat ms
+
+    fun sort v (circle_wvs,nvs,wvs,bare_wires) =
+      if Graph.is_node_vertex pat v
+      then (circle_wvs,(V.NSet.ins_fresh v nvs),wvs,bare_wires)
+      else
+        let
+          val in_es = Graph.get_in_edges pat v
+          val out_es = Graph.get_out_edges pat v
+          fun add_to_wvs () =
+            (circle_wvs,nvs,(V.NSet.ins_fresh v wvs),bare_wires)
+          fun add_to_wvs_or_bws e = let
+            val v' = Graph.edge_get_other_vertex pat e v
+          in
+            if Graph.is_node_vertex pat v'
+            then add_to_wvs ()
+            else
+              case Graph.wv_get_other_edge pat v' e
+                of (SOME _) => add_to_wvs ()
+                           (* will always happen twice for each bare wire: *)
+                 | NONE => (circle_wvs,nvs,wvs,(E.NSet.add e bare_wires))
+          end
+        in
+          case (E.NSet.tryget_singleton (in_es),
+                E.NSet.tryget_singleton (out_es))
+            of (SOME e1,SOME e2) =>
+                 if E.name_eq (e1,e2)
+                 then ((V.NSet.ins_fresh v circle_wvs),nvs,wvs,bare_wires)
+                 else add_to_wvs ()
+             | _ =>
+                 (case E.NSet.list_of (E.NSet.union_merge in_es out_es)
+                    of [_,_] => add_to_wvs ()
+                     | [e] => add_to_wvs_or_bws e
+                     | _ => (* bug *) raise Match)
+        end
+
+    val (circle_wvs,nvs,wvs,bare_wires) =
+      V.NSet.fold sort vs (V.NSet.empty,V.NSet.empty,V.NSet.empty,E.NSet.empty)
+  in
+    ms |> extend_u_circles circle_wvs
+       |> extend_u_nodeverts nvs
+       |> extend_u_wireverts wvs
+       |> extend_u_bare_wires bare_wires
+  end
 
   fun add_edge_to_match (ep, vp) (et, vt) ms = let
     val ms' = update_emap (EEInj.add (ep, et)) ms

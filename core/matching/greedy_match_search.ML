@@ -237,6 +237,7 @@ struct
         (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
   val log_graph = log_p Graph.pretty
   val log_v_nset = log_p V.NSet.pretty
+  val log_e_nset = log_p E.NSet.pretty
   val log_b_nset = log_p B.NSet.pretty
 
   fun init_with_fixed pat tgt tgt_pool pat_fix_tags tgt_fix_tags = let
@@ -263,68 +264,38 @@ struct
 
   fun init pat tgt tgt_pool = init_with_fixed pat tgt tgt_pool BFFn.empty BFFn.empty
 
-  fun schedule_concrete new_vs new_es bms = let
-    val ms = get_inner_state bms
-    val pat = InnerMatchState.get_pat ms
-
-    val touched = Graph.get_adj_vertices_to_set pat new_vs
-    (*val to_sched = V.NSet.intersect (InnerMatchState.get_p_nodeverts ms) touched*)
-    
-    (* re-schedule all partials *)
-    (* TODO: this can be improved by only re-scheduling partials next to expanded or
-     * killed bboxes. The code it replaces is incorrect, as it doesn't reschedule
-     * for killed. *)
-    val to_sched = InnerMatchState.get_p_nodeverts ms
-
-    val unbboxed = V.NSet.subtract new_vs (Graph.get_bboxed pat)
-    val wires = Graph.get_wires_for_edges pat new_es
-    fun delete_wvs_in_wire (s,t,wv,_) set =
-      set |> V.NSet.remove_set wv
-          |> (if Graph.is_wire_vertex pat s then V.NSet.delete s else I)
-          |> (if Graph.is_wire_vertex pat t then V.NSet.delete t else I)
-    val circles = filter (fn (s,t,_,_) =>
-                    V.name_eq (s,t) andalso
-                    Graph.is_wire_vertex pat s andalso
-                    V.NSet.contains unbboxed s
-                  ) wires
-    val bare_wires = filter (fn (s,t,_,_) =>
-                       not (V.name_eq (s,t)) andalso
-                       Graph.is_wire_vertex pat s andalso
-                       Graph.is_wire_vertex pat t andalso
-                       V.NSet.contains unbboxed s
-                     ) wires
-    val nvs = V.NSet.filter (Graph.is_node_vertex pat) new_vs
-    val wvs' = V.NSet.filter (Graph.is_wire_vertex pat) new_vs
-    val wvs = fold delete_wvs_in_wire (circles @ bare_wires) wvs'
-    val circle_wvs = fold (fn (s,_,_,_) => fn set => set |> V.NSet.add s) circles V.NSet.empty
-    val bare_wire_es = fold (fn (_,_,_,es) => E.NSet.add ((the o E.NSet.get_min) es)) bare_wires E.NSet.empty  
-  in
-    set_inner_state
-    (ms |> InnerMatchState.extend_u_circles circle_wvs
-        |> InnerMatchState.extend_u_nodeverts (V.NSet.intersect unbboxed nvs)
-        |> InnerMatchState.extend_u_wireverts (V.NSet.intersect unbboxed wvs)
-        |> InnerMatchState.extend_u_bare_wires bare_wire_es
-        |> InnerMatchState.extend_ps_nodeverts to_sched
-        |> InnerMatchState.set_tgt_verts (get_t_saved bms))
-    bms
-  end
-
   fun schedule_new_concrete bms = let
     val ms = get_inner_state bms
     val pat = InnerMatchState.get_pat ms
     val new_vs = V.NSet.subtract (Graph.get_vertices pat)
                                  (VVInj.get_dom_set (InnerMatchState.get_vmap ms))
-    val new_es = E.NSet.subtract (Graph.get_edges pat)
-                                 (EEInj.get_dom_set (InnerMatchState.get_emap ms))
+    val unbboxed = V.NSet.filter (not o (Graph.is_bboxed pat)) new_vs
+    (*val touched = Graph.get_adj_vertices_to_set pat new_vs
+    val to_sched = V.NSet.intersect (InnerMatchState.get_p_nodeverts ms) touched*)
+    (* re-schedule all partials *)
+    (* TODO: this can be improved by only re-scheduling partials next to expanded or
+     * killed bboxes. The code it replaces is incorrect, as it doesn't reschedule
+     * for killed. *)
+    fun schedule_p_nvs ims =
+        InnerMatchState.extend_ps_nodeverts
+          (InnerMatchState.get_p_nodeverts ims) ims
   in
-    schedule_concrete new_vs new_es bms
+    update_inner_state
+      (InnerMatchState.extend_u unbboxed
+       o (InnerMatchState.set_tgt_verts (get_t_saved bms))
+       o schedule_p_nvs)
+      bms
   end
+
   fun schedule_all_concrete bms = let
     val pat = InnerMatchState.get_pat (get_inner_state bms)
     val vs = Graph.get_vertices pat
-    val es = Graph.get_edges pat
+    val unbboxed = V.NSet.filter (not o (Graph.is_bboxed pat)) vs
   in
-    schedule_concrete vs es bms
+    update_inner_state
+      (InnerMatchState.extend_u unbboxed
+       o (InnerMatchState.set_tgt_verts (get_t_saved bms)))
+      bms
   end
 
   (* TODO: it is probably worth optimising this some more *)
