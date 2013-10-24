@@ -72,10 +72,11 @@ sig
    * when the second arg is NONE. *)
   (*val set_bbox_parent_opt : B.name -> B.name option -> T -> T*)
   
-  (* raises no_such_bbox_exn if parent or children not in graph *)
+  (* raises no_such_bbox_exp if parent or children not in graph *)
   val add_children_to_bbox : B.name -> B.NSet.T -> T -> T
   val add_child_to_bbox : B.name -> B.name -> T -> T
-  (* raises no_such_bbox_exn if parent or children not in graph *)
+  (* raises no_such_bbox_exp if parent or children not in graph *)
+  (* no-op if removing the link would break transitivity *)
   val remove_child_from_bbox : B.name -> B.name -> T -> T
   val clear_bbox_children : B.name -> T -> T
   
