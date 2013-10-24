@@ -76,8 +76,12 @@ signature OGRAPH_MATCH_STATE
   val set_match_psubst    : Graph.psubst -> T -> T
 
   (* Add the given unmatched vertices, sorting as appropriate.
-   * For bare wires, you should pass both the input and
-   * the output; the edge connecting them will be added. *)
+   * Two major assumptions: circles have only one wire-vertex and bare wires
+   * have exactly two.  For bare wires, you should pass both the input and
+   * the output; the edge connecting them will be added to u_bare_wires.  It is
+   * important that you always pass either all or none of the wire-vertices on
+   * any given wire.
+   *)
   val extend_u            : V.NSet.T -> T -> T
   val extend_p_nodeverts  : V.NSet.T -> T -> T
   val extend_ps_nodeverts : V.NSet.T -> T -> T
