@@ -230,6 +230,8 @@ struct
   val update_pat = update_inner_state o InnerMatchState.update_pat
   fun set_pat x = update_pat (fn _ => x)
 
+  val get_tgt = InnerMatchState.get_tgt o get_inner_state
+
   fun add_wild_bbox bb = update_wild_bboxes (B.NSet.add bb)
 
   fun log_p pretty_f lvl name =
@@ -455,9 +457,63 @@ struct
   end
 
   fun match_pending_bbs bms =
-    if B.NSet.is_empty (get_pending_pat_bbs bms)
-    then Seq.single bms
-    else Seq.empty (* TODO *)
+    case B.NSet.pull_local_bot (get_pending_pat_bbs bms)
+      of NONE => Seq.single bms
+       | SOME (b,bbs') =>
+           let
+             val pat = get_pat bms
+             val tgt = get_tgt bms
+             val bmap = get_bmap bms
+             val pat_parents = Graph.get_bbox_parents pat b
+             val tgt_parents = BBInj.img_of_set bmap pat_parents
+             val b_fix_tag = BFFn.get_opt (get_pat_fix_tags bms) b
+             fun is_tgt_cand b' =
+                 (not (BBInj.cod_contains bmap b'))
+               andalso
+                 (case (b_fix_tag,BFFn.get_opt (get_tgt_fix_tags bms) b')
+                    of (NONE,_) => true
+                     | (SOME x,SOME y) => F.name_eq (x,y)
+                     | (SOME _,_) => false)
+               andalso
+                 B.NSet.eq (Graph.get_bbox_parents tgt b') tgt_parents
+             val candidates = B.NSet.filter is_tgt_cand (Graph.get_bboxes tgt)
+             val bms' = set_pending_pat_bbs bbs' bms
+             (* schedule matchable parts of B(b) *)
+             (* set inner.tgt_verts to matchable part of B(b') *)
+             fun do_bb_match b' = let
+               val bmap' = BBInj.add (b,b') bmap
+               fun pat_is_matchable v = let
+                 val bbs = Graph.get_bboxes_containing_vertex pat v
+               in
+                   B.NSet.sub_set bbs (BBInj.get_dom_set bmap')
+               end
+               val pat_matchable = V.NSet.filter
+                    pat_is_matchable
+                    (Graph.get_vertices_in_bbox pat b)
+               fun tgt_is_matchable v = let
+                 val bbs = Graph.get_bboxes_containing_vertex tgt v
+               in
+                   B.NSet.contains bbs b'
+                 andalso
+                   B.NSet.sub_set bbs (BBInj.get_cod_set bmap')
+               end
+               val tgt_matchable = V.NSet.filter
+                    tgt_is_matchable
+                    (get_tgt_pool bms)
+               val ims = get_inner_state bms'
+                       |> InnerMatchState.set_tgt_verts tgt_matchable
+                       |> InnerMatchState.extend_u pat_matchable
+               (* TODO: doomed *)
+               fun doomedf _ _ = false
+               val bms' =
+                 bms' |> set_bmap bmap'
+             in
+               Seq.map (fn ims => set_inner_state ims bms')
+                       (InnerMatchSearch.match_pending doomedf ims)
+             end
+           in
+             Seq.maps do_bb_match (Seq.of_list (B.NSet.list_of candidates))
+           end
 
   fun match_loop ms' = let
     fun bbox_oper_branch b ms = let
