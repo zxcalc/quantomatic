@@ -1,14 +1,3 @@
-structure Test_ConcreteMatcher =
-  ConcreteMatchSearch(Test_OGraph);
-
-structure Test_GreedyMatcher =
-  GreedyMatchSearch(Test_Bang_Graph);
-(* set to 4 for really detailed messages *)
-(*
-Test_ConcreteMatcher.Log.level_ref := 2;
-Test_GreedyMatcher.Log.level_ref := 2;
-*)
-
 signature TEST_MATCH_SEARCH = MATCH_SEARCH
     where type Graph.nvdata = Test_Graph_Data.nvdata
       and type Graph.edata  = Test_Graph_Data.edata
@@ -28,20 +17,31 @@ sig
   structure G : TEST_OGRAPH
   type match
   val find_n_matches : int -> (G.T * G.T)
-                    -> match list;
+                    -> match list
   val find_n_correct_matches : int -> (G.T * G.T)
-                            -> match list;
-end;
+                            -> match list
+end
+
+signature BG_MATCH_TESTER =
+sig
+  structure G : TEST_BANG_GRAPH
+  type match
+  val find_n_matches : int -> (G.T * G.T)
+                    -> match list
+  val find_n_correct_matches : int -> (G.T * G.T)
+                            -> match list
+  val assert_n_wild_bboxes : int -> match -> unit
+end
 
 functor Test_Match_Tools(
   Matcher : TEST_MATCH_SEARCH
 ) =
 struct
 
-  structure M = Matcher;
+  structure M = Matcher
   structure G = M.Graph
-  structure GTools = Test_OGraph_Tools(G);
-  open GTools;
+  structure GTools = Test_OGraph_Tools(G)
+  open GTools
   structure Match = M.Match
   type match = Match.T
 

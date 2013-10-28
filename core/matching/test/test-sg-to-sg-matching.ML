@@ -1,11 +1,11 @@
 (*
  * Tests matching of string graphs against string graphs
  *)
-functor String_Graph_Matching_Tests(Tester : MATCH_TESTER) =
+functor SG_To_SG_Matching_Tests(Tester : MATCH_TESTER) =
 struct
-  structure GTools = Test_OGraph_Tools(Tester.G);
-  open GTools;
-  open Tester;
+  structure GTools = Test_OGraph_Tools(Tester.G)
+  open GTools
+  open Tester
 
   (*
    * Circle matching tests
@@ -426,9 +426,6 @@ struct
   val _ = Testing.test "match: barbell line --> barbell loop"
                        (find_n_correct_matches 2) (barbell_line,barbell_loop);
 
-  (*val _ = Testing.assert_no_failed_tests();*)
+  val _ = Testing.assert_no_failed_tests();
 end;
-
-structure Concrete_Matcher_Tests =
-  String_Graph_Matching_Tests(Test_Match_Tools(Test_ConcreteMatcher));
 
