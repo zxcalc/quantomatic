@@ -143,6 +143,7 @@ PolyML.Project.make "matching/bang_graph_homeomorphism_search.ML";
 Testing.make_test "matching/test/test-matching-setup.ML";
 Testing.make_test "matching/test/test-sg-to-sg-matching.ML";
 Testing.make_test "matching/test/test-bg-to-sg-matching.ML";
+Testing.make_test "matching/test/test-bg-to-bg-matching.ML";
 Testing.make_test "matching/test/test-concrete-matcher.ML";
 Testing.make_test "matching/test/test-greedy-matcher.ML";
 Testing.make_test "matching/test/test-bang-graph-homeomorphism-search.ML";

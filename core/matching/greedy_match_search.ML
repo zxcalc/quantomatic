@@ -25,7 +25,13 @@ struct
     wild_bboxes     : B.NSet.T,
     bmap            : BBInj.T,
     pending_pat_bbs : B.NSet.T, (* unmatched, fixed !-boxes of pattern *)
-    operable_bbs    : B.NSet.T, (* operable (unfixed, top-level) !-boxes of pattern *)
+    (* We split the operable (unfixed, top-level) !-boxes of the pattern into
+     * two parts, in order to remove some duplication.  We wish to force all
+     * copy operations to happen before any expands (for a given !-box), so
+     * operable !-boxes start off in copyable_bbs, then move to expandable_bbs
+     * and finally are removed entirely when they are killed *)
+    copyable_bbs    : B.NSet.T,
+    expandable_bbs  : B.NSet.T,
     pat_fix_tags    : BFFn.T,   (* fixity tags of pattern *)
     tgt_fix_tags    : BFFn.T,   (* fixity tags of target *)
     t_saved         : V.NSet.T, (* saved state of (#tgt_verts innerstate) *)
@@ -39,7 +45,8 @@ struct
     wild_bboxes     = #wild_bboxes r,
     bmap            = #bmap r,
     pending_pat_bbs = #pending_pat_bbs r,
-    operable_bbs    = #operable_bbs r,
+    copyable_bbs    = #copyable_bbs r,
+    expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
     t_saved         = #t_saved r,
@@ -53,7 +60,8 @@ struct
     wild_bboxes     = #wild_bboxes r,
     bmap            = #bmap r,
     pending_pat_bbs = #pending_pat_bbs r,
-    operable_bbs    = #operable_bbs r,
+    copyable_bbs    = #copyable_bbs r,
+    expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
     t_saved         = #t_saved r,
@@ -67,7 +75,8 @@ struct
     wild_bboxes     = f(#wild_bboxes r),
     bmap            = #bmap r,
     pending_pat_bbs = #pending_pat_bbs r,
-    operable_bbs    = #operable_bbs r,
+    copyable_bbs    = #copyable_bbs r,
+    expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
     t_saved         = #t_saved r,
@@ -81,7 +90,8 @@ struct
     wild_bboxes     = #wild_bboxes r,
     bmap            = f(#bmap r),
     pending_pat_bbs = #pending_pat_bbs r,
-    operable_bbs    = #operable_bbs r,
+    copyable_bbs    = #copyable_bbs r,
+    expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
     t_saved         = #t_saved r,
@@ -95,7 +105,8 @@ struct
     wild_bboxes     = #wild_bboxes r,
     bmap            = #bmap r,
     pending_pat_bbs = f(#pending_pat_bbs r),
-    operable_bbs    = #operable_bbs r,
+    copyable_bbs    = #copyable_bbs r,
+    expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
     t_saved         = #t_saved r,
@@ -103,13 +114,29 @@ struct
     inner_state     = #inner_state r
   }
 
-  fun update_operable_bbs f (MatchState r) = MatchState {
+  fun update_copyable_bbs f (MatchState r) = MatchState {
     init_pat        = #init_pat r,
     bbox_ops        = #bbox_ops r,
     wild_bboxes     = #wild_bboxes r,
     bmap            = #bmap r,
     pending_pat_bbs = #pending_pat_bbs r,
-    operable_bbs    = f(#operable_bbs r),
+    copyable_bbs    = f(#copyable_bbs r),
+    expandable_bbs  = #expandable_bbs r,
+    pat_fix_tags    = #pat_fix_tags r,
+    tgt_fix_tags    = #tgt_fix_tags r,
+    t_saved         = #t_saved r,
+    tgt_pool        = #tgt_pool r,
+    inner_state     = #inner_state r
+  }
+
+  fun update_expandable_bbs f (MatchState r) = MatchState {
+    init_pat        = #init_pat r,
+    bbox_ops        = #bbox_ops r,
+    wild_bboxes     = #wild_bboxes r,
+    bmap            = #bmap r,
+    pending_pat_bbs = #pending_pat_bbs r,
+    copyable_bbs    = #copyable_bbs r,
+    expandable_bbs  = f(#expandable_bbs r),
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
     t_saved         = #t_saved r,
@@ -123,7 +150,8 @@ struct
     wild_bboxes     = #wild_bboxes r,
     bmap            = #bmap r,
     pending_pat_bbs = #pending_pat_bbs r,
-    operable_bbs    = #operable_bbs r,
+    copyable_bbs    = #copyable_bbs r,
+    expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
     t_saved         = #t_saved r,
@@ -137,7 +165,8 @@ struct
     wild_bboxes     = #wild_bboxes r,
     bmap            = #bmap r,
     pending_pat_bbs = #pending_pat_bbs r,
-    operable_bbs    = #operable_bbs r,
+    copyable_bbs    = #copyable_bbs r,
+    expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = f(#pat_fix_tags r),
     tgt_fix_tags    = #tgt_fix_tags r,
     t_saved         = #t_saved r,
@@ -151,7 +180,8 @@ struct
     wild_bboxes     = #wild_bboxes r,
     bmap            = #bmap r,
     pending_pat_bbs = #pending_pat_bbs r,
-    operable_bbs    = #operable_bbs r,
+    copyable_bbs    = #copyable_bbs r,
+    expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = f(#tgt_fix_tags r),
     t_saved         = #t_saved r,
@@ -165,7 +195,8 @@ struct
     wild_bboxes     = #wild_bboxes r,
     bmap            = #bmap r,
     pending_pat_bbs = #pending_pat_bbs r,
-    operable_bbs    = #operable_bbs r,
+    copyable_bbs    = #copyable_bbs r,
+    expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
     t_saved         = f(#t_saved r),
@@ -179,7 +210,8 @@ struct
     wild_bboxes     = #wild_bboxes r,
     bmap            = #bmap r,
     pending_pat_bbs = #pending_pat_bbs r,
-    operable_bbs    = #operable_bbs r,
+    copyable_bbs    = #copyable_bbs r,
+    expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
     t_saved         = #t_saved r,
@@ -193,7 +225,8 @@ struct
     wild_bboxes     = #wild_bboxes r,
     bmap            = #bmap r,
     pending_pat_bbs = #pending_pat_bbs r,
-    operable_bbs    = #operable_bbs r,
+    copyable_bbs    = #copyable_bbs r,
+    expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
     t_saved         = #t_saved r,
@@ -206,7 +239,8 @@ struct
   fun get_wild_bboxes     (MatchState r) = #wild_bboxes r
   fun get_bmap            (MatchState r) = #bmap r
   fun get_pending_pat_bbs (MatchState r) = #pending_pat_bbs r
-  fun get_operable_bbs    (MatchState r) = #operable_bbs r
+  fun get_copyable_bbs    (MatchState r) = #copyable_bbs r
+  fun get_expandable_bbs  (MatchState r) = #expandable_bbs r
   fun get_pat_fix_tags    (MatchState r) = #pat_fix_tags r
   fun get_tgt_fix_tags    (MatchState r) = #tgt_fix_tags r
   fun get_t_saved         (MatchState r) = #t_saved r
@@ -218,7 +252,8 @@ struct
   fun set_wild_bboxes     x = update_wild_bboxes     (fn _ => x)
   fun set_bmap            x = update_bmap            (fn _ => x)
   fun set_pending_pat_bbs x = update_pending_pat_bbs (fn _ => x)
-  fun set_operable_bbs    x = update_operable_bbs    (fn _ => x)
+  fun set_copyable_bbs    x = update_copyable_bbs    (fn _ => x)
+  fun set_expandable_bbs  x = update_expandable_bbs  (fn _ => x)
   fun set_pat_fixed       x = update_pat_fixed       (fn _ => x)
   fun set_pat_fix_tags    x = update_pat_fix_tags    (fn _ => x)
   fun set_tgt_fix_tags    x = update_tgt_fix_tags    (fn _ => x)
@@ -255,7 +290,8 @@ struct
       wild_bboxes     = B.NSet.empty,
       bmap            = BBInj.empty,
       pending_pat_bbs = pat_fixed,
-      operable_bbs    = B.NSet.subtract toplevel_bbs pat_fixed,
+      copyable_bbs    = B.NSet.subtract toplevel_bbs pat_fixed,
+      expandable_bbs  = B.NSet.empty,
       pat_fix_tags    = pat_fix_tags,
       tgt_fix_tags    = tgt_fix_tags,
       t_saved         = V.NSet.subtract tgt_pool (Graph.get_bboxed tgt),
@@ -368,7 +404,7 @@ struct
     val _ = log_b_nset 4 "  new top-level !-boxes" new_toplevel
   in
     ms |> set_pat pat'
-       |> update_operable_bbs (B.NSet.union_merge new_toplevel)
+       |> update_copyable_bbs (B.NSet.union_merge new_toplevel)
        |> update_bbox_ops (cons bb_op)
   end
 
@@ -384,7 +420,8 @@ struct
           ims
   in
     ms |> set_pat pat'
-       |> update_operable_bbs (B.NSet.delete b)
+       |> update_copyable_bbs (B.NSet.delete b)
+       |> update_expandable_bbs (B.NSet.delete b)
        |> update_bbox_ops (cons bb_op)
        |> update_inner_state sched_adj
   end
@@ -397,9 +434,11 @@ struct
     fun kill_all_bboxes v bms = let
       val pat = InnerMatchState.get_pat (get_inner_state bms)
       val bbs = Graph.get_bboxes_containing_vertex pat v
-      val operable_bbs = B.NSet.intersect bbs (get_operable_bbs bms)
+      val operable_bbs = B.NSet.union_merge (get_copyable_bbs bms)
+                                            (get_expandable_bbs bms)
+      val adj_operable_bbs = B.NSet.intersect bbs operable_bbs
     in
-      B.NSet.fold kill_pat_bbox operable_bbs bms
+      B.NSet.fold kill_pat_bbox adj_operable_bbs bms
       handle Graph.no_such_vertex_exp _ => bms
     end
   in
@@ -451,7 +490,7 @@ struct
     val _ = log_b_nset 4 "  new top-level !-boxes" new_toplevel
   in
     ms |> set_pat pat'
-       |> update_operable_bbs (B.NSet.union_merge new_toplevel)
+       |> update_copyable_bbs (B.NSet.union_merge new_toplevel)
        |> update_pending_pat_bbs (B.NSet.ins_fresh b')
        |> update_bbox_ops (cons bb_op)
   end
@@ -487,9 +526,8 @@ struct
                in
                    B.NSet.sub_set bbs (BBInj.get_dom_set bmap')
                end
-               val pat_matchable = V.NSet.filter
-                    pat_is_matchable
-                    (Graph.get_vertices_in_bbox pat b)
+               val bbox_vs = Graph.get_vertices_in_bbox pat b
+               val pat_matchable = V.NSet.filter pat_is_matchable bbox_vs
                fun tgt_is_matchable v = let
                  val bbs = Graph.get_bboxes_containing_vertex tgt v
                in
@@ -500,9 +538,15 @@ struct
                val tgt_matchable = V.NSet.filter
                     tgt_is_matchable
                     (get_tgt_pool bms)
+               val touched = Graph.get_adj_vertices_to_set pat bbox_vs
+               fun schedule_p_nvs ims =
+                 InnerMatchState.extend_ps_nodeverts
+                   (V.NSet.intersect (InnerMatchState.get_p_nodeverts ims) touched)
+                   ims
                val ims = get_inner_state bms'
                        |> InnerMatchState.set_tgt_verts tgt_matchable
                        |> InnerMatchState.extend_u pat_matchable
+                       |> schedule_p_nvs
                (* TODO: doomed *)
                fun doomedf _ _ = false
                val bms' =
@@ -515,27 +559,43 @@ struct
              Seq.maps do_bb_match (Seq.of_list (B.NSet.list_of candidates))
            end
 
-  fun match_loop ms' = let
-    fun bbox_oper_branch b ms = let
-      val do_kill = choose_next_bbox o (kill_pat_bbox b)
-      val do_expand = match_loop o schedule_new_concrete
-                                 o (expand_pat_bbox b)
-      val do_cfix = Seq.maps (choose_next_bbox o kill_impossible_bboxes)
-                             o match_pending_bbs
-                             o (cfix_pat_bbox b)
+  fun bbox_expand_branch b ms =
+    let
+      fun do_kill ms =
+        ms |> kill_pat_bbox b
+           |> choose_next_bbox
+      fun do_expand ms =
+        ms |> expand_pat_bbox b
+           |> schedule_new_concrete
+           |> match_loop
     in
       Seq.append (Seq.maps do_kill (Seq.single ms))
-      (Seq.append (Seq.maps do_expand (Seq.single ms))
-                  (Seq.maps do_cfix (Seq.single ms)))
+                 (Seq.maps do_expand (Seq.single ms))
     end
-    and choose_next_bbox ms =
-      case B.NSet.get_local_bot (get_operable_bbs ms) of
-           NONE => finish_match ms
-         | SOME b => bbox_oper_branch b ms
-  in
+  and bbox_copy_branch b ms =
+    let
+      fun start_expanding ms = 
+        (Log.logf 3 (fn () => "!-box "^(B.string_of_name b)^" -> expandable") ();
+         ms |> update_copyable_bbs (B.NSet.delete b)
+            |> update_expandable_bbs (B.NSet.ins_fresh b)
+            |> bbox_expand_branch b)
+      fun do_cfix ms =
+        ms |> cfix_pat_bbox b
+           |> match_pending_bbs
+           |> Seq.maps (choose_next_bbox o kill_impossible_bboxes)
+    in
+      Seq.append (Seq.maps start_expanding (Seq.single ms))
+                 (Seq.maps do_cfix (Seq.single ms))
+    end
+  and choose_next_bbox ms =
+    case B.NSet.get_local_bot (get_expandable_bbs ms)
+      of SOME b => bbox_expand_branch b ms
+       | NONE => (case B.NSet.get_local_bot (get_copyable_bbs ms)
+                    of SOME b => bbox_copy_branch b ms
+                     | NONE => finish_match ms)
+  and match_loop ms' =
     Seq.maps (choose_next_bbox o kill_impossible_bboxes)
       (Seq.maps match_pending_bbs (match_pending ms'))
-  end
 
   fun matches_from_ms ms = let
     val ims = get_inner_state ms
