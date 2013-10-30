@@ -269,9 +269,12 @@ struct
 
   fun add_wild_bbox bb = update_wild_bboxes (B.NSet.add bb)
 
-  fun log_p pretty_f lvl name =
-    Log.logf lvl (fn g => Pretty.string_of
-        (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
+  fun i_cap n = if n > 15 then 15 else n
+  fun indent 0 s = s
+    | indent n s = "  "^(indent ((i_cap n)-1) s)
+  fun log_p pretty_f lvl ind name =
+    Log.logf lvl (fn g => Pretty.string_of (Pretty.indent (2*(i_cap ind))
+        (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)])))
   val log_graph = log_p Graph.pretty
   val log_v_nset = log_p V.NSet.pretty
   val log_e_nset = log_p E.NSet.pretty
@@ -302,7 +305,7 @@ struct
 
   fun init pat tgt tgt_pool = init_with_fixed pat tgt tgt_pool BFFn.empty BFFn.empty
 
-  fun schedule_new_concrete bms = let
+  fun schedule_new_concrete _ bms = let
     val ms = get_inner_state bms
     val pat = InnerMatchState.get_pat ms
     val new_vs = V.NSet.subtract (Graph.get_vertices pat)
@@ -359,12 +362,12 @@ struct
     )
   end
 
-  fun is_total bms =
+  fun is_total (lvl,bms) =
     if (InnerMatchState.is_total (get_inner_state bms))
-    then (Log.log 2 "==== total match found ===="; true)
-    else (Log.log 2 "==== match failed to be total ===="; false)
+    then (Log.logf 2 (fn() => indent lvl "==== total match found ====") (); true)
+    else (Log.logf 2 (fn() => indent lvl "==== match failed to be total ====") (); false)
 
-  fun match_bare_wires ms = let
+  fun match_bare_wires (lvl,ms) = let
     val bmap = get_bmap ms
     fun bare_wire_prevent_match ims (p_s,_,p_t) (t_s,_,t_t) = let
       val pat = InnerMatchState.get_pat ims
@@ -379,13 +382,13 @@ struct
     end
     val ims = get_inner_state ms
   in
-    Seq.map (fn ims => set_inner_state ims ms)
+    Seq.map (fn ims => (lvl+1,set_inner_state ims ms))
             (InnerMatchSearch.match_bare_wires bare_wire_prevent_match ims)
   end
-  fun match_pending ms = let
+  fun match_pending (lvl,ms) = let
     fun update_ms ims =
-          ms |> set_inner_state ims
-             |> set_t_saved (InnerMatchState.get_tgt_verts ims)
+          (lvl+1,ms |> set_inner_state ims
+                    |> set_t_saved (InnerMatchState.get_tgt_verts ims))
     val ims = get_inner_state ms
   in
     Seq.map update_ms (InnerMatchSearch.match_pending doomedf ims)
@@ -395,21 +398,21 @@ struct
       Seq.filter is_total
         (match_bare_wires ms)
 
-  fun expand_pat_bbox b ms = let
-    val _ = Log.logf 2 (fn () => "Expanding !-box "^(B.string_of_name b)) ()
+  fun expand_pat_bbox lvl b ms = let
+    val _ = Log.logf 2 (fn () => indent lvl ("Expanding !-box "^(B.string_of_name b))) ()
     val pat = get_pat ms
     val (bb_op, pat') = Graph.expand_bbox_op b pat
     val new_toplevel = B.NSet.filter (not o (Graph.bbox_has_parents pat'))
                                      (bbox_op_added_bboxes bb_op)
-    val _ = log_b_nset 4 "  new top-level !-boxes" new_toplevel
+    val _ = log_b_nset 4 lvl ">> new top-level !-boxes" new_toplevel
   in
     ms |> set_pat pat'
        |> update_copyable_bbs (B.NSet.union_merge new_toplevel)
        |> update_bbox_ops (cons bb_op)
   end
 
-  fun kill_pat_bbox b ms = let
-    val _ = Log.logf 2 (fn () => "Killing !-box "^(B.string_of_name b)) ()
+  fun kill_pat_bbox lvl b ms = let
+    val _ = Log.logf 2 (fn () => indent lvl ("Killing !-box "^(B.string_of_name b))) ()
     val pat = get_pat ms
     val bb_vs = Graph.get_vertices_in_bbox pat b
     val adj_vs = Graph.get_adj_vertices_to_set pat bb_vs
@@ -426,7 +429,7 @@ struct
        |> update_inner_state sched_adj
   end
 
-  fun kill_bboxes_adj_to_complete_nvs bms = let
+  fun kill_bboxes_adj_to_complete_nvs (lvl,bms) = let
     val ms = get_inner_state bms
     val pat = InnerMatchState.get_pat ms
     val complete = InnerMatchState.get_complete_nodeverts ms
@@ -438,14 +441,14 @@ struct
                                             (get_expandable_bbs bms)
       val adj_operable_bbs = B.NSet.intersect bbs operable_bbs
     in
-      B.NSet.fold kill_pat_bbox adj_operable_bbs bms
+      B.NSet.fold (kill_pat_bbox lvl) adj_operable_bbs bms
       handle Graph.no_such_vertex_exp _ => bms
     end
   in
-    V.NSet.fold kill_all_bboxes touched bms
+    (lvl,V.NSet.fold kill_all_bboxes touched bms)
   end
 
-  fun kill_wild_bboxes ms = let
+  fun kill_wild_bboxes (lvl,ms) = let
     fun is_end_of_bare_wire g v =
       if Graph.is_input g v
       then
@@ -463,7 +466,7 @@ struct
     fun is_wild g bbox =
       V.NSet.forall (is_end_of_bare_wire g) (Graph.get_vertices_in_bbox g bbox)
     fun kill_pat_bbox' bbox ms =
-      ms |> kill_pat_bbox bbox
+      ms |> kill_pat_bbox lvl bbox
          |> add_wild_bbox bbox
     fun kill_if_wild bbox ms =
       (if is_wild (InnerMatchState.get_pat (get_inner_state ms)) bbox
@@ -472,14 +475,14 @@ struct
       handle Graph.no_such_bbox_exp _ => ms
     val pat = InnerMatchState.get_pat (get_inner_state ms)
   in
-    B.NSet.fold kill_if_wild (Graph.get_bboxes pat) ms
+    (lvl,B.NSet.fold kill_if_wild (Graph.get_bboxes pat) ms)
   end
 
   val kill_impossible_bboxes = kill_wild_bboxes
                              o kill_bboxes_adj_to_complete_nvs
 
-  fun cfix_pat_bbox b ms = let
-    val _ = Log.logf 2 (fn () => "Copy-fixing !-box "^(B.string_of_name b)) ()
+  fun cfix_pat_bbox lvl b ms = let
+    val _ = Log.logf 2 (fn () => indent lvl ("Copy-fixing !-box "^(B.string_of_name b))) ()
     val pat = get_pat ms
     val (bb_op, pat') = Graph.copy_bbox_op b pat
     val b' = bbox_op_get_bbox_copy bb_op b
@@ -487,7 +490,7 @@ struct
     val new_toplevel = B.NSet.filter
           (fn c => B.NSet.eq (Graph.get_bbox_parents pat' c) b'_singleton)
           (bbox_op_added_bboxes bb_op)
-    val _ = log_b_nset 4 "  new top-level !-boxes" new_toplevel
+    val _ = log_b_nset 4 lvl ">> new top-level !-boxes" new_toplevel
   in
     ms |> set_pat pat'
        |> update_copyable_bbs (B.NSet.union_merge new_toplevel)
@@ -495,9 +498,9 @@ struct
        |> update_bbox_ops (cons bb_op)
   end
 
-  fun match_pending_bbs bms =
+  fun match_pending_bbs (lvl,bms) =
     case B.NSet.pull_local_bot (get_pending_pat_bbs bms)
-      of NONE => Seq.single bms
+      of NONE => Seq.single (lvl,bms)
        | SOME (b,bbs') =>
            let
              val pat = get_pat bms
@@ -552,52 +555,51 @@ struct
                val bms' =
                  bms' |> set_bmap bmap'
              in
-               Seq.map (fn ims => set_inner_state ims bms')
+               Seq.map (fn ims => (lvl+1,set_inner_state ims bms'))
                        (InnerMatchSearch.match_pending doomedf ims)
              end
            in
              Seq.maps do_bb_match (Seq.of_list (B.NSet.list_of candidates))
            end
 
-  fun bbox_expand_branch b ms =
+  fun bbox_expand_branch b (lvl,ms) =
     let
       fun do_kill ms =
-        ms |> kill_pat_bbox b
-           |> choose_next_bbox
+        choose_next_bbox (lvl+1,kill_pat_bbox lvl b ms)
       fun do_expand ms =
-        ms |> expand_pat_bbox b
-           |> schedule_new_concrete
-           |> match_loop
+        match_loop' (lvl+1,ms |> expand_pat_bbox lvl b
+                              |> schedule_new_concrete lvl)
     in
       Seq.append (Seq.maps do_kill (Seq.single ms))
                  (Seq.maps do_expand (Seq.single ms))
     end
-  and bbox_copy_branch b ms =
+  and bbox_copy_branch b (lvl,ms) =
     let
       fun start_expanding ms = 
-        (Log.logf 3 (fn () => "!-box "^(B.string_of_name b)^" -> expandable") ();
-         ms |> update_copyable_bbs (B.NSet.delete b)
-            |> update_expandable_bbs (B.NSet.ins_fresh b)
-            |> bbox_expand_branch b)
+        (Log.logf 3 (fn () => indent lvl ("!-box "^(B.string_of_name b)^" -> expandable")) ();
+         bbox_expand_branch b (lvl+1,
+            ms |> update_copyable_bbs (B.NSet.delete b)
+               |> update_expandable_bbs (B.NSet.ins_fresh b)))
       fun do_cfix ms =
-        ms |> cfix_pat_bbox b
-           |> match_pending_bbs
-           |> Seq.maps (choose_next_bbox o kill_impossible_bboxes)
+        Seq.maps (choose_next_bbox o kill_impossible_bboxes)
+                 (match_pending_bbs (lvl+1,cfix_pat_bbox lvl b ms))
     in
       Seq.append (Seq.maps start_expanding (Seq.single ms))
                  (Seq.maps do_cfix (Seq.single ms))
     end
-  and choose_next_bbox ms =
+  and choose_next_bbox (lvl,ms) =
     case B.NSet.get_local_bot (get_expandable_bbs ms)
-      of SOME b => bbox_expand_branch b ms
+      of SOME b => bbox_expand_branch b (lvl,ms)
        | NONE => (case B.NSet.get_local_bot (get_copyable_bbs ms)
-                    of SOME b => bbox_copy_branch b ms
-                     | NONE => finish_match ms)
-  and match_loop ms' =
+                    of SOME b => bbox_copy_branch b (lvl,ms)
+                     | NONE => finish_match (lvl,ms))
+  and match_loop' x =
     Seq.maps (choose_next_bbox o kill_impossible_bboxes)
-      (Seq.maps match_pending_bbs (match_pending ms'))
+      (Seq.maps match_pending_bbs (match_pending x))
 
-  fun matches_from_ms ms = let
+  fun match_loop ms = match_loop' (0,ms)
+
+  fun matches_from_ms (_,ms) = let
     val ims = get_inner_state ms
     val (init_pat,pat,bbox_ops,tgt,vmap,emap,bmap,wild) = (
       get_init_pat ms,
@@ -617,8 +619,8 @@ struct
   fun find_matches ms = Seq.maps matches_from_ms (match_loop ms)
 
   fun match_normalised pat tgt = let
-    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
-    val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
+    val _ = log_graph 3 0 "GreedyMatchSearch: normalised pattern" pat
+    val _ = log_graph 3 0 "GreedyMatchSearch: normalised target" tgt
     val ms = init pat tgt (Graph.get_vertices tgt)
   in
     find_matches (schedule_all_concrete ms)
@@ -628,9 +630,9 @@ struct
     match_normalised (Graph.normalise pat) (Graph.normalise tgt)
 
   fun match_subgraph_normalised pat tgt tgt_verts = let
-    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
-    val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
-    val _ = log_v_nset 4 "GreedyMatchSearch: target vertices" tgt_verts
+    val _ = log_graph 3 0 "GreedyMatchSearch: normalised pattern" pat
+    val _ = log_graph 3 0 "GreedyMatchSearch: normalised target" tgt
+    val _ = log_v_nset 4 0 "GreedyMatchSearch: target vertices" tgt_verts
     val tgt_subgraph = Graph.get_open_subgraph tgt tgt_verts
     val ms = init pat tgt (Graph.get_vertices tgt_subgraph)
   in
