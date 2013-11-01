@@ -1,6 +1,6 @@
 import quanto.core._
 import swing._
-
+/*
 object Test extends SimpleSwingApplication {
   def top = new MainFrame {
     title = "Test"
@@ -9,3 +9,4 @@ object Test extends SimpleSwingApplication {
     }
   }
 }
+*/

@@ -103,7 +103,7 @@ object GraphEditor extends SimpleSwingApplication {
   }
 
   def top = new MainFrame {
-    title = "QGraph Editor - " + graphDocument.titleDescription
+    title = "PSGraph Editor - " + graphDocument.titleDescription
     contents = graphEditPanel
 
     size = new Dimension(800,800)
@@ -115,7 +115,7 @@ object GraphEditor extends SimpleSwingApplication {
     listenTo(graphDocument)
     reactions += {
       case GraphChanged(_)|GraphSaved(_) =>
-        title = "QGraph Editor - " + graphDocument.titleDescription
+        title = "PSGraph Editor - " + graphDocument.titleDescription
     }
   }
 }

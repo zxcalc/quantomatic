@@ -29,7 +29,7 @@ public class SVGPathParser implements SVGPathParserConstants {
                         throw new IllegalArgumentException(err);
                         }
                 }
-
+  /*
         public static void main(String args[])
                 throws Exception
                 {
@@ -38,7 +38,7 @@ public class SVGPathParser implements SVGPathParserConstants {
                         parse(s);
                         }
                 }
-
+   */
   final public Shape path() throws ParseException {
                      GeneralPath shape=new GeneralPath();
     label_1:

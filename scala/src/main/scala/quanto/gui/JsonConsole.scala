@@ -24,7 +24,7 @@ case class ErrorMessage(rid: Int, output: String) extends CoreOutputItem {
 case class Output(rid: Int, output: String) extends CoreOutputItem {
   override def toString = output
 }
-
+/*
 object JsonConsole extends SimpleSwingApplication {
   val sys = ActorSystem("QuantoConsole")
   val core = sys.actorOf(Props { new CoreState("../core/bin/quanto-core") }, "core_state")
@@ -122,3 +122,4 @@ object JsonConsole extends SimpleSwingApplication {
     }
   }
 }
+*/
