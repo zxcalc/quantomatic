@@ -166,7 +166,7 @@ functor ProgressiveMatchSearch(
     V.NSet.fold add_if_circle (MatchState.get_tgt_verts ms) V.NSet.empty
   end;
 
-  fun match_circles' lvl ms = let
+  fun match_circles' lvl context ms = let
     val _ = Log.log 2 (ind lvl "== Matching next circle")
   in
     case V.NSet.get_min (MatchState.get_u_circles ms)
@@ -176,6 +176,7 @@ functor ProgressiveMatchSearch(
            val ep = (the o E.NSet.tryget_singleton) (Graph.get_in_edges pat cp)
            val (epdir,epdata) = Graph.get_edge_dir_and_data pat ep
            val subst = MatchState.get_match_psubst ms
+           val match_is_allowed = Hooks.vertex_match_is_allowed context ms cp
            fun m_circ ct = let
              val ctdata = Graph.get_vertex_data tgt ct
              val et = (the o E.NSet.tryget_singleton) (Graph.get_in_edges tgt ct)
@@ -183,23 +184,29 @@ functor ProgressiveMatchSearch(
                 (V.string_of_name cp)^ ","^(E.string_of_name ep)^") against ("^
                 (V.string_of_name ct)^","^(E.string_of_name et)^")") ()
               val (etdir,etdata) = Graph.get_edge_dir_and_data tgt et
-           in case (epdir = etdir,
-                    Option.composePartial
-                      (Graph.match_vdata (cpdata, ctdata),
-                       Graph.match_edata (epdata, etdata))
-                      subst)
-                of (true, SOME subst') =>
-                      match_circles' (lvl+1)
+           in
+             case (epdir = etdir,
+                   Option.composePartial
+                     (Graph.match_vdata (cpdata, ctdata),
+                      Graph.match_edata (epdata, etdata))
+                     subst)
+               of (true, SOME subst') =>
+                    if not (match_is_allowed ct)
+                    then 
+                      (log_match_fail_e2' lvl "Match disallowed" ep et;
+                       Seq.empty)
+                    else
+                      match_circles' (lvl+1) context
                           (ms |> MatchState.update_u_circles (V.NSet.delete cp)
                               |> MatchState.update_tgt_verts (V.NSet.delete ct)
                               |> add_circle_to_match lvl (cp,ct)
                               |> MatchState.set_match_psubst subst')
-                 | (false, _) =>
-                     (log_match_fail_e2' lvl "Circle directedness mismatch" ep et;
-                      Seq.empty)
-                 | (_, NONE) =>
-                     (log_match_fail_e2' lvl "Circle edge data mismatch" ep et;
-                      Seq.empty)
+                | (false, _) =>
+                    (log_match_fail_e2' lvl "Circle directedness mismatch" ep et;
+                     Seq.empty)
+                | (_, NONE) =>
+                    (log_match_fail_e2' lvl "Circle edge data mismatch" ep et;
+                     Seq.empty)
            end
          in Seq.maps m_circ (V.NSet.fold Seq.cons (u_circles_in_tgt ms) Seq.empty)
          end
@@ -222,7 +229,7 @@ functor ProgressiveMatchSearch(
    * vt: target of vp
    * et: unmatched edge incident to vt
    *)
-  fun tryadd_wire lvl ms (vp,ep) (vt,et) = let
+  fun tryadd_wire lvl context ms (vp,ep) (vt,et) = let
     val _ = Log.logf 4 (fn () => ind lvl "Attempting to match ("^
                        (V.string_of_name vp)^ ","^(E.string_of_name ep)^
                        ") against ("^
@@ -277,31 +284,46 @@ functor ProgressiveMatchSearch(
                       then
                         case (Graph.wv_get_other_edge pat new_vp ep, Graph.wv_get_other_edge tgt new_vt et)
                           of (SOME new_ep, SOME new_et) =>
-                              (* pat and tgt are internal. add edge to match and recurse *)
-                              tryadd_wire lvl
-                                (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
-                                    |> MatchState.update_tgt_verts (V.NSet.delete new_vt)
-                                    |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
-                                    |> MatchState.set_match_psubst v_subst)
-                                (new_vp,new_ep) (new_vt,new_et)
+                              if not (Hooks.vertex_match_is_allowed context ms
+                                                    new_vp new_vt)
+                              then
+                                (log_match_fail_v2 lvl "Match disallowed" new_vp new_vt; NONE)
+                              else
+                                (* pat and tgt are internal. add edge to match and recurse *)
+                                tryadd_wire lvl context
+                                  (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
+                                      |> MatchState.update_tgt_verts (V.NSet.delete new_vt)
+                                      |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
+                                      |> MatchState.set_match_psubst v_subst)
+                                  (new_vp,new_ep) (new_vt,new_et)
                            | (SOME _, NONE) =>
                               (* pat is internal, tgt is bdry. fail *)
                               (log_match_fail_v2 lvl "Tgt wire too short" new_vp new_vt; NONE)
                            | (NONE, _) =>
-                              (* pat is boundary. add edge to match and finish *)
-                              SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
-                                       |> MatchState.update_tgt_verts (V.NSet.delete new_vt)
-                                       |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
-                                       |> MatchState.set_match_psubst v_subst)
+                              if not (Hooks.vertex_match_is_allowed context ms
+                                                    new_vp new_vt)
+                              then
+                                (log_match_fail_v2 lvl "Match disallowed" new_vp new_vt; NONE)
+                              else
+                                (* pat is boundary. add edge to match and finish *)
+                                SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
+                                         |> MatchState.update_tgt_verts (V.NSet.delete new_vt)
+                                         |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
+                                         |> MatchState.set_match_psubst v_subst)
                       else
                         if V.NSet.contains (MatchState.get_u_nodeverts ms) new_vp
                         then
-                          SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
-                                   |> MatchState.update_tgt_verts (V.NSet.delete new_vt)
-                                   |> MatchState.update_u_nodeverts (V.NSet.delete new_vp)
-                                   |> MatchState.update_p_nodeverts (V.NSet.add new_vp)
-                                   |> MatchState.update_ps_nodeverts (V.NSet.add new_vp)
-                                   |> MatchState.set_match_psubst v_subst)
+                          if not (Hooks.vertex_match_is_allowed context ms
+                                                new_vp new_vt)
+                          then
+                            (log_match_fail_v2 lvl "Match disallowed" new_vp new_vt; NONE)
+                          else
+                            SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
+                                     |> MatchState.update_tgt_verts (V.NSet.delete new_vt)
+                                     |> MatchState.update_u_nodeverts (V.NSet.delete new_vp)
+                                     |> MatchState.update_p_nodeverts (V.NSet.add new_vp)
+                                     |> MatchState.update_ps_nodeverts (V.NSet.add new_vp)
+                                     |> MatchState.set_match_psubst v_subst)
                         else
                           (* if this node-vert isn't scheduled for matching, leave its wire alone *)
                           (* NB: this shouldn't happen if Uw, Un set up correctly? *)
@@ -316,6 +338,7 @@ functor ProgressiveMatchSearch(
     val _ = log_graph 4 "Pattern" (MatchState.get_pat match_state)
     val _ = log_graph 4 "Target" (MatchState.get_tgt match_state)
     val p_vertex_may_be_completed = Hooks.p_vertex_may_be_completed context
+    val vertex_match_is_allowed = Hooks.vertex_match_is_allowed context
   
     (* main matching loop *)
     fun match_main lvl ms = let
@@ -352,7 +375,7 @@ functor ProgressiveMatchSearch(
                               (Graph.edge_get_other_vertex tgt e nvt)
         
         fun add_branch_if_wire_matches ep et =
-              case tryadd_wire lvl ms (nvp,ep) (nvt,et)
+              case tryadd_wire lvl context ms (nvp,ep) (nvt,et)
                 of SOME ms' => Seq.append (match_nhd (lvl+1) ms' nvp)
                  | NONE     => I
         
@@ -400,15 +423,19 @@ functor ProgressiveMatchSearch(
                      |> MatchState.update_p_nodeverts  (V.NSet.add nv)
                      |> MatchState.update_ps_nodeverts (V.NSet.add nv)
         val nv_data = Graph.get_vertex_data (MatchState.get_pat ms') nv
+        val match_is_allowed = vertex_match_is_allowed ms' nv
         fun match_nv_and_continue tnv =
           case Graph.match_vdata (nv_data,
                                   Graph.get_vertex_data (MatchState.get_tgt ms') tnv)
                                  (MatchState.get_match_psubst ms')
             of SOME subst =>
-                 match_main (lvl+1)
-                            (ms' |> MatchState.set_match_psubst subst
-                                 |> add_vertex_to_match lvl (nv, tnv)
-                                 |> MatchState.update_tgt_verts (V.NSet.delete tnv))
+                if match_is_allowed tnv
+                then
+                   match_main (lvl+1)
+                              (ms' |> MatchState.set_match_psubst subst
+                                   |> add_vertex_to_match lvl (nv, tnv)
+                                   |> MatchState.update_tgt_verts (V.NSet.delete tnv))
+                else Seq.empty
              | NONE => Seq.empty
       in
         Seq.maps match_nv_and_continue
@@ -430,7 +457,7 @@ functor ProgressiveMatchSearch(
     end (* match_main *)
   in
     (* match all circles, then enter main matching routine *)
-    Seq.maps (match_main 0) (match_circles match_state)
+    Seq.maps (match_main 0) (match_circles context match_state)
   end
   
   

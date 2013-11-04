@@ -290,7 +290,16 @@ struct
         )
       end
 
-    fun vertex_match_is_allowed _ _ _ _ = true
+    fun vertex_match_is_allowed ms ims pv tv =
+      let
+        val pat = InnerMatchState.get_pat ims
+        val tgt = InnerMatchState.get_tgt ims
+        val p_bs = Graph.get_bboxes_containing_vertex pat pv
+        val t_bs = Graph.get_bboxes_containing_vertex tgt tv
+        val p_bs' = BBInj.img_of_set (get_bmap ms) p_bs
+      in
+        B.NSet.eq t_bs p_bs'
+      end
 
     fun bare_wire_match_is_allowed ms ims (p_s,_,p_t) (t_s,_,t_t) =
       let
