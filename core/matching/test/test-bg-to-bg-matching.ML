@@ -91,7 +91,6 @@ struct
   val arbitrary_tree_pat = balanced_tree_pat
       |> G.add_child_to_bbox (B.mk "B0") (B.mk "B1")
 
-      (* FIXME: these create infinite matches (or something)
   val _ = Testing.test "M.match - balanced tree --> balanced tree"
                        (find_n_correct_matches 1) (balanced_tree_pat,balanced_tree_pat)
   val _ = Testing.test "M.match - arbitrary tree --> arbitrary tree"
@@ -100,13 +99,6 @@ struct
                        (find_n_correct_matches 0) (arbitrary_tree_pat,balanced_tree_pat)
   val _ = Testing.test "M.match - balanced tree --> arbitrary tree"
                        (find_n_correct_matches 0) (balanced_tree_pat,arbitrary_tree_pat)
-  val _ = Testing.test "M.match - balanced tree --> tree {}"
-          ((assert_n_wild_bboxes 1) o List.hd o (find_n_correct_matches 1))
-          (balanced_tree_pat,min_tree
-  val _ = Testing.test "M.match - arbitrary tree --> tree {}"
-                       (find_n_correct_matches 1) (arbitrary_tree_pat,min_tree)
-                       *)
-
 
   val _ = Testing.assert_no_failed_tests()
 end

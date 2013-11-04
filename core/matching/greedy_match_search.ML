@@ -33,7 +33,6 @@ struct
     expandable_bbs  : B.NSet.T,
     pat_fix_tags    : BFFn.T,   (* fixity tags of pattern *)
     tgt_fix_tags    : BFFn.T,   (* fixity tags of target *)
-    t_saved         : V.NSet.T, (* saved state of (#tgt_verts innerstate) *)
     tgt_pool        : V.NSet.T, (* all the vertices we are ever allowed to match *)
     inner_state     : InnerMatchState.T
   }
@@ -48,7 +47,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    t_saved         = #t_saved r,
     tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
@@ -63,7 +61,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    t_saved         = #t_saved r,
     tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
@@ -78,7 +75,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    t_saved         = #t_saved r,
     tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
@@ -93,7 +89,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    t_saved         = #t_saved r,
     tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
@@ -108,7 +103,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    t_saved         = #t_saved r,
     tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
@@ -123,7 +117,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    t_saved         = #t_saved r,
     tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
@@ -138,7 +131,6 @@ struct
     expandable_bbs  = f(#expandable_bbs r),
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    t_saved         = #t_saved r,
     tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
@@ -153,7 +145,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    t_saved         = #t_saved r,
     tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
@@ -168,7 +159,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = f(#pat_fix_tags r),
     tgt_fix_tags    = #tgt_fix_tags r,
-    t_saved         = #t_saved r,
     tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
@@ -183,22 +173,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = f(#tgt_fix_tags r),
-    t_saved         = #t_saved r,
-    tgt_pool        = #tgt_pool r,
-    inner_state     = #inner_state r
-  }
-
-  fun update_t_saved f (MatchState r) = MatchState {
-    init_pat        = #init_pat r,
-    bbox_ops        = #bbox_ops r,
-    wild_bboxes     = #wild_bboxes r,
-    bmap            = #bmap r,
-    pending_pat_bbs = #pending_pat_bbs r,
-    copyable_bbs    = #copyable_bbs r,
-    expandable_bbs  = #expandable_bbs r,
-    pat_fix_tags    = #pat_fix_tags r,
-    tgt_fix_tags    = #tgt_fix_tags r,
-    t_saved         = f(#t_saved r),
     tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
@@ -213,7 +187,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    t_saved         = #t_saved r,
     tgt_pool        = f(#tgt_pool r),
     inner_state     = #inner_state r
   }
@@ -228,7 +201,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    t_saved         = #t_saved r,
     tgt_pool        = #tgt_pool r,
     inner_state     = f(#inner_state r)
   }
@@ -242,7 +214,6 @@ struct
   fun get_expandable_bbs  (MatchState r) = #expandable_bbs r
   fun get_pat_fix_tags    (MatchState r) = #pat_fix_tags r
   fun get_tgt_fix_tags    (MatchState r) = #tgt_fix_tags r
-  fun get_t_saved         (MatchState r) = #t_saved r
   fun get_tgt_pool        (MatchState r) = #tgt_pool r
   fun get_inner_state     (MatchState r) = #inner_state r
 
@@ -256,7 +227,6 @@ struct
   fun set_pat_fixed       x = update_pat_fixed       (fn _ => x)
   fun set_pat_fix_tags    x = update_pat_fix_tags    (fn _ => x)
   fun set_tgt_fix_tags    x = update_tgt_fix_tags    (fn _ => x)
-  fun set_t_saved         x = update_t_saved         (fn _ => x)
   fun set_inner_state     x = update_inner_state     (fn _ => x)
 
   structure IMSHooks : PROGRESSIVE_MATCH_SEARCH_HOOKS =
@@ -354,7 +324,6 @@ struct
       expandable_bbs  = B.NSet.empty,
       pat_fix_tags    = pat_fix_tags,
       tgt_fix_tags    = tgt_fix_tags,
-      t_saved         = V.NSet.subtract tgt_pool (Graph.get_bboxed tgt),
       tgt_pool        = tgt_pool,
       inner_state     = InnerMatchState.init pat tgt
     }
@@ -362,36 +331,43 @@ struct
 
   fun init pat tgt tgt_pool = init_with_fixed pat tgt tgt_pool BFFn.empty BFFn.empty
 
-  fun schedule_new_concrete _ bms = let
+  fun schedule_new lvl bms = let
     val ms = get_inner_state bms
     val pat = InnerMatchState.get_pat ms
     val new_vs = V.NSet.subtract (Graph.get_vertices pat)
                                  (VVInj.get_dom_set (InnerMatchState.get_vmap ms))
-    val unbboxed = V.NSet.filter (not o (Graph.is_bboxed pat)) new_vs
-    val touched = Graph.get_adj_vertices_to_set pat unbboxed
+    val matched_bbs = BBInj.get_dom_set (get_bmap bms)
+    val _ = log_b_nset 4 lvl "Matched !-boxes in pattern so far" matched_bbs
+    val get_bboxes_for_v = Graph.get_bboxes_containing_vertex pat
+    fun in_match_surface v = B.NSet.sub_set (get_bboxes_for_v v) matched_bbs
+    val matchable = V.NSet.filter in_match_surface new_vs
+    val touched = Graph.get_adj_vertices_to_set pat matchable
     (* only need to schedule p verts adjacent to new unbboxed verts;
      * p verts adjacent to killed verts are scheduled in kill_pat_bbox *)
     fun schedule_p_nvs ims =
         InnerMatchState.extend_ps_nodeverts
           (V.NSet.intersect (InnerMatchState.get_p_nodeverts ims) touched)
           ims
+    val _ = log_v_nset 3 lvl "Scheduling new U" matchable
   in
     update_inner_state
-      (InnerMatchState.extend_u unbboxed
-       o (InnerMatchState.set_tgt_verts (get_t_saved bms))
+      (InnerMatchState.extend_u matchable
        o schedule_p_nvs)
       bms
   end
 
   fun schedule_all_concrete bms = let
-    val pat = InnerMatchState.get_pat (get_inner_state bms)
-    val vs = Graph.get_vertices pat
-    val unbboxed = V.NSet.filter (not o (Graph.is_bboxed pat)) vs
+    val pat = get_pat bms
+    val tgt = get_tgt bms
+    val pat_unbboxed = V.NSet.filter (not o (Graph.is_bboxed pat))
+                                     (Graph.get_vertices pat)
+    val tgt_unbboxed = V.NSet.filter (not o (Graph.is_bboxed tgt))
+                                     (get_tgt_pool bms)
+    fun schedule ims =
+      ims |> InnerMatchState.extend_u pat_unbboxed
+          |> InnerMatchState.set_tgt_verts tgt_unbboxed
   in
-    update_inner_state
-      (InnerMatchState.extend_u unbboxed
-       o (InnerMatchState.set_tgt_verts (get_t_saved bms)))
-      bms
+    update_inner_state schedule bms
   end
 
   (* TODO: it is probably worth optimising this some more *)
@@ -408,8 +384,7 @@ struct
   end
   fun match_pending (lvl,ms) = let
     fun update_ms ims =
-          (lvl+1,ms |> set_inner_state ims
-                    |> set_t_saved (InnerMatchState.get_tgt_verts ims))
+          (lvl+1,set_inner_state ims ms)
     val ims = get_inner_state ms
   in
     Seq.map update_ms (InnerMatchSearch.match_pending ms ims)
@@ -545,36 +520,26 @@ struct
              (* set inner.tgt_verts to matchable part of B(b') *)
              fun do_bb_match b' = let
                val bmap' = BBInj.add (b,b') bmap
-               fun pat_is_matchable v = let
-                 val bbs = Graph.get_bboxes_containing_vertex pat v
-               in
-                   B.NSet.sub_set bbs (BBInj.get_dom_set bmap')
-               end
-               val bbox_vs = Graph.get_vertices_in_bbox pat b
-               val pat_matchable = V.NSet.filter pat_is_matchable bbox_vs
-               fun tgt_is_matchable v = let
-                 val bbs = Graph.get_bboxes_containing_vertex tgt v
-               in
-                   B.NSet.contains bbs b'
-                 andalso
-                   B.NSet.sub_set bbs (BBInj.get_cod_set bmap')
-               end
-               val tgt_matchable = V.NSet.filter
-                    tgt_is_matchable
-                    (get_tgt_pool bms)
-               val touched = Graph.get_adj_vertices_to_set pat bbox_vs
-               fun schedule_p_nvs ims =
-                 InnerMatchState.extend_ps_nodeverts
-                   (V.NSet.intersect (InnerMatchState.get_p_nodeverts ims) touched)
-                   ims
-               val ims = get_inner_state bms'
-                       |> InnerMatchState.set_tgt_verts tgt_matchable
-                       |> InnerMatchState.extend_u pat_matchable
-                       |> schedule_p_nvs
-               (* TODO: doomed *)
-               fun doomedf _ _ = false
-               val bms' =
-                 bms' |> set_bmap bmap'
+               fun extend_tgt_verts ims =
+                 let
+                   val vs = Graph.get_vertices_in_bbox tgt b'
+                   val matched_bbs = BBInj.get_cod_set bmap'
+                   fun add_if_in_match_surface v set =
+                     let
+                       val bbs = Graph.get_bboxes_containing_vertex tgt v
+                     in
+                       if B.NSet.sub_set bbs matched_bbs
+                       then V.NSet.add v set
+                       else set
+                     end
+                   val tgt_verts = InnerMatchState.get_tgt_verts ims
+                 in
+                   InnerMatchState.set_tgt_verts
+                     (V.NSet.fold add_if_in_match_surface vs tgt_verts)
+                     ims
+                 end
+               val ims = extend_tgt_verts (get_inner_state bms')
+               val bms' = set_bmap bmap' bms'
              in
                Seq.map (fn ims => (lvl+1,set_inner_state ims bms'))
                        (InnerMatchSearch.match_pending bms' ims)
@@ -590,7 +555,7 @@ struct
       fun do_expand ms =
         (* need to match non-concrete verts as well *)
         match_loop' (lvl+1,ms |> expand_pat_bbox lvl b
-                              |> schedule_new_concrete lvl)
+                              |> schedule_new lvl)
     in
       Seq.append (Seq.maps do_kill (Seq.single ms))
                  (Seq.maps do_expand (Seq.single ms))
@@ -603,7 +568,7 @@ struct
             ms |> update_copyable_bbs (B.NSet.delete b)
                |> update_expandable_bbs (B.NSet.ins_fresh b)))
       fun do_cfix ms =
-        Seq.maps (choose_next_bbox o kill_impossible_bboxes)
+        Seq.maps (match_loop' o (fn (l,s) => (l,schedule_new l s)))
                  (match_pending_bbs (lvl+1,cfix_pat_bbox lvl b ms))
     in
       Seq.append (Seq.maps start_expanding (Seq.single ms))
