@@ -265,22 +265,36 @@ functor BangGraphHomeomorphismSearcher(Graph : BANG_GRAPH)
   structure Homeomorphism = BangGraphHomeomorphism(Graph)
 
   structure MatchState = OGraphMatchState(Graph)
-  structure InnerMatchSearch = ProgressiveMatchSearch(MatchState)
 
-  fun concrete_doomedf ms v = let
-    val pat = MatchState.get_pat ms
-    val tgt = MatchState.get_tgt ms
-    val v' = VVInj.get (MatchState.get_vmap ms) v
-    val vdata = Graph.get_vertex_data pat v
-    val vdata' = Graph.get_vertex_data tgt v'
-  in
-    (* FIXME: alpha conversion? *)
-    not (Graph.vdata_eq (vdata,vdata'))
-    orelse
-    B.NSet.cardinality (Graph.get_bboxes_containing_vertex pat v)
-    <>
-    B.NSet.cardinality (Graph.get_bboxes_containing_vertex tgt v')
+  structure IMSHooks : PROGRESSIVE_MATCH_SEARCH_HOOKS =
+  struct
+    type Context = unit
+    structure MatchState = MatchState
+
+    fun p_vertex_may_be_completed _ ms v = let
+      val pat = MatchState.get_pat ms
+      val tgt = MatchState.get_tgt ms
+      val v' = VVInj.get (MatchState.get_vmap ms) v
+      val vdata = Graph.get_vertex_data pat v
+      val vdata' = Graph.get_vertex_data tgt v'
+    in
+      B.NSet.cardinality (Graph.get_bboxes_containing_vertex pat v)
+      =
+      B.NSet.cardinality (Graph.get_bboxes_containing_vertex tgt v')
+    end
+    fun vertex_match_is_allowed _ ms v1 v2 = let
+      val pat = MatchState.get_pat ms
+      val tgt = MatchState.get_tgt ms
+      val vdata1 = Graph.get_vertex_data pat v1
+      val vdata2 = Graph.get_vertex_data tgt v2
+    in
+      (* FIXME: alpha conversion? *)
+      Graph.vdata_eq (vdata1,vdata2)
+    end
+    fun bare_wire_match_is_allowed _ _ _ _ = true
   end
+
+  structure InnerMatchSearch = ProgressiveMatchSearch(IMSHooks)
 
   fun homeo_from_ms (bmap,ms) =
     Homeomorphism.mk_opt (MatchState.get_pat ms)
@@ -415,7 +429,7 @@ functor BangGraphHomeomorphismSearcher(Graph : BANG_GRAPH)
          B.NSet.cardinality (Graph.get_bboxes tgt)
     then
       MatchState.init_and_schedule_all pat tgt
-        |> InnerMatchSearch.match_pending concrete_doomedf
+        |> InnerMatchSearch.match_pending ()
         |> Seq.maps match_bare_wires
         |> Seq.filter MatchState.is_total
         |> Seq.maps match_bboxes

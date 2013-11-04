@@ -4,18 +4,13 @@
 functor ConcreteMatchSearch(Graph : OGRAPH) : MATCH_SEARCH =
 struct
 
-  structure Log : LOG = Log(val init_level = 0);
+  structure Log : LOG = Log(val init_level = 0)
 
 
-  structure Graph = Graph;
-  structure MatchState = OGraphMatchState(Graph);
-  structure InnerMatchSearch = ProgressiveMatchSearch(MatchState);
-  structure Match = OGraphMatch(Graph);
-  
-  (* We can't provide any information that the inner match search
-   * does not already know *)
-  fun concrete_doomedf _ _ = false
-  fun bare_wire_preventf _ _ _ = false
+  structure Graph = Graph
+  structure MatchState = OGraphMatchState(Graph)
+  structure InnerMatchSearch = ProgressiveMatchSearch(PermissiveHooks(MatchState))
+  structure Match = OGraphMatch(Graph)
 
   fun matches_from_ms ms = let
     val (pat,tgt,vmap,emap) = (MatchState.get_pat ms,
@@ -32,8 +27,8 @@ struct
   fun do_match ms =
     Seq.maps matches_from_ms
       (Seq.filter MatchState.is_total
-       (Seq.maps (InnerMatchSearch.match_bare_wires bare_wire_preventf)
-        (InnerMatchSearch.match_pending concrete_doomedf ms)))
+       (Seq.maps (InnerMatchSearch.match_bare_wires ())
+        (InnerMatchSearch.match_pending () ms)))
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of

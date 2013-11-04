@@ -2,17 +2,70 @@
 (* see docs/matching_algo for details *)
 signature PROGRESSIVE_MATCH_SEARCH_SHARING =
 sig
-  structure Graph : OGRAPH_SHARING
   structure MatchState : OGRAPH_MATCH_STATE_SHARING
-    sharing MatchState.Graph = Graph
+end
+
+signature PROGRESSIVE_MATCH_SEARCH_HOOKS =
+sig
+  type Context
+  structure MatchState : OGRAPH_MATCH_STATE
+
+  (* Returns false if the given partially-matched vertex (in the
+   * pattern graph) is guaranteed to never be completed; and true
+   * otherwise.
+   *
+   * If in doubt, return true.
+   *)
+  val p_vertex_may_be_completed : Context -> MatchState.T -> V.name -> bool
+
+  (* Allows additional constraints to be placed on the match.  A potential
+   * match will be tested using this function, and discarded if it returns
+   * false.
+   *
+   * This is *not* used by the bare-wire matching (see
+   * bare_wire_match_is_allowed).
+   *)
+  val vertex_match_is_allowed : Context -> MatchState.T -> V.name -> V.name -> bool
+
+  (* Allows additional constraints to be placed on bare-wire matching.  A
+   * potential match will be tested using this function, and discarded if it
+   * returns false.
+   *
+   * The wire segment arguments are (s,e,t) and (s',e',t'), where e is the edge
+   * in a bare wire of the pattern graph, e' is an edge in the target graph and
+   * s, t, s' and t' are the corresponding sources and targets.
+   *
+   * s, e and t are all unmatched, and s and t are wire-vertices (specifically,
+   * an input and an output of the pattern).
+   *
+   * e' is unmatched, but one or both of s' and t' may be matched.  Further,
+   * while at least one of s' and t' is a wire-vertex, the other may be a
+   * node-vertex.  The wire segment will be expanded as necessary if the match
+   * proceeds.
+   *)
+  val bare_wire_match_is_allowed : Context
+        -> MatchState.T
+        -> (V.name*E.name*V.name) (* bare wire in the pattern *)
+        -> (V.name*E.name*V.name) (* wire segment in the target graph *)
+        -> bool
+end
+
+functor PermissiveHooks(MatchState : OGRAPH_MATCH_STATE)
+  : PROGRESSIVE_MATCH_SEARCH_HOOKS =
+struct
+  type Context = unit
+  structure MatchState = MatchState
+  fun p_vertex_may_be_completed _ _ _ = true
+  fun vertex_match_is_allowed _ _ _ _ = true
+  fun bare_wire_match_is_allowed _ _ _ _ = true
 end
 
 signature PROGRESSIVE_MATCH_SEARCH =
 sig
-  structure Log : LOG;
+  structure Log : LOG
 
-  structure Graph : OGRAPH
   structure MatchState : OGRAPH_MATCH_STATE
+  structure Hooks : PROGRESSIVE_MATCH_SEARCH_HOOKS
 
   (* Match all queued unmatched circles and node vertices, and extend the
    * matchings of any scheduled partially-matched node vertices as much as
@@ -20,58 +73,33 @@ sig
    *
    * Returns a lazy list of updated match states.
    *
-   * The first argument is a "doomed" function, which should return
-   * true if it is known that matching for the given vertex will
-   * ultimately fail.  The second argument is the name of a
-   * partially-matched vertex in the pattern graph.
-   *
    * Note that this will _not_ match bare wires.
    *)
-  val match_pending : (MatchState.T -> V.name -> bool)
+  val match_pending : Hooks.Context
                       -> MatchState.T
                       -> MatchState.T Seq.seq
 
   (* Match all the bare wires in u_bare_wires, expanding edge points where
    * necessary.
-   *
-   * The first argument allows potential matches to be prohibited based on
-   * information not available to ProgressiveMatchSearch (such as !-box
-   * containment).  It is given the current match state, the bare wire in the
-   * pattern (source,edge,target) and the potential edge in the target for
-   * matching (together with its source and target).  The edges will always be
-   * unmatched, but the vertices in the target may already be matched.  At least
-   * one of the target vertices will be a wire-vertex.  It should return true to
-   * *prevent* the match (to be consistent with match_pending).
    *)
-  val match_bare_wires : (MatchState.T -> (V.name*E.name*V.name)
-                                       -> (V.name*E.name*V.name)
-                                       -> bool)
+  val match_bare_wires : Hooks.Context
                          -> MatchState.T
                          -> MatchState.T Seq.seq
-  
-  (* Match all circles.
-   *
-   * Note that match_pending will do this anyway.
-   *)
-  val match_circles : MatchState.T -> MatchState.T Seq.seq
-
-
-  (*** Uncomment for debug ***)
-  (*val u_circles_in_tgt : MatchState.T -> V.NSet.T*)
 
   structure Sharing : PROGRESSIVE_MATCH_SEARCH_SHARING
-    sharing Sharing.Graph = Graph.Sharing
     sharing Sharing.MatchState = MatchState.Sharing
+    sharing Hooks.MatchState.Sharing = MatchState.Sharing
 end
 
 functor ProgressiveMatchSearch(
-    MatchState : OGRAPH_MATCH_STATE
+    Hooks : PROGRESSIVE_MATCH_SEARCH_HOOKS
 ) : PROGRESSIVE_MATCH_SEARCH
 = struct
-  structure Log : LOG = Log(val init_level = 0);
+  structure Log : LOG = Log(val init_level = 0)
 
+  structure Hooks = Hooks
+  structure MatchState = Hooks.MatchState
   structure Graph = MatchState.Graph
-  structure MatchState = MatchState
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
@@ -283,10 +311,11 @@ functor ProgressiveMatchSearch(
   
   
     
-  fun match_pending doomedf match_state = let
+  fun match_pending context match_state = let
     val _ = Log.log 2 "== Starting inner match"
     val _ = log_graph 4 "Pattern" (MatchState.get_pat match_state)
     val _ = log_graph 4 "Target" (MatchState.get_tgt match_state)
+    val p_vertex_may_be_completed = Hooks.p_vertex_may_be_completed context
   
     (* main matching loop *)
     fun match_main lvl ms = let
@@ -353,7 +382,7 @@ functor ProgressiveMatchSearch(
       
       (* continue matching from the given partially-matched node-vertex *)
       fun continue_matching_from nvp =
-        if doomedf ms nvp
+        if not (p_vertex_may_be_completed ms nvp)
         then (log_match_fail_v1 lvl "Doomed" nvp; Seq.empty)
         else match_nhd lvl
               (ms |> MatchState.update_ps_nodeverts (V.NSet.delete nvp))
@@ -467,11 +496,12 @@ functor ProgressiveMatchSearch(
   
   
   (* match the given set of bare wires, expanding wire-vertices where necessary *)
-  fun match_bare_wires' lvl disallow ms = let
+  fun match_bare_wires' lvl context ms = let
     val _ = Log.log 2 (ind lvl "== Starting bare wire match")
   in
     if E.NSet.is_empty (MatchState.get_u_bare_wires ms) then Seq.single ms
     else let
+      val bare_wire_match_is_allowed = Hooks.bare_wire_match_is_allowed context
       val (pat, tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms)
       val tgt_verts = MatchState.get_tgt_verts ms
       val (vmap, emap) = (MatchState.get_vmap ms, MatchState.get_emap ms)
@@ -488,7 +518,7 @@ functor ProgressiveMatchSearch(
         fun vertex_matchable v =
           (V.NSet.contains tgt_verts v) orelse (VVInj.cod_contains vmap v)
       in
-        not (disallow ms (bw_s,bw,bw_t) (s,e,t)) andalso
+        (bare_wire_match_is_allowed ms (bw_s,bw,bw_t) (s,e,t)) andalso
         not (EEInj.cod_contains (MatchState.get_emap ms) e) andalso
         d = bw_dir andalso vertex_matchable s andalso vertex_matchable t andalso
         (Graph.is_boundary tgt s orelse Graph.is_boundary tgt t orelse    (* bare and boundary wires *)
@@ -527,10 +557,10 @@ functor ProgressiveMatchSearch(
           of SOME new_subst =>
                let val add_bw' = add_bw new_subst in
                   case bw_dir
-                    of Directed => match_bare_wires' (lvl+1) disallow (add_bw' (s,t))
+                    of Directed => match_bare_wires' (lvl+1) context (add_bw' (s,t))
                      | Undirected =>
-                         Seq.append (match_bare_wires' (lvl+1) disallow (add_bw' (s,t)))
-                                    (match_bare_wires' (lvl+1) disallow (add_bw' (t,s)))
+                         Seq.append (match_bare_wires' (lvl+1) context (add_bw' (s,t)))
+                                    (match_bare_wires' (lvl+1) context (add_bw' (t,s)))
                end
            | NONE => Seq.empty
       end

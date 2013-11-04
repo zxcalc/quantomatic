@@ -13,10 +13,9 @@ functor GreedyMatchSearch(
 struct
 
   structure Log : LOG = Log(val init_level = 0)
+
   structure Graph = Graph
   structure InnerMatchState = OGraphMatchState(Graph)
-  structure InnerMatchSearch = ProgressiveMatchSearch(InnerMatchState)
-  structure InnerLog = InnerMatchSearch.Log
   structure Match = BangGraphMatch(Graph)
 
   datatype State = MatchState of {
@@ -260,6 +259,55 @@ struct
   fun set_t_saved         x = update_t_saved         (fn _ => x)
   fun set_inner_state     x = update_inner_state     (fn _ => x)
 
+  structure IMSHooks : PROGRESSIVE_MATCH_SEARCH_HOOKS =
+  struct
+    type Context = State
+    structure MatchState = InnerMatchState
+
+    (* TODO: it is probably worth optimising this some more *)
+    (* TODO: account for fixed/matched !-boxes? *)
+    fun p_vertex_may_be_completed _ ms pv =
+      let
+        val pat = InnerMatchState.get_pat ms
+        val tgt = InnerMatchState.get_tgt ms
+        val tv = VVInj.get (InnerMatchState.get_vmap ms) pv
+        val p_arity = Graph.get_arity pat pv
+        val t_arity = Graph.get_arity tgt tv
+      in
+        (
+          not (Arity.get_in p_arity < Arity.get_in t_arity) orelse
+          (V.NSet.exists (Graph.is_bboxed pat) (Graph.get_predecessor_vertices pat pv))
+        )
+        andalso
+        (
+          not (Arity.get_out p_arity < Arity.get_out t_arity) orelse
+          (V.NSet.exists (Graph.is_bboxed pat) (Graph.get_successor_vertices pat pv))
+        )
+        andalso
+        (
+          not (Arity.get_undir p_arity < Arity.get_undir t_arity) orelse
+          (V.NSet.exists (Graph.is_bboxed pat) (Graph.get_sibling_vertices pat pv))
+        )
+      end
+
+    fun vertex_match_is_allowed _ _ _ _ = true
+
+    fun bare_wire_match_is_allowed ms ims (p_s,_,p_t) (t_s,_,t_t) =
+      let
+        val pat = InnerMatchState.get_pat ims
+        val tgt = InnerMatchState.get_tgt ims
+        val p_wv = if Graph.is_wire_vertex pat p_s then p_s else p_t
+        val t_wv = if Graph.is_wire_vertex tgt t_s then t_s else t_t
+        val p_bs = Graph.get_bboxes_containing_vertex pat p_wv
+        val t_bs = Graph.get_bboxes_containing_vertex tgt t_wv
+        val p_bs' = BBInj.img_of_set (get_bmap ms) p_bs
+      in
+        B.NSet.eq t_bs p_bs'
+      end
+  end
+  structure InnerMatchSearch = ProgressiveMatchSearch(IMSHooks)
+  structure InnerLog = InnerMatchSearch.Log
+
   (* the inner match state actually holds the canonical reference to the expanded pattern graph *)
   val get_pat = InnerMatchState.get_pat o get_inner_state
   val update_pat = update_inner_state o InnerMatchState.update_pat
@@ -338,52 +386,16 @@ struct
   end
 
   (* TODO: it is probably worth optimising this some more *)
-  (* TODO: account for fixed/matched !-boxes? *)
-  fun doomedf ms pv = let
-    val pat = InnerMatchState.get_pat ms
-    val tgt = InnerMatchState.get_tgt ms
-    val tv = VVInj.get (InnerMatchState.get_vmap ms) pv
-    val p_arity = Graph.get_arity pat pv
-    val t_arity = Graph.get_arity tgt tv
-  in
-    (
-      (Arity.get_in p_arity < Arity.get_in t_arity) andalso
-      not (V.NSet.exists (Graph.is_bboxed pat) (Graph.get_predecessor_vertices pat pv))
-    )
-    orelse
-    (
-      (Arity.get_out p_arity < Arity.get_out t_arity) andalso
-      not (V.NSet.exists (Graph.is_bboxed pat) (Graph.get_successor_vertices pat pv))
-    )
-    orelse
-    (
-      (Arity.get_undir p_arity < Arity.get_undir t_arity) andalso
-      not (V.NSet.exists (Graph.is_bboxed pat) (Graph.get_sibling_vertices pat pv))
-    )
-  end
-
   fun is_total (lvl,bms) =
     if (InnerMatchState.is_total (get_inner_state bms))
     then (Log.logf 2 (fn() => indent lvl "==== total match found ====") (); true)
     else (Log.logf 2 (fn() => indent lvl "==== match failed to be total ====") (); false)
 
   fun match_bare_wires (lvl,ms) = let
-    val bmap = get_bmap ms
-    fun bare_wire_prevent_match ims (p_s,_,p_t) (t_s,_,t_t) = let
-      val pat = InnerMatchState.get_pat ims
-      val tgt = InnerMatchState.get_tgt ims
-      val p_wv = if Graph.is_wire_vertex pat p_s then p_s else p_t
-      val t_wv = if Graph.is_wire_vertex tgt t_s then t_s else t_t
-      val p_bs = Graph.get_bboxes_containing_vertex pat p_wv
-      val t_bs = Graph.get_bboxes_containing_vertex tgt t_wv
-      val p_bs' = BBInj.img_of_set bmap p_bs
-    in
-      not (B.NSet.eq t_bs p_bs')
-    end
     val ims = get_inner_state ms
   in
     Seq.map (fn ims => (lvl+1,set_inner_state ims ms))
-            (InnerMatchSearch.match_bare_wires bare_wire_prevent_match ims)
+            (InnerMatchSearch.match_bare_wires ms ims)
   end
   fun match_pending (lvl,ms) = let
     fun update_ms ims =
@@ -391,7 +403,7 @@ struct
                     |> set_t_saved (InnerMatchState.get_tgt_verts ims))
     val ims = get_inner_state ms
   in
-    Seq.map update_ms (InnerMatchSearch.match_pending doomedf ims)
+    Seq.map update_ms (InnerMatchSearch.match_pending ms ims)
   end
 
   fun finish_match ms =
@@ -556,7 +568,7 @@ struct
                  bms' |> set_bmap bmap'
              in
                Seq.map (fn ims => (lvl+1,set_inner_state ims bms'))
-                       (InnerMatchSearch.match_pending doomedf ims)
+                       (InnerMatchSearch.match_pending bms' ims)
              end
            in
              Seq.maps do_bb_match (Seq.of_list (B.NSet.list_of candidates))
@@ -567,6 +579,7 @@ struct
       fun do_kill ms =
         choose_next_bbox (lvl+1,kill_pat_bbox lvl b ms)
       fun do_expand ms =
+        (* need to match non-concrete verts as well *)
         match_loop' (lvl+1,ms |> expand_pat_bbox lvl b
                               |> schedule_new_concrete lvl)
     in
