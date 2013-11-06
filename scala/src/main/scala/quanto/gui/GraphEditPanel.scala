@@ -70,11 +70,14 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
   val ReLayoutButton = new Button("Re-Layout")
   val ConnectButton = new Button("Connect")
-  val PrevButton = new Button("Backtrack")
+  val BacktrackButton = new Button("Backtrack")
+  val PrevButton = new Button("Prev")
   val NextButton = new Button("Next")
   val DisconnectButton = new Button("Finish")
+  var prev_counts = 0 /* apply backtracking only to the latest status, keep record of applying prev */
 
-   def setEvalButtonStatus (con : Boolean, discon : Boolean, prev : Boolean, next : Boolean) {
+   def setEvalButtonStatus (con : Boolean, discon : Boolean, back : Boolean, prev : Boolean, next : Boolean) {
+     BacktrackButton.enabled_=(back);
      PrevButton.enabled_=(prev);
      NextButton.enabled_=(next);
      ConnectButton.enabled_=(con);
@@ -82,7 +85,7 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
    }
 
-  setEvalButtonStatus (true, false, false, false);
+  setEvalButtonStatus (true, false, false, false, false);
 
    private def error(action: String, reason: String) {
     Dialog.showMessage(
@@ -98,7 +101,8 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
                                        ConnectButton,
                                        DisconnectButton,
                                        NextButton,
-                                       PrevButton
+                                       PrevButton,
+                                       BacktrackButton
                                       )
 
   val MainToolBar = new ToolBar {
@@ -106,7 +110,7 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     addSeparator();
     contents += (ReLayoutButton)
     addSeparator();
-    contents += (ConnectButton, DisconnectButton, PrevButton, NextButton)
+    contents += (ConnectButton, DisconnectButton, BacktrackButton, PrevButton, NextButton)
   }
 
 
@@ -163,7 +167,8 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
           val edata = SockJson.requestInit(mode, graphDocument.exportJson());
           graphDocument.loadGraph (edata);
           graphDocument.reLayout();
-          setEvalButtonStatus (false, true, false, true)
+          setEvalButtonStatus (false, true, false, false, true)
+          prev_counts = 0;
         }
         catch{
           case _ => error ("Can't init graph", "graph can't be initialised")
@@ -176,36 +181,57 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     case ButtonClicked (DisconnectButton) =>
       SockJson.requestDeinit ();
       SockJson.closeSock ();
-      setEvalButtonStatus (true, false, false, false);
+      setEvalButtonStatus (true, false, false, false, false);
+
+    case ButtonClicked (BacktrackButton) =>
+      try{
+        val edata = SockJson.requestBacktrack();
+        graphDocument.loadGraph (edata);
+        graphDocument.reLayout();
+        setEvalButtonStatus (false, true, true, true, true);
+      }
+      catch{
+        case SockJsonError(_, SockJsonErrorType.ErrEval) =>
+          setEvalButtonStatus (false, true, false, false, false);
+          error ("Can't show the current step", "eval error")
+        case SockJsonError(_, SockJsonErrorType.NoBacktrack) =>
+          BacktrackButton.enabled_=(false)
+          error ("No backtracking is available", "No braching")
+
+      }
     case ButtonClicked (PrevButton) =>
       try{
         val edata = SockJson.requestPrev();
         graphDocument.loadGraph (edata);
         graphDocument.reLayout();
-        setEvalButtonStatus (false, true, true, true);
+        setEvalButtonStatus (false, true, false, true, true);
+        prev_counts = prev_counts + 1;
       }
       catch{
         case SockJsonError(_, SockJsonErrorType.ErrEval) =>
-          setEvalButtonStatus (false, true, false, false);
+          setEvalButtonStatus (false, true, false, false, false);
           error ("Can't show the current step", "eval error")
 
         case SockJsonError(_, SockJsonErrorType.NoPrev) =>
           PrevButton.enabled_=(false)
-          error ("No prev step", "already the first step begining now")
+          error ("No prev step", "already the first step now")
 
         case _ =>
-          error ("Can't backtrack the previous step", "unknown error")
+          error ("Can't show the previous step", "unknown error")
       }
     case ButtonClicked (NextButton) =>
       try{
         val edata = SockJson.requestNext();
         graphDocument.loadGraph (edata);
         graphDocument.reLayout();
-        setEvalButtonStatus (false, true, true, true);
+        if (prev_counts > 0)
+          prev_counts = prev_counts - 1;
+        setEvalButtonStatus (false, true, (prev_counts == 0), true, true);
+
       }
       catch{
         case SockJsonError(_, SockJsonErrorType.ErrEval) =>
-          setEvalButtonStatus (false, true, false, false);
+          setEvalButtonStatus (false, true, false, false, false);
           error ("Can't show the current step", "eval error")
 
         case SockJsonError(_, SockJsonErrorType.GoodEval) =>

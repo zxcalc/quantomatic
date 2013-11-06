@@ -7,7 +7,7 @@ import quanto.util.json._
 
 
 object SockJsonErrorType extends Enumeration {
-  val NoPrev, GoodEval, ErrEval = Value
+  val NoPrev, GoodEval, ErrEval, NoBacktrack = Value
 }
 
 case class SockJsonError(message: String, errorType: SockJsonErrorType.Value) extends Exception(message)
@@ -110,6 +110,20 @@ object SockJson {
       case _ =>
         json
     }
+  }
+    def requestBacktrack () = {
+      val json = request("backtrack", JsonNull(), true);
+      json match{
+        case JsonNull() =>
+          throw new SockJsonError ("Eval error !", SockJsonErrorType.ErrEval)
+        case JsonString(v) =>
+          if (json.stringValue == "TOP")
+            throw new SockJsonError ("No Available Backtracking !", SockJsonErrorType.NoBacktrack)
+          else
+            json
+        case _ =>
+          json
+      }
   }
 
 
