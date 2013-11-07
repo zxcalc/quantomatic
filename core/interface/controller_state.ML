@@ -916,9 +916,12 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
       let
         val sarg = get_graph state sname
         val targ = get_graph state tname
-        val vrn = VSub.mk_from_avoids (Graph.get_vertices targ)
-        val ern = ESub.mk_from_avoids (Graph.get_edges targ)
-        val brn = BSub.mk_from_avoids (Graph.get_bboxes targ)
+        val vrn = VSub.extend_fresh (Graph.get_vertices sarg)
+                                    (VSub.mk_from_avoids (Graph.get_vertices targ))
+        val ern = ESub.extend_fresh (Graph.get_edges sarg)
+                                    (ESub.mk_from_avoids (Graph.get_edges targ))
+        val brn = BSub.extend_fresh (Graph.get_bboxes sarg)
+                                    (BSub.mk_from_avoids (Graph.get_bboxes targ))
         val ((vrn,ern,_), source) = Graph.rename_bang_graph (vrn,ern,brn) sarg
         (* Rename the ud and insert it on the new graph  *)
         val ud_s = get_graph_ud state sname
