@@ -84,7 +84,7 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     Dialog.showMessage(title = "Info", message = msg)
   };
 
-  val evalControllor = new EvalControllor (
+  val evalController = new EvalController (
     ConnectButton, DisconnectButton,
     BacktrackButton, NextButton, PrevButton,
     errorDlg, graphDocument
