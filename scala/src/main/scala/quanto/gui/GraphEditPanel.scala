@@ -6,7 +6,7 @@ import swing._
 import swing.event._
 import javax.swing.ImageIcon
 import quanto.util.swing.ToolBar
-import quanto.util.{SockJson,SockJsonError,SockJsonErrorType}
+
 
 class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends BorderPanel {
 
@@ -71,37 +71,24 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
 
   val ReLayoutButton = new Button("Re-Layout")
-
   /*
-   *  a set of tools for evaluation, note that tool is a id to handle events, so if the string is changed,
-   *  we need to modify then in the reactions part as well
-    * */
-  trait EvalButtons {var tool : String = "unknown"}
-  val ConnectButton = new Button("Connect") with EvalButtons { tool = "Connect"}
-  val BacktrackButton = new Button("Backtrack")  with EvalButtons { tool = "Backtrack"}
-  val PrevButton = new Button("Prev") with EvalButtons { tool = "Prev"}
-  val NextButton = new Button("Next") with EvalButtons {tool = "Next"}
-  val DisconnectButton = new Button("Finish")with EvalButtons {tool = "Finish"}
-  var prev_counts = 0 /* apply backtracking only to the latest status, keep record of applying prev */
+  *  a set of tools for evaluation, the event handlers are defined in reactions in the Eval Controllor
+  * */
+  val ConnectButton = new Button("Connect")
+  val BacktrackButton = new Button("Backtrack")
+  val PrevButton = new Button("Prev")
+  val NextButton = new Button("Next")
+  val DisconnectButton = new Button("Finish")
 
-  def setEvalButtonStatus (con : Boolean, discon : Boolean, back : Boolean, prev : Boolean, next : Boolean) {
-     BacktrackButton.enabled_=(back);
-     PrevButton.enabled_=(prev);
-     NextButton.enabled_=(next);
-     ConnectButton.enabled_=(con);
-     DisconnectButton.enabled_=(discon);
+  def errorDlg (msg : String) = {
+    Dialog.showMessage(title = "Info", message = msg)
+  };
 
-   }
-
-  val _ = setEvalButtonStatus (true, false, false, false, false);
-
-  private def error(action: String, reason: String) {
-    Dialog.showMessage(
-      title = "Info",
-      message = action + " (" + reason + ") ")
-  }
-
-
+  val evalControllor = new EvalControllor (
+    ConnectButton, DisconnectButton,
+    BacktrackButton, NextButton, PrevButton,
+    errorDlg, graphDocument
+  );
   /*
   *  a set of tools for drawing/showing hierachical diagram
   * */
@@ -113,9 +100,9 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
    val GraphToolGroup = new ButtonGroup(
      SelectButton, AddVertexButton, AddEdgeButton, AddBangBoxButton,
-     ReLayoutButton,
-     ConnectButton, DisconnectButton, NextButton, PrevButton, BacktrackButton,
-     UpButton, OpenButton
+     ReLayoutButton
+    // ConnectButton, DisconnectButton, NextButton, PrevButton, BacktrackButton,
+     //UpButton, OpenButton
                                       )
 
   val MainToolBar = new ToolBar {
@@ -172,93 +159,6 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
       }
     case ButtonClicked (ReLayoutButton) =>
       graphDocument.reLayout();
-
-    case ButtonClicked (t : EvalButtons) =>
-      t.tool match {
-        case "Connect" =>
-          try{
-            SockJson.connectSock();
-            try{
-              val mode = SockJson.requestMode ();
-              /* TOOD: LYH - need to check that if the graph is valid, e.g. containing GN ? */
-              val edata = SockJson.requestInit(mode, graphDocument.exportJson());
-              graphDocument.loadGraph (edata);
-              graphDocument.reLayout();
-              setEvalButtonStatus (false, true, false, false, true)
-              prev_counts = 0;
-            }
-            catch{
-              case _ => error ("Can't init graph", "graph can't be initialised")
-            }
-          }
-          catch{
-            case _ => error ("Can't connect to Isabelle", "socket err")
-          }
-        case "Finish" =>
-          SockJson.requestDeinit ();
-          SockJson.closeSock ();
-          setEvalButtonStatus (true, false, false, false, false);
-
-        case "Backtrack" =>
-          try{
-            val edata = SockJson.requestBacktrack();
-            graphDocument.loadGraph (edata);
-            graphDocument.reLayout();
-            setEvalButtonStatus (false, true, true, true, true);
-          }
-          catch{
-            case SockJsonError(_, SockJsonErrorType.ErrEval) =>
-              setEvalButtonStatus (false, true, false, false, false);
-              error ("Can't show the current step", "eval error")
-            case SockJsonError(_, SockJsonErrorType.NoBacktrack) =>
-              BacktrackButton.enabled_=(false)
-              error ("No backtracking is available", "No braching")
-
-          }
-        case "Prev" =>
-          try{
-            val edata = SockJson.requestPrev();
-            graphDocument.loadGraph (edata);
-            graphDocument.reLayout();
-            setEvalButtonStatus (false, true, false, true, true);
-            prev_counts = prev_counts + 1;
-          }
-          catch{
-            case SockJsonError(_, SockJsonErrorType.ErrEval) =>
-              setEvalButtonStatus (false, true, false, false, false);
-              error ("Can't show the current step", "eval error")
-
-            case SockJsonError(_, SockJsonErrorType.NoPrev) =>
-              PrevButton.enabled_=(false)
-              error ("No prev step", "already the first step now")
-
-            case _ =>
-              error ("Can't show the previous step", "unknown error")
-          }
-        case "Next" =>
-          try{
-            val edata = SockJson.requestNext();
-            graphDocument.loadGraph (edata);
-            graphDocument.reLayout();
-            if (prev_counts > 0)
-              prev_counts = prev_counts - 1;
-            setEvalButtonStatus (false, true, (prev_counts == 0), true, true);
-
-          }
-          catch{
-            case SockJsonError(_, SockJsonErrorType.ErrEval) =>
-              setEvalButtonStatus (false, true, false, false, false);
-              error ("Can't show the current step", "eval error")
-
-            case SockJsonError(_, SockJsonErrorType.GoodEval) =>
-              NextButton.enabled_=(false)
-              error ("Congrats", "proof strategy language succeeds !")
-
-            case _ =>
-              error ("Can't eval the next step", "unknown error")
-          }
-        case _ =>
-      } /* end of Eval events */
     case ButtonClicked (t : HGraphButtons ) =>
       t.tool match {
         case "Up" =>
