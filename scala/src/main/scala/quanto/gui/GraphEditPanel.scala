@@ -9,6 +9,7 @@ import quanto.util.swing.ToolBar
 import quanto.util.{SockJson,SockJsonError,SockJsonErrorType}
 
 class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends BorderPanel {
+
   // GUI components
   val graphView = new GraphView(theory) {
     drawGrid = true
@@ -68,15 +69,22 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     tool = AddBangBoxTool()
   }
 
+
   val ReLayoutButton = new Button("Re-Layout")
-  val ConnectButton = new Button("Connect")
-  val BacktrackButton = new Button("Backtrack")
-  val PrevButton = new Button("Prev")
-  val NextButton = new Button("Next")
-  val DisconnectButton = new Button("Finish")
+
+  /*
+   *  a set of tools for evaluation, note that tool is a id to handle events, so if the string is changed,
+   *  we need to modify then in the reactions part as well
+    * */
+  trait EvalButtons {var tool : String = "unknown"}
+  val ConnectButton = new Button("Connect") with EvalButtons { tool = "Connect"}
+  val BacktrackButton = new Button("Backtrack")  with EvalButtons { tool = "Backtrack"}
+  val PrevButton = new Button("Prev") with EvalButtons { tool = "Prev"}
+  val NextButton = new Button("Next") with EvalButtons {tool = "Next"}
+  val DisconnectButton = new Button("Finish")with EvalButtons {tool = "Finish"}
   var prev_counts = 0 /* apply backtracking only to the latest status, keep record of applying prev */
 
-   def setEvalButtonStatus (con : Boolean, discon : Boolean, back : Boolean, prev : Boolean, next : Boolean) {
+  def setEvalButtonStatus (con : Boolean, discon : Boolean, back : Boolean, prev : Boolean, next : Boolean) {
      BacktrackButton.enabled_=(back);
      PrevButton.enabled_=(prev);
      NextButton.enabled_=(next);
@@ -85,24 +93,29 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
    }
 
-  setEvalButtonStatus (true, false, false, false, false);
+  val _ = setEvalButtonStatus (true, false, false, false, false);
 
-   private def error(action: String, reason: String) {
+  private def error(action: String, reason: String) {
     Dialog.showMessage(
       title = "Info",
       message = action + " (" + reason + ") ")
   }
 
-  val GraphToolGroup = new ButtonGroup(SelectButton,
-                                       AddVertexButton, 
-                                       AddEdgeButton,
-                                       AddBangBoxButton,
-                                       ReLayoutButton,
-                                       ConnectButton,
-                                       DisconnectButton,
-                                       NextButton,
-                                       PrevButton,
-                                       BacktrackButton
+
+  /*
+  *  a set of tools for drawing/showing hierachical diagram
+  * */
+
+  trait HGraphButtons { var tool : String = "unknown"}
+  val UpButton = new Button("Up") with HGraphButtons {tool = "Up"} /* go back to the parent diagram */
+  val OpenButton = new Button("Open") with HGraphButtons {tool = "Open"}/* show the nestes structure */
+
+
+   val GraphToolGroup = new ButtonGroup(
+     SelectButton, AddVertexButton, AddEdgeButton, AddBangBoxButton,
+     ReLayoutButton,
+     ConnectButton, DisconnectButton, NextButton, PrevButton, BacktrackButton,
+     UpButton, OpenButton
                                       )
 
   val MainToolBar = new ToolBar {
@@ -111,6 +124,8 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     contents += (ReLayoutButton)
     addSeparator();
     contents += (ConnectButton, DisconnectButton, BacktrackButton, PrevButton, NextButton)
+    addSeparator();
+    contents += (UpButton, OpenButton)
   }
 
 
@@ -158,88 +173,100 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     case ButtonClicked (ReLayoutButton) =>
       graphDocument.reLayout();
 
-    case ButtonClicked (ConnectButton) =>
-     try{
-        SockJson.connectSock();
-        try{
-          val mode = SockJson.requestMode ();
-          /* TOOD: LYH - need to check that if the graph is valid, e.g. containing GN ? */
-          val edata = SockJson.requestInit(mode, graphDocument.exportJson());
-          graphDocument.loadGraph (edata);
-          graphDocument.reLayout();
-          setEvalButtonStatus (false, true, false, false, true)
-          prev_counts = 0;
-        }
-        catch{
-          case _ => error ("Can't init graph", "graph can't be initialised")
-        }
-     }
-     catch{
-       case _ => error ("Can't connect to Isabelle", "socket err")
-     }
+    case ButtonClicked (t : EvalButtons) =>
+      t.tool match {
+        case "Connect" =>
+          try{
+            SockJson.connectSock();
+            try{
+              val mode = SockJson.requestMode ();
+              /* TOOD: LYH - need to check that if the graph is valid, e.g. containing GN ? */
+              val edata = SockJson.requestInit(mode, graphDocument.exportJson());
+              graphDocument.loadGraph (edata);
+              graphDocument.reLayout();
+              setEvalButtonStatus (false, true, false, false, true)
+              prev_counts = 0;
+            }
+            catch{
+              case _ => error ("Can't init graph", "graph can't be initialised")
+            }
+          }
+          catch{
+            case _ => error ("Can't connect to Isabelle", "socket err")
+          }
+        case "Finish" =>
+          SockJson.requestDeinit ();
+          SockJson.closeSock ();
+          setEvalButtonStatus (true, false, false, false, false);
 
-    case ButtonClicked (DisconnectButton) =>
-      SockJson.requestDeinit ();
-      SockJson.closeSock ();
-      setEvalButtonStatus (true, false, false, false, false);
+        case "Backtrack" =>
+          try{
+            val edata = SockJson.requestBacktrack();
+            graphDocument.loadGraph (edata);
+            graphDocument.reLayout();
+            setEvalButtonStatus (false, true, true, true, true);
+          }
+          catch{
+            case SockJsonError(_, SockJsonErrorType.ErrEval) =>
+              setEvalButtonStatus (false, true, false, false, false);
+              error ("Can't show the current step", "eval error")
+            case SockJsonError(_, SockJsonErrorType.NoBacktrack) =>
+              BacktrackButton.enabled_=(false)
+              error ("No backtracking is available", "No braching")
 
-    case ButtonClicked (BacktrackButton) =>
-      try{
-        val edata = SockJson.requestBacktrack();
-        graphDocument.loadGraph (edata);
-        graphDocument.reLayout();
-        setEvalButtonStatus (false, true, true, true, true);
-      }
-      catch{
-        case SockJsonError(_, SockJsonErrorType.ErrEval) =>
-          setEvalButtonStatus (false, true, false, false, false);
-          error ("Can't show the current step", "eval error")
-        case SockJsonError(_, SockJsonErrorType.NoBacktrack) =>
-          BacktrackButton.enabled_=(false)
-          error ("No backtracking is available", "No braching")
+          }
+        case "Prev" =>
+          try{
+            val edata = SockJson.requestPrev();
+            graphDocument.loadGraph (edata);
+            graphDocument.reLayout();
+            setEvalButtonStatus (false, true, false, true, true);
+            prev_counts = prev_counts + 1;
+          }
+          catch{
+            case SockJsonError(_, SockJsonErrorType.ErrEval) =>
+              setEvalButtonStatus (false, true, false, false, false);
+              error ("Can't show the current step", "eval error")
 
-      }
-    case ButtonClicked (PrevButton) =>
-      try{
-        val edata = SockJson.requestPrev();
-        graphDocument.loadGraph (edata);
-        graphDocument.reLayout();
-        setEvalButtonStatus (false, true, false, true, true);
-        prev_counts = prev_counts + 1;
-      }
-      catch{
-        case SockJsonError(_, SockJsonErrorType.ErrEval) =>
-          setEvalButtonStatus (false, true, false, false, false);
-          error ("Can't show the current step", "eval error")
+            case SockJsonError(_, SockJsonErrorType.NoPrev) =>
+              PrevButton.enabled_=(false)
+              error ("No prev step", "already the first step now")
 
-        case SockJsonError(_, SockJsonErrorType.NoPrev) =>
-          PrevButton.enabled_=(false)
-          error ("No prev step", "already the first step now")
+            case _ =>
+              error ("Can't show the previous step", "unknown error")
+          }
+        case "Next" =>
+          try{
+            val edata = SockJson.requestNext();
+            graphDocument.loadGraph (edata);
+            graphDocument.reLayout();
+            if (prev_counts > 0)
+              prev_counts = prev_counts - 1;
+            setEvalButtonStatus (false, true, (prev_counts == 0), true, true);
 
+          }
+          catch{
+            case SockJsonError(_, SockJsonErrorType.ErrEval) =>
+              setEvalButtonStatus (false, true, false, false, false);
+              error ("Can't show the current step", "eval error")
+
+            case SockJsonError(_, SockJsonErrorType.GoodEval) =>
+              NextButton.enabled_=(false)
+              error ("Congrats", "proof strategy language succeeds !")
+
+            case _ =>
+              error ("Can't eval the next step", "unknown error")
+          }
         case _ =>
-          error ("Can't show the previous step", "unknown error")
-      }
-    case ButtonClicked (NextButton) =>
-      try{
-        val edata = SockJson.requestNext();
-        graphDocument.loadGraph (edata);
-        graphDocument.reLayout();
-        if (prev_counts > 0)
-          prev_counts = prev_counts - 1;
-        setEvalButtonStatus (false, true, (prev_counts == 0), true, true);
-
-      }
-      catch{
-        case SockJsonError(_, SockJsonErrorType.ErrEval) =>
-          setEvalButtonStatus (false, true, false, false, false);
-          error ("Can't show the current step", "eval error")
-
-        case SockJsonError(_, SockJsonErrorType.GoodEval) =>
-          NextButton.enabled_=(false)
-          error ("Congrats", "proof strategy language succeeds !")
-
+      } /* end of Eval events */
+    case ButtonClicked (t : HGraphButtons ) =>
+      t.tool match {
+        case "Up" =>
+          println ("UpButton clicked")
+        case "Open" =>
+          println ("OpenButton clicked ")
         case _ =>
-          error ("Can't eval the next step", "unknown error")
-    }
+
+      } /* end of HGraph events */
   }
 }
