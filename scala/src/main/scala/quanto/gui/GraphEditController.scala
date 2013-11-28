@@ -7,7 +7,7 @@ import Key.Modifier
 import quanto.data._
 import Names._
 
-class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
+class GraphEditController(view: GraphView, val readOnly: Boolean = false, popup : PopupMenu) {
   private var _mouseState: MouseState = SelectTool()
   def mouseState = _mouseState
 
@@ -168,10 +168,16 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
   view.listenTo(view.mouse.clicks, view.mouse.moves)
   view.reactions += {
-    case MousePressed(_, pt, modifiers, clicks, _) =>
+    case (e : MousePressed) =>
       view.requestFocus()
+
+      val modifiers = e.modifiers
+      val pt = e.point
+      val clicks = e.clicks
+
       mouseState match {
         case SelectTool() =>
+          /* click counts: double click */
           if (clicks == 2) {
             if (!readOnly) {
               val vertexHit = view.vertexDisplay find { case (v, disp) =>
@@ -196,7 +202,8 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
                   }
               }
             }
-          } else {
+          }
+          else {
             val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
             val mouseDownOnSelectedVert = vertexHit exists (view.selectedVerts.contains(_))
 
@@ -213,6 +220,17 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
               case Some(v) =>
                 selectedVerts += v // make sure v is selected, if it wasn't before
                 mouseState = DragVertex(pt,pt)
+
+              //TODO: update details of the node: 1. get type of the node,
+              // display name, dispaly app type, e.g hgraph or appfn/tactic, rule ?
+              // display with
+
+              /* do somethign extra for right click */
+                if (e.peer.getButton != java.awt.event.MouseEvent.BUTTON1){/* right click*/
+                  popup.itemsEnabled_=(false, false, false)
+                  popup.show (e.source, pt.x, pt.y)
+                }
+
               case None =>
                 val box = SelectionBox(pt, pt)
                 mouseState = box

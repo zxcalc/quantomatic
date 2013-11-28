@@ -20,6 +20,7 @@ object GraphEditor extends SimpleSwingApplication {
   val graphEditPanel = new GraphEditPanel(StringVETheory, readOnly = false)
   val graphDocument = graphEditPanel.graphDocument
 
+
   // Main menu
 
   val FileMenu = new Menu("File") { menu =>
@@ -102,6 +103,17 @@ object GraphEditor extends SimpleSwingApplication {
     contents += new MenuItem(RedoAction) { mnemonic = Key.R }
   }
 
+
+  val ViewMenu = new Menu("View") {
+
+      val ShowDetailsAction = new Action("Show Details") {
+        def apply() {graphEditPanel.details.visible_=(true)}
+      }
+
+      contents += new MenuItem(ShowDetailsAction)
+
+    }
+
   def top = new MainFrame {
     title = "PSGraph Editor - " + graphDocument.titleDescription
     contents = graphEditPanel
@@ -109,7 +121,7 @@ object GraphEditor extends SimpleSwingApplication {
     size = new Dimension(800,800)
 
     menuBar = new MenuBar {
-      contents += (FileMenu, EditMenu)
+      contents += (FileMenu, EditMenu, ViewMenu)
     }
 
     listenTo(graphDocument)

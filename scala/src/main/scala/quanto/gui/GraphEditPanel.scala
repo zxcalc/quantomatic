@@ -37,7 +37,9 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     contents += (EdgeTypeLabel, EdgeTypeSelect, EdgeDirected)
   }
 
-  val graphEditController = new GraphEditController(graphView, readOnly) {
+  val popup = new PopupMenu ();
+
+  val graphEditController = new GraphEditController(graphView, readOnly, popup) {
     undoStack            = graphDocument.undoStack
     vertexTypeSelect     = VertexTypeSelect
     edgeTypeSelect       = EdgeTypeSelect
@@ -95,24 +97,24 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
   trait HGraphButtons { var tool : String = "unknown"}
   val UpButton = new Button("Up") with HGraphButtons {tool = "Up"} /* go back to the parent diagram */
-  val OpenButton = new Button("Open") with HGraphButtons {tool = "Open"}/* show the nestes structure */
 
+  val details = new DetailDispaly ();
 
    val GraphToolGroup = new ButtonGroup(
      SelectButton, AddVertexButton, AddEdgeButton, AddBangBoxButton,
      ReLayoutButton
     // ConnectButton, DisconnectButton, NextButton, PrevButton, BacktrackButton,
-     //UpButton, OpenButton
+     , UpButton
                                       )
 
   val MainToolBar = new ToolBar {
-    contents += (SelectButton, AddVertexButton, AddEdgeButton, AddBangBoxButton);
+    contents += (SelectButton, AddVertexButton, AddEdgeButton /*, AddBangBoxButton */);/* currently we don;t need bangbox*/
     addSeparator();
     contents += (ReLayoutButton)
     addSeparator();
     contents += (ConnectButton, DisconnectButton, BacktrackButton, PrevButton, NextButton)
     addSeparator();
-    contents += (UpButton, OpenButton)
+    contents += (UpButton)
   }
 
 
@@ -159,14 +161,5 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
       }
     case ButtonClicked (ReLayoutButton) =>
       graphDocument.reLayout();
-    case ButtonClicked (t : HGraphButtons ) =>
-      t.tool match {
-        case "Up" =>
-          println ("UpButton clicked")
-        case "Open" =>
-          println ("OpenButton clicked ")
-        case _ =>
-
-      } /* end of HGraph events */
   }
 }

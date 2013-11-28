@@ -34,7 +34,7 @@ class EvalController (
   // add listeners and even handlers
   ConnectButton.listenTo(ConnectButton.mouse.clicks)
   ConnectButton.reactions += {
-    case MouseReleased (_,_,_,_,_)=>
+    case MouseClicked (_,_,_,_,_)=>
       try{
         SockJson.connectSock();
         try{
@@ -57,7 +57,7 @@ class EvalController (
 
   DisconnectButton.listenTo(DisconnectButton.mouse.clicks)
   DisconnectButton.reactions += {
-    case MouseReleased (_,_,_,_,_) =>
+    case MouseClicked (_,_,_,_,_) =>
       SockJson.requestDeinit ();
       SockJson.closeSock ();
       setEvalButtonStatus (true, false, false, false, false);
@@ -66,7 +66,7 @@ class EvalController (
 
   BacktrackButton.listenTo(BacktrackButton.mouse.clicks)
   BacktrackButton.reactions += {
-    case MouseReleased (_,_,_,_,_) =>
+    case MouseClicked (_,_,_,_,_) =>
       try{
         val edata = SockJson.requestBacktrack();
         graphDocument.loadGraph (edata);
@@ -86,7 +86,7 @@ class EvalController (
 
   PrevButton.listenTo(PrevButton.mouse.clicks)
   PrevButton.reactions += {
-    case MouseReleased (_,_,_,_,_) =>
+    case MouseClicked (_,_,_,_,_) =>
       try{
         val edata = SockJson.requestPrev();
         graphDocument.loadGraph (edata);
@@ -110,7 +110,7 @@ class EvalController (
 
   NextButton.listenTo(NextButton.mouse.clicks)
   NextButton.reactions += {
-    case MouseReleased (_,_,_,_,_) =>
+    case MouseClicked (_,_,_,_,_) =>
       try{
         val edata = SockJson.requestNext();
         graphDocument.loadGraph (edata);
