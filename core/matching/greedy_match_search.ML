@@ -131,21 +131,6 @@ struct
     expandable_bbs  = f(#expandable_bbs r),
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    tgt_pool        = #tgt_pool r,
-    inner_state     = #inner_state r
-  }
-
-  fun update_pat_fixed f (MatchState r) = MatchState {
-    init_pat        = #init_pat r,
-    bbox_ops        = #bbox_ops r,
-    wild_bboxes     = #wild_bboxes r,
-    bmap            = #bmap r,
-    pending_pat_bbs = #pending_pat_bbs r,
-    copyable_bbs    = #copyable_bbs r,
-    expandable_bbs  = #expandable_bbs r,
-    pat_fix_tags    = #pat_fix_tags r,
-    tgt_fix_tags    = #tgt_fix_tags r,
-    tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
 
@@ -224,7 +209,6 @@ struct
   fun set_pending_pat_bbs x = update_pending_pat_bbs (fn _ => x)
   fun set_copyable_bbs    x = update_copyable_bbs    (fn _ => x)
   fun set_expandable_bbs  x = update_expandable_bbs  (fn _ => x)
-  fun set_pat_fixed       x = update_pat_fixed       (fn _ => x)
   fun set_pat_fix_tags    x = update_pat_fix_tags    (fn _ => x)
   fun set_tgt_fix_tags    x = update_tgt_fix_tags    (fn _ => x)
   fun set_inner_state     x = update_inner_state     (fn _ => x)
