@@ -33,7 +33,6 @@ struct
     expandable_bbs  : B.NSet.T,
     pat_fix_tags    : BFFn.T,   (* fixity tags of pattern *)
     tgt_fix_tags    : BFFn.T,   (* fixity tags of target *)
-    tgt_pool        : V.NSet.T, (* all the vertices we are ever allowed to match *)
     inner_state     : InnerMatchState.T
   }
 
@@ -47,7 +46,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
 
@@ -61,7 +59,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
 
@@ -75,7 +72,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
 
@@ -89,7 +85,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
 
@@ -103,7 +98,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
 
@@ -117,7 +111,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
 
@@ -144,7 +137,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = f(#pat_fix_tags r),
     tgt_fix_tags    = #tgt_fix_tags r,
-    tgt_pool        = #tgt_pool r,
     inner_state     = #inner_state r
   }
 
@@ -158,21 +150,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = f(#tgt_fix_tags r),
-    tgt_pool        = #tgt_pool r,
-    inner_state     = #inner_state r
-  }
-
-  fun update_tgt_pool f (MatchState r) = MatchState {
-    init_pat        = #init_pat r,
-    bbox_ops        = #bbox_ops r,
-    wild_bboxes     = #wild_bboxes r,
-    bmap            = #bmap r,
-    pending_pat_bbs = #pending_pat_bbs r,
-    copyable_bbs    = #copyable_bbs r,
-    expandable_bbs  = #expandable_bbs r,
-    pat_fix_tags    = #pat_fix_tags r,
-    tgt_fix_tags    = #tgt_fix_tags r,
-    tgt_pool        = f(#tgt_pool r),
     inner_state     = #inner_state r
   }
 
@@ -186,7 +163,6 @@ struct
     expandable_bbs  = #expandable_bbs r,
     pat_fix_tags    = #pat_fix_tags r,
     tgt_fix_tags    = #tgt_fix_tags r,
-    tgt_pool        = #tgt_pool r,
     inner_state     = f(#inner_state r)
   }
 
@@ -199,7 +175,6 @@ struct
   fun get_expandable_bbs  (MatchState r) = #expandable_bbs r
   fun get_pat_fix_tags    (MatchState r) = #pat_fix_tags r
   fun get_tgt_fix_tags    (MatchState r) = #tgt_fix_tags r
-  fun get_tgt_pool        (MatchState r) = #tgt_pool r
   fun get_inner_state     (MatchState r) = #inner_state r
 
   fun set_init_pat        x = update_init_pat        (fn _ => x)
@@ -291,7 +266,7 @@ struct
   val log_e_nset = log_p E.NSet.pretty
   val log_b_nset = log_p B.NSet.pretty
 
-  fun init_with_fixed pat tgt tgt_pool pat_fix_tags tgt_fix_tags = let
+  fun init_with_fixed pat tgt pat_fix_tags tgt_fix_tags = let
     val toplevel_bbs = B.NSet.filter (not o (Graph.bbox_has_parents pat))
                                      (Graph.get_bboxes pat)
     val all_tags = F.NSet.union_merge (BFFn.get_cod_set pat_fix_tags)
@@ -308,12 +283,11 @@ struct
       expandable_bbs  = B.NSet.empty,
       pat_fix_tags    = pat_fix_tags,
       tgt_fix_tags    = tgt_fix_tags,
-      tgt_pool        = tgt_pool,
       inner_state     = InnerMatchState.init pat tgt
     }
   end
 
-  fun init pat tgt tgt_pool = init_with_fixed pat tgt tgt_pool BFFn.empty BFFn.empty
+  fun init pat tgt = init_with_fixed pat tgt BFFn.empty BFFn.empty
 
   fun schedule_new lvl bms = let
     val ms = get_inner_state bms
@@ -340,13 +314,13 @@ struct
       bms
   end
 
-  fun schedule_all_concrete bms = let
+  fun schedule_all_concrete tgt_pool bms = let
     val pat = get_pat bms
     val tgt = get_tgt bms
     val pat_unbboxed = V.NSet.filter (not o (Graph.is_bboxed pat))
                                      (Graph.get_vertices pat)
     val tgt_unbboxed = V.NSet.filter (not o (Graph.is_bboxed tgt))
-                                     (get_tgt_pool bms)
+                                     tgt_pool
     fun schedule ims =
       ims |> InnerMatchState.extend_u pat_unbboxed
           |> InnerMatchState.set_tgt_verts tgt_unbboxed
@@ -592,9 +566,9 @@ struct
   fun match_normalised pat tgt = let
     val _ = log_graph 3 0 "GreedyMatchSearch: normalised pattern" pat
     val _ = log_graph 3 0 "GreedyMatchSearch: normalised target" tgt
-    val ms = init pat tgt (Graph.get_vertices tgt)
+    val ms = init pat tgt
   in
-    find_matches (schedule_all_concrete ms)
+    find_matches (schedule_all_concrete (Graph.get_vertices tgt) ms)
   end
 
   fun match pat tgt =
@@ -605,9 +579,9 @@ struct
     val _ = log_graph 3 0 "GreedyMatchSearch: normalised target" tgt
     val _ = log_v_nset 4 0 "GreedyMatchSearch: target vertices" tgt_verts
     val tgt_subgraph = Graph.get_open_subgraph tgt tgt_verts
-    val ms = init pat tgt (Graph.get_vertices tgt_subgraph)
+    val ms = init pat tgt
   in
-    find_matches (schedule_all_concrete ms)
+    find_matches (schedule_all_concrete (Graph.get_vertices tgt_subgraph) ms)
   end
   fun match_subgraph pat tgt =
     match_subgraph_normalised (Graph.normalise pat) (Graph.normalise tgt)
