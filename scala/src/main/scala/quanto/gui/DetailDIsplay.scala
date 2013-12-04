@@ -3,40 +3,60 @@ package quanto.gui
 import swing._
 import swing.event._
 import scala.language.postfixOps
+import quanto.data._
 
-class DetailDispaly {
+class DetailDisplay extends Frame {
   private val panel = new BoxPanel(Orientation.Vertical){
     border = Swing.EmptyBorder(10, 10, 10, 10)
   }
-  private val detailFrame = new Frame{
+
     title = "Details";
 
+
     val nameL = new Label ("Name: ");
-    val nameT = new TextField ("To Complete")
+    val nameT = new TextField ("                    ")
     val name = new FlowPanel(FlowPanel.Alignment.Left)()
     name.contents += (nameL, nameT)
 
     val nodeTypeL = new Label ("Type: ");
-    val nodeTypeT = new TextField ("To Complete")
+    val nodeTypeT = new TextField ("                     ")
     val nodeType = new FlowPanel(FlowPanel.Alignment.Left)()
     nodeType.contents += (nodeTypeL, nodeTypeT)
 
     val updateButton = new Button ("Update")
-    panel.contents += (name, nodeType, updateButton)
-    contents = panel
-  }
-  detailFrame.size_=(new Dimension(300,200))
-  val _ = detailFrame.visible_=(true)
 
-  def showDetails /*(strl: List[String])*/() = {
+    val prefixHGraph = "Hierarchy: "
+    val hgraphTraceL = new Label (prefixHGraph + "main")
+    panel.contents += (name, nodeType, hgraphTraceL/*, updateButton*/)
+    contents = panel
+
+    var node : VName = null
+
+    /*
+    * TODO:  allow to edit
+    * tmporarily disable the editing just for now
+    * */
+    nameT.editable_= (false);
+    nodeTypeT.editable_= (false);
+
+
+  size_=(new Dimension(300,200))
+  visible_=(true)
+
+  def showDetails (v : VName, name: String, typ : String)() = {
+    this.node = v
+
+    //TODO: resize the text filed to make it visiable
+    this.nameT.text_= (name)
+    this.nodeTypeT.text_= (typ)
     //var label1 = new Label ("i'm new 1");
     //var label2 = new Label ("i'm new 2");
     //panel.contents.clear();
     //List(label1, label2) map (panel.contents +=);
   }
 
-  def visible_= (b : Boolean){
-    detailFrame.visible_= (b)
+  def showHierachy (h : String) = {
+     this.hgraphTraceL.text_= (prefixHGraph + h)
   }
 
 }

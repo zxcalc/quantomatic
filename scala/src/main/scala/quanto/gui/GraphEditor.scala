@@ -15,9 +15,9 @@ object GraphEditor extends SimpleSwingApplication {
 
   println("loading theory " + GraphEditor.getClass.getResource("strategy_graph.qtheory"))
   val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("strategy_graph.qtheory"))
-  val StringVETheory = Theory.fromJson(Json.parse(thyFile))
+  val PSGraphTheory = Theory.fromJson(Json.parse(thyFile))
 
-  val graphEditPanel = new GraphEditPanel(StringVETheory, readOnly = false)
+  val graphEditPanel = new GraphEditPanel(PSGraphTheory, readOnly = false)
   val graphDocument = graphEditPanel.graphDocument
 
 
@@ -60,6 +60,15 @@ object GraphEditor extends SimpleSwingApplication {
         menu.contents += new MenuItem(this) { mnemonic = Key.A }
         accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_S, CommandMask | Key.Modifier.Shift))
         def apply() { graphDocument.showSaveAsDialog() }
+      }
+    }
+
+
+    val CloseAction = new Action("Close") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.Q }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Q, CommandMask| Key.Modifier.Shift))
+      def apply() {
+        graphDocument.showCloseDialog ()
       }
     }
 

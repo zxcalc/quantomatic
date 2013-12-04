@@ -83,6 +83,28 @@ object Theory {
   }
   type EdgeLabelPosition = EdgeLabelPosition.Value
 
+  // To record subgraoh information
+  case class SubGraphDesc(
+    path: JsonPath = JsonPath("$"),
+    subg_typ: String = "dummy"
+  )
+  object SubGraphDesc{
+    implicit def fromJson(json: Json): SubGraphDesc =
+      if (json == JsonNull())
+         null /* for thoese vertex dont have such a field */
+      else
+      SubGraphDesc(
+        path = JsonPath(json / "path"),
+        subg_typ  = json / "subg_typ"
+      )
+
+    implicit def toJson(s: SubGraphDesc) =
+      JsonObject(
+        "path" -> s.path.toString,
+        "subg_typ" -> s.subg_typ
+      )
+  }
+
   case class ValueDesc(
     path: JsonPath = JsonPath("$"),
     typ: ValueType = ValueType.Empty,
@@ -177,17 +199,20 @@ object Theory {
   case class VertexDesc(
     value: ValueDesc,
     style: VertexStyleDesc,
+    subgraph : SubGraphDesc,
     defaultData: JsonObject
   )
   object VertexDesc {
     implicit def fromJson(json: Json) = VertexDesc(
       value = json / "value",
       style = json / "style",
+      subgraph = json ? "subgraph",
       defaultData = json /# "default_data"
     )
     implicit def toJson(v: VertexDesc) = JsonObject(
       "value" -> v.value,
       "style" -> v.style,
+      "subgraph" -> v.subgraph,
       "default_data" -> v.defaultData
     )
   }
@@ -274,9 +299,13 @@ object Theory {
     coreName = "string_theory",
     vertexTypes = Map(
       "string" -> VertexDesc(
-        value = ValueDesc(
+          value = ValueDesc(
           path = JsonPath("$.value"),
           typ = ValueType.String
+        ),
+        subgraph = SubGraphDesc(
+          path = JsonPath("$.dummy"),
+          subg_typ = "dummy"
         ),
         style = VertexStyleDesc(
           shape = VertexShape.Rectangle,

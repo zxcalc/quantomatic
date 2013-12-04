@@ -7,7 +7,8 @@ import Key.Modifier
 import quanto.data._
 import Names._
 
-class GraphEditController(view: GraphView, val readOnly: Boolean = false, popup : PopupMenu) {
+class GraphEditController(view: GraphView, val readOnly: Boolean = false,
+                          popup : PopupMenu, detail: DetailDisplay, hgraphFrame : HGraphPanelStack) {
   private var _mouseState: MouseState = SelectTool()
   def mouseState = _mouseState
 
@@ -54,7 +55,6 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false, popup 
   def selectedBBoxes = view.selectedBBoxes
   def selectedBBoxes_=(s: Set[BBName]) { view.selectedBBoxes = s }
   def theory = graph.data.theory
-
 
   // controller actions.
 
@@ -166,6 +166,20 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false, popup 
     }
   }
 
+  private def updateVertex (v : VName, name: String, subgtyp: String)   {
+    println("to update Node: " + name + " with Type: " + subgtyp )
+    graph.vdata(v) match {
+      case data: NodeV =>
+        val oldVal = data.value
+        val oldusbg = data.subgraph
+        graph = graph.updateVData(v) { _ => data.withValue(name).withSubGraphType(subgtyp) }
+        view.invalidateVertex(v)
+        graph.adjacentEdges(v).foreach { view.invalidateEdge(_) }
+        undoStack.register("Update Vertex Data") { updateVertex(v, oldVal, oldusbg) }
+      case _ =>
+    }
+  }
+
   view.listenTo(view.mouse.clicks, view.mouse.moves)
   view.reactions += {
     case (e : MousePressed) =>
@@ -174,10 +188,10 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false, popup 
       val modifiers = e.modifiers
       val pt = e.point
       val clicks = e.clicks
-
       mouseState match {
         case SelectTool() =>
           /* click counts: double click */
+
           if (clicks == 2) {
             if (!readOnly) {
               val vertexHit = view.vertexDisplay find { case (v, disp) =>
@@ -190,6 +204,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false, popup 
                     title = "Set RTechn",
                     message = "RTechn: ",
                     initial = data.value).map { newVal => setVertexValue(v, newVal) }
+
                 case _ =>
                   val edgeHit = view.edgeDisplay find { _._2.pointHit(pt) } map { _._1 }
                   edgeHit.map { e =>
@@ -221,21 +236,76 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false, popup 
                 selectedVerts += v // make sure v is selected, if it wasn't before
                 mouseState = DragVertex(pt,pt)
 
-              //TODO: update details of the node: 1. get type of the node,
-              // display name, dispaly app type, e.g hgraph or appfn/tactic, rule ?
-              // display with
-
-              /* do somethign extra for right click */
-                if (e.peer.getButton != java.awt.event.MouseEvent.BUTTON1){/* right click*/
-                  popup.itemsEnabled_=(false, false, false)
-                  popup.show (e.source, pt.x, pt.y)
-                }
-
               case None =>
                 val box = SelectionBox(pt, pt)
                 mouseState = box
                 view.selectionBox = Some(box.rect)
             }
+
+
+            vertexHit.map{v => (v,graph.vdata(v))} match {
+              case Some((v, data: NodeV)) =>
+                //TODO: update details of the node: 1. get type of the node,
+                // display name, dispaly app type, e.g hgraph or appfn/tactic, rule ?
+                // display with
+
+                detail.showDetails (v, data.value, data.subgraph)
+
+                /* left click */
+                if (e.peer.getButton == java.awt.event.MouseEvent.BUTTON1){
+
+                } else{
+                  /* right click */
+
+
+                  /* always allow to open a node, if it's a hgraph then open it,
+                  otherwise change the type to hgraph */
+                  popup.itemsEnabled_=(false, true, false)
+                  popup.curNode_= (data)
+
+                  def setHGraphOpenAction () = {
+                    //the name of the action will be overrided in the popup menu
+                    popup.openAction_= (new Action ("dummy"){
+                      def apply = {
+                        //val data = popup.curNode;
+                        //show current view in HGraphPanel
+                        hgraphFrame.newFrame (view.graph, HGraph.current)
+                        //save current graph
+                        HGraph.updateGraph (HGraph.current, HGraph.getParentKey(HGraph.current), graph)
+                        var subgraph = HGraph.getGraph (data.value)
+                        //if already is a hgraph, then set the current node in graph map
+                        if (data.hasSubGraph && subgraph != null){
+                          //println ("has subgraph, to show new subgraph")
+                          // get the graph from the map, and update current view
+                          graph_= (subgraph)
+                        }else{
+                          //println ("no subgraph")
+                          if (! data.hasSubGraph){
+                            // not a hgraph type, change to HGraph
+                            //println ("change to HGraph type")
+                            updateVertex(v, data.value, data.subgtype)
+                            //println ("HGraph type has been changed ")
+                          }
+                          //oterwise is a HGraph without definition of subgraph
+
+                          graph_= ( Graph (theory))
+                          HGraph.addGraph (data.value, graph)
+                        }
+                        HGraph.current_= (data.value)
+                        detail.showHierachy (HGraph.getHierachicalString());
+                        view.repaint ()
+                      }// end of apply
+                     }//end of action
+                    )
+                  }
+                  setHGraphOpenAction ();
+
+                  popup.show (e.source, pt.x, pt.y)
+                }
+
+              case _ => // do nothing
+            }
+
 
             view.repaint()
           }
@@ -247,11 +317,11 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false, popup 
             view.edgeOverlay = Some(EdgeOverlay(pt, src = startV, tgt = Some(startV)))
             view.repaint()
           }
-        case AddBangBoxTool() => 
+        case AddBangBoxTool() =>
           val box = BangSelectionBox(pt, pt)
           mouseState = box
           view.selectionBox = Some(box.rect)
-          
+
         case state => throw new InvalidMouseStateException("MousePressed", state)
       }
 
@@ -270,7 +340,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false, popup 
           val box = BangSelectionBox(start, pt)
           mouseState = box
           view.selectionBox = Some(box.rect)
-          view.repaint() 
+          view.repaint()
         case DragVertex(start, prev) =>
           shiftVertsNoRegister(selectedVerts, prev, pt)
           view.repaint()
@@ -309,7 +379,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false, popup 
           mouseState = SelectTool()
           view.selectionBox = None
           view.repaint()
-        
+
         case BangSelectionBox(start, _) =>
           view.computeDisplayData()
 
@@ -369,7 +439,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false, popup 
       }
 
   }
-  
+
   view.listenTo(view.keys)
   view.reactions += {
     case KeyPressed(_, (Key.Delete | Key.BackSpace), _, _) =>
@@ -381,5 +451,36 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false, popup 
         undoStack.commit()
         view.repaint()
       }
+  }
+
+
+  /*
+  detail.updateButton.listenTo(detail.updateButton.mouse.clicks)
+  detail.updateButton.reactions += {
+    case e: MouseClicked =>
+      updateVertex (detail.node, detail.nameT.text, detail.nodeTypeT.text)
+  }
+  */
+
+  def moveToParentGraph () = {
+    //not topelvel
+    if (HGraph.notToplevel ()){
+      println ("current graph: " + HGraph.current);
+      println ("the parent of current graph: " + HGraph.getParentKey (HGraph.current));
+      val parent = HGraph.getParentGraph (HGraph.current);
+      println ("be about to set parent graph")
+      graph_= (parent);
+      println ("be about to set current graph")
+      HGraph.current_= (HGraph.getParentKey (HGraph.current));
+      println ("be about to set a hierachy")
+      detail.showHierachy (HGraph.getHierachicalString());
+      println ("be about to close a frame")
+      hgraphFrame.closeFrame();
+      view.repaint ();
+
+    }else{
+      println ("It's already the toplevel strategy")
+      //TODO: Show a dialogue
+    }
   }
 }

@@ -9,6 +9,10 @@
         "latex_constants" : false,
         "type" : "string"
       },
+      "subgraph" : {
+        "path" : "$.appf.appfn_type",
+        "subg_typ" : "HGraph"
+      },
       "style" : {
         "label" : {
           "position" : "inside",
@@ -20,7 +24,7 @@
       },
       "default_data" : {
         "rt_name" : "id",
-        "appf" : {"type" : "Identity"},
+        "appf" : {"appfn_type" : "Identity"},
         "type" : "RT"
       }
     },

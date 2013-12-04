@@ -38,8 +38,11 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
   }
 
   val popup = new PopupMenu ();
+  val details = new DetailDisplay ();
+  val hgraphFrame = new HGraphPanelStack ();
 
-  val graphEditController = new GraphEditController(graphView, readOnly, popup) {
+
+  val graphEditController = new GraphEditController(graphView, readOnly, popup, details, hgraphFrame) {
     undoStack            = graphDocument.undoStack
     vertexTypeSelect     = VertexTypeSelect
     edgeTypeSelect       = EdgeTypeSelect
@@ -97,8 +100,6 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
   trait HGraphButtons { var tool : String = "unknown"}
   val UpButton = new Button("Up") with HGraphButtons {tool = "Up"} /* go back to the parent diagram */
-
-  val details = new DetailDispaly ();
 
    val GraphToolGroup = new ButtonGroup(
      SelectButton, AddVertexButton, AddEdgeButton, AddBangBoxButton,
@@ -161,5 +162,7 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
       }
     case ButtonClicked (ReLayoutButton) =>
       graphDocument.reLayout();
+    case ButtonClicked (UpButton) =>
+      graphEditController.moveToParentGraph();
   }
 }

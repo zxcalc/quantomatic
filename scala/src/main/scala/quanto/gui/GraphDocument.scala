@@ -8,6 +8,8 @@ import quanto.data.{GraphLoadException, Graph}
 import quanto.util.json.{JsonParseException, Json}
 import quanto.layout.DotLayout
 
+import scala.collection.mutable.HashMap
+
 abstract class GraphDocumentEvent extends Event
 case class GraphChanged(sender: GraphDocument) extends GraphDocumentEvent
 case class GraphSaved(sender: GraphDocument) extends GraphDocumentEvent
@@ -21,6 +23,7 @@ class GraphDocument(view: GraphView) extends Publisher {
   def unsavedChanges = storedGraph != view.graph
 
   def graph = view.graph
+
   def graph_=(g: Graph) {
     undoStack.clear()
 
@@ -133,8 +136,11 @@ class GraphDocument(view: GraphView) extends Publisher {
         case _ =>
       }
     }
+  }
 
-
+  def showCloseDialog (){
+    if (promptUnsaved())
+      newGraph()
   }
 
 //  def graph_=(g: Graph) {

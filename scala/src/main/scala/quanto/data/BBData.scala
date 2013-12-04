@@ -9,6 +9,7 @@ import quanto.util.json.JsonObject
  * @see [[https://github.com/Quantomatic/quantomatic/blob/integration/docs/json_formats.txt json_formats.txt]]
  * @author Aleks Kissinger
  */
+
 case class BBData(
   data: JsonObject = JsonObject(),
   annotation: JsonObject = JsonObject(),

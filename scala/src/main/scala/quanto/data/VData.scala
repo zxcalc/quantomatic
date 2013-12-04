@@ -59,6 +59,7 @@ case class NodeV(
   def typ = (data / "type").stringValue
 
   def value = (data.getPath(theory.vertexTypes(typ).value.path)).stringValue
+
   def typeInfo = theory.vertexTypes(typ)
 
   def withCoord(c: (Double,Double)) =
@@ -69,6 +70,23 @@ case class NodeV(
     copy(data = data.setPath(theory.vertexTypes(typ).value.path, s).asObject)
 
   def isWireVertex = false
+
+  def hasSubGraph =
+  {
+    try{
+      (data.getPath(theory.vertexTypes(typ).subgraph.path)).stringValue ==
+        (theory.vertexTypes(typ).subgraph.subg_typ)
+    }catch {
+      case _ : Throwable => {println ("exception raised when checking subgraph"); false}
+    }
+  }
+
+  def subgtype = (theory.vertexTypes(typ).subgraph.subg_typ)
+  def subgraph = (data.getPath(theory.vertexTypes(typ).subgraph.path)).stringValue
+
+  def withSubGraphType (s: String) =
+    copy(data = data.setPath(theory.vertexTypes(typ).subgraph.path, s).asObject)
+
 
   override def toJson = JsonObject(
     //"data" -> (if (data == theory.vertexTypes(typ).defaultData) JsonNull() else data),
