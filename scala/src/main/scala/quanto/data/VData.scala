@@ -74,6 +74,7 @@ case class NodeV(
   def hasSubGraph =
   {
     try{
+    // println ("current type: " + data.getPath(theory.vertexTypes(typ).subgraph.path).stringValue + " VS dest type : " + theory.vertexTypes(typ).subgraph.subg_typ)
       (data.getPath(theory.vertexTypes(typ).subgraph.path)).stringValue ==
         (theory.vertexTypes(typ).subgraph.subg_typ)
     }catch {

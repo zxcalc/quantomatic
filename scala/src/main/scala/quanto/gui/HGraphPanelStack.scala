@@ -11,7 +11,7 @@ class HGraphFrame(graph: Graph, name: String) extends Frame {
   val graphView = new GraphView(graph.data.theory) {
     drawGrid = true
     dynamicResize = true
-    focusable = true
+    focusable = false
   }
   graphView.graph = graph
 
@@ -47,6 +47,7 @@ class HGraphFrame(graph: Graph, name: String) extends Frame {
   var prevPoint : Point = null     //for draging
   //end of copy
 
+  /*
   graphView.reactions += {
     case (e: MousePressed) =>
       graphView.requestFocus()
@@ -85,7 +86,7 @@ class HGraphFrame(graph: Graph, name: String) extends Frame {
       }
 
   }
-
+  */
 }
 
 class HGraphPanelStack {

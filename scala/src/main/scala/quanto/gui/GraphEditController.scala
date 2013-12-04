@@ -203,7 +203,15 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false,
                   Dialog.showInput(
                     title = "Set RTechn",
                     message = "RTechn: ",
-                    initial = data.value).map { newVal => setVertexValue(v, newVal) }
+                    initial = data.value).map {
+                      newVal => {
+                        if (data.hasSubGraph && HGraph.getGraph (data.value) != null)
+                          HGraph.updateKey (data.value, newVal);
+                        setVertexValue(v, newVal);
+                        detail.showDetails (v, newVal, data.subgraph)
+                      }
+                  }
+
 
                 case _ =>
                   val edgeHit = view.edgeDisplay find { _._2.pointHit(pt) } map { _._1 }
@@ -213,10 +221,11 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false,
                       title = "Set Goal Type",
                       message = "Goal Type: ",
                       initial = data.value).map { newVal => setEdgeValue(e, newVal) }
-                    view.repaint()
+
                   }
               }
             }
+            view.repaint() //repaint due to change of name
           }
           else {
             val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
@@ -270,29 +279,37 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false,
                         //val data = popup.curNode;
                         //show current view in HGraphPanel
                         hgraphFrame.newFrame (view.graph, HGraph.current)
-                        //save current graph
-                        HGraph.updateGraph (HGraph.current, HGraph.getParentKey(HGraph.current), graph)
+
                         var subgraph = HGraph.getGraph (data.value)
                         //if already is a hgraph, then set the current node in graph map
                         if (data.hasSubGraph && subgraph != null){
-                          //println ("has subgraph, to show new subgraph")
+                          //save current graph
+                          HGraph.updateGraph (HGraph.current, HGraph.getParentKey(HGraph.current), graph)
+
+                          //println ("has subgraph, to load subgraph")
                           // get the graph from the map, and update current view
                           graph_= (subgraph)
+
                         }else{
                           //println ("no subgraph")
                           if (! data.hasSubGraph){
                             // not a hgraph type, change to HGraph
                             //println ("change to HGraph type")
                             updateVertex(v, data.value, data.subgtype)
+                            detail.showDetails (v, data.value, data.subgtype)
                             //println ("HGraph type has been changed ")
                           }
+
+                          //save current graph
+                          HGraph.updateGraph (HGraph.current, HGraph.getParentKey(HGraph.current), graph)
                           //oterwise is a HGraph without definition of subgraph
 
-                          graph_= ( Graph (theory))
+                          graph_= (Graph (theory))
                           HGraph.addGraph (data.value, graph)
                         }
                         HGraph.current_= (data.value)
                         detail.showHierachy (HGraph.getHierachicalString());
+                        view.invalidateGraph()
                         view.repaint ()
                       }// end of apply
                      }//end of action
@@ -306,8 +323,8 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false,
               case _ => // do nothing
             }
 
-
             view.repaint()
+
           }
         case AddVertexTool() => // do nothing
         case AddEdgeTool() =>
@@ -465,17 +482,19 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false,
   def moveToParentGraph () = {
     //not topelvel
     if (HGraph.notToplevel ()){
-      println ("current graph: " + HGraph.current);
-      println ("the parent of current graph: " + HGraph.getParentKey (HGraph.current));
+      HGraph.updateGraph (HGraph.current, HGraph.getParentKey(HGraph.current), graph)
+     // println ("current graph: " + HGraph.current);
+     //println ("the parent of current graph: " + HGraph.getParentKey (HGraph.current));
       val parent = HGraph.getParentGraph (HGraph.current);
-      println ("be about to set parent graph")
+     // println ("be about to set parent graph")
       graph_= (parent);
-      println ("be about to set current graph")
+     // println ("be about to set current graph")
       HGraph.current_= (HGraph.getParentKey (HGraph.current));
-      println ("be about to set a hierachy")
+     // println ("be about to set a hierachy")
       detail.showHierachy (HGraph.getHierachicalString());
-      println ("be about to close a frame")
+     //println ("be about to close a frame")
       hgraphFrame.closeFrame();
+      view.invalidateGraph();
       view.repaint ();
 
     }else{

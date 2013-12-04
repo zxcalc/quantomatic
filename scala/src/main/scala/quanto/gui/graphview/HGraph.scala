@@ -34,6 +34,14 @@ object HGraph{
     parentOfMap += key -> parentKey
   }
 
+  def updateKey (oldK : String, newK : String) {
+    graphMap +=  newK -> graphMap (oldK)
+    graphMap -= (oldK)
+
+    parentOfMap +=  newK -> parentOfMap (oldK)
+    parentOfMap -= (oldK)
+  }
+
   def validate () : Boolean  = {
     //TODO: check that
     // 1, no looping
@@ -41,7 +49,6 @@ object HGraph{
     true;
   }
 
-  //TODO: buggy when change the name of the HGraph node, need to update the map as well
   def getGraph (key : String) : Graph =  {
     try{
       graphMap (key);
@@ -55,9 +62,11 @@ object HGraph{
   def notToplevel () : Boolean = {
     current !=  toplevelKey
   }
+
   def getParentKey (key : String) : String = {
     parentOfMap (key)
   }
+
 
   def getParentGraph (key : String) : Graph =  {
     try{

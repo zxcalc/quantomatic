@@ -15,12 +15,12 @@ class DetailDisplay extends Frame {
 
     val nameL = new Label ("Name: ");
     val nameT = new TextField ("                    ")
-    val name = new FlowPanel(FlowPanel.Alignment.Left)()
+    val name =  new BoxPanel(Orientation.Horizontal)
     name.contents += (nameL, nameT)
 
     val nodeTypeL = new Label ("Type: ");
     val nodeTypeT = new TextField ("                     ")
-    val nodeType = new FlowPanel(FlowPanel.Alignment.Left)()
+    val nodeType = new BoxPanel(Orientation.Horizontal)
     nodeType.contents += (nodeTypeL, nodeTypeT)
 
     val updateButton = new Button ("Update")
@@ -40,7 +40,7 @@ class DetailDisplay extends Frame {
     nodeTypeT.editable_= (false);
 
 
-  size_=(new Dimension(300,200))
+  size_=(new Dimension(300,120))
   visible_=(true)
 
   def showDetails (v : VName, name: String, typ : String)() = {
