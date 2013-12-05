@@ -30,6 +30,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false,
   var edgeDirectedCheckBox : CheckBox = _
   var dataField : TextField = _
 
+  //TODO: undo stack is not working with hgraph
   // listen to undo stack
   private var _undoStack: UndoStack = new UndoStack
   view.listenTo(_undoStack)
@@ -184,6 +185,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false,
   view.reactions += {
     case (e : MousePressed) =>
       view.requestFocus()
+      detail.clearDetails();
 
       val modifiers = e.modifiers
       val pt = e.point
@@ -285,6 +287,12 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false,
                         if (data.hasSubGraph && subgraph != null){
                           //save current graph
                           HGraph.updateGraph (HGraph.current, HGraph.getParentKey(HGraph.current), graph)
+
+                          //update parent graph map, if there isn;t.
+                          // this happens when first open a hgraph from a file
+                          if (HGraph.getParentKey (data.value) == null) {
+                            HGraph.addParentKey(data.value, HGraph.current)
+                          }
 
                           //println ("has subgraph, to load subgraph")
                           // get the graph from the map, and update current view
@@ -491,6 +499,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false,
      // println ("be about to set current graph")
       HGraph.current_= (HGraph.getParentKey (HGraph.current));
      // println ("be about to set a hierachy")
+      detail.clearDetails();
       detail.showHierachy (HGraph.getHierachicalString());
      //println ("be about to close a frame")
       hgraphFrame.closeFrame();

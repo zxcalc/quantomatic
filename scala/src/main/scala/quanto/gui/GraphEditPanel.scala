@@ -17,7 +17,11 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     focusable = true
   }
 
-  val graphDocument = new GraphDocument(graphView)
+  val popup = new PopupMenu ();
+  val details = new DetailDisplay ();
+  val hgraphFrame = new HGraphPanelStack ();
+
+  val graphDocument = new GraphDocument(graphView, hgraphFrame)
   def graph = graphDocument.graph
   def graph_=(g: Graph) { graphDocument.graph = g }
 
@@ -36,10 +40,6 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     contents += (VertexTypeLabel, VertexTypeSelect)
     contents += (EdgeTypeLabel, EdgeTypeSelect, EdgeDirected)
   }
-
-  val popup = new PopupMenu ();
-  val details = new DetailDisplay ();
-  val hgraphFrame = new HGraphPanelStack ();
 
 
   val graphEditController = new GraphEditController(graphView, readOnly, popup, details, hgraphFrame) {

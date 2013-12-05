@@ -30,7 +30,8 @@ object GraphEditor extends SimpleSwingApplication {
       menu.contents += new MenuItem(this) { mnemonic = Key.N }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask))
       def apply() {
-        if (graphDocument.promptUnsaved()) graphDocument.newGraph()
+        if (graphDocument.promptUnsaved())
+          graphDocument.newGraph()
       }
     }
 

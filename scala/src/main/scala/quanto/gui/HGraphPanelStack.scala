@@ -112,4 +112,11 @@ class HGraphPanelStack {
     }
   }
 
+  def init () = {
+    frameStack map {
+      a =>
+        a.visible_=(false);
+        a.dispose()}
+  }
+
 }

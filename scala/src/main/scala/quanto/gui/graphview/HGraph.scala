@@ -6,11 +6,16 @@ import quanto.data.{GraphLoadException, Graph}
 case class HGraphException (message: String) extends Exception
 
 object HGraph{
-  /* add a tree/map of graph here */
+  /*
+  * note that the parent Map tree is not built when a graph is loaded. we only keep a set of graph, so when a
+  * hgraph is opened, the relation map is automatically built.
+  * */
+
+   /* add a tree/map of graph here */
   /* "main" for toplevel graph, the the rest graph , node name should be used, and they should be unique */
   private val graphMap = new HashMap[String, Graph]
   private val parentOfMap = new HashMap[String, String]
-  private val toplevelKey = "main"
+  val toplevelKey = "main"
   var current = toplevelKey;
   parentOfMap +=  toplevelKey -> null
 
@@ -24,9 +29,17 @@ object HGraph{
     graphMap += toplevelKey -> g
   }
 
+  def initGraph (gl : List[(String, Graph)]) = {
+    gl map (graphMap.+=)
+  }
+
   def addGraph (key : String,  g : Graph) {
     graphMap += key -> g;
     parentOfMap += key -> current
+  }
+
+  def addParentKey (key : String, pKey : String){
+    parentOfMap += key -> pKey
   }
 
   def updateGraph (key : String, parentKey : String, g : Graph) {
@@ -38,8 +51,10 @@ object HGraph{
     graphMap +=  newK -> graphMap (oldK)
     graphMap -= (oldK)
 
-    parentOfMap +=  newK -> parentOfMap (oldK)
-    parentOfMap -= (oldK)
+    if (parentOfMap(oldK) != null) {
+      parentOfMap +=  newK -> parentOfMap (oldK)
+      parentOfMap -= (oldK)
+    }
   }
 
   def validate () : Boolean  = {
@@ -64,7 +79,11 @@ object HGraph{
   }
 
   def getParentKey (key : String) : String = {
-    parentOfMap (key)
+    try{
+      parentOfMap (key)
+    } catch{
+      case _ : Throwable => null
+    }
   }
 
 
@@ -82,17 +101,21 @@ object HGraph{
     }
   }
 
-
   def getHierachicalString () : String = {
     def getKeyUntilNull (k : String, curHierachy: String) : String = {
       val parK = getParentKey (k)
       if ( parK != null){
-        getKeyUntilNull (parK, curHierachy + " <- " + k)
+        getKeyUntilNull (parK,  " -> " + k + curHierachy )
       }else{
         toplevelKey + curHierachy
       }
     }
     getKeyUntilNull (current, "");
+  }
+
+
+  def exportToList () : List[(String, Graph)] = {
+    graphMap.toList
   }
 
 }

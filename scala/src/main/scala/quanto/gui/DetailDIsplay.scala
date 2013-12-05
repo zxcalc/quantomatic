@@ -55,6 +55,11 @@ class DetailDisplay extends Frame {
     //List(label1, label2) map (panel.contents +=);
   }
 
+  def clearDetails () = {
+    this.nameT.text_= ("")
+    this.nodeTypeT.text_= ("")
+  }
+
   def showHierachy (h : String) = {
      this.hgraphTraceL.text_= (prefixHGraph + h)
   }

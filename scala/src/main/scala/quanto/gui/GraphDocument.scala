@@ -11,10 +11,12 @@ import quanto.layout.DotLayout
 import scala.collection.mutable.HashMap
 
 abstract class GraphDocumentEvent extends Event
+
+//TODO graph changed is not fully working with hgraph
 case class GraphChanged(sender: GraphDocument) extends GraphDocumentEvent
 case class GraphSaved(sender: GraphDocument) extends GraphDocumentEvent
 
-class GraphDocument(view: GraphView) extends Publisher {
+class GraphDocument(view: GraphView, hgraphFrame : HGraphPanelStack) extends Publisher {
   var file: Option[File] = None
   val undoStack = new UndoStack
 
@@ -68,6 +70,37 @@ class GraphDocument(view: GraphView) extends Publisher {
     graph_=(g);
   }
 
+
+  //hgraph version of load graph, basically it loads all hgraph in the current dir,
+  // and save them to the hgraph map
+
+  //TODO: detail panel is not clean up here
+  def loadGraph(f: File) {
+    try {
+      HGraph.clearGraphMap ()
+      hgraphFrame.init()
+
+      val dir = f.getAbsoluteFile().getParentFile()
+      val files = dir.listFiles().filter(p => p.getName().contains(".hgraph"))
+      //get a list of (name -> graph), please note to remove .hgraph has been removed from name
+      val hgraphList = files.toList map {p => (p.getName().split(".hgraph").head, p)}
+      //parse to graph
+      val hgraphs = hgraphList map {i => (i._1, Graph.fromJson((Json.parse(i._2)), view.theory))}
+
+      HGraph.initGraph (hgraphs)
+      val json = Json.parse(f)
+      val g = Graph.fromJson(json, view.theory)
+
+      file = Some(f)
+      graph_=(g)
+    } catch {
+      case _: JsonParseException => error("load", "mal-formed JSON")
+      case _: GraphLoadException => error("load", "invalid graph")
+      case _: FileNotFoundException => error("load", "not found")
+      case _: IOException => error("load", "file unreadable")
+    }
+  }
+/*
   def loadGraph(f: File) {
     try {
       val json = Json.parse(f)
@@ -83,6 +116,7 @@ class GraphDocument(view: GraphView) extends Publisher {
     }
   }
 
+*/
   def loadGraph(json : Json) {
     try {
 
@@ -98,6 +132,44 @@ class GraphDocument(view: GraphView) extends Publisher {
     Graph.toJson(view.graph, view.theory)
   }
 
+
+  // hgraph version of saveGraph
+  def saveGraph(fopt: Option[File] = None) {
+    fopt.orElse(file).map { f =>
+      try {
+        //save current graph to hgraph map
+        HGraph.updateGraph (HGraph.current, HGraph.getParentKey(HGraph.current), graph)
+        //get all graph
+        val graphList = HGraph.exportToList ();
+
+        def saveHGraph (item : (String, Graph)) = {
+          // only for hgraph
+          val fname = item._1
+          val g = item._2
+          if (fname != HGraph.toplevelKey) {
+            //save to the same dir of the current strategy
+            val path =  f.getAbsoluteFile().getParent() + "/" + fname + ".hgraph"
+            val hgraphF = new File (path)
+            Graph.toJson(g, view.theory).writeTo(hgraphF)
+          }
+        }
+        //save all hgraph
+        graphList map saveHGraph
+
+        val main = HGraph.getGraph(HGraph.toplevelKey)
+        val json = Graph.toJson(main, view.theory)
+        json.writeTo(f)
+
+        file = Some(f)
+        storedGraph = view.graph
+        publish(GraphSaved(this))
+      } catch {
+        case _: IOException => error("save", "file unwriteable")
+      }
+    }
+  }
+
+    /*
   def saveGraph(fopt: Option[File] = None) {
     fopt.orElse(file).map { f =>
       try {
@@ -112,9 +184,14 @@ class GraphDocument(view: GraphView) extends Publisher {
       }
     }
   }
+  */
 
   def newGraph() {
     file = None
+    //clear hgraph mas
+    HGraph.clearGraphMap ()
+    hgraphFrame.init()
+
     graph_=(Graph(view.theory))
   }
 
