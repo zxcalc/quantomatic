@@ -15,7 +15,6 @@ object LayoutTest extends SimpleSwingApplication {
 
   val graphView = new GraphView(Theory.DefaultTheory) {
     drawGrid = true
-    dynamicResize = false
     focusable = true
   }
   

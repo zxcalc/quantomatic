@@ -40,8 +40,12 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   }
 
   view.reactions += {
-    case UndoPerformed(_) => view.repaint()
-    case RedoPerformed(_) => view.repaint()
+    case UndoPerformed(_) =>
+      view.resizeViewToFit()
+      view.repaint()
+    case RedoPerformed(_) =>
+      view.resizeViewToFit()
+      view.repaint()
   }
 
   // wire up the view's internal state
@@ -62,7 +66,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
     val (dx,dy) = (view.trans scaleFromScreen (p2.getX - p1.getX), view.trans scaleFromScreen (p2.getY - p1.getY))
     graph = vs.foldLeft(graph) { (g,v) =>
       view.invalidateVertex(v)
-      graph.adjacentEdges(v) foreach (view.invalidateEdge(_))
+      graph.adjacentEdges(v).foreach { view.invalidateEdge }
       g.updateVData(v) { d => d.withCoord (d.coord._1 + dx, d.coord._2 - dy) }
     }
   }
@@ -75,7 +79,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
   private def addEdge(e: EName, d: EData, vs: (VName, VName)) {
     graph = graph.addEdge(e, d, vs)
-    graph.edgesBetween(vs._1, vs._2).foreach { view.invalidateEdge(_) }
+    graph.edgesBetween(vs._1, vs._2).foreach { view.invalidateEdge }
     undoStack.register("Add Edge") { deleteEdge(e) }
   }
 
@@ -86,7 +90,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
       selectedEdges -= e; true
     } else false
 
-    graph.edgesBetween(vs._1, vs._2).foreach(view.invalidateEdge(_))
+    graph.edgesBetween(vs._1, vs._2).foreach { view.invalidateEdge }
     graph = graph.deleteEdge(e)
 
     undoStack.register("Delete Edge") {
@@ -322,6 +326,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
           if (start.getX != end.getX || start.getY != end.getY) {
             // we don't call shiftVerts directly, because the vertices have already moved
             val verts = selectedVerts
+            view.resizeViewToFit()
             undoStack.register("Move Vertices") { shiftVerts(verts, end, start) }
           }
 

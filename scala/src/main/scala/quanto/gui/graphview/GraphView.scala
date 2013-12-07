@@ -24,7 +24,6 @@ class GraphView(val theory: Theory) extends Panel
 
   var drawGrid = false
   var snapToGrid = false
-  var dynamicResize = false
   var gridMajor = 1.0
   var gridSubs = 4
 
@@ -69,9 +68,9 @@ class GraphView(val theory: Theory) extends Panel
     val minor = (trans scaleToScreen gridMajor) / gridSubs.toDouble
 
     val iterations = List(
-      ceil((origin._1)/minor),
+      ceil(origin._1/minor),
       ceil((bounds.width - origin._1)/minor),
-      ceil((origin._2)/minor),
+      ceil(origin._2/minor),
       ceil((bounds.height - origin._2)/minor)
     ).max.toInt
 
@@ -128,7 +127,7 @@ class GraphView(val theory: Theory) extends Panel
   }
 
   override def repaint() {
-    if (dynamicResize) resizeViewToFit()
+    //if (dynamicResize) resizeViewToFit()
     super.repaint()
   }
 

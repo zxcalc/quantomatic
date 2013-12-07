@@ -11,7 +11,6 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
   // GUI components
   val graphView = new GraphView(theory) {
     drawGrid = true
-    dynamicResize = true
     focusable = true
   }
 
