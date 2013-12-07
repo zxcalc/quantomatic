@@ -87,7 +87,10 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
   listenTo(GraphViewScrollPane, graphDocument)
   GraphToolGroup.buttons.foreach(listenTo(_))
   reactions += {
-    case UIElementResized(GraphViewScrollPane) => graphView.repaint()
+    case UIElementResized(GraphViewScrollPane) => {
+      graphView.resizeViewToFit()
+      graphView.repaint()
+    }
     case ButtonClicked(t: ToolButton) =>
       graphEditController.mouseState = t.tool
       t.tool match {
