@@ -6,8 +6,7 @@ import event.Key
 import quanto.data._
 import javax.swing.{JToolBar, KeyStroke}
 import java.awt.event.KeyEvent
-import quanto.util.json.Json
-import quanto.layout.ForceLayout
+import Names._
 
 
 object GraphEditor extends SimpleSwingApplication {
@@ -19,7 +18,30 @@ object GraphEditor extends SimpleSwingApplication {
   val StringVETheory = Theory.DefaultTheory
 
   val graphEditPanel = new GraphEditPanel(StringVETheory, readOnly = false)
+  val graphEditController = graphEditPanel.graphEditController
   val graphDocument = graphEditPanel.graphDocument
+
+  graphEditPanel.graphView.graph = (Graph()
+    addVertex ("b0", WireV())
+    addVertex ("b1", WireV())
+    addVertex ("b2", WireV())
+    addVertex ("b3", WireV())
+    addVertex ("v0", NodeV())
+    addVertex ("v1", NodeV())
+    addVertex ("v2", NodeV())
+    addVertex ("v3", NodeV())
+    addEdge   ("e0", DirEdge(), "v0" -> "v2")
+    addEdge   ("e1", DirEdge(), "v0" -> "v3")
+    addEdge   ("e2", DirEdge(), "v1" -> "v2")
+    addEdge   ("e3", DirEdge(), "v1" -> "v3")
+    addEdge   ("e4", DirEdge(), "b0" -> "v0")
+    addEdge   ("e5", DirEdge(), "b1" -> "v1")
+    addEdge   ("e6", DirEdge(), "v2" -> "b2")
+    addEdge   ("e7", DirEdge(), "v3" -> "b3")
+    //    addBBox   ("bb1", BBData(), Set("b0","v3"))
+    //    addBBox   ("bb2", BBData(), Set("b0","v1"))
+    //    addBBox   ("bb3", BBData(), Set("v0","v3"))
+    )
 
   // Main menu
 
@@ -99,8 +121,14 @@ object GraphEditor extends SimpleSwingApplication {
       }
     }
 
+    val LayoutAction = new Action("Layout Graph") with Reactor {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
+      def apply() { graphEditController.layoutGraph() }
+    }
+
     contents += new MenuItem(UndoAction) { mnemonic = Key.U }
     contents += new MenuItem(RedoAction) { mnemonic = Key.R }
+    contents += new MenuItem(LayoutAction) { mnemonic = Key.L }
   }
 
   def top = new MainFrame {

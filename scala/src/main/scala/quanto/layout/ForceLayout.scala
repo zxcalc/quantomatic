@@ -14,7 +14,7 @@ class ForceLayout extends GraphLayout with Constraints {
   var charge: VName => Double = (v => if (graph.vdata(v).isWireVertex) 3.0 else 5.0)
 
   // spring strength on edges
-  var strength = 1.5
+  var strength = 2.5
 
   // preferred length of edge
   var edgeLength = 0.5
@@ -35,7 +35,7 @@ class ForceLayout extends GraphLayout with Constraints {
   var alphaAdjust = 0.9
 
   // maximum iterations
-  var maxIterations = 1000
+  var maxIterations = 5000
 
   // step size alpha is re-computed on the fly using trust region heuristic
   var alpha: Double = _
@@ -86,6 +86,8 @@ class ForceLayout extends GraphLayout with Constraints {
 
     prevEnergy = energy
     energy = 0
+
+    val oldCoords = coords
 
     // apply spring forces
     for (e <- graph.edges) {
@@ -153,6 +155,13 @@ class ForceLayout extends GraphLayout with Constraints {
       setCoord(v, p)
     }
 
+    // position verlet integration
+    for (v <- graph.verts) {
+      val (px,py) = oldCoords(v)
+      val (x,y) = coord(v)
+      setCoord(v, (x - ((px-x) * friction), y - ((py-y)*friction)))
+    }
+
   }
 
   def recenter() {
@@ -176,7 +185,7 @@ class ForceLayout extends GraphLayout with Constraints {
 
   def compute() {
     var iteration = 0
-    while (alpha > 0.005 && iteration < maxIterations) {
+    while (alpha > 0.01 && iteration < maxIterations) {
       step()
       iteration += 1
     }

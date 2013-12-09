@@ -28,8 +28,6 @@ object LayoutTestGUI1 extends SimpleSwingApplication {
   layout.alpha0 = 0.2
 
   layout.initialize(graphView.graph)
-  var run = 0
-  var constraints = false
 
   def choosePlainFile(title: String = ""): Option[File] = {  
     val chooser = new FileChooser(new File("."))
@@ -43,7 +41,6 @@ object LayoutTestGUI1 extends SimpleSwingApplication {
   val timer = new javax.swing.Timer(50, new ActionListener {
     def actionPerformed(e: ActionEvent) {
       layout.step()
-      constraints = !constraints
       layout.updateGraph()
       graphView.graph = layout.graph
       graphView.invalidateGraph()
@@ -65,6 +62,8 @@ object LayoutTestGUI1 extends SimpleSwingApplication {
             	   				   graphView.init
             	   				   json = Json.parse(file)
                  				   graphView.graph = Graph.fromJson(json)
+                           layout.initialize(graphView.graph)
+
                  				// start to draw 
                  				   timer.start()
                  				   }
