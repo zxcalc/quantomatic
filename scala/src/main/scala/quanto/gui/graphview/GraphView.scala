@@ -26,6 +26,7 @@ class GraphView(val theory: Theory) extends Panel
   var snapToGrid = false
   var gridMajor = 1.0
   var gridSubs = 4
+  var showNames = false
 
   var selectionBox: Option[Rectangle2D] = None
   //var bangBoxList: List[Rectangle2D] = Nil
@@ -183,24 +184,25 @@ class GraphView(val theory: Theory) extends Panel
     }
 
     g.setStroke(new BasicStroke(1))
-    var a = g.getColor()
+    var a = g.getColor
     for ((v, VDisplay(shape,color,label)) <- vertexDisplay) {
       g.setColor(color)
       g.fill(shape)
       
       /// show the vname on the GUI
-      val sh = shape.getBounds().getLocation()
-      val px = sh.getX().toInt
-      val py = sh.getY().toInt
+      val sh = shape.getBounds.getLocation
+      val px = sh.getX.toInt
+      val py = sh.getY.toInt
       
       //println(sh)
-      
-      a = g.getColor()
-      g.setFont(new Font("Consolas", Font.PLAIN, 15))
-      g.setColor(Color.BLACK)
-      
-      g.drawString(v.toString, px,py)
-      g.setColor(a);
+      if (showNames) {
+        a = g.getColor
+        g.setFont(new Font("Consolas", Font.PLAIN, 15))
+        g.setColor(Color.BLACK)
+
+        g.drawString(v.toString, px,py)
+        g.setColor(a)
+      }
       
       if (selectedVerts contains v) {
         g.setColor(Color.BLUE)

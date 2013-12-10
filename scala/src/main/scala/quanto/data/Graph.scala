@@ -28,8 +28,8 @@ case class Graph(
   def isInput (v: VName): Boolean = vdata(v).isWireVertex && inEdges(v).isEmpty && outEdges(v).size == 1
   def isOutput(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).isEmpty && inEdges(v).size == 1
   def isInternal(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).size == 1 && inEdges(v).size == 1
-  def inputs  = verts.filter(isInput(_))
-  def outputs = verts.filter(isOutput(_))
+  def inputs  = verts.filter(isInput)
+  def outputs = verts.filter(isOutput)
   
 
 }
@@ -129,7 +129,7 @@ object Graph {
     var randomGraph = Graph()
     for (i <- 1 to nverts) {
       val p = (rand.nextDouble * 6.0 - 3.0, rand.nextDouble * 6.0 - 3.0)
-      if (rand.nextBoolean) randomGraph = randomGraph.newVertex(NodeV(p))
+      if (rand.nextBoolean()) randomGraph = randomGraph.newVertex(NodeV(p))
       else randomGraph = randomGraph.newVertex(WireV(p))
     }
 
@@ -137,7 +137,7 @@ object Graph {
       val sources = new ArrayBuffer[VName](randomGraph.vdata.keys.size)
       val targets = new ArrayBuffer[VName](randomGraph.vdata.keys.size)
       randomGraph.vdata.keys.foreach{k => sources += k; targets += k}
-      for(j <- 1 to nedges if (!sources.isEmpty && !targets.isEmpty)) {
+      for(j <- 1 to nedges if !sources.isEmpty && !targets.isEmpty) {
         val (si,ti) = (rand.nextInt(sources.size), rand.nextInt(targets.size))
         val s = sources(si)
         val t = targets(ti)
@@ -150,7 +150,7 @@ object Graph {
       val varray = randomGraph.vdata.keys.toArray
 
       for (i <- 1 to nbboxes) {
-        val randomVSet = (1 to (sqrt(nverts).toInt)).foldLeft(Set[VName]()) { (s,_) =>
+        val randomVSet = (1 to sqrt(nverts).toInt).foldLeft(Set[VName]()) { (s,_) =>
           s + varray(rand.nextInt(varray.size))
         }
 

@@ -7,6 +7,7 @@ import Key.Modifier
 import quanto.data._
 import Names._
 import quanto.layout.QLayout
+import quanto.util.json.JsonObject
 
 class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   private var _mouseState: MouseState = SelectTool()
@@ -351,7 +352,9 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
           val vertexData = vertexTypeSelect.selection.item match {
             case "<wire>" => WireV(theory = theory)
-            case typ      => NodeV.fromJson(theory.vertexTypes(typ).defaultData, theory).withCoord(coord)
+            case typ      =>
+              println("adding: " + theory.vertexTypes(typ).defaultData)
+              NodeV(data = theory.vertexTypes(typ).defaultData, theory = theory).withCoord(coord)
           }
 
           addVertex(graph.verts.fresh, vertexData.withCoord(coord))

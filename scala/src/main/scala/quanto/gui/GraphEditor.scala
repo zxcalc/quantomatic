@@ -7,6 +7,7 @@ import quanto.data._
 import javax.swing.{JToolBar, KeyStroke}
 import java.awt.event.KeyEvent
 import Names._
+import quanto.util.json.Json
 
 
 object GraphEditor extends SimpleSwingApplication {
@@ -15,33 +16,36 @@ object GraphEditor extends SimpleSwingApplication {
   // println("loading theory " + GraphEditor.getClass.getResource("strategy_graph.qtheory"))
   // val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("strategy_graph.qtheory"))
   // val StringVETheory = Theory.fromJson(Json.parse(thyFile))
-  val StringVETheory = Theory.DefaultTheory
+  //val StringVETheory = Theory.DefaultTheory
+  println("loading theory " + GraphEditor.getClass.getResource("redgreen.qtheory"))
+  val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("redgreen.qtheory"))
+  val thy = Theory.fromJson(Json.parse(thyFile))
 
-  val graphEditPanel = new GraphEditPanel(StringVETheory, readOnly = false)
+  val graphEditPanel = new GraphEditPanel(thy, readOnly = false)
   val graphEditController = graphEditPanel.graphEditController
   val graphDocument = graphEditPanel.graphDocument
 
-  graphEditPanel.graphView.graph = (Graph()
-    addVertex ("b0", WireV())
-    addVertex ("b1", WireV())
-    addVertex ("b2", WireV())
-    addVertex ("b3", WireV())
-    addVertex ("v0", NodeV())
-    addVertex ("v1", NodeV())
-    addVertex ("v2", NodeV())
-    addVertex ("v3", NodeV())
-    addEdge   ("e0", DirEdge(), "v0" -> "v2")
-    addEdge   ("e1", DirEdge(), "v0" -> "v3")
-    addEdge   ("e2", DirEdge(), "v1" -> "v2")
-    addEdge   ("e3", DirEdge(), "v1" -> "v3")
-    addEdge   ("e4", DirEdge(), "b0" -> "v0")
-    addEdge   ("e5", DirEdge(), "b1" -> "v1")
-    addEdge   ("e6", DirEdge(), "v2" -> "b2")
-    addEdge   ("e7", DirEdge(), "v3" -> "b3")
-    //    addBBox   ("bb1", BBData(), Set("b0","v3"))
-    //    addBBox   ("bb2", BBData(), Set("b0","v1"))
-    //    addBBox   ("bb3", BBData(), Set("v0","v3"))
-    )
+//  graphEditPanel.graphView.graph = (Graph(thy)
+//    addVertex ("b0", WireV())
+//    addVertex ("b1", WireV())
+//    addVertex ("b2", WireV())
+//    addVertex ("b3", WireV())
+//    addVertex ("v0", NodeV())
+//    addVertex ("v1", NodeV())
+//    addVertex ("v2", NodeV())
+//    addVertex ("v3", NodeV())
+//    addEdge   ("e0", DirEdge(), "v0" -> "v2")
+//    addEdge   ("e1", DirEdge(), "v0" -> "v3")
+//    addEdge   ("e2", DirEdge(), "v1" -> "v2")
+//    addEdge   ("e3", DirEdge(), "v1" -> "v3")
+//    addEdge   ("e4", DirEdge(), "b0" -> "v0")
+//    addEdge   ("e5", DirEdge(), "b1" -> "v1")
+//    addEdge   ("e6", DirEdge(), "v2" -> "b2")
+//    addEdge   ("e7", DirEdge(), "v3" -> "b3")
+//    //    addBBox   ("bb1", BBData(), Set("b0","v3"))
+//    //    addBBox   ("bb2", BBData(), Set("b0","v1"))
+//    //    addBBox   ("bb3", BBData(), Set("v0","v3"))
+//    )
 
   // Main menu
 
