@@ -166,7 +166,7 @@ abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   }
 
   def safeDeleteVertex(vn: VName) = {
-    if ((source.codf(vn).isEmpty) && (target.codf(vn).isEmpty))
+    if (source.codf(vn).isEmpty && target.codf(vn).isEmpty)
       copy(vdata = vdata - vn, inBBox = inBBox.unmapDom(vn))
     else throw new SafeDeleteVertexException(vn, "vertex has adjancent edges")
   }
@@ -261,7 +261,7 @@ abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
       }
     }
 
-    verts.foreach(visit(_))
+    verts.foreach(visit)
 
     new PartialOrdering[VName] {
       def tryCompare(x: VName, y: VName) = (ordMap.get(x), ordMap.get(y)) match {

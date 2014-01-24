@@ -72,7 +72,7 @@ case class NodeV(
   def isWireVertex = false
 
   override def toJson = JsonObject(
-    "data" -> (if (data == theory.vertexTypes(typ).defaultData) JsonNull() else data),
+    "data" -> data,
     "annotation" -> annotation).noEmpty
 }
 

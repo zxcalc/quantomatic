@@ -31,12 +31,12 @@ trait Clusters extends Constraints {
     super
     .initialize(g)
     constraints.nextLayer()
-    println("Clusters at layer " + constraints.currentLayer)
+    //println("Clusters at layer " + constraints.currentLayer)
     
     // take each bbox as a cluster
     clusters.clear
     g.bboxes.foreach(bb => clusters += g.contents(bb))
-    println("cluster size " + clusters.size);
+    //println("cluster size " + clusters.size);
     constraints ++= {
 
       val coordTree = QuadTree(graph.verts.toSeq.map { v => (coord(v), v) })
@@ -47,11 +47,11 @@ trait Clusters extends Constraints {
             
             val bbox = new RichRect(rect) 
             val (lb,ub) = bbox.pad(clusterPadding)
-            if (debug) println("the bound bbox boundary is " +(lb,ub))
+            //if (debug) println("the bound bbox boundary is " +(lb,ub))
             
             // centre of the bbox
             val (cx,cy) = bbox.center
-            if (debug) (println("the center is " + bbox.center))
+            //if (debug) (println("the center is " + bbox.center))
             val (wth,hgt) = bbox.size
 
             val clusterSize = cluster.size
@@ -72,7 +72,7 @@ trait Clusters extends Constraints {
 //            if (debug) println ("v1 's coordinate is " + coord("v1"))
            // println("v0 " + "is " +  coord("v0"))
            // println("box " + (lb,ub))
-            if (debug) println ("all vertices in the bbox\n\t" + verts)
+            //if (debug) println ("all vertices in the bbox\n\t" + verts)
 
             for (v <- verts; if !cluster.contains(v)) {
               val vc = coord(v)
@@ -89,9 +89,9 @@ trait Clusters extends Constraints {
               // need a better way to shift.
               
               // move to the side that has more force to pull it
-              val (shiftDirX, shiftDirY) = ((g.succVerts(v)++g.predVerts(v))).
+              val (shiftDirX, shiftDirY) = (g.succVerts(v)++g.predVerts(v)).
             		  	foldLeft(0.0,0.0)((pos,name) => (pos._1+coord(name)._1-vc._1,pos._2+coord(name)._2-vc._2))              
-              println("node " + v + " should move direction" +  (shiftDirX, shiftDirY))
+              //println("node " + v + " should move direction" +  (shiftDirX, shiftDirY))
 //              val xShift = if (vc._1 >= lb._1 && vc._1 <= ub._1) {
 //                if(shiftDirX > 0) ub._1 - vc._1 else lb._1 - vc._1
 //                

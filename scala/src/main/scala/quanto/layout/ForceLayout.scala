@@ -11,10 +11,11 @@ import math.{min,max,abs}
  */
 class ForceLayout extends GraphLayout with Constraints {
   // repulsive force between vertices
-  var charge: VName => Double = (v => if (graph.vdata(v).isWireVertex) 3.0 else 5.0)
+  //var charge: VName => Double = (v => if (graph.vdata(v).isWireVertex) 3.0 else 5.0)
+  def charge(v:VName) = if (graph.vdata(v).isWireVertex) 2.0 else 5.0
 
   // spring strength on edges
-  var strength = 1.5
+  var strength = 2.5
 
   // preferred length of edge
   var edgeLength = 0.5
@@ -35,7 +36,7 @@ class ForceLayout extends GraphLayout with Constraints {
   var alphaAdjust = 0.9
 
   // maximum iterations
-  var maxIterations = 1000
+  var maxIterations = 3000
 
   // step size alpha is re-computed on the fly using trust region heuristic
   var alpha: Double = _
@@ -87,6 +88,8 @@ class ForceLayout extends GraphLayout with Constraints {
     prevEnergy = energy
     energy = 0
 
+    val oldCoords = coords
+
     // apply spring forces
     for (e <- graph.edges) {
       val sp = coord(graph.source(e))
@@ -130,8 +133,9 @@ class ForceLayout extends GraphLayout with Constraints {
               // if the Barnes-Hut criterion is satisfied, act with the total charge of this region
               if ((nd.x2 - nd.x1) / math.sqrt(d2) < theta) {
                 energy += (charge(v) + nodeCharge) / d2
-                val k = alpha * nodeCharge / d2
-                p = (p._1 - dx*k, p._2 - dy*k)
+                val kx = alpha * nodeCharge / d2
+                val ky = kx * 1.5
+                p = (p._1 - dx*kx, p._2 - dy*ky)
                 true
               } else {
                 // if !B-H, but there is a (different) vertex here, act with the point charge
@@ -151,6 +155,13 @@ class ForceLayout extends GraphLayout with Constraints {
       }
 
       setCoord(v, p)
+    }
+
+    // position verlet integration
+    for (v <- graph.verts) {
+      val (px,py) = oldCoords(v)
+      val (x,y) = coord(v)
+      setCoord(v, (x - ((px-x) * friction), y - ((py-y)*friction)))
     }
 
   }
@@ -176,9 +187,10 @@ class ForceLayout extends GraphLayout with Constraints {
 
   def compute() {
     var iteration = 0
-    while (alpha > 0.005 && iteration < maxIterations) {
+    while (alpha > 0.001 && iteration < maxIterations) {
       step()
       iteration += 1
     }
+    println("final alpha: " + alpha)
   }
 }
