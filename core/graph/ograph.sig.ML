@@ -174,11 +174,9 @@ val add_named_edge
     : E.name -> dir_or_undir * edata -> V.name -> V.name -> T -> T (* can raise *)
 
 
-(* delete raises an exception if there is no such edge/vertex *)
+(* delete is no-op if there is no such edge/vertex *)
 val delete_edge : E.name -> T -> T
 val delete_vertex : V.name -> T -> T
-
-val swap_edge_dir : E.name -> T -> T
 
 (* merge two graphs; things with common names are unified *)
 (* raises bad_graph_merge_exp if the graphs could not be merged

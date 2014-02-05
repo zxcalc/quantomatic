@@ -1594,37 +1594,6 @@ functor OGraph_Interface_Tests(
 
 
 
-  val _ = Testing.test "G.swap_edge_dir" (fn () => let
-    val _ = (G.swap_edge_dir (E.mk "a") G.empty;
-              raise ERROR "G.swap_edge_dir did not raise exception")
-            handle G.no_such_edge_exp (_,en,g) =>
-              (Testing.assert "correct ename in exp" ((E.string_of_name en) = "a");
-               Testing.assert "correct graph in exp" (G.is_empty g));
-
-    val g = G.empty |> add_vunit1 "a"
-                    |> add_vunit2 "b"
-                    |> add_dir_eunit1 "e" "a" "b"
-                    |> add_undir_eunit2 "f" "b" "a";
-
-    val g' = G.swap_edge_dir (E.mk "e") g;
-    val _ = assert_vertex_info "g'" g'
-              [("a",(vunit1,(["e","f"],[]))),
-               ("b",(vunit2,([],["e","f"])))];
-    val _ = assert_edge_info "g'" g'
-              [("e",((Directed,eunit1),("b","a"))),
-               ("f",((Undirected,eunit2),("b","a")))];
-
-    val g' = G.swap_edge_dir (E.mk "f") g;
-    val _ = assert_vertex_info "g'" g'
-              [("a",(vunit1,([],["e","f"]))),
-               ("b",(vunit2,(["e","f"],[])))];
-    val _ = assert_edge_info "g'" g'
-              [("e",((Directed,eunit1),("a","b"))),
-               ("f",((Undirected,eunit2),("a","b")))];
-    in () end) ();
-
-
-
   val _ = Testing.test "G.merge" (fn () => let
     val _ = assert_g_eq "merge of empty graphs" G.empty
             (G.merge G.empty G.empty)

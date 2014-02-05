@@ -1,16 +1,13 @@
 (*
  * Tests matching of !-graphs against string graphs
  *)
-functor Bang_Graph_Matching_Tests(
-  Matcher : TEST_BG_MATCH_SEARCH
+functor BG_To_SG_Matching_Tests(
+  Tester : BG_MATCH_TESTER
 ) =
 struct
-  structure Tools = Test_Bang_Match_Tools(Matcher);
-
-  (* test matching with concrete graphs *)
-  structure SG_Matcher_Tests = String_Graph_Matching_Tests(Tools);
-
-  open Tools;
+  structure GTools = Test_Bang_Graph_Tools(Tester.G)
+  open Tester
+  open GTools
 
   (*
    * Disjoint !-boxes
@@ -203,5 +200,4 @@ struct
   val _ = Testing.assert_no_failed_tests();
 end;
 
-structure Greedy_Matcher_Tests = Bang_Graph_Matching_Tests(Test_GreedyMatcher);
 

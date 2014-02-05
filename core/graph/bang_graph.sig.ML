@@ -1,8 +1,21 @@
+(* FIXME: put this in a struct? *)
 datatype bbox_op = BBKill of B.name
                  | BBExpand of {
                       bbox : B.name,
                       boundary_map : VSub.T,
                       bbox_map : BSub.T }
+                 | BBCopy of {
+                      bbox : B.name,
+                      boundary_map : VSub.T,
+                      bbox_map : BSub.T }
+fun bbox_op_added_bboxes (BBKill _) = B.NSet.empty
+  | bbox_op_added_bboxes (BBExpand {bbox_map,...}) = BSub.get_cod_set bbox_map
+  | bbox_op_added_bboxes (BBCopy {bbox_map,...}) = BSub.get_cod_set bbox_map
+fun bbox_op_get_bbox_copy (BBKill _) _ = raise Match
+  | bbox_op_get_bbox_copy (BBExpand {bbox_map,...}) b =
+      BSub.get bbox_map b
+  | bbox_op_get_bbox_copy (BBCopy {bbox_map,...}) b =
+      BSub.get bbox_map b
 
 signature BANG_GRAPH =
 sig
@@ -72,10 +85,11 @@ sig
    * when the second arg is NONE. *)
   (*val set_bbox_parent_opt : B.name -> B.name option -> T -> T*)
   
-  (* raises no_such_bbox_exn if parent or children not in graph *)
+  (* raises no_such_bbox_exp if parent or children not in graph *)
   val add_children_to_bbox : B.name -> B.NSet.T -> T -> T
   val add_child_to_bbox : B.name -> B.name -> T -> T
-  (* raises no_such_bbox_exn if parent or children not in graph *)
+  (* raises no_such_bbox_exp if parent or children not in graph *)
+  (* no-op if removing the link would break transitivity *)
   val remove_child_from_bbox : B.name -> B.name -> T -> T
   val clear_bbox_children : B.name -> T -> T
   
@@ -118,6 +132,7 @@ sig
   (* apply the given operation and return the new graph and a replayable bbox op *)
   val expand_bbox_op : B.name -> T -> bbox_op * T
   val kill_bbox_op   : B.name -> T -> bbox_op * T
+  val copy_bbox_op   : B.name -> T -> bbox_op * T
 
   val replay_bbox_op  : bbox_op -> T -> T
 
