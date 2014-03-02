@@ -48,6 +48,9 @@ case class DragVertex(start: Point, end: Point) extends MouseState
 /** The AddVertex tool has been selected from the main toolbar */
 case class AddVertexTool() extends MouseState
 
+/** The AddBoundary tool has been selected from the main toolbar */
+case class AddBoundaryTool() extends MouseState
+
 /** The Add Edge tool has been selected from the main toolbar */
 case class AddEdgeTool() extends MouseState
 

@@ -241,6 +241,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
             view.repaint()
           }
         case AddVertexTool() => // do nothing
+        case AddBoundaryTool() => // do nothing
         case AddEdgeTool() =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           vertexHit map { startV =>
@@ -260,6 +261,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
       mouseState match {
         case SelectTool() =>      // do nothing
         case AddVertexTool() =>   // do nothing
+        case AddBoundaryTool() =>   // do nothing
         case AddEdgeTool() =>     // do nothing
         case AddBangBoxTool() =>  // do nothing
         case SelectionBox(start,_) =>
@@ -300,7 +302,6 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
             if (!selectionUpdated)
               view.bboxDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedBBoxes += x._1 }
 
-            // TODO: bbox selection
           } else {
             // box selection only affects vertices
             val r = mouseState.asInstanceOf[SelectionBox].rect
@@ -359,6 +360,13 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
           addVertex(graph.verts.fresh, vertexData.withCoord(coord))
           view.repaint()
+
+        case AddBoundaryTool() =>
+          val coord = view.trans fromScreen (pt.getX, pt.getY)
+          val vertexData = WireV(theory = theory)
+          addVertex(graph.verts.fresh, vertexData.withCoord(coord))
+          view.repaint()
+
         case DragEdge(startV) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           vertexHit map { endV =>

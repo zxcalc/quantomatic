@@ -23,7 +23,7 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
 
 
   val VertexTypeLabel  = new Label("Vertex Type:  ") { xAlignment = Alignment.Right; enabled = false }
-  val VertexTypeSelect = new ComboBox("<wire>" +: theory.vertexTypes.keys.toSeq) { enabled = false }
+  val VertexTypeSelect = new ComboBox(theory.vertexTypes.keys.toSeq :+ "<wire>") { enabled = false }
   val EdgeTypeLabel    = new Label("Edge Type:  ") { xAlignment = Alignment.Right; enabled = false }
   val EdgeTypeSelect   = new ComboBox(theory.edgeTypes.keys.toSeq) { enabled = false }
   val EdgeDirected     = new CheckBox("directed") { selected = true; enabled = false }
@@ -56,23 +56,29 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     tool = AddVertexTool()
   }
 
+  val AddBoundaryButton = new ToggleButton() with ToolButton {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-ellipse-b.png"), "Add Boundary")
+    tool = AddBoundaryTool()
+  }
+
   val AddEdgeButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Add Edge")
     tool = AddEdgeTool()
   }
 
   val AddBangBoxButton = new ToggleButton() with ToolButton {
-    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-bang.png"), "Add Bang Box")
+    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-bbox.png"), "Add Bang Box")
     tool = AddBangBoxTool()
   }
 
   val GraphToolGroup = new ButtonGroup(SelectButton, 
-                                       AddVertexButton, 
+                                       AddVertexButton,
+                                       AddBoundaryButton,
                                        AddEdgeButton,
                                        AddBangBoxButton)
 
   val MainToolBar = new ToolBar {
-    contents += (SelectButton, AddVertexButton, AddEdgeButton, AddBangBoxButton)
+    contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton)
   }
 
 

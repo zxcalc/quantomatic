@@ -24,6 +24,7 @@ class GraphView(val theory: Theory) extends Panel
   import GraphView._
 
   var drawGrid = false
+  var drawBBoxConnections = false
   var snapToGrid = false
   var gridMajor = 1.0
   var gridSubs = 4
@@ -153,9 +154,9 @@ class GraphView(val theory: Theory) extends Panel
     g.setStroke(new BasicStroke(1))
 
 
-    for ((bb, BBDisplay(rect)) <- bboxDisplay) {
+    for ((bb, bbd) <- bboxDisplay) {
       g.setColor(new Color(0.5f,0.5f,0.8f,0.2f))
-      g.fill(rect)
+      g.fill(bbd.rect)
 
       if (selectedBBoxes contains bb) {
         g.setStroke(new BasicStroke(3))
@@ -163,14 +164,25 @@ class GraphView(val theory: Theory) extends Panel
         g.setStroke(new BasicStroke(1))
       }
 
-      g.setColor(new Color(0.5f,0.5f,0.8f,1.0f))
-      g.draw(rect)
+      val corner = bbd.corner
 
-      val corner = new Rectangle2D.Double(rect.getMinX - 5.0, rect.getMinY - 5.0, 10.0, 10.0)
+      g.setColor(new Color(0.5f,0.5f,0.8f,1.0f))
+
+      if (drawBBoxConnections) {
+        for (v <- graph.contents(bb)) {
+          val vbounds = vertexDisplay(v).shape.getBounds
+          val connect = new Line2D.Double(
+            corner.getCenterX, corner.getCenterY,
+            vbounds.getCenterX, vbounds.getCenterY)
+          g.draw(connect)
+        }
+      }
+
+      g.draw(bbd.rect)
       g.fill(corner)
 
       g.setFont(VertexLabelFont)
-      g.drawString(bb.s, corner.getX.toFloat - 5.0f, corner.getY.toFloat - 5.0f)
+      g.drawString(bb.s, corner.getX.toFloat - 5.0f, bbd.corner.getY.toFloat - 5.0f)
     }
 
     for ((e, ed) <- edgeDisplay) {
