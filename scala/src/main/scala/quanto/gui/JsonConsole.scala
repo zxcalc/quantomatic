@@ -25,6 +25,51 @@ case class Output(rid: Int, output: String) extends CoreOutputItem {
   override def toString = output
 }
 
+/*
+EXAMPLES:
+
+{
+"controller": "!!",
+"module": "system",
+"function": "version"
+}
+
+{
+"controller": "!!",
+"module": "system",
+"function": "help",
+"input": {
+  "controller": "red_green",
+  "module": "test",
+  "function": "echo"
+}
+}
+
+{
+"controller": "red_green",
+"module": "test",
+"function": "echo",
+"input": {
+  "foo": "bar",
+  "baz": 12
+}
+}
+
+{
+"controller": "red_green",
+"module": "test",
+"function": "diverge"
+}
+
+{
+"controller": "!!",
+"module": "system",
+"function": "kill",
+"input": { "job": 8 }
+}
+
+ */
+
 object JsonConsole extends SimpleSwingApplication {
   val sys = ActorSystem("QuantoConsole")
   val core = sys.actorOf(Props { new CoreState("../core/bin/quanto-core") }, "core_state")

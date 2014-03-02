@@ -7,8 +7,9 @@ import swing._
 import event.FocusEvent
 import java.awt.{Font => AWTFont, BasicStroke, RenderingHints, Color}
 import math._
-import java.awt.geom.{Line2D, Rectangle2D}
+import java.awt.geom.{AffineTransform, Line2D, Rectangle2D}
 import java.awt.Font
+import java.awt.font.TextLayout
 
 
 // a visual overlay for edge drawing
@@ -153,10 +154,20 @@ class GraphView(val theory: Theory) extends Panel
 
 
     for ((bb, BBDisplay(rect)) <- bboxDisplay) {
-      g.setColor(new Color(0.5f,0.5f,0.5f,0.2f))
+      g.setColor(new Color(0.5f,0.5f,0.8f,0.2f))
       g.fill(rect)
-      g.setColor(new Color(0.5f,0.5f,0.5f,0.7f))
+
+      if (selectedBBoxes contains bb) {
+        g.setStroke(new BasicStroke(3))
+      } else {
+        g.setStroke(new BasicStroke(1))
+      }
+
+      g.setColor(new Color(0.5f,0.5f,0.8f,1.0f))
       g.draw(rect)
+
+      val corner = new Rectangle2D.Double(rect.getMinX - 5.0, rect.getMinY - 5.0, 10.0, 10.0)
+      g.fill(corner)
     }
 
     for ((e, ed) <- edgeDisplay) {
@@ -225,9 +236,25 @@ class GraphView(val theory: Theory) extends Panel
             ld.bounds.getMinX - 3.0, ld.bounds.getMinY - 3.0,
             ld.bounds.getWidth + 6.0, ld.bounds.getHeight + 6.0))
         }
-        g.setColor(ld.foregroundColor)
-        g.setFont(VertexLabelFont)
-        g.drawString(ld.text, ld.bounds.getMinX.toFloat, ld.baseline.toFloat)
+
+        if (ld.text.length > 0) {
+          val textLayout = new TextLayout(ld.text, VertexLabelFont, g.getFontRenderContext)
+
+//          val tr = new AffineTransform
+//          tr.translate(ld.bounds.getMinX, ld.baseline)
+//          val outline = textLayout.getOutline(tr)
+//          g.setColor(Color.WHITE)
+//          g.setStroke(new BasicStroke(3))
+//          g.draw(outline)
+
+          g.setStroke(new BasicStroke(1))
+          g.setColor(ld.foregroundColor)
+          textLayout.draw(g, ld.bounds.getMinX.toFloat, ld.baseline.toFloat)
+        }
+
+//
+//        g.setFont(VertexLabelFont)
+//        g.drawString(ld.text, ld.bounds.getMinX.toFloat, ld.baseline.toFloat)
       }
     }
 

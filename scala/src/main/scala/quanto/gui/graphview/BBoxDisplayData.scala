@@ -15,7 +15,7 @@ trait BBoxDisplayData { self: VertexDisplayData =>
   val bboxDisplay = collection.mutable.Map[BBName,BBDisplay]()
 
   protected def computeBBoxDisplay() {
-    var globalBounds = boundsForVertexSet(graph.verts)
+    var offset = Math.max(boundsForVertexSet(graph.verts).getMaxX, trans.origin._1)
 
     // used to compute relative padding sizes
     val em = trans.scaleToScreen(0.1)
@@ -24,16 +24,14 @@ trait BBoxDisplayData { self: VertexDisplayData =>
       val vset = graph.contents(bbox)
 
       val rect = if (vset.isEmpty) {
-        globalBounds = new Rectangle2D.Double(
-                         globalBounds.getX, globalBounds.getY,
-                         globalBounds.getWidth + 6*em, globalBounds.getHeight)
-        new Rectangle2D.Double(globalBounds.getMaxX - 4*em, globalBounds.getCenterY - 2*em, 4*em, 4*em)
+        offset += 8*em
+        new Rectangle2D.Double(offset, trans.origin._2 - 2*em, 4*em, 4*em)
       } else {
         val bounds = boundsForVertexSet(vset)
 
         new Rectangle2D.Double(
-          bounds.getX - 1*em, bounds.getY - 1*em,
-          bounds.getWidth + 2*em, bounds.getHeight + 2*em)
+          bounds.getX - 2*em, bounds.getY - 2*em,
+          bounds.getWidth + 4*em, bounds.getHeight + 4*em)
       }
 
       bboxDisplay += bbox -> BBDisplay(rect)
