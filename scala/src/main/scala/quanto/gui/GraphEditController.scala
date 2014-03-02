@@ -15,7 +15,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
   def mouseState_=(s: MouseState) {
     if (readOnly) s match {
-      case AddVertexTool() | AddEdgeTool() | AddBangBoxTool() | DragEdge(_) | BangSelectionBox(_,_) =>
+      case AddVertexTool() | AddBoundaryTool() | AddEdgeTool() | AddBangBoxTool() | DragEdge(_) | BangSelectionBox(_,_) =>
         throw new InvalidMouseStateException("readOnly == true", s)
       case _ =>
     }
@@ -249,11 +249,18 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
             view.edgeOverlay = Some(EdgeOverlay(pt, src = startV, tgt = Some(startV)))
             view.repaint()
           }
-        case AddBangBoxTool() => 
-          val box = BangSelectionBox(pt, pt)
-          mouseState = box
-          view.selectionBox = Some(box.rect)
-          
+        case AddBangBoxTool() =>
+          val cornerHit = view.bboxDisplay find { _._2.cornerHit(pt) } map { _._1 }
+
+          cornerHit match {
+            case Some(bb) =>
+              mouseState = DragBangBoxNesting(bb)
+            case None =>
+              val box = BangSelectionBox(pt, pt)
+              mouseState = box
+              view.selectionBox = Some(box.rect)
+          }
+
         case state => throw new InvalidMouseStateException("MousePressed", state)
       }
 
@@ -281,6 +288,12 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
         case DragEdge(startV) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           view.edgeOverlay = Some(EdgeOverlay(pt, startV, vertexHit))
+          view.repaint()
+        case DragBangBoxNesting(startBB) =>
+          val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
+          val bboxHit = if (vertexHit == None) view.bboxDisplay find { _._2.cornerHit(pt) } map { _._1 }
+                        else None
+          view.bboxOverlay = Some(BBoxOverlay(pt, startBB, vertexHit, bboxHit))
           view.repaint()
       }
 
@@ -377,7 +390,16 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
           mouseState = AddEdgeTool()
           view.edgeOverlay = None
           view.repaint()
-        //case state => throw new InvalidMouseStateException("MouseReleased", state)
+
+        case DragBangBoxNesting(startBB) =>
+          val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
+          val bboxHit = if (vertexHit == None) view.bboxDisplay find { _._2.cornerHit(pt) } map { _._1 }
+          else None
+          mouseState = AddBangBoxTool()
+          view.bboxOverlay = None
+          view.repaint()
+
+        case state => throw new InvalidMouseStateException("MouseReleased", state)
       }
 
   }

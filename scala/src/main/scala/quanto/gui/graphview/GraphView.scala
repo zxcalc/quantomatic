@@ -14,6 +14,7 @@ import java.awt.font.TextLayout
 
 // a visual overlay for edge drawing
 case class EdgeOverlay(pt: Point, src: VName, tgt: Option[VName])
+case class BBoxOverlay(pt: Point, src: BBName, vtgt : Option[VName], bbtgt : Option[BBName])
 
 class GraphView(val theory: Theory) extends Panel
   with Scrollable
@@ -33,6 +34,7 @@ class GraphView(val theory: Theory) extends Panel
   var selectionBox: Option[Rectangle2D] = None
   //var bangBoxList: List[Rectangle2D] = Nil
   var edgeOverlay: Option[EdgeOverlay] = None
+  var bboxOverlay: Option[BBoxOverlay] = None
   focusable = false
 
   // gets called when the component is first painted
@@ -311,6 +313,43 @@ class GraphView(val theory: Theory) extends Panel
 
       if (Some(startV) != endVOpt)
         g.draw(new Line2D.Double(startPt._1, startPt._2, endPt._1, endPt._2))
+    }
+
+    bboxOverlay.map { case BBoxOverlay(pt, bb, endVOpt, endBBOpt) =>
+      val corner = bboxDisplay(bb).corner
+
+      g.setStroke(new BasicStroke(2))
+      g.setColor(new Color(0.5f,0.5f,0.8f,1.0f))
+
+      val startPt = (corner.getCenterX, corner.getCenterY)
+      val endPt = endVOpt match {
+        case Some(endV) =>
+          if (graph.contents(bb).contains(endV)) g.setColor(Color.RED)
+          g.draw(vertexDisplay(endV).shape)
+
+          val tgtCenter = (
+            vertexDisplay(endV).shape.getBounds.getCenterX,
+            vertexDisplay(endV).shape.getBounds.getCenterY)
+          val (dx, dy) = (tgtCenter._1 - startPt._1, tgtCenter._2 - startPt._2)
+          val angle = atan2(-dy,dx)
+
+
+          trans toScreen vertexContactPoint(endV, angle + Pi)
+        case None =>
+          endBBOpt match {
+            case Some(endBB) =>
+              val corner1 = bboxDisplay(endBB).corner
+
+              if (graph.bboxParent.get(endBB) == Some(bb)) g.setColor(Color.RED)
+              g.draw(corner1)
+
+              (corner1.getCenterX, corner1.getCenterY)
+            case None =>
+              (pt.getX, pt.getY)
+          }
+      }
+
+      g.draw(new Line2D.Double(startPt._1, startPt._2, endPt._1, endPt._2))
     }
   }
 

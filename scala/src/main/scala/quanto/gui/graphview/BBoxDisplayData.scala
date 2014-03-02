@@ -4,6 +4,8 @@ import quanto.data._
 import quanto.gui._
 import java.awt.{Color, Shape}
 import java.awt.geom.{Rectangle2D, Point2D}
+import scala.collection.SortedSet
+import scala.collection.immutable.TreeSet
 
 case class BBDisplay(rect: Rectangle2D) {
   def corner =
@@ -26,7 +28,9 @@ trait BBoxDisplayData { self: VertexDisplayData =>
 
     val positions = collection.mutable.Set[(Double,Double)]()
 
-    graph.bboxes.foreach { bbox =>
+
+
+    graph.bboxesChildrenFirst.foreach { bbox =>
       val vset = graph.contents(bbox)
 
       val rect = if (vset.isEmpty) {

@@ -246,6 +246,23 @@ abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def dft[T](base: T)(f: (T, EName, GraphSearchContext) => T): T =
     dftComponents(Set[VName](), Set[EName]())(base)(f)
 
+
+  private def bbDft(bb : BBName, bbSeq : collection.mutable.Buffer[BBName], bbs : collection.mutable.Set[BBName]) {
+    for (ch <- bboxParent.codf(bb)) bbDft(ch, bbSeq, bbs)
+    if (bbs.contains(bb)) {
+      bbs.remove(bb)
+      bbSeq += bb
+    }
+  }
+
+  def bboxesChildrenFirst = {
+    val bbSeq = collection.mutable.Buffer[BBName]()
+    val bbs = collection.mutable.Set[BBName](bboxes.toSeq : _*)
+    while (!bbs.isEmpty) bbDft(bbs.iterator.next(),bbSeq,bbs)
+
+    bbSeq.toSeq
+  }
+
   // returns a topo ordering. If graph is a dag, all edges will be consistent with this ordering
   def topologicalOrdering: PartialOrdering[VName] = {
     val visited = collection.mutable.Set[VName]()

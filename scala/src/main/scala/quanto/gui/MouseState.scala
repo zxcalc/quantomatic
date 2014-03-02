@@ -59,3 +59,6 @@ case class DragEdge(startVertex: VName) extends MouseState
 
 /** The Add BangBox tool has been selected from the main toolbar */
 case class AddBangBoxTool() extends MouseState
+
+/** A nesting edge is being dragged from the bang box corner */
+case class DragBangBoxNesting(startBBox: BBName) extends MouseState
