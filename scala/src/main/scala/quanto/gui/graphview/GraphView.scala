@@ -168,6 +168,9 @@ class GraphView(val theory: Theory) extends Panel
 
       val corner = new Rectangle2D.Double(rect.getMinX - 5.0, rect.getMinY - 5.0, 10.0, 10.0)
       g.fill(corner)
+
+      g.setFont(VertexLabelFont)
+      g.drawString(bb.s, corner.getX.toFloat - 5.0f, corner.getY.toFloat - 5.0f)
     }
 
     for ((e, ed) <- edgeDisplay) {
