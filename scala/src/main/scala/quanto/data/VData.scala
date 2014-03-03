@@ -26,6 +26,7 @@ abstract class VData extends GraphElementData {
   def withCoord(c: (Double,Double)): VData
 
   def isWireVertex: Boolean
+  def isBoundary : Boolean
 }
 
 /**
@@ -70,6 +71,7 @@ case class NodeV(
     copy(data = data.setPath("$.value", s).setPath("$.label", s).asObject)
 
   def isWireVertex = false
+  def isBoundary = false
 
   override def toJson = JsonObject(
     "data" -> data,
@@ -120,8 +122,9 @@ case class WireV(
   theory: Theory = Theory.DefaultTheory) extends VData
 {
   def isWireVertex = true
+  def isBoundary = annotation.get("boundary") match { case Some(JsonBool(b)) => b; case None => false }
   def withCoord(c: (Double,Double)) =
-    copy(annotation = (annotation + ("coord" -> JsonArray(c._1, c._2))))
+    copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
 }
 
 /**

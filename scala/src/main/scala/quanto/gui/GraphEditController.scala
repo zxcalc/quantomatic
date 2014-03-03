@@ -7,7 +7,7 @@ import Key.Modifier
 import quanto.data._
 import Names._
 import quanto.layout.QLayout
-import quanto.util.json.JsonObject
+import quanto.util.json._
 
 class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   private var _mouseState: MouseState = SelectTool()
@@ -371,13 +371,13 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
               NodeV(data = theory.vertexTypes(typ).defaultData, theory = theory).withCoord(coord)
           }
 
-          addVertex(graph.verts.fresh, vertexData.withCoord(coord))
+          addVertex(graph.verts.freshWithSuggestion(VName("v0")), vertexData.withCoord(coord))
           view.repaint()
 
         case AddBoundaryTool() =>
           val coord = view.trans fromScreen (pt.getX, pt.getY)
-          val vertexData = WireV(theory = theory)
-          addVertex(graph.verts.fresh, vertexData.withCoord(coord))
+          val vertexData = WireV(theory = theory, annotation = JsonObject("boundary" -> JsonBool(true)))
+          addVertex(graph.verts.freshWithSuggestion(VName("b0")), vertexData.withCoord(coord))
           view.repaint()
 
         case DragEdge(startV) =>

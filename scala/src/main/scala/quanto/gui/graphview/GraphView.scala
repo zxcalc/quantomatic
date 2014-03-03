@@ -183,6 +183,15 @@ class GraphView(val theory: Theory) extends Panel
       g.draw(bbd.rect)
       g.fill(corner)
 
+      graph.bboxParent.get(bb) match {
+        case Some(bbParent) =>
+          val parentCorner = bboxDisplay(bbParent).corner
+          g.draw(new Line2D.Double(
+            corner.getCenterX, corner.getCenterY,
+            parentCorner.getCenterX, parentCorner.getCenterY))
+        case None => // do nothing
+      }
+
       g.setFont(VertexLabelFont)
       g.drawString(bb.s, corner.getX.toFloat - 5.0f, bbd.corner.getY.toFloat - 5.0f)
     }
@@ -214,7 +223,9 @@ class GraphView(val theory: Theory) extends Panel
     g.setStroke(new BasicStroke(1))
     var a = g.getColor
     for ((v, VDisplay(shape,color,label)) <- vertexDisplay) {
-      g.setColor(color)
+      if (graph.vdata(v).isBoundary) g.setColor(Color.RED)
+      else g.setColor(color)
+
       g.fill(shape)
       
       /// show the vname on the GUI
@@ -223,12 +234,12 @@ class GraphView(val theory: Theory) extends Panel
       val py = sh.getY.toInt
       
       //println(sh)
-      if (showNames) {
+      if (showNames || graph.vdata(v).isBoundary) {
         a = g.getColor
-        g.setFont(new Font("Consolas", Font.PLAIN, 15))
-        g.setColor(Color.BLACK)
+        g.setFont(EdgeLabelFont)
+        g.setColor(Color.RED)
 
-        g.drawString(v.toString, px,py)
+        g.drawString(v.toString, px, py - 5)
         g.setColor(a)
       }
       
@@ -239,12 +250,8 @@ class GraphView(val theory: Theory) extends Panel
         g.setColor(Color.BLACK)
         g.setStroke(new BasicStroke(1))
       }
-      
-      
-      
+
       g.draw(shape)
-     
-      
 
       label.map { ld =>
         ld.backgroundColor.map { bg =>

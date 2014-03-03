@@ -52,14 +52,27 @@ class DuplicateBBoxNameException(override val name: BBName)
 object Names {
   class NameSet[N <: Name[N]](val set: Set[N]) {
     def fresh(implicit default: N) : N = if (set.isEmpty) default else set.max.succ
+    def freshWithSuggestion(s : N) : N = { var t = s; while (set.contains(t)) t = t.succ; t }
   }
 
   class NameMap[N <: Name[N], T](val map: Map[N,T]) {
     def fresh(implicit default: N) : N = if (map.isEmpty) default else map.keys.max.succ
+    def freshWithSuggestion(s : N) : N = {
+      val set = map.keySet
+      var t = s
+      while (set.contains(t)) t = t.succ
+      t
+    }
   }
 
   class NamePFun[N <: Name[N], T](val pf: PFun[N,T]) {
     def fresh(implicit default: N) : N = if (pf.isEmpty) default else pf.dom.max.succ
+    def freshWithSuggestion(s : N) : N = {
+      val set = pf.domSet
+      var t = s
+      while (set.contains(t)) t = t.succ
+      t
+    }
   }
 
   implicit def setToNameSet[N <: Name[N]](set : Set[N]):NameSet[N] =
@@ -90,5 +103,5 @@ object Names {
   implicit val defaultVName = VName("v0")
   implicit val defaultEName = EName("e0")
   implicit val defaultGName = GName("g0")
-  implicit val defaultBBName = BBName("bb0")
+  implicit val defaultBBName = BBName("bx0")
 }

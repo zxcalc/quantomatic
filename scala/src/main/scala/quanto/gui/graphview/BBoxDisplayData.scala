@@ -38,8 +38,8 @@ trait BBoxDisplayData { self: VertexDisplayData =>
         new Rectangle2D.Double(offset, trans.origin._2 - 2*em, 4*em, 4*em)
       } else {
         val bounds = boundsForVertexSet(vset)
-        var p = (bounds.getX - 2*em, bounds.getY - 2*em)
-        var q = (bounds.getWidth + 4*em, bounds.getHeight + 4*em)
+        var p = (bounds.getX - 3*em, bounds.getY - 3*em)
+        var q = (bounds.getWidth + 6*em, bounds.getHeight + 6*em)
         while (positions.contains(p)) {
           p = (p._1 - 6*em, p._2 - 6*em)
           q = (q._1 + 8*em, q._2 + 8*em)
