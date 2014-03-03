@@ -59,7 +59,7 @@ case class Graph(
   def canEqual(other: Any) = other.isInstanceOf[Graph]
 
   override def equals(other: Any) = other match {
-    case that: GraphLike[_,_,_,_,_] => (that canEqual this) &&
+    case that: Graph => (that canEqual this) &&
       vdata == that.vdata &&
       edata == that.edata &&
       source == that.source &&
