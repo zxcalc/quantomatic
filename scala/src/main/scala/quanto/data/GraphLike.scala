@@ -4,18 +4,6 @@ package quanto.data
 
 import Names._
 
-trait GraphException extends Exception
-
-class SafeDeleteVertexException(name: VName, reason: String) extends
-Exception("Unable to safely delete " + name + ", because " + reason)
-with GraphException
-
-class DanglingEdgeException(edge: EName, endPoint: VName) extends
-Exception("Edge: " + edge + " has no endpoint: " + endPoint + " in graph")
-with GraphException
-
-case class GraphSearchContext(exploredV: Set[VName], exploredE: Set[EName])
-
 abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def data: G
   def vdata: Map[VName,V]
