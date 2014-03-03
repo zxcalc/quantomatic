@@ -41,10 +41,10 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 
   it should "get fresh names for newBBox" in {
     g.newBBox(BBData()) match {case (g1,b) => g = g1; bb0 = b}
-    assert(bb0 === BBName("bb0"))
+    assert(bb0 === BBName("bx0"))
 
     g.newBBox(BBData(), Set(v0), Some(bb0)) match {case (g1,b) => g = g1; bb1 = b}
-    assert(bb1 === BBName("bb1"))
+    assert(bb1 === BBName("bx1"))
   }
 
   it should "contain 2 vertices, edges, and bboxes" in {
@@ -63,7 +63,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     }
 
     intercept[DuplicateBBoxNameException] {
-      g.addBBox("bb0", BBData())
+      g.addBBox("bx0", BBData())
     }
   }
 
@@ -87,8 +87,8 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       addEdge   ("e1", UndirEdge(), "v0" -> "v1")
       addEdge   ("e2", DirEdge(), "v1" -> "v2")
       newEdge   (DirEdge(), "v0" -> "v1") // fresh name is returned, but dropped by implicit conversion
-      addBBox   ("bb0", BBData(), Set("v0", "v1"))
-      addBBox   ("bb1", BBData(), Set("v2"), parent = Some("bb0"))
+      addBBox   ("bx0", BBData(), Set("v0", "v1"))
+      addBBox   ("bx1", BBData(), Set("v2"), parent = Some("bx0"))
     )
 
     println(otherG.toString)
@@ -114,9 +114,9 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       |    "e2": {"src": "n0", "tgt": "n1"}
       |  },
       |  "bang_boxes": {
-      |    "bb0": {"contains": ["n0", "n1", "w0"]},
-      |    "bb1": {"contains": ["n0", "n1"], "parent": "bb0"},
-      |    "bb2": {}
+      |    "bx0": {"contains": ["n0", "n1", "w0"]},
+      |    "bx1": {"contains": ["n0", "n1"], "parent": "bx0"},
+      |    "bx2": {}
       |  }
       |}
     """.stripMargin
@@ -128,9 +128,9 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     addEdge("e0", DirEdge(), "w0" -> "w1")
     addEdge("e1", DirEdge(), "w1" -> "w2")
     addEdge("e2", UndirEdge(), "n0" -> "n1")
-    addBBox("bb0", BBData(), Set[VName]("w0", "n0", "n1"))
-    addBBox("bb1", BBData(), Set[VName]("n0", "n1"), parent=Some(BBName("bb0")))
-    addBBox("bb2", BBData())
+    addBBox("bx0", BBData(), Set[VName]("w0", "n0", "n1"))
+    addBBox("bx1", BBData(), Set[VName]("n0", "n1"), parent=Some(BBName("bx0")))
+    addBBox("bx2", BBData())
   )
 
   var jsonGraph: Graph = _

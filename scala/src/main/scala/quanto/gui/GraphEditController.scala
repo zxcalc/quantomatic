@@ -110,11 +110,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   private def deleteVertex(v: VName) {
     undoStack.start("Delete Vertex")
     graph.adjacentEdges(v).foreach { deleteEdge }
-    val BBoxCover = graph.inBBox.domf(v)
-    /* update bang boxes containing the vertex */
-    graph.inBBox.domf(v).foreach { bbname =>
-      if (graph.inBBox.codf(bbname).size == 1) deleteBBox(bbname)
-    }
+    graph.inBBox.domf(v).foreach { removeVertexFromBBox(_, v) }
 
     val d = graph.vdata(v)
     view.invalidateVertex(v)
@@ -127,11 +123,8 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
     undoStack += {
       addVertex(v, d)
       if (selected) selectedVerts += v
-      /* put it back in bboxes if it was before */
-      BBoxCover.foreach { bbname =>
-        graph = graph.updateBBoxContents(bbname, graph.inBBox.codf(bbname) + v)
-      }
     }
+
     undoStack.commit()
   }
 
@@ -149,6 +142,28 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
     undoStack.register("Delete Bang Box") {
       addBBox(bbname, data, contents)
+    }
+  }
+
+  private def addVertexToBBox(bb: BBName, v: VName) {
+    graph = graph.updateBBoxContents(bb, graph.contents(bb) + v)
+    undoStack.register("Add Vertex to Bang Box") {
+      removeVertexFromBBox(bb, v)
+    }
+  }
+
+  private def removeVertexFromBBox(bb: BBName, v: VName) {
+    graph = graph.updateBBoxContents(bb, graph.contents(bb) - v)
+    undoStack.register("Remove Vertex from Bang Box") {
+      addVertexToBBox(bb, v)
+    }
+  }
+
+  private def setBBoxParent(bb: BBName, bbParentOpt : Option[BBName]) {
+    val oldParentOpt = graph.bboxParent.get(bb)
+    graph = graph.setBBoxParent(bb, bbParentOpt)
+    undoStack.register("Set Bang Box Parent") {
+      setBBoxParent(bb, oldParentOpt)
     }
   }
 
@@ -395,6 +410,20 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           val bboxHit = if (vertexHit == None) view.bboxDisplay find { _._2.cornerHit(pt) } map { _._1 }
           else None
+
+          vertexHit.map { v =>
+            if (graph.contents(startBB).contains(v)) removeVertexFromBBox(startBB, v)
+            else addVertexToBBox(startBB, v)
+          }
+
+          bboxHit.map { bbChild =>
+            // only consider adding this bbox as a child if it is not already a parent
+            if (!graph.bboxParents(startBB).contains(bbChild)) {
+              if (graph.bboxParent.get(bbChild) == Some(startBB)) setBBoxParent(bbChild, None)
+              else setBBoxParent(bbChild, Some(startBB))
+            }
+          }
+
           mouseState = AddBangBoxTool()
           view.bboxOverlay = None
           view.repaint()

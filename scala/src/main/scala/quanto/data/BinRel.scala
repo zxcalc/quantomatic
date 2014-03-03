@@ -35,6 +35,7 @@ trait BinRel[A,B] extends Iterable[(A,B)] {
    * current one except '''kv'''
    */
   def unmap(kv: (A,B)): BinRel[A,B]
+  def -(kv: (A,B)) : BinRel[A,B] = unmap(kv)
 
   /**
    * Remove all relation pairs '''(d,_)'''

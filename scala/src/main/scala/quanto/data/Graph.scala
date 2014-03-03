@@ -17,6 +17,9 @@ class DanglingEdgeException(edge: EName, endPoint: VName) extends
 Exception("Edge: " + edge + " has no endpoint: " + endPoint + " in graph")
 with GraphException
 
+class CyclicBBoxParentException(bb: BBName, bbp: BBName) extends
+Exception("Adding parent " + bbp + " to bbox " + bb + " introduces cycle.")
+
 case class GraphSearchContext(exploredV: Set[VName], exploredE: Set[EName])
 
 class GraphLoadException(message: String, cause: Throwable = null)
@@ -136,25 +139,71 @@ case class Graph(
     if (bbdata contains bbn)
       throw new DuplicateBBoxNameException(bbn) with GraphException
 
-    val bboxParent1 = parent match {
-      case Some(p) => bboxParent + (bbn -> p)
-      case None => bboxParent
-    }
-
-    copy(
+    val g1 = copy(
       bbdata = bbdata + (bbn -> data),
-      bboxParent = bboxParent1,
       inBBox = contents.foldLeft(inBBox){ (x,v) => x + (v -> bbn) }
     )
+
+    parent match {
+      case Some(p) => g1.setBBoxParent(bbn, Some(p))
+      case None => g1
+    }
   }
 
-  /** Replace the contents of a bang box with new ones */
-  def updateBBoxContents(bbn: BBName, newContents: Set[VName]) = {
-    var rel = inBBox.unmapCod(bbn)
-    newContents.foreach {v =>
-      rel += (v,bbn)
+  def bboxParents(bb : BBName) : List[BBName] =
+    bboxParent.get(bb) match {
+      case Some(bb1) => bb1 :: bboxParents(bb1)
+      case None => List()
     }
-    copy( inBBox = rel )
+
+
+  /** Replace the contents of a bang box with new ones
+    * NOTE: this affects parents as well. */
+  def updateBBoxContents(bbn: BBName, newContents: Set[VName]) = {
+    val oldContents = contents(bbn)
+    val updateBB = bbn :: bboxParents(bbn)
+
+    var inBB = inBBox
+
+    for (bb1 <- updateBB) {
+      oldContents.foreach {v => inBB -= (v -> bb1) }
+      newContents.foreach {v => inBB += (v -> bb1) }
+    }
+
+    copy( inBBox = inBB )
+  }
+
+  /** Change bbox parent. All contents will be removed from old parents and added to
+    * new parents. */
+  def setBBoxParent(bb: BBName, bbParentOpt: Option[BBName]) = {
+    val cont = contents(bb)
+    var inBB = inBBox
+    var bbP = bboxParent
+    val oldParents = bboxParents(bb)
+    val newParents = bbParentOpt match {
+      case Some(bbParent) =>
+        bbP += (bb -> bbParent)
+        val newP = bbParent :: bboxParents(bbParent)
+        if (newP.contains(bb)) throw new CyclicBBoxParentException(bb, bbParent)
+
+        newP
+      case None =>
+        bbP -= bb
+        List()
+    }
+
+
+
+    for (bbp <- oldParents) {
+      cont.foreach {v => inBB -= (v -> bbp) }
+    }
+
+    for (bbp <- newParents) {
+      cont.foreach {v => inBB += (v -> bbp) }
+    }
+
+
+    copy( inBBox = inBB , bboxParent = bbP )
   }
 
   def newBBox(data: BBData, contents: Set[VName] = Set[VName](), parent: Option[BBName] = None) = {
@@ -179,20 +228,19 @@ case class Graph(
   }
 
   def safeDeleteVertex(vn: VName) = {
-    if (source.codf(vn).isEmpty && target.codf(vn).isEmpty)
-      copy(vdata = vdata - vn, inBBox = inBBox.unmapDom(vn))
-    else throw new SafeDeleteVertexException(vn, "vertex has adjancent edges")
+    if (!source.codf(vn).isEmpty || !target.codf(vn).isEmpty)
+      throw new SafeDeleteVertexException(vn, "vertex has adjancent edges")
+    if (!inBBox.domf(vn).isEmpty)
+      throw new SafeDeleteVertexException(vn, "vertex is in one or more bboxes")
+    copy(vdata = vdata - vn, inBBox = inBBox.unmapDom(vn))
   }
 
   def deleteVertex(vn: VName) = {
     var g = this
     for (e <- source.codf(vn)) g = g.deleteEdge(e)
     for (e <- target.codf(vn)) g = g.deleteEdge(e)
-    g.inBBox.domf(vn).foreach { bbname =>
-      if (g.inBBox.codf(bbname).size == 1) g = g.deleteBBox(bbname)
-      else g = g.copy( inBBox = g.inBBox.unmap(vn, bbname))
-    }
-    g.copy(vdata = vdata - vn)
+
+    g.copy(vdata = vdata - vn, inBBox = inBBox.unmapDom(vn))
   }
 
   // data updaters
