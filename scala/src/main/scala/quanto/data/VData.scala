@@ -73,10 +73,14 @@ case class NodeV(
   def isWireVertex = false
   def isBoundary = false
 
-  override def toJson = JsonObject(
-    "data" -> data,
-    "annotation" -> annotation).noEmpty
-}
+  override def toJson =
+    if (data == theory.defaultVertexData)
+      JsonObject("annotation" -> annotation).noEmpty
+    else
+      JsonObject(
+        "data" -> data,
+        "annotation" -> annotation).noEmpty
+ }
 
 /**
  * Companion object for the NodeV class. Contains methods to convert to/from 

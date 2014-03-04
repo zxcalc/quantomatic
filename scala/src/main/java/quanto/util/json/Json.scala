@@ -61,7 +61,7 @@ sealed abstract class Json {
   // treat objects like string lists of their keys and null like []
   def asArray: JsonArray = this match {
     case arr: JsonArray  => arr
-    case JsonObject(x)   => JsonArray(Vector() ++ x.keys.map(JsonString(_)))
+    case JsonObject(x)   => JsonArray(x.keys.toVector.sorted.map(JsonString(_)))
     case JsonNull()      => JsonArray()
     case other           => throw new JsonAccessException("Expected: JsonObject, JsonArray, or JsonNull", other)
   }

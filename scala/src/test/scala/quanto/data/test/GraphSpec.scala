@@ -193,8 +193,8 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       |{
       |  "node_vertices": ["n0", "n1", "n2", "n3", "n4", "n5"],
       |  "dir_edges": {
-      |    "e0": {"src": "n0", "tgt": "n1"},
-      |    "e1": {"tgt": "n2", "src": "n0"},
+      |    "e0": {"src": "n1", "tgt": "n0"},
+      |    "e1": {"src": "n2", "tgt": "n0"},
       |    "e2": {"src": "n1", "tgt": "n2"},
       |    "e3": {"src": "n0", "tgt": "n3"},
       |    "e4": {"src": "n4", "tgt": "n5"}
