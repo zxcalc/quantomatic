@@ -446,7 +446,7 @@ object Graph {
       Graph(GData(data, annotation, thy))
     })
   } catch {
-    case e: JsonAccessException => throw new GraphLoadException("Error reading JSON", e)
+    case e: Exception => throw new GraphLoadException("Error reading JSON", e)
   }
 
   def toJson(graph: Graph, thy: Theory = Theory.DefaultTheory): Json = {

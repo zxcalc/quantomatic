@@ -20,3 +20,5 @@ core/heaps
 /gui/bin/
 *~
 *#
+.ensime
+.ensime_lucene

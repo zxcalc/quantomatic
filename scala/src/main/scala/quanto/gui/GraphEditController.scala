@@ -23,6 +23,9 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
     _mouseState = s
   }
 
+  // a second controller that needs to by synchronised
+  var pairedController : Option[GraphEditController] = None
+
   // GUI component connections
   var vertexTypeLabel : Option[Label] = None
   var vertexTypeSelect : ComboBox[String] = _
