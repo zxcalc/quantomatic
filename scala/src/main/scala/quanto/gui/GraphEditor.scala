@@ -56,7 +56,7 @@ object GraphEditor extends SimpleSwingApplication {
       menu.contents += new MenuItem(this) { mnemonic = Key.N }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask))
       def apply() {
-        if (graphDocument.promptUnsaved()) graphDocument.newGraph()
+        if (graphDocument.promptUnsaved()) graphDocument.clear()
       }
     }
 
@@ -71,13 +71,13 @@ object GraphEditor extends SimpleSwingApplication {
         enabled = false
         def apply() {
           graphDocument.file match {
-            case Some(_) => graphDocument.saveGraph()
+            case Some(_) => graphDocument.save()
             case None    => graphDocument.showSaveAsDialog()
           }
         }
 
         listenTo(graphDocument)
-        reactions += { case GraphChanged(_) | GraphSaved(_) =>
+        reactions += { case DocumentChanged(_) | DocumentSaved(_) =>
           enabled = graphDocument.unsavedChanges
         }
       }
@@ -147,7 +147,7 @@ object GraphEditor extends SimpleSwingApplication {
 
     listenTo(graphDocument)
     reactions += {
-      case GraphChanged(_)|GraphSaved(_) =>
+      case DocumentChanged(_)|DocumentSaved(_) =>
         title = "QGraph Editor - " + graphDocument.titleDescription
     }
   }

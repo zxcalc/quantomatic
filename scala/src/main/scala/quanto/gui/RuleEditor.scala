@@ -33,7 +33,7 @@ object RuleEditor {
       menu.contents += new MenuItem(this) { mnemonic = Key.N }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask))
       def apply() {
-        if (graphDocument.promptUnsaved()) graphDocument.newGraph()
+        if (graphDocument.promptUnsaved()) graphDocument.clear()
       }
     }
 
@@ -48,13 +48,13 @@ object RuleEditor {
         enabled = false
         def apply() {
           graphDocument.file match {
-            case Some(_) => graphDocument.saveGraph()
+            case Some(_) => graphDocument.save()
             case None    => graphDocument.showSaveAsDialog()
           }
         }
 
         listenTo(graphDocument)
-        reactions += { case GraphChanged(_) | GraphSaved(_) =>
+        reactions += { case DocumentChanged(_) | DocumentSaved(_) =>
           enabled = graphDocument.unsavedChanges
         }
       }
@@ -124,7 +124,7 @@ object RuleEditor {
 
     listenTo(graphDocument)
     reactions += {
-      case GraphChanged(_)|GraphSaved(_) =>
+      case DocumentChanged(_)|DocumentSaved(_) =>
         title = "QGraph Editor - " + graphDocument.titleDescription
     }
   }
