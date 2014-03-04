@@ -2,7 +2,7 @@ package quanto.gui
 
 import quanto.gui.graphview.GraphView
 import quanto.data.{Theory, Graph}
-import scala.swing.{BorderPanel, ScrollPane}
+import scala.swing.{GridPanel, BorderPanel, ScrollPane}
 import scala.swing.event.UIElementResized
 
 class RuleEditPanel(val theory: Theory, val readOnly: Boolean)
@@ -10,42 +10,61 @@ extends BorderPanel
 with GraphEditControls
 {
   // GUI components
-  val graphView = new GraphView(theory) {
+  val lhsView = new GraphView(theory) {
     drawGrid = true
     focusable = true
   }
 
-  val graphDocument = new GraphDocument(graphView)
-  def graph = graphDocument.graph
-  def graph_=(g: Graph) { graphDocument.graph = g }
+  val rhsView = new GraphView(theory) {
+    drawGrid = true
+    focusable = true
+  }
 
-  // alias for graph_=, used in java code
-  def setGraph(g: Graph) { graph_=(g) }
+  val ruleDocument = new RuleDocument(lhsView, rhsView)
 
-  val graphEditController = new GraphEditController(graphView, readOnly) {
-    undoStack            = graphDocument.undoStack
+  val lhsController = new GraphEditController(lhsView, readOnly) {
+    undoStack            = ruleDocument.undoStack
     vertexTypeSelect     = VertexTypeSelect
     edgeTypeSelect       = EdgeTypeSelect
     edgeDirectedCheckBox = EdgeDirected
   }
 
-  def setMouseState(m: MouseState) { graphEditController.mouseState = m }
+  val rhsController = new GraphEditController(rhsView, readOnly) {
+    undoStack            = ruleDocument.undoStack
+    vertexTypeSelect     = VertexTypeSelect
+    edgeTypeSelect       = EdgeTypeSelect
+    edgeDirectedCheckBox = EdgeDirected
+  }
 
-  val GraphViewScrollPane = new ScrollPane(graphView)
+  def setMouseState(m: MouseState) {
+    lhsController.mouseState = m
+    rhsController.mouseState = m
+  }
+
+  val LhsScrollPane = new ScrollPane(lhsView)
+  val RhsScrollPane = new ScrollPane(rhsView)
+
+  object GraphViewPanel extends GridPanel(1,2) {
+    contents += LhsScrollPane
+    contents += RhsScrollPane
+  }
 
   if (!readOnly) {
     add(MainToolBar, BorderPanel.Position.North)
     add(BottomPanel, BorderPanel.Position.South)
   }
 
-  add(GraphViewScrollPane, BorderPanel.Position.Center)
+  add(GraphViewPanel, BorderPanel.Position.Center)
 
 
-  listenTo(GraphViewScrollPane, graphDocument)
+  listenTo(LhsScrollPane, RhsScrollPane, ruleDocument)
 
   reactions += {
-    case UIElementResized(GraphViewScrollPane) =>
-      graphView.resizeViewToFit()
-      graphView.repaint()
+    case UIElementResized(LhsScrollPane) =>
+      lhsView.resizeViewToFit()
+      lhsView.repaint()
+    case UIElementResized(RhsScrollPane) =>
+      rhsView.resizeViewToFit()
+      rhsView.repaint()
   }
 }

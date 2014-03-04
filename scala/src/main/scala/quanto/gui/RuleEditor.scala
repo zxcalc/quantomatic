@@ -9,7 +9,7 @@ import java.awt.event.KeyEvent
 import java.awt.Dimension
 
 
-object RuleEditor {
+object RuleEditor extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
   // println("loading theory " + GraphEditor.getClass.getResource("strategy_graph.qtheory"))
@@ -20,9 +20,8 @@ object RuleEditor {
   val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("redgreen.qtheory"))
   val thy = Theory.fromJson(Json.parse(thyFile))
 
-  val graphEditPanel = new GraphEditPanel(thy, readOnly = false)
-  val graphEditController = graphEditPanel.graphEditController
-  val graphDocument = graphEditPanel.graphDocument
+  val ruleEditPanel = new RuleEditPanel(thy, readOnly = false)
+  val ruleDocument = ruleEditPanel.ruleDocument
 
   // Main menu
 
@@ -33,36 +32,36 @@ object RuleEditor {
       menu.contents += new MenuItem(this) { mnemonic = Key.N }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask))
       def apply() {
-        if (graphDocument.promptUnsaved()) graphDocument.clear()
+        if (ruleDocument.promptUnsaved()) ruleDocument.clear()
       }
     }
 
     val OpenAction = new Action("Open...") {
       menu.contents += new MenuItem(this) { mnemonic = Key.O }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_O, CommandMask))
-      def apply() { graphDocument.showOpenDialog() }
+      def apply() { ruleDocument.showOpenDialog() }
 
       val SaveAction = new Action("Save") {
         menu.contents += new MenuItem(this) { mnemonic = Key.S }
         accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_S, CommandMask))
         enabled = false
         def apply() {
-          graphDocument.file match {
-            case Some(_) => graphDocument.save()
-            case None    => graphDocument.showSaveAsDialog()
+          ruleDocument.file match {
+            case Some(_) => ruleDocument.save()
+            case None    => ruleDocument.showSaveAsDialog()
           }
         }
 
-        listenTo(graphDocument)
+        listenTo(ruleDocument)
         reactions += { case DocumentChanged(_) | DocumentSaved(_) =>
-          enabled = graphDocument.unsavedChanges
+          enabled = ruleDocument.unsavedChanges
         }
       }
 
       val SaveAsAction = new Action("Save As...") {
         menu.contents += new MenuItem(this) { mnemonic = Key.A }
         accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_S, CommandMask | Key.Modifier.Shift))
-        def apply() { graphDocument.showSaveAsDialog() }
+        def apply() { ruleDocument.showSaveAsDialog() }
       }
     }
 
@@ -70,7 +69,7 @@ object RuleEditor {
       menu.contents += new MenuItem(this) { mnemonic = Key.Q }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Q, CommandMask))
       def apply() {
-        if (graphDocument.promptUnsaved()) sys.exit(0)
+        if (ruleDocument.promptUnsaved()) sys.exit(0)
       }
     }
   }
@@ -81,30 +80,33 @@ object RuleEditor {
     val UndoAction = new Action("Undo") with Reactor {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask))
       enabled = false
-      def apply() { graphDocument.undoStack.undo() }
+      def apply() { ruleDocument.undoStack.undo() }
 
-      listenTo(graphDocument.undoStack)
+      listenTo(ruleDocument.undoStack)
       reactions += { case _: UndoEvent =>
-        enabled = graphDocument.undoStack.canUndo
-        title   = "Undo " + graphDocument.undoStack.undoActionName.getOrElse("")
+        enabled = ruleDocument.undoStack.canUndo
+        title   = "Undo " + ruleDocument.undoStack.undoActionName.getOrElse("")
       }
     }
 
     val RedoAction = new Action("Redo") with Reactor {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask | Key.Modifier.Shift))
       enabled = false
-      def apply() { graphDocument.undoStack.redo() }
+      def apply() { ruleDocument.undoStack.redo() }
 
-      listenTo(graphDocument.undoStack)
+      listenTo(ruleDocument.undoStack)
       reactions += { case _: UndoEvent =>
-        enabled = graphDocument.undoStack.canRedo
-        title = "Redo " + graphDocument.undoStack.redoActionName.getOrElse("")
+        enabled = ruleDocument.undoStack.canRedo
+        title = "Redo " + ruleDocument.undoStack.redoActionName.getOrElse("")
       }
     }
 
     val LayoutAction = new Action("Layout Graph") with Reactor {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
-      def apply() { graphEditController.layoutGraph() }
+      def apply() {
+        ruleEditPanel.lhsController.layoutGraph()
+        ruleEditPanel.rhsController.layoutGraph()
+      }
     }
 
     contents += new MenuItem(UndoAction) { mnemonic = Key.U }
@@ -113,19 +115,19 @@ object RuleEditor {
   }
 
   def top = new MainFrame {
-    title = "QGraph Editor - " + graphDocument.titleDescription
-    contents = graphEditPanel
+    title = "QRule Editor - " + ruleDocument.titleDescription
+    contents = ruleEditPanel
 
-    size = new Dimension(800,800)
+    size = new Dimension(1000,800)
 
     menuBar = new MenuBar {
       contents += (FileMenu, EditMenu)
     }
 
-    listenTo(graphDocument)
+    listenTo(ruleDocument)
     reactions += {
       case DocumentChanged(_)|DocumentSaved(_) =>
-        title = "QGraph Editor - " + graphDocument.titleDescription
+        title = "QRule Editor - " + ruleDocument.titleDescription
     }
   }
 }
