@@ -16,8 +16,8 @@ object RuleEditor extends SimpleSwingApplication {
   // val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("strategy_graph.qtheory"))
   // val StringVETheory = Theory.fromJson(Json.parse(thyFile))
   //val StringVETheory = Theory.DefaultTheory
-  println("loading theory " + GraphEditor.getClass.getResource("redgreen.qtheory"))
-  val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("redgreen.qtheory"))
+  println("loading theory " + Theory.getClass.getResource("red_green.qtheory"))
+  val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("red_green.qtheory"))
   val thy = Theory.fromJson(Json.parse(thyFile))
 
   val ruleEditPanel = new RuleEditPanel(thy, readOnly = false)
