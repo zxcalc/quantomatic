@@ -7,20 +7,8 @@ import swing.event._
 import javax.swing.ImageIcon
 import quanto.util.swing.ToolBar
 
-class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends BorderPanel {
-  // GUI components
-  val graphView = new GraphView(theory) {
-    drawGrid = true
-    focusable = true
-  }
-
-  val graphDocument = new GraphDocument(graphView)
-  def graph = graphDocument.graph
-  def graph_=(g: Graph) { graphDocument.graph = g }
-
-  // alias for graph_=, used in java code
-  def setGraph(g: Graph) { graph_=(g) }
-
+trait GraphEditControls extends Reactor {
+  def theory : Theory
 
   val VertexTypeLabel  = new Label("Vertex Type:  ") { xAlignment = Alignment.Right; enabled = false }
   val VertexTypeSelect = new ComboBox(theory.vertexTypes.keys.toSeq :+ "<wire>") { enabled = false }
@@ -34,16 +22,8 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     contents += (EdgeTypeLabel, EdgeTypeSelect, EdgeDirected)
   }
 
-  val graphEditController = new GraphEditController(graphView, readOnly) {
-    undoStack            = graphDocument.undoStack
-    vertexTypeSelect     = VertexTypeSelect
-    edgeTypeSelect       = EdgeTypeSelect
-    edgeDirectedCheckBox = EdgeDirected
-  }
-
-  val GraphViewScrollPane = new ScrollPane(graphView)
-
   trait ToolButton { var tool: MouseState = SelectTool() }
+  def setMouseState(m : MouseState)
 
   val SelectButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("select-rectangular.png"), "Select")
@@ -71,34 +51,20 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     tool = AddBangBoxTool()
   }
 
-  val GraphToolGroup = new ButtonGroup(SelectButton, 
-                                       AddVertexButton,
-                                       AddBoundaryButton,
-                                       AddEdgeButton,
-                                       AddBangBoxButton)
+  val GraphToolGroup = new ButtonGroup(SelectButton,
+    AddVertexButton,
+    AddBoundaryButton,
+    AddEdgeButton,
+    AddBangBoxButton)
 
   val MainToolBar = new ToolBar {
     contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton)
   }
 
-
-  if (!readOnly) {
-    add(MainToolBar, BorderPanel.Position.North)
-    add(BottomPanel, BorderPanel.Position.South)
-  }
-
-  add(GraphViewScrollPane, BorderPanel.Position.Center)
-
-
-  listenTo(GraphViewScrollPane, graphDocument)
   GraphToolGroup.buttons.foreach(listenTo(_))
   reactions += {
-    case UIElementResized(GraphViewScrollPane) => {
-      graphView.resizeViewToFit()
-      graphView.repaint()
-    }
     case ButtonClicked(t: ToolButton) =>
-      graphEditController.mouseState = t.tool
+      setMouseState(t.tool)
       t.tool match {
         case SelectTool() =>
           VertexTypeLabel.enabled = false
@@ -126,5 +92,52 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
           EdgeDirected.enabled = false
         case _ =>
       }
+  }
+}
+
+
+class GraphEditPanel(val theory: Theory, val readOnly: Boolean = false)
+extends BorderPanel
+with GraphEditControls
+{
+
+  // GUI components
+  val graphView = new GraphView(theory) {
+    drawGrid = true
+    focusable = true
+  }
+
+  val graphDocument = new GraphDocument(graphView)
+  def graph = graphDocument.graph
+  def graph_=(g: Graph) { graphDocument.graph = g }
+
+  // alias for graph_=, used in java code
+  def setGraph(g: Graph) { graph_=(g) }
+
+  val graphEditController = new GraphEditController(graphView, readOnly) {
+    undoStack            = graphDocument.undoStack
+    vertexTypeSelect     = VertexTypeSelect
+    edgeTypeSelect       = EdgeTypeSelect
+    edgeDirectedCheckBox = EdgeDirected
+  }
+
+  def setMouseState(m: MouseState) { graphEditController.mouseState = m }
+
+  val GraphViewScrollPane = new ScrollPane(graphView)
+
+  if (!readOnly) {
+    add(MainToolBar, BorderPanel.Position.North)
+    add(BottomPanel, BorderPanel.Position.South)
+  }
+
+  add(GraphViewScrollPane, BorderPanel.Position.Center)
+
+
+  listenTo(GraphViewScrollPane, graphDocument)
+
+  reactions += {
+    case UIElementResized(GraphViewScrollPane) =>
+      graphView.resizeViewToFit()
+      graphView.repaint()
   }
 }
