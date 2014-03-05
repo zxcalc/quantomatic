@@ -134,6 +134,8 @@ object QuantoDerive extends SimpleSwingApplication {
               try {
                 val proj = Project.fromJson(Json.parse(projectFile), folder)
                 CurrentProject = Some(proj)
+                ProjectFileTree.root_=(folder)
+                println("changed root")
               } catch {
                 case _: ProjectLoadException =>
                   Dialog.showMessage(

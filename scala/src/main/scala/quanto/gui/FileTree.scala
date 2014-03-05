@@ -1,25 +1,41 @@
 package quanto.gui
 
 import scala.swing._
-import javax.swing.JTree
-import javax.swing.tree.{TreePath, TreeModel}
+import javax.swing.{SwingUtilities, JScrollPane, JTree}
+import javax.swing.tree.{DefaultTreeModel, TreePath, TreeModel}
 import java.io.File
-import javax.swing.event.{TreeModelEvent, TreeModelListener}
+import javax.swing.event._
+import java.awt.BorderLayout
 
 class FileTree extends BorderPanel {
-  val tree = new JTree
-  val scrollPane = new ScrollPane
+  val treeModel = new FileSystemModel(new File("/home/aleks"))
+  val fileTree = new JTree(treeModel)
 
-  scrollPane.peer.add(tree)
-  add(scrollPane, BorderPanel.Position.Center)
+  val scrollPane = new JScrollPane(fileTree)
 
-  class FileSystemModel(val root: File) extends TreeModel {
+  peer.add(scrollPane, BorderLayout.CENTER)
+  //add(scrollPane, BorderPanel.Position.Center)
+
+  fileTree.setEditable(true)
+  fileTree.addTreeSelectionListener(new TreeSelectionListener() {
+    def valueChanged(event: TreeSelectionEvent) {
+      val file = fileTree.getLastSelectedPathComponent.asInstanceOf[File]
+      println("FILE: " + file.getName)
+    }
+  })
+
+  def root_=(rootDir: String) {
+    treeModel.root = new File(rootDir)
+    SwingUtilities.updateComponentTreeUI(fileTree)
+  }
+
+  class FileSystemModel(var root: File) extends TreeModel {
     val listeners = collection.mutable.Set[TreeModelListener]()
     def getRoot = root
 
     def getChild(parent: AnyRef, index: Int): AnyRef = {
       val directory = parent.asInstanceOf[File]
-      new TreeFile(directory, directory.list()(index))
+      new TreeFile(directory, directory.list().reverse(index))
     }
 
     def getChildCount(parent : AnyRef) = {
