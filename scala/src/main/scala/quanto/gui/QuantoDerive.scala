@@ -48,11 +48,7 @@ object QuantoDerive extends SimpleSwingApplication {
         nameLabel.preferredSize = new Dimension(80, 30)
         LocationField.preferredSize = new Dimension(235, 30)
 
-        contents += Swing.HStrut(10)
-        contents += nameLabel
-        contents += Swing.HStrut(5)
-        contents += NameField
-        contents += Swing.HStrut(10)
+        contents += (Swing.HStrut(10), nameLabel, Swing.HStrut(5), NameField, Swing.HStrut(10))
       }
 
       contents += Swing.VStrut(5)
@@ -63,13 +59,8 @@ object QuantoDerive extends SimpleSwingApplication {
         LocationField.preferredSize = new Dimension(200, 30)
         BrowseButton.preferredSize = new Dimension(30, 30)
 
-        contents += Swing.HStrut(10)
-        contents += locationLabel
-        contents += Swing.HStrut(5)
-        contents += LocationField
-        contents += Swing.HStrut(5)
-        contents += BrowseButton
-        contents += Swing.HStrut(10)
+        contents += (Swing.HStrut(10), locationLabel, Swing.HStrut(5), LocationField,
+                     Swing.HStrut(5), BrowseButton, Swing.HStrut(10))
       }
 
       contents += Swing.VStrut(5)
@@ -79,19 +70,13 @@ object QuantoDerive extends SimpleSwingApplication {
         theoryLabel.preferredSize = new Dimension(80, 30)
         TheoryField.preferredSize = new Dimension(235, 30)
 
-        contents += Swing.HStrut(10)
-        contents += theoryLabel
-        contents += Swing.HStrut(5)
-        contents += TheoryField
-        contents += Swing.HStrut(10)
+        contents += (Swing.HStrut(10), theoryLabel, Swing.HStrut(5), TheoryField, Swing.HStrut(10))
       }
 
       contents += Swing.VStrut(5)
 
       contents += new BoxPanel(Orientation.Horizontal) {
-        contents += CreateButton
-        contents += Swing.HStrut(5)
-        contents += CancelButton
+        contents += (CreateButton, Swing.HStrut(5), CancelButton)
       }
 
       contents += Swing.VStrut(10)
@@ -191,7 +176,7 @@ object QuantoDerive extends SimpleSwingApplication {
     size = new Dimension(1000,800)
 
     menuBar = new MenuBar {
-      contents += (FileMenu)
+      contents += FileMenu
     }
   }
 }
