@@ -3,33 +3,41 @@ package quanto.gui
 import scala.swing._
 import java.awt.Dimension
 import scala.swing.event.{ButtonClicked, Key}
-import javax.swing.{Box, BoxLayout, KeyStroke}
+import javax.swing.KeyStroke
 import java.awt.event.KeyEvent
 import quanto.util.json.Json
-import quanto.data.Theory
+import quanto.data._
+import java.io.File
 
 
 object QuantoDerive extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
+  var CurrentProject : Option[Project] = None
+
+  val ProjectFileTree = new FileTree
+  ProjectFileTree.preferredSize = new Dimension(200,800)
+
   object Split extends SplitPane {
     orientation = Orientation.Vertical
-    contents_=(new BorderPanel(), new BorderPanel())
+    contents_=(ProjectFileTree, new BorderPanel())
   }
 
   class NewDialog extends Dialog {
-    val newDialog = this
     modal = true
     val NameField = new TextField()
     val LocationField = new TextField()
     val BrowseButton = new Button("...")
     // TODO: make these not hard-coded
-    val TheoryField = new ComboBox(List("red_green", "strategy_graph", "string_ve"))
+    val theoryNames = Vector("Red/Green", "Proof Strategy Graph", "String Vertex/Edge")
+    val theoryFiles = Vector("red_green.qtheory", "strategy_graph.qtheory", "string_ve.qtheory")
+
+    val TheoryField = new ComboBox(theoryNames)
     val CreateButton = new Button("Create")
     val CancelButton = new Button("Cancel")
     defaultButton = Some(CreateButton)
 
-    var result : Option[(Theory,String,String)] = None
+    var result : Option[(String,String,String)] = None
 
     val mainPanel = new BoxPanel(Orientation.Vertical) {
 
@@ -47,7 +55,7 @@ object QuantoDerive extends SimpleSwingApplication {
         contents += Swing.HStrut(10)
       }
 
-      contents += Swing.VStrut(10)
+      contents += Swing.VStrut(5)
 
       contents += new BoxPanel(Orientation.Horizontal) {
         val locationLabel = new Label("Location", null, Alignment.Right)
@@ -64,7 +72,7 @@ object QuantoDerive extends SimpleSwingApplication {
         contents += Swing.HStrut(10)
       }
 
-      contents += Swing.VStrut(10)
+      contents += Swing.VStrut(5)
 
       contents += new BoxPanel(Orientation.Horizontal) {
         val theoryLabel = new Label("Theory ", null, Alignment.Right)
@@ -78,7 +86,7 @@ object QuantoDerive extends SimpleSwingApplication {
         contents += Swing.HStrut(10)
       }
 
-      contents += Swing.VStrut(10)
+      contents += Swing.VStrut(5)
 
       contents += new BoxPanel(Orientation.Horizontal) {
         contents += CreateButton
@@ -95,8 +103,7 @@ object QuantoDerive extends SimpleSwingApplication {
 
     reactions += {
       case ButtonClicked(CreateButton) =>
-        val thyFile = new Json.Input(Theory.getClass.getResourceAsStream(TheoryField.selection + ".qtheory"))
-        result = Some((Theory.fromJson(Json.parse(thyFile)), NameField.text, LocationField.text))
+        result = Some((theoryFiles(TheoryField.peer.getSelectedIndex), NameField.text, LocationField.text))
         close()
       case ButtonClicked(CancelButton) =>
         close()
@@ -123,10 +130,8 @@ object QuantoDerive extends SimpleSwingApplication {
         d.open()
         d.result.map {
           case (thy,name,path) =>
-            printf("got a theory and location")
+            printf("got: " + (thy, name, path))
         }
-
-        val x = 2
       }
     }
 
@@ -134,9 +139,49 @@ object QuantoDerive extends SimpleSwingApplication {
       menu.contents += new MenuItem(this) { mnemonic = Key.O }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_O, CommandMask | Key.Modifier.Shift))
       def apply() {
-
+        val chooser = new FileChooser()
+        chooser.fileSelectionMode = FileChooser.SelectionMode.DirectoriesOnly
+        chooser.showOpenDialog(Split) match {
+          case FileChooser.Result.Approve =>
+            val folder = chooser.selectedFile.toString
+            val projectFile = new File(folder + "/main.qproject")
+            if (projectFile.exists) {
+              try {
+                val proj = Project.fromJson(Json.parse(projectFile), folder)
+                CurrentProject = Some(proj)
+              } catch {
+                case _: ProjectLoadException =>
+                  Dialog.showMessage(
+                    title = "Error",
+                    message = "Error loading project file",
+                    messageType = Dialog.Message.Error)
+                case e : Exception =>
+                  Dialog.showMessage(
+                    title = "Error",
+                    message = "Unexpected error when opening project",
+                    messageType = Dialog.Message.Error)
+                  e.printStackTrace()
+              }
+            } else {
+              Dialog.showMessage(
+                title = "Error",
+                message = "Folder does not contain a QuantoDerive project",
+                messageType = Dialog.Message.Error)
+            }
+          case _ =>
+        }
       }
     }
+
+    val QuitAction = new Action("Quit") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.Q }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Q, CommandMask))
+      def apply() {
+        //if (ruleDocument.promptUnsaved())
+          sys.exit(0)
+      }
+    }
+
   }
 
   def top = new MainFrame {
