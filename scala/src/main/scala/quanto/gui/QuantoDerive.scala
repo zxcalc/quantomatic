@@ -18,6 +18,7 @@ object QuantoDerive extends SimpleSwingApplication {
   }
 
   class NewDialog extends Dialog {
+    val newDialog = this
     modal = true
     val NameField = new TextField()
     val LocationField = new TextField()
@@ -30,7 +31,7 @@ object QuantoDerive extends SimpleSwingApplication {
 
     var result : Option[(Theory,String,String)] = None
 
-    contents = new BoxPanel(Orientation.Vertical) {
+    val mainPanel = new BoxPanel(Orientation.Vertical) {
 
       contents += Swing.VStrut(10)
 
@@ -45,7 +46,9 @@ object QuantoDerive extends SimpleSwingApplication {
         contents += NameField
         contents += Swing.HStrut(10)
       }
-      
+
+      contents += Swing.VStrut(10)
+
       contents += new BoxPanel(Orientation.Horizontal) {
         val locationLabel = new Label("Location", null, Alignment.Right)
         locationLabel.preferredSize = new Dimension(80, 30)
@@ -60,8 +63,6 @@ object QuantoDerive extends SimpleSwingApplication {
         contents += BrowseButton
         contents += Swing.HStrut(10)
       }
-
-      contents += Swing.VStrut(10)
 
       contents += Swing.VStrut(10)
 
@@ -88,6 +89,8 @@ object QuantoDerive extends SimpleSwingApplication {
       contents += Swing.VStrut(10)
     }
 
+    contents = mainPanel
+
     listenTo(BrowseButton, CreateButton, CancelButton)
 
     reactions += {
@@ -97,6 +100,14 @@ object QuantoDerive extends SimpleSwingApplication {
         close()
       case ButtonClicked(CancelButton) =>
         close()
+      case ButtonClicked(BrowseButton) =>
+        val chooser = new FileChooser()
+        chooser.fileSelectionMode = FileChooser.SelectionMode.DirectoriesOnly
+        chooser.showOpenDialog(mainPanel) match {
+          case FileChooser.Result.Approve =>
+            LocationField.text = chooser.selectedFile.toString
+          case _ =>
+        }
     }
   }
 
@@ -111,7 +122,7 @@ object QuantoDerive extends SimpleSwingApplication {
         d.centerOnScreen()
         d.open()
         d.result.map {
-          case (thy,loc) =>
+          case (thy,name,path) =>
             printf("got a theory and location")
         }
 
