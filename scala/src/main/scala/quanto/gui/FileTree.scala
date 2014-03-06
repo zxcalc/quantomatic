@@ -1,14 +1,14 @@
 package quanto.gui
 
 import scala.swing._
+import scala.collection.JavaConversions._
 import javax.swing.{SwingUtilities, JScrollPane, JTree}
-import javax.swing.tree.{DefaultTreeModel, TreePath, TreeModel}
+import javax.swing.tree.{TreePath, TreeModel}
 import java.io.File
 import javax.swing.event._
 import java.awt.BorderLayout
-import quanto.util.SwingTimer
-import collection.JavaConversions.enumerationAsScalaIterator
-import java.nio.file.{StandardWatchEventKinds, Paths}
+import quanto.util._
+import java.nio.file.{WatchEvent, FileSystems}
 
 class FileTree extends BorderPanel {
   val fileTreeModel = new FileTreeModel
@@ -30,56 +30,71 @@ class FileTree extends BorderPanel {
     }
   })
 
-  def refreshTree() {
-    //SwingUtilities.updateComponentTreeUI(fileTree)
+  def refreshTree(rootChanged: Boolean = false) {
+    if (!rootChanged) {
+      // save the tree state
+      val expanded = fileTree.getExpandedDescendants(fileTreeModel.rootPath)
+      val selected = fileTree.getSelectionPaths
 
-    // save the tree state
-    //val expanded = fileTree.getExpandedDescendants(fileTreeModel.rootPath)
-    //val selected = fileTree.getSelectionPaths
+      // reload the tree
+      fileTreeModel.fireTreeStructureChanged(fileTreeModel.rootPath)
 
-    // reload the tree
-    fileTreeModel.fireTreeStructureChanged(fileTreeModel.rootPath)
-
-    // restore the tree state
-    //if (expanded != null) expanded.foreach { fileTree.expandPath }
-    //fileTree.addSelectionPaths(selected)
-  }
-
-  class PollThread extends Thread {
-    var continue = true
-
-    def stopPolling() { continue = false }
-
-    override def run() {
-      fileTreeModel.root match {
-        case FileNode(d) =>
-          val dir = Paths.get(d.getPath)
-          val watcher = dir.getFileSystem.newWatchService()
-          dir.register(watcher,
-            StandardWatchEventKinds.ENTRY_CREATE,
-            StandardWatchEventKinds.ENTRY_DELETE,
-            StandardWatchEventKinds.ENTRY_MODIFY)
-          val watchKey = watcher.take()
-
-          while (continue) {
-            val events = watchKey.pollEvents()
-            if (!events.isEmpty && continue) { println("got events: " + events) } // do something here
-          }
-        case _ => // do nothing
-      }
+      // restore the tree state
+      if (expanded != null) expanded.foreach { fileTree.expandPath }
+      fileTree.addSelectionPaths(selected)
+    } else {
+      // just reload the tree
+      fileTreeModel.fireTreeStructureChanged(fileTreeModel.rootPath)
     }
   }
 
-  var pollThread: Option[PollThread] = None
+//  class PollThread extends Thread {
+//    var continue = true
+//
+//    def stopPolling() { continue = false }
+//
+//    override def run() {
+//      fileTreeModel.root match {
+//        case FileNode(d) =>
+//          val dir = Paths.get(d.getPath)
+//          val watcher = dir.getFileSystem.newWatchService()
+//          dir.register(watcher,
+//            StandardWatchEventKinds.ENTRY_CREATE,
+//            StandardWatchEventKinds.ENTRY_DELETE,
+//            StandardWatchEventKinds.ENTRY_MODIFY)
+//          val watchKey = watcher.take()
+//
+//          while (continue) {
+//            val events = watchKey.pollEvents()
+//            if (!events.isEmpty && continue) { println("got events: " + events) } // do something here
+//          }
+//        case _ => // do nothing
+//      }
+//    }
+//  }
+
+
+  var pollThread: Option[Thread] = None
 
   def root_=(rootDir: Option[String]) {
     rootDir match {
       case Some(dir) =>
         fileTreeModel.root = FileNode(new File(dir))
-        pollThread.map { _.stopPolling() }
-        pollThread = Some(new PollThread())
-        pollThread.map { _.start() }
-        refreshTree()
+
+        pollThread.map { _.interrupt() }
+        val rootPath = FileSystems.getDefault.getPath(dir)
+
+        val watcher = DirectoryWatcher(rootPath, recursive = true){ e =>
+          SwingUtilities.invokeLater(new Runnable {
+            def run() = refreshTree()
+          })
+        }
+
+        val watcherThread = new Thread(watcher)
+        watcherThread.start()
+        pollThread = Some(watcherThread)
+
+        refreshTree(rootChanged = true)
         fileTree.expandRow(0)
       case None =>
         fileTreeModel.root = EmptyNode
