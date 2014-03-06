@@ -48,32 +48,6 @@ class FileTree extends BorderPanel {
     }
   }
 
-//  class PollThread extends Thread {
-//    var continue = true
-//
-//    def stopPolling() { continue = false }
-//
-//    override def run() {
-//      fileTreeModel.root match {
-//        case FileNode(d) =>
-//          val dir = Paths.get(d.getPath)
-//          val watcher = dir.getFileSystem.newWatchService()
-//          dir.register(watcher,
-//            StandardWatchEventKinds.ENTRY_CREATE,
-//            StandardWatchEventKinds.ENTRY_DELETE,
-//            StandardWatchEventKinds.ENTRY_MODIFY)
-//          val watchKey = watcher.take()
-//
-//          while (continue) {
-//            val events = watchKey.pollEvents()
-//            if (!events.isEmpty && continue) { println("got events: " + events) } // do something here
-//          }
-//        case _ => // do nothing
-//      }
-//    }
-//  }
-
-
   var pollThread: Option[Thread] = None
 
   def root_=(rootDir: Option[String]) {

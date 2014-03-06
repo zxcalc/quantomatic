@@ -175,7 +175,7 @@ object QuantoDerive extends SimpleSwingApplication {
     title = "QuantoDerive"
     contents = Split
 
-    size = new Dimension(1000,800)
+    size = new Dimension(1280,800)
 
     menuBar = new MenuBar {
       contents += FileMenu
