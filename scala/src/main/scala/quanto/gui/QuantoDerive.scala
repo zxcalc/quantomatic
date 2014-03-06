@@ -1,14 +1,29 @@
 package quanto.gui
 
 import scala.swing._
-import java.awt.Dimension
+import java.awt._
 import scala.swing.event.{ButtonClicked, Key}
-import javax.swing.KeyStroke
+import javax.swing.{Icon, KeyStroke}
 import java.awt.event.KeyEvent
 import quanto.util.json.Json
 import quanto.data._
 import java.io.File
 import java.nio.file.{Files, Paths}
+import scala.swing.TabbedPane.Page
+import javax.swing.border.EmptyBorder
+import scala.swing.Color
+import scala.swing.Dialog
+import scala.swing.Insets
+import java.awt.Dimension
+import scala.swing.Button
+import scala.Some
+import scala.swing.Menu
+import scala.swing.Label
+import scala.swing.Graphics2D
+import scala.swing.MenuBar
+import scala.swing.Color
+import java.awt.Color
+import scala.swing.MenuItem
 
 
 object QuantoDerive extends SimpleSwingApplication {
@@ -17,92 +32,28 @@ object QuantoDerive extends SimpleSwingApplication {
   var CurrentProject : Option[Project] = None
 
   val ProjectFileTree = new FileTree
-  ProjectFileTree.preferredSize = new Dimension(200,800)
+  ProjectFileTree.preferredSize = new Dimension(250,360)
+
+
+
+  val MainTabbedPane = new ClosableTabbedPane
+  MainTabbedPane += ClosablePage("Test1", new BorderPanel) { true }
+  MainTabbedPane += ClosablePage("Test2", new BorderPanel) { true }
+  MainTabbedPane += ClosablePage("Test3", new BorderPanel) { true }
+
+
+
+  object LeftSplit extends SplitPane {
+    orientation = Orientation.Horizontal
+    contents_=(ProjectFileTree, new BorderPanel)
+  }
 
   object Split extends SplitPane {
     orientation = Orientation.Vertical
-    contents_=(ProjectFileTree, new BorderPanel())
+    contents_=(LeftSplit, MainTabbedPane)
   }
 
-  class NewDialog extends Dialog {
-    modal = true
-    val NameField = new TextField()
-    val LocationField = new TextField(System.getProperty("user.home"))
-    val BrowseButton = new Button("...")
-    // TODO: make these not hard-coded
-    val theoryNames = Vector("Red/Green", "Proof Strategy Graph", "String Vertex/Edge")
-    val theoryFiles = Vector("red_green", "strategy_graph", "string_ve")
 
-    val TheoryField = new ComboBox(theoryNames)
-    val CreateButton = new Button("Create")
-    val CancelButton = new Button("Cancel")
-    defaultButton = Some(CreateButton)
-
-    var result : Option[(String,String,String)] = None
-
-    val mainPanel = new BoxPanel(Orientation.Vertical) {
-
-      contents += Swing.VStrut(10)
-
-      contents += new BoxPanel(Orientation.Horizontal) {
-        val nameLabel = new Label("Name", null, Alignment.Right)
-        nameLabel.preferredSize = new Dimension(80, 30)
-        LocationField.preferredSize = new Dimension(235, 30)
-
-        contents += (Swing.HStrut(10), nameLabel, Swing.HStrut(5), NameField, Swing.HStrut(10))
-      }
-
-      contents += Swing.VStrut(5)
-
-      contents += new BoxPanel(Orientation.Horizontal) {
-        val locationLabel = new Label("Location", null, Alignment.Right)
-        locationLabel.preferredSize = new Dimension(80, 30)
-        LocationField.preferredSize = new Dimension(200, 30)
-        BrowseButton.preferredSize = new Dimension(30, 30)
-
-        contents += (Swing.HStrut(10), locationLabel, Swing.HStrut(5), LocationField,
-                     Swing.HStrut(5), BrowseButton, Swing.HStrut(10))
-      }
-
-      contents += Swing.VStrut(5)
-
-      contents += new BoxPanel(Orientation.Horizontal) {
-        val theoryLabel = new Label("Theory ", null, Alignment.Right)
-        theoryLabel.preferredSize = new Dimension(80, 30)
-        TheoryField.preferredSize = new Dimension(235, 30)
-
-        contents += (Swing.HStrut(10), theoryLabel, Swing.HStrut(5), TheoryField, Swing.HStrut(10))
-      }
-
-      contents += Swing.VStrut(5)
-
-      contents += new BoxPanel(Orientation.Horizontal) {
-        contents += (CreateButton, Swing.HStrut(5), CancelButton)
-      }
-
-      contents += Swing.VStrut(10)
-    }
-
-    contents = mainPanel
-
-    listenTo(BrowseButton, CreateButton, CancelButton)
-
-    reactions += {
-      case ButtonClicked(CreateButton) =>
-        result = Some((theoryFiles(TheoryField.peer.getSelectedIndex), NameField.text, LocationField.text))
-        close()
-      case ButtonClicked(CancelButton) =>
-        close()
-      case ButtonClicked(BrowseButton) =>
-        val chooser = new FileChooser()
-        chooser.fileSelectionMode = FileChooser.SelectionMode.DirectoriesOnly
-        chooser.showOpenDialog(mainPanel) match {
-          case FileChooser.Result.Approve =>
-            LocationField.text = chooser.selectedFile.toString
-          case _ =>
-        }
-    }
-  }
 
   val FileMenu = new Menu("File") { menu =>
     mnemonic = Key.F
@@ -111,7 +62,7 @@ object QuantoDerive extends SimpleSwingApplication {
       menu.contents += new MenuItem(this) { mnemonic = Key.N }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask | Key.Modifier.Shift))
       def apply() {
-        val d = new NewDialog()
+        val d = new NewProjectDialog()
         d.centerOnScreen()
         d.open()
         d.result.map {
@@ -192,7 +143,7 @@ object QuantoDerive extends SimpleSwingApplication {
     title = "QuantoDerive"
     contents = Split
 
-    size = new Dimension(1280,800)
+    size = new Dimension(1280,720)
 
     menuBar = new MenuBar {
       contents += FileMenu
