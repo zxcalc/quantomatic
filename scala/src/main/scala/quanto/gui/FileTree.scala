@@ -6,10 +6,12 @@ import javax.swing.tree.{DefaultTreeModel, TreePath, TreeModel}
 import java.io.File
 import javax.swing.event._
 import java.awt.BorderLayout
+import quanto.util.SwingTimer
+import collection.JavaConversions.enumerationAsScalaIterator
 
 class FileTree extends BorderPanel {
-  val treeModel = new FileTreeModel
-  val fileTree = new JTree(treeModel)
+  val fileTreeModel = new FileTreeModel
+  val fileTree = new JTree(fileTreeModel)
 
   val scrollPane = new JScrollPane(fileTree)
 
@@ -20,26 +22,47 @@ class FileTree extends BorderPanel {
   fileTree.addTreeSelectionListener(new TreeSelectionListener() {
     def valueChanged(event: TreeSelectionEvent) {
       fileTree.getLastSelectedPathComponent match {
-        case FileNode(file) => println("FILE: " + file.getName)
-        case EmptyNode => println("empty node")
-        case _ => println("something else")
+        case FileNode(file) =>
+        case EmptyNode =>
+        case _ =>
       }
     }
   })
 
+  def refreshTree() {
+    //SwingUtilities.updateComponentTreeUI(fileTree)
+
+    // save the tree state
+    val expanded = fileTree.getExpandedDescendants(fileTreeModel.rootPath)
+    val selected = fileTree.getSelectionPaths
+
+    // reload the tree
+    fileTreeModel.fireTreeStructureChanged(fileTreeModel.rootPath)
+
+    // restore the tree state
+    if (expanded != null) expanded.foreach { fileTree.expandPath }
+    fileTree.addSelectionPaths(selected)
+  }
+
+//  private def poll() {
+//    refreshTree()
+//    SwingTimer(2000) { poll() }
+//  }
+//  poll()
+
   def root_=(rootDir: Option[String]) {
     rootDir match {
       case Some(dir) =>
-        treeModel.root = FileNode(new File(dir))
-        SwingUtilities.updateComponentTreeUI(fileTree)
+        fileTreeModel.root = FileNode(new File(dir))
+        refreshTree()
         fileTree.expandRow(0)
       case None =>
-        treeModel.root = EmptyNode
-        SwingUtilities.updateComponentTreeUI(fileTree)
+        fileTreeModel.root = EmptyNode
+        refreshTree()
     }
   }
 
-  def root = treeModel.root match {
+  def root = fileTreeModel.root match {
     case FileNode(file) => Some(file.getPath)
     case _ => None
   }
@@ -58,9 +81,12 @@ class FileTree extends BorderPanel {
     val listeners = collection.mutable.Set[TreeModelListener]()
     def getRoot = root
 
+    def rootPath = new TreePath(root)
+
     def getChild(parent: AnyRef, index: Int): AnyRef = parent match {
       case FileNode(directory) =>
-        FileNode(new File(directory, directory.list().reverse(index)))
+        val files = directory.list().sorted
+        FileNode(new File(directory, files(index)))
       case _ => EmptyNode
     }
 
@@ -78,9 +104,10 @@ class FileTree extends BorderPanel {
       case _ => true
     }
 
-    def getIndexOfChild(parent: AnyRef, child: AnyRef) = parent match {
-      case FileNode(directory) =>
-        directory.list().reverse.indexOf(child.asInstanceOf[File].getName)
+    def getIndexOfChild(parent: AnyRef, child: AnyRef) = (parent, child) match {
+      case (FileNode(directory), FileNode(file)) =>
+        val files = directory.list().sorted
+        files.indexOf(file.getName)
       case _ => -1
     }
 
@@ -102,6 +129,11 @@ class FileTree extends BorderPanel {
     def fireTreeNodesChanged(parentPath: TreePath, indices: Array[Int], children: Array[AnyRef]) {
       val event = new TreeModelEvent(this, parentPath, indices, children)
       listeners.map { _.treeNodesChanged(event) }
+    }
+
+    def fireTreeStructureChanged(path: TreePath) {
+      val event = new TreeModelEvent(this, path, Array[Int](), Array[AnyRef]())
+      listeners.map { _.treeStructureChanged(event) }
     }
 
     def addTreeModelListener(listener: TreeModelListener) {
