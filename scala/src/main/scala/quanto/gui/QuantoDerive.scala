@@ -8,6 +8,7 @@ import java.awt.event.KeyEvent
 import quanto.util.json.Json
 import quanto.data._
 import java.io.File
+import java.nio.file.{Files, Paths}
 
 
 object QuantoDerive extends SimpleSwingApplication {
@@ -26,11 +27,11 @@ object QuantoDerive extends SimpleSwingApplication {
   class NewDialog extends Dialog {
     modal = true
     val NameField = new TextField()
-    val LocationField = new TextField()
+    val LocationField = new TextField(System.getProperty("user.home"))
     val BrowseButton = new Button("...")
     // TODO: make these not hard-coded
     val theoryNames = Vector("Red/Green", "Proof Strategy Graph", "String Vertex/Edge")
-    val theoryFiles = Vector("red_green.qtheory", "strategy_graph.qtheory", "string_ve.qtheory")
+    val theoryFiles = Vector("red_green", "strategy_graph", "string_ve")
 
     val TheoryField = new ComboBox(theoryNames)
     val CreateButton = new Button("Create")
@@ -115,7 +116,24 @@ object QuantoDerive extends SimpleSwingApplication {
         d.open()
         d.result.map {
           case (thy,name,path) =>
-            printf("got: " + (thy, name, path))
+            println("got: " + (thy, name, path))
+            val folder = Paths.get(path, name)
+            if (new File(folder.toString).exists()) {
+              Dialog.showMessage(
+                title = "Error",
+                message = "A file or folder already exists with that name.",
+                messageType = Dialog.Message.Error)
+            } else {
+              Files.createDirectories(folder)
+              Files.createDirectory(folder.resolve("graphs"))
+              Files.createDirectory(folder.resolve("axioms"))
+              Files.createDirectory(folder.resolve("theorems"))
+              Files.createDirectory(folder.resolve("derivations"))
+              val proj = Project(theoryFile = thy, rootFolder = folder.toString)
+              Project.toJson(proj).writeTo(new File(folder.resolve("main.qproject").toString))
+              CurrentProject = Some(proj)
+              ProjectFileTree.root = Some(folder.toString)
+            }
         }
       }
     }
@@ -135,7 +153,6 @@ object QuantoDerive extends SimpleSwingApplication {
                 val proj = Project.fromJson(Json.parse(projectFile), folder)
                 CurrentProject = Some(proj)
                 ProjectFileTree.root = Some(folder)
-                println("changed root")
               } catch {
                 case _: ProjectLoadException =>
                   Dialog.showMessage(
