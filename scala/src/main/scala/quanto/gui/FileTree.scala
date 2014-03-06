@@ -8,7 +8,7 @@ import javax.swing.event._
 import java.awt.BorderLayout
 
 class FileTree extends BorderPanel {
-  val treeModel = new FileSystemModel(new File("/home/aleks"))
+  val treeModel = new FileTreeModel
   val fileTree = new JTree(treeModel)
 
   val scrollPane = new JScrollPane(fileTree)
@@ -19,48 +19,84 @@ class FileTree extends BorderPanel {
   fileTree.setEditable(true)
   fileTree.addTreeSelectionListener(new TreeSelectionListener() {
     def valueChanged(event: TreeSelectionEvent) {
-      val file = fileTree.getLastSelectedPathComponent.asInstanceOf[File]
-      println("FILE: " + file.getName)
+      fileTree.getLastSelectedPathComponent match {
+        case FileNode(file) => println("FILE: " + file.getName)
+        case EmptyNode => println("empty node")
+        case _ => println("something else")
+      }
     }
   })
 
-  def root_=(rootDir: String) {
-    treeModel.root = new File(rootDir)
-    SwingUtilities.updateComponentTreeUI(fileTree)
+  def root_=(rootDir: Option[String]) {
+    rootDir match {
+      case Some(dir) =>
+        treeModel.root = FileNode(new File(dir))
+        SwingUtilities.updateComponentTreeUI(fileTree)
+        fileTree.expandRow(0)
+      case None =>
+        treeModel.root = EmptyNode
+        SwingUtilities.updateComponentTreeUI(fileTree)
+    }
   }
 
-  class FileSystemModel(var root: File) extends TreeModel {
+  def root = treeModel.root match {
+    case FileNode(file) => Some(file.getPath)
+    case _ => None
+  }
+
+  sealed abstract class TreeNode
+  case object EmptyNode extends TreeNode {
+    override def toString = "(No project open)"
+  }
+
+  case class FileNode(file: File) extends TreeNode {
+    override def toString = file.getName
+  }
+
+  class FileTreeModel extends TreeModel {
+    var root: TreeNode = EmptyNode
     val listeners = collection.mutable.Set[TreeModelListener]()
     def getRoot = root
 
-    def getChild(parent: AnyRef, index: Int): AnyRef = {
-      val directory = parent.asInstanceOf[File]
-      new TreeFile(directory, directory.list().reverse(index))
+    def getChild(parent: AnyRef, index: Int): AnyRef = parent match {
+      case FileNode(directory) =>
+        FileNode(new File(directory, directory.list().reverse(index)))
+      case _ => EmptyNode
     }
 
     def getChildCount(parent : AnyRef) = {
-      val file = parent.asInstanceOf[File]
-      if (file.isDirectory && file.list() != null) file.list().length
-      else 0
+      parent match {
+        case FileNode(file) =>
+          if (file.isDirectory && file.list() != null) file.list().length
+          else 0
+        case _ => 0
+      }
     }
 
-    def isLeaf(node: AnyRef) = node.asInstanceOf[File].isFile
+    def isLeaf(node: AnyRef) = node match {
+      case FileNode(file) => file.isFile
+      case _ => true
+    }
 
-    def getIndexOfChild(parent: AnyRef, child: AnyRef) = {
-      val directory = parent.asInstanceOf[File]
-      directory.list().indexOf(child.asInstanceOf[File].getName)
+    def getIndexOfChild(parent: AnyRef, child: AnyRef) = parent match {
+      case FileNode(directory) =>
+        directory.list().reverse.indexOf(child.asInstanceOf[File].getName)
+      case _ => -1
     }
 
     def valueForPathChanged(path: TreePath, value: AnyRef) {
-      val oldFile = path.getLastPathComponent.asInstanceOf[File]
-      val fileParentPath = oldFile.getParent
-      val targetFile = new File(fileParentPath, value.asInstanceOf[String])
-      oldFile.renameTo(targetFile)
-      val parent = new File(fileParentPath)
-      fireTreeNodesChanged(
-        path.getParentPath,
-        Array(getIndexOfChild(parent, targetFile)),
-        Array[AnyRef](targetFile))
+      path.getLastPathComponent match {
+        case FileNode(oldFile) =>
+          val fileParentPath = oldFile.getParent
+          val parentNode = FileNode(new File(fileParentPath))
+          val newNode = FileNode(new File(fileParentPath, value.asInstanceOf[String]))
+          oldFile.renameTo(newNode.file)
+          fireTreeNodesChanged(
+            path.getParentPath,
+            Array(getIndexOfChild(parentNode, newNode)),
+            Array[AnyRef](newNode))
+        case _ => // do nothing
+      }
     }
 
     def fireTreeNodesChanged(parentPath: TreePath, indices: Array[Int], children: Array[AnyRef]) {
@@ -74,10 +110,6 @@ class FileTree extends BorderPanel {
 
     def removeTreeModelListener(listener: TreeModelListener) {
       listeners -= listener
-    }
-
-    class TreeFile(parent: File, child: String) extends File(parent, child) {
-      override def toString = getName
     }
   }
 }
