@@ -136,9 +136,8 @@ class DirectoryWatcher(val path:Path, val recursive:Boolean, callback: WatchEven
         }
       }
     } catch {
-      case ie: InterruptedException => println("InterruptedException: " + ie)
-      case ioe: IOException => println("IOException: " + ioe)
-      case e: Exception => println("Exception: " + e)
+      case ie: InterruptedException => //println("InterruptedException: " + ie)
+      case e: Exception => e.printStackTrace()
     }
   }
 }

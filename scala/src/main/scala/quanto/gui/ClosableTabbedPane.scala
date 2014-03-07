@@ -1,39 +1,25 @@
 package quanto.gui
 
 import scala.swing._
-import scala.swing.TabbedPane.Page
 import javax.swing.border.EmptyBorder
 import javax.swing.Icon
 import java.awt.{Color, BasicStroke, RenderingHints, Graphics}
 
 class ClosablePage(title0: String, component0: Component, val closeAction: () => Boolean)
 extends TabbedPane.Page(title0, component0) {
+  lazy val tabComponent : ClosablePage.TabComponent = { new ClosablePage.TabComponent(this) }
+
   override def title_=(t: String) {
     super.title_=(t)
-    if (parent != null) {
-      parent.peer.getTabComponentAt(index) match {
-        case c : ClosableTabbedPane.TabComponent => c.title = t
-        case _ => // do nothing
-      }
-    }
+    tabComponent.title = t
   }
 }
 
 object ClosablePage {
   def apply(title: String, component: Component)(closeAction: => Boolean) =
     new ClosablePage(title, component, () => closeAction)
-}
 
-class ClosableTabbedPane extends TabbedPane { tabbedPane =>
-  def +=(p: ClosablePage) {
-    pages += p
-    println(peer.getTabCount)
-    peer.setTabComponentAt(pages.length-1, new ClosableTabbedPane.TabComponent(this, p).peer)
-  }
-}
-
-object ClosableTabbedPane {
-  class TabComponent(tabbedPane: ClosableTabbedPane, p: ClosablePage) extends BoxPanel(Orientation.Horizontal) {
+  class TabComponent(p: ClosablePage) extends BoxPanel(Orientation.Horizontal) {
     opaque = false
     val titleLabel = new Label(p.title)
     titleLabel.border = new EmptyBorder(new Insets(5,5,5,10))
@@ -46,7 +32,7 @@ object ClosableTabbedPane {
 
     val closeButton = new Button(Action("") {
       if (p.closeAction()) {
-        tabbedPane.pages -= p
+        if (p.parent != null) p.parent.pages -= p
         printf("got successful close")
       } else {
         printf("tried to close")
@@ -77,3 +63,12 @@ private class CloseIcon(rollover : Boolean) extends Icon {
     g2.setStroke(savedStroke)
   }
 }
+
+class ClosableTabbedPane extends TabbedPane { tabbedPane =>
+  def +=(p: ClosablePage) {
+    pages += p
+    peer.setTabComponentAt(pages.length-1, p.tabComponent.peer)
+  }
+}
+
+

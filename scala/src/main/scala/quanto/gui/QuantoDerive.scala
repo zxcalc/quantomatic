@@ -1,33 +1,25 @@
 package quanto.gui
 
+
 import scala.swing._
-import java.awt._
-import scala.swing.event.{ButtonClicked, Key}
-import javax.swing.{Icon, KeyStroke}
+import scala.swing.event.Key
+import javax.swing.{UIManager, KeyStroke}
 import java.awt.event.KeyEvent
 import quanto.util.json.Json
 import quanto.data._
 import java.io.File
 import java.nio.file.{Files, Paths}
-import scala.swing.TabbedPane.Page
-import javax.swing.border.EmptyBorder
-import scala.swing.Color
-import scala.swing.Dialog
-import scala.swing.Insets
-import java.awt.Dimension
-import scala.swing.Button
-import scala.Some
-import scala.swing.Menu
-import scala.swing.Label
-import scala.swing.Graphics2D
-import scala.swing.MenuBar
-import scala.swing.Color
-import java.awt.Color
-import scala.swing.MenuItem
+import javax.swing.plaf.metal.MetalLookAndFeel
 
 
 object QuantoDerive extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
+
+  try {
+    UIManager.setLookAndFeel(new MetalLookAndFeel) // tabs in OSX PLAF look bad
+  } catch {
+    case e: Exception => e.printStackTrace()
+  }
 
   var CurrentProject : Option[Project] = None
 
@@ -39,7 +31,10 @@ object QuantoDerive extends SimpleSwingApplication {
   val MainTabbedPane = new ClosableTabbedPane
   MainTabbedPane += ClosablePage("Test1", new BorderPanel) { true }
   MainTabbedPane += ClosablePage("Test2", new BorderPanel) { true }
-  MainTabbedPane += ClosablePage("Test3", new BorderPanel) { true }
+
+  val p = ClosablePage("Test3", new BorderPanel) { true }
+  MainTabbedPane += p
+  p.title = "foo"
 
 
 
