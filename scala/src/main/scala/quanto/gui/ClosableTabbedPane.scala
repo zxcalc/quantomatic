@@ -6,8 +6,18 @@ import javax.swing.border.EmptyBorder
 import javax.swing.Icon
 import java.awt.{Color, BasicStroke, RenderingHints, Graphics}
 
-class ClosablePage(title: String, component: Component, val closeAction: () => Boolean)
-extends TabbedPane.Page(title, component)
+class ClosablePage(title0: String, component0: Component, val closeAction: () => Boolean)
+extends TabbedPane.Page(title0, component0) {
+  override def title_=(t: String) {
+    super.title_=(t)
+    if (parent != null) {
+      parent.peer.getTabComponentAt(index) match {
+        case c : ClosableTabbedPane.TabComponent => c.title = t
+        case _ => // do nothing
+      }
+    }
+  }
+}
 
 object ClosablePage {
   def apply(title: String, component: Component)(closeAction: => Boolean) =
@@ -18,15 +28,22 @@ class ClosableTabbedPane extends TabbedPane { tabbedPane =>
   def +=(p: ClosablePage) {
     pages += p
     println(peer.getTabCount)
-
-    peer.setTabComponentAt(pages.length-1, new TabComponent(p).peer)
+    peer.setTabComponentAt(pages.length-1, new ClosableTabbedPane.TabComponent(this, p).peer)
   }
+}
 
-  private class TabComponent(p: ClosablePage) extends BoxPanel(Orientation.Horizontal) {
+object ClosableTabbedPane {
+  class TabComponent(tabbedPane: ClosableTabbedPane, p: ClosablePage) extends BoxPanel(Orientation.Horizontal) {
     opaque = false
     val titleLabel = new Label(p.title)
     titleLabel.border = new EmptyBorder(new Insets(5,5,5,10))
     contents += titleLabel
+
+    def title = titleLabel.text
+    def title_=(t: String) {
+      titleLabel.text = t
+    }
+
     val closeButton = new Button(Action("") {
       if (p.closeAction()) {
         tabbedPane.pages -= p
