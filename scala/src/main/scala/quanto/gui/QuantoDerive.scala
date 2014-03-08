@@ -40,6 +40,12 @@ object QuantoDerive extends SimpleSwingApplication {
 
   val MainTabbedPane = new ClosableTabbedPane
 
+  def currentDocument: Option[HasDocument] =
+    MainTabbedPane.currentContent match {
+      case Some(doc: HasDocument) => Some(doc)
+      case _ => None
+    }
+
   object LeftSplit extends SplitPane {
     orientation = Orientation.Horizontal
     contents_=(ProjectFileTree, new BorderPanel)
@@ -162,10 +168,7 @@ object QuantoDerive extends SimpleSwingApplication {
                   e.printStackTrace()
               }
             } else {
-              Dialog.showMessage(
-                title = "Error",
-                message = "Folder does not contain a QuantoDerive project",
-                messageType = Dialog.Message.Error)
+              error("Folder does not contain a QuantoDerive project")
             }
           case _ =>
         }
@@ -182,6 +185,81 @@ object QuantoDerive extends SimpleSwingApplication {
           sys.exit(0)
       }
     }
+  }
+
+  val EditMenu = new Menu("Edit") { menu =>
+    mnemonic = Key.E
+
+    val UndoAction = new Action("Undo") with Reactor {
+      menu.contents += new MenuItem(this) { mnemonic = Key.U }
+
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask))
+      enabled = false
+      def apply() = currentDocument.map { doc =>
+        doc.document.undoStack.undo()
+      }
+
+      def updateUndoCommand() =
+        currentDocument match {
+          case Some(doc) =>
+            enabled = doc.document.undoStack.canUndo
+            title = "Undo " + doc.document.undoStack.undoActionName.getOrElse("")
+          case None =>
+            enabled = false
+            title = "Undo"
+        }
+
+      listenTo(MainTabbedPane.selection)
+
+      reactions += {
+        case _: UndoEvent => updateUndoCommand()
+        case SelectionChanged(_) =>
+          currentDocument.map { doc => listenTo(doc.document.undoStack) }
+          updateUndoCommand()
+      }
+    }
+
+    val RedoAction = new Action("Redo") with Reactor {
+      menu.contents += new MenuItem(this) { mnemonic = Key.R }
+
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask | Key.Modifier.Shift))
+      enabled = false
+
+      def apply() = currentDocument.map { doc =>
+        doc.document.undoStack.redo()
+      }
+
+      def updateRedoCommand() =
+        currentDocument match {
+          case Some(doc) =>
+            enabled = doc.document.undoStack.canRedo
+            title = "Redo " + doc.document.undoStack.redoActionName.getOrElse("")
+          case None =>
+            enabled = false
+            title = "Redo"
+        }
+
+      listenTo(MainTabbedPane.selection)
+
+      reactions += {
+        case _: UndoEvent => updateRedoCommand()
+        case SelectionChanged(_) =>
+          currentDocument.map { doc => listenTo(doc.document.undoStack) }
+          updateRedoCommand()
+      }
+    }
+
+//    val LayoutAction = new Action("Layout Graph") with Reactor {
+//      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
+//      def apply() {
+//        ruleEditPanel.lhsController.layoutGraph()
+//        ruleEditPanel.rhsController.layoutGraph()
+//      }
+//    }
+
+
+
+//    contents += new MenuItem(LayoutAction) { mnemonic = Key.L }
   }
 
   listenTo(ProjectFileTree, MainTabbedPane.selection)
@@ -243,7 +321,7 @@ object QuantoDerive extends SimpleSwingApplication {
     size = new Dimension(1280,720)
 
     menuBar = new MenuBar {
-      contents += FileMenu
+      contents += (FileMenu, EditMenu)
     }
   }
 }
