@@ -6,7 +6,6 @@ import event.Key
 import quanto.data._
 import javax.swing.{JToolBar, KeyStroke}
 import java.awt.event.KeyEvent
-import Names._
 import quanto.util.json.Json
 
 

@@ -9,24 +9,27 @@ import javax.swing.event._
 import java.awt.BorderLayout
 import quanto.util._
 import java.nio.file.{WatchEvent, FileSystems}
+import java.awt.event.{MouseEvent, MouseAdapter}
 
 class FileTree extends BorderPanel {
   val fileTreeModel = new FileTreeModel
   val fileTree = new JTree(fileTreeModel)
-
   val scrollPane = new JScrollPane(fileTree)
+  var fileOpenAction : File => Unit = { f => }
 
   peer.add(scrollPane, BorderLayout.CENTER)
   //add(scrollPane, BorderPanel.Position.Center)
 
   fileTree.setEditable(true)
-  fileTree.addTreeSelectionListener(new TreeSelectionListener() {
-    def valueChanged(event: TreeSelectionEvent) {
-      fileTree.getLastSelectedPathComponent match {
-        case FileNode(file) =>
-        case EmptyNode =>
-        case _ =>
-      }
+
+  fileTree.addMouseListener(new MouseAdapter {
+    override def mousePressed(e: MouseEvent) {
+      if (e.getClickCount == 2)
+        fileTree.getLastSelectedPathComponent match {
+          case FileNode(file) =>
+            println("got double click on: " + file.getName)
+          case _ =>
+        }
     }
   })
 
