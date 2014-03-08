@@ -69,6 +69,10 @@ class ClosableTabbedPane extends TabbedPane { tabbedPane =>
     pages += p
     peer.setTabComponentAt(pages.length-1, p.tabComponent.peer)
   }
+
+  def currentContent: Option[Component] =
+    if (selection.index == -1) None
+    else Some(selection.page.content)
 }
 
 

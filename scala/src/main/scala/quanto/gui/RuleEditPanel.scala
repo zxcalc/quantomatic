@@ -5,9 +5,10 @@ import quanto.data.{Theory, Graph}
 import scala.swing.{GridPanel, BorderPanel, ScrollPane}
 import scala.swing.event.UIElementResized
 
-class RuleEditPanel(val theory: Theory, val readOnly: Boolean)
+class RuleEditPanel(val theory: Theory, val readOnly: Boolean = false)
 extends BorderPanel
 with GraphEditControls
+with HasDocument
 {
   // GUI components
   val lhsView = new GraphView(theory) {
@@ -20,17 +21,17 @@ with GraphEditControls
     focusable = true
   }
 
-  val ruleDocument = new RuleDocument(lhsView, rhsView)
+  val document = new RuleDocument(lhsView, rhsView)
 
   val lhsController = new GraphEditController(lhsView, readOnly) {
-    undoStack            = ruleDocument.undoStack
+    undoStack            = document.undoStack
     vertexTypeSelect     = VertexTypeSelect
     edgeTypeSelect       = EdgeTypeSelect
     edgeDirectedCheckBox = EdgeDirected
   }
 
   val rhsController = new GraphEditController(rhsView, readOnly) {
-    undoStack            = ruleDocument.undoStack
+    undoStack            = document.undoStack
     vertexTypeSelect     = VertexTypeSelect
     edgeTypeSelect       = EdgeTypeSelect
     edgeDirectedCheckBox = EdgeDirected
@@ -57,7 +58,7 @@ with GraphEditControls
   add(GraphViewPanel, BorderPanel.Position.Center)
 
 
-  listenTo(LhsScrollPane, RhsScrollPane, ruleDocument)
+  listenTo(LhsScrollPane, RhsScrollPane, document)
 
   reactions += {
     case UIElementResized(LhsScrollPane) =>

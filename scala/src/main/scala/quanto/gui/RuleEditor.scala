@@ -21,7 +21,7 @@ object RuleEditor extends SimpleSwingApplication {
   val thy = Theory.fromJson(Json.parse(thyFile))
 
   val ruleEditPanel = new RuleEditPanel(thy, readOnly = false)
-  val ruleDocument = ruleEditPanel.ruleDocument
+  val ruleDocument = ruleEditPanel.document
 
   // Main menu
 

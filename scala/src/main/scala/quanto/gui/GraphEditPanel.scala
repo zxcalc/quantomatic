@@ -99,6 +99,7 @@ trait GraphEditControls extends Reactor {
 class GraphEditPanel(val theory: Theory, val readOnly: Boolean = false)
 extends BorderPanel
 with GraphEditControls
+with HasDocument
 {
 
   // GUI components
@@ -107,15 +108,15 @@ with GraphEditControls
     focusable = true
   }
 
-  val graphDocument = new GraphDocument(graphView)
-  def graph = graphDocument.graph
-  def graph_=(g: Graph) { graphDocument.graph = g }
+  val document = new GraphDocument(graphView)
+  def graph = document.graph
+  def graph_=(g: Graph) { document.graph = g }
 
   // alias for graph_=, used in java code
   def setGraph(g: Graph) { graph_=(g) }
 
   val graphEditController = new GraphEditController(graphView, readOnly) {
-    undoStack            = graphDocument.undoStack
+    undoStack            = document.undoStack
     vertexTypeSelect     = VertexTypeSelect
     edgeTypeSelect       = EdgeTypeSelect
     edgeDirectedCheckBox = EdgeDirected
@@ -133,7 +134,7 @@ with GraphEditControls
   add(GraphViewScrollPane, BorderPanel.Position.Center)
 
 
-  listenTo(GraphViewScrollPane, graphDocument)
+  listenTo(GraphViewScrollPane, document)
 
   reactions += {
     case UIElementResized(GraphViewScrollPane) =>

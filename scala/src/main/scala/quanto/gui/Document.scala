@@ -5,6 +5,7 @@ import java.io.{FileNotFoundException, IOException, File}
 import scala.swing.event.Event
 import quanto.data.{RuleLoadException, GraphLoadException}
 import quanto.util.json.JsonParseException
+import javax.swing.filechooser.FileNameExtensionFilter
 
 abstract class DocumentEvent extends Event
 case class DocumentChanged(sender: Document) extends DocumentEvent
@@ -19,6 +20,8 @@ abstract class Document extends Publisher {
   var file: Option[File] = None
   val undoStack = new UndoStack
   def unsavedChanges : Boolean
+  def description: String
+  def fileExtension: String
 
   protected def clearDocument()
   protected def saveDocument(f: File)
@@ -51,10 +54,13 @@ abstract class Document extends Publisher {
     }
   }
 
-  def load(f : File) {
+  def load(f : File) = {
+    var success = false
     try {
       file = Some(f)
       loadDocument(f)
+      publish(DocumentChanged(this))
+      success = true
     } catch {
       case _: JsonParseException => errorDialog("load", "mal-formed JSON")
       case _: GraphLoadException => errorDialog("load", "invalid graph")
@@ -65,6 +71,8 @@ abstract class Document extends Publisher {
         errorDialog("load", "unexpected error")
         e.printStackTrace()
     }
+
+    success
   }
 
   def titleDescription =
@@ -93,8 +101,10 @@ abstract class Document extends Publisher {
       messageType = Dialog.Message.Error)
   }
 
-  def showSaveAsDialog() {
+  def showSaveAsDialog(rootDir: Option[String] = None) {
     val chooser = new FileChooser()
+    rootDir.map { d => chooser.peer.setCurrentDirectory(new File(d)) }
+    chooser.fileFilter = new FileNameExtensionFilter("Quantomatic " + description + " File (*." + fileExtension + ")", fileExtension)
     chooser.showSaveDialog(parent) match {
       case FileChooser.Result.Approve =>
         if (promptExists(chooser.selectedFile)) save(Some(chooser.selectedFile))
@@ -102,9 +112,11 @@ abstract class Document extends Publisher {
     }
   }
 
-  def showOpenDialog() {
+  def showOpenDialog(rootDir: Option[String] = None) {
     if (promptUnsaved()) {
       val chooser = new FileChooser()
+      rootDir.map { d => chooser.peer.setCurrentDirectory(new File(d)) }
+      chooser.fileFilter = new FileNameExtensionFilter("Quantomatic " + description + " File (*." + fileExtension + ")", fileExtension)
       chooser.showOpenDialog(parent) match {
         case FileChooser.Result.Approve =>
           load(chooser.selectedFile)
@@ -119,4 +131,8 @@ abstract class Document extends Publisher {
     case UndoRegistered(_) =>
       publish(DocumentChanged(this))
   }
+}
+
+trait HasDocument {
+  def document: Document
 }

@@ -22,7 +22,7 @@ object GraphEditor extends SimpleSwingApplication {
 
   val graphEditPanel = new GraphEditPanel(thy, readOnly = false)
   val graphEditController = graphEditPanel.graphEditController
-  val graphDocument = graphEditPanel.graphDocument
+  val graphDocument = graphEditPanel.document
 
 //  graphEditPanel.graphView.graph = (Graph(thy)
 //    addVertex ("b0", WireV())

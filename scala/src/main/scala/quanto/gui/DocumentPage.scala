@@ -1,20 +1,31 @@
 package quanto.gui
 
 import scala.swing._
-import quanto.data._
+import quanto.data.Theory
 
-class DocumentPage(component0: Component, val document: Document)
-extends ClosablePage(document.titleDescription, component0, closeAction = () => { document.promptUnsaved() } )
+abstract class DocumentPage(component0: Component with HasDocument)
+extends ClosablePage(
+  component0.document.titleDescription,
+  component0,
+  closeAction = () => { component0.document.promptUnsaved() } )
 with Reactor
 {
+  val document = component0.document
   listenTo(document)
   reactions += {
     case DocumentChanged(_)|DocumentSaved(_) =>
       title = document.titleDescription
   }
+
+  def documentType: String
 }
 
-class GraphDocumentPage(graphEditPanel: GraphEditPanel)
-extends DocumentPage(graphEditPanel, graphEditPanel.graphDocument)
+class GraphDocumentPage(val theory: Theory)
+extends DocumentPage(new GraphEditPanel(theory)) {
+  val documentType = "Graph"
+}
 
-
+class RuleDocumentPage(val theory: Theory)
+extends DocumentPage(new RuleEditPanel(theory)) {
+  val documentType = "Rule"
+}

@@ -6,6 +6,9 @@ import quanto.data.{Rule, Graph}
 import quanto.util.json.Json
 
 class RuleDocument(lhsView: GraphView, rhsView: GraphView) extends Document {
+  val description = "Rule"
+  val fileExtension = "qrule"
+
   protected def parent = lhsView
   private var storedRule: Rule = Rule(Graph(lhsView.theory), Graph(rhsView.theory))
   def unsavedChanges =

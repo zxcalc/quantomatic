@@ -7,6 +7,9 @@ import quanto.util.json.Json
 
 
 class GraphDocument(view: GraphView) extends Document {
+  val description = "Graph"
+  val fileExtension = "qgraph"
+
   // the graph, as it was last saved or loaded
   private var storedGraph: Graph = Graph(view.theory)
   def unsavedChanges = storedGraph != view.graph

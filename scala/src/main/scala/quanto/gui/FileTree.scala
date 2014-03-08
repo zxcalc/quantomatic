@@ -4,18 +4,23 @@ import scala.swing._
 import scala.collection.JavaConversions._
 import javax.swing.{SwingUtilities, JScrollPane, JTree}
 import javax.swing.tree.{TreePath, TreeModel}
-import java.io.File
+import java.io.{FilenameFilter, File}
 import javax.swing.event._
 import java.awt.BorderLayout
 import quanto.util._
-import java.nio.file.{WatchEvent, FileSystems}
+import java.nio.file.FileSystems
 import java.awt.event.{MouseEvent, MouseAdapter}
+import scala.swing.event.Event
+
+abstract class FileTreeEvent extends Event
+case class FileOpened(file: File) extends FileTreeEvent
 
 class FileTree extends BorderPanel {
   val fileTreeModel = new FileTreeModel
   val fileTree = new JTree(fileTreeModel)
   val scrollPane = new JScrollPane(fileTree)
   var fileOpenAction : File => Unit = { f => }
+  var filenameFilter : Option[FilenameFilter] = None
 
   peer.add(scrollPane, BorderLayout.CENTER)
   //add(scrollPane, BorderPanel.Position.Center)
@@ -26,8 +31,7 @@ class FileTree extends BorderPanel {
     override def mousePressed(e: MouseEvent) {
       if (e.getClickCount == 2)
         fileTree.getLastSelectedPathComponent match {
-          case FileNode(file) =>
-            println("got double click on: " + file.getName)
+          case FileNode(file) => publish(FileOpened(file))
           case _ =>
         }
     }
@@ -102,7 +106,7 @@ class FileTree extends BorderPanel {
 
     def getChild(parent: AnyRef, index: Int): AnyRef = parent match {
       case FileNode(directory) =>
-        val files = directory.list().sorted
+        val files = directory.list(filenameFilter.getOrElse(null)).sorted
         FileNode(new File(directory, files(index)))
       case _ => EmptyNode
     }
@@ -110,7 +114,8 @@ class FileTree extends BorderPanel {
     def getChildCount(parent : AnyRef) = {
       parent match {
         case FileNode(file) =>
-          if (file.isDirectory && file.list() != null) file.list().length
+          if (file.isDirectory && file.list(filenameFilter.getOrElse(null)) != null)
+            file.list(filenameFilter.getOrElse(null)).length
           else 0
         case _ => 0
       }
@@ -123,7 +128,7 @@ class FileTree extends BorderPanel {
 
     def getIndexOfChild(parent: AnyRef, child: AnyRef) = (parent, child) match {
       case (FileNode(directory), FileNode(file)) =>
-        val files = directory.list().sorted
+        val files = directory.list(filenameFilter.getOrElse(null)).sorted
         files.indexOf(file.getName)
       case _ => -1
     }
