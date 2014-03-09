@@ -38,6 +38,7 @@ case class GName(s: String) extends StrName[GName] { protected val mk = GName(_)
 case class VName(s: String) extends StrName[VName] { protected val mk = VName(_) }
 case class EName(s: String) extends StrName[EName] { protected val mk = EName(_) }
 case class BBName(s: String) extends StrName[BBName] { protected val mk = BBName(_) }
+case class DSName(s: String) extends StrName[BBName] { protected val mk = DSName(_) }
 
 class DuplicateNameException[N <: Name[N]](ty: String, val name: N)
   extends Exception("Duplicate " + ty + " name: '" + name + "'")
@@ -85,11 +86,13 @@ object Names {
   implicit def stringToVName(s: String)  = VName(s)
   implicit def stringToEName(s: String)  = EName(s)
   implicit def stringToBBName(s: String) = BBName(s)
+  implicit def stringToDSName(s: String) = DSName(s)
 
   implicit def stringSetToGNameSet(set: Set[String]) = set map (GName(_))
   implicit def stringSetToVNameSet(set: Set[String]) = set map (VName(_))
   implicit def stringSetToENameSet(set: Set[String]) = set map (EName(_))
   implicit def stringSetToBBNameSet(set: Set[String]) = set map (BBName(_))
+  implicit def stringSetToDSNameSet(set: Set[String]) = set map (DSName(_))
 
   // edge creation methods take a pair of vertices
   implicit def stringPairToVNamePair(t: (String,String)) = (VName(t._1), VName(t._2))
@@ -104,4 +107,5 @@ object Names {
   implicit val defaultEName = EName("e0")
   implicit val defaultGName = GName("g0")
   implicit val defaultBBName = BBName("bx0")
+  implicit val defaultDSName = DSName("0")
 }
