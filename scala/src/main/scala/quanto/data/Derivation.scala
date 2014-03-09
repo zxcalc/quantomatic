@@ -22,12 +22,12 @@ case class DStep(name: DSName,
 object DStep {
   def toJson(dstep: DStep, thy: Theory = Theory.DefaultTheory): Json = {
     JsonObject(
-      "name" -> dstep.name,
-      "parent" -> dstep.parent,
+      "name" -> dstep.name.toString,
+      "parent" -> dstep.parent.map(_.toString),
       "rule" -> dstep.rule,
       "rule_variant" -> (dstep.variant match { case RuleNormal => JsonNull; case v => v.toString }),
-      "matched" -> JsonObject("vertices" -> dstep.matchedVertices),
-      "replaced" -> JsonObject("vertices" -> dstep.replacedVertices),
+      "matched" -> JsonObject("vertices" -> dstep.matchedVertices.map(_.toString)),
+      "replaced" -> JsonObject("vertices" -> dstep.replacedVertices.map(_.toString)),
       "graph" -> Graph.toJson(dstep.graph, thy)
     ).noEmpty
   }

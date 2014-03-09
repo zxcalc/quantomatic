@@ -99,7 +99,7 @@ object NodeV {
     "annotation" -> d.annotation).noEmpty
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): NodeV = {
     val data = json.getOrElse("data", thy.defaultVertexData).asObject
-    val annotation = json ?# "annotation"
+    val annotation = (json ? "annotation").asObject
 
     val n = NodeV(data, annotation, thy)
 
@@ -145,5 +145,5 @@ object WireV {
   def toJson(d: NodeV, theory: Theory) = JsonObject(
     "data" -> d.data, "annotation" -> d.annotation).noEmpty
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): WireV =
-    WireV(json ?# "data", json ?# "annotation", thy)
+    WireV((json ? "data").asObject, (json ? "annotation").asObject, thy)
 }

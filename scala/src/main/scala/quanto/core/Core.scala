@@ -28,8 +28,8 @@ class Core(var controller: String, executable: String) {
           val output = map("output")
           if (map("success")) output
           else
-            if (output("code").intValue == -1) throw new CoreProtocolException(output("message"))
-            else throw new CoreUserException(output("message"), output("code"))
+            if ((output / "code").intValue == -1) throw new CoreProtocolException((output / "message").stringValue)
+            else throw new CoreUserException((output / "message").stringValue, (output / "code").intValue)
         } catch {
           case e: NoSuchElementException =>
             throw new CoreProtocolException(e.toString + " for JSON: " + JsonObject(map).toString)

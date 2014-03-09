@@ -67,38 +67,39 @@ sealed abstract class Json {
   }
 
   // Convenience accessors for collections. These are overridden to not throw exceptions, where appropriate.
-  def apply(index: Int): Json = get(index) match {
-    case Some(x) => x
-    case None    => throw new JsonAccessException("Index: " + index + " out of bounds", this)
-  }
-
-  def apply(key: String) = get(key) match {
-    case Some(x) => x
-    case None    => throw new JsonAccessException("Key not found: " + key, this)
-  }
-
   def get(index: Int): Option[Json] =
     throw new JsonAccessException("Expected: JsonArray, got: " + this.getClass, this)
 
   def get(key: String): Option[Json] =
     throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
 
+
   def getOrElse(key: String, default: => Json): Json =
+    get(key) match { case Some(v) => v; case None => default }
+
+  def getOrElse(key: Int, default: => Json): Json =
     get(key) match { case Some(v) => v; case None => default }
 
 
   // 'slash' notation for required children
-  def /(key: String)    = this(key)
-  def /#(key: String)   = this(key).asObject
-  def /@(key: String)   = this(key).asArray
+  def /(key: String)    = get(key) match {
+    case Some(x) => x
+    case None    => throw new JsonAccessException("Key not found: " + key, this)
+  }
+
+  def /(index: Int)    = get(index) match {
+    case Some(x) => x
+    case None    => throw new JsonAccessException("Index: " + index + " out of bounds", this)
+  }
 
   // optional child notation
   def ?(key: String)    = getOrElse(key, JsonNull)
+  def ?(index: Int)     = getOrElse(index, JsonNull)
 
   // shorthand coercions for optional arrays and objects. The will return an empty collection of the appropriate
   // type if the given field is missing.
-  def ?@(key: String)   = (this ? key).asArray
-  def ?#(key: String)   = (this ? key).asObject
+//  def ?@(key: String)   = (this ? key).asArray
+//  def ?#(key: String)   = (this ? key).asObject
 
   // JsonPath methods
   def getPath(path: JsonPath): Json = path.get(this)
@@ -191,6 +192,7 @@ case object JsonNull extends Json {
   val v = null
   def writeTo(out: Json.Output) { out.g.writeNull() }
   override def get(key: String): Option[Json] = None
+  override def get(index: Int): Option[Json] = None
   override def asObject = JsonObject()
   override def asArray = JsonArray()
   def isEmpty = true

@@ -411,38 +411,38 @@ object Graph {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): Graph = try {
     Function.chain[Graph](Seq(
 
-      (json ?# "wire_vertices").foldLeft(_) { (g,v) =>
+      (json ? "wire_vertices").asObject.foldLeft(_) { (g,v) =>
         g.addVertex(v._1, WireV.fromJson(v._2, thy))
       },
 
-      (json ?# "node_vertices").foldLeft(_) { (g,v) =>
+      (json ? "node_vertices").asObject.foldLeft(_) { (g,v) =>
         g.addVertex(v._1, NodeV.fromJson(v._2, thy))
       },
 
-      (json ?# "dir_edges").foldLeft(_) { (g,e) =>
+      (json ? "dir_edges").asObject.foldLeft(_) { (g,e) =>
         val data = e._2.getOrElse("data", thy.defaultEdgeData).asObject
-        val annotation = e._2 ?# "annotation"
+        val annotation = (e._2 ? "annotation").asObject
         g.addEdge(e._1, DirEdge(data, annotation, thy),
-          (e._2("src").stringValue, e._2("tgt").stringValue))
+          ((e._2 / "src").stringValue, (e._2 / "tgt").stringValue))
       },
 
-      (json ?# "undir_edges").foldLeft(_) { (g,e) =>
+      (json ? "undir_edges").asObject.foldLeft(_) { (g,e) =>
         val data = e._2.getOrElse("data", thy.defaultEdgeData).asObject
-        val annotation = e._2 ?# "annotation"
-        g.addEdge(e._1, UndirEdge(data, annotation, thy), (e._2("src").stringValue, e._2("tgt").stringValue))
+        val annotation = (e._2 ? "annotation").asObject
+        g.addEdge(e._1, UndirEdge(data, annotation, thy), ((e._2 / "src").stringValue, (e._2 / "tgt").stringValue))
       },
 
-      (json ?# "bang_boxes").foldLeft(_) { (g,bb) =>
-        val data = bb._2 ?# "data"
-        val annotation = bb._2 ?# "annotation"
-        val contains = (bb._2 ?@ "contains") map { VName(_) }
+      (json ? "bang_boxes").asObject.foldLeft(_) { (g,bb) =>
+        val data = (bb._2 ? "data").asObject
+        val annotation = (bb._2 ? "annotation").asObject
+        val contains = (bb._2 ? "contains").vectorValue map { VName(_) }
         val parent = bb._2.get("parent") map { BBName(_) }
         g.addBBox(bb._1, BBData(data, annotation), contains.toSet, parent)
       }
 
     ))({
-      val data = json ?# "data"
-      val annotation = json ?# "annotation"
+      val data = (json ? "data").asObject
+      val annotation = (json ? "annotation").asObject
       Graph(GData(data, annotation, thy))
     })
   } catch {

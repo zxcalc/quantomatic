@@ -68,7 +68,7 @@ object DirEdge {
     "annotation" -> d.annotation).noEmpty
   def fromJson(json: Json, theory: Theory) : DirEdge = {
     val data = json.getOrElse("data", theory.defaultEdgeData).asObject
-    val annotation = json ?# "annotation"
+    val annotation = (json ? "annotation").asObject
     DirEdge(data, annotation, theory)
   }
 }
@@ -86,7 +86,7 @@ object UndirEdge {
     "annotation" -> d.annotation).noEmpty
   def fromJson(json: Json, theory: Theory) : UndirEdge = {
     val data = json.getOrElse("data", theory.defaultEdgeData).asObject
-    val annotation = json ?# "annotation"
+    val annotation = (json ? "annotation").asObject
     UndirEdge(data, annotation, theory)
   }
 }
