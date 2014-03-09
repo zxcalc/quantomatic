@@ -343,6 +343,7 @@ object Json {
   // tuple implicit conversions, useful for JsonObject(k -> v, ...) construction
   implicit def stringXToStringJson[T <% Json](t: (String,T)): (String,Json) = (t._1, t._2:Json)
   implicit def traversableOnceToJson[T <% Json](c: TraversableOnce[T]): JsonArray = JsonArray(c)
+  implicit def optionToJson[T <% Json](jo: Option[T]): Json = jo match { case Some (j) => j; case None => JsonNull }
 }
 
 // these are not active by default, as they are not type-safe

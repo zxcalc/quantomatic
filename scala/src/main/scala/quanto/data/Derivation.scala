@@ -16,7 +16,7 @@ case class DStep(name: DSName,
 
 object DStep {
   def toJson(dstep: DStep, thy: Theory = Theory.DefaultTheory): Json = {
-    JsonNull
+    JsonObject("name" -> dstep.name.toString)
   }
 }
 

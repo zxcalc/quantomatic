@@ -7,8 +7,8 @@ class Core(var controller: String, executable: String) {
   val process = new CoreProcess
   
   def start() { process.startCore(executable) }
-  def stop() { process.killCore(true) }
-  def kill() { process.killCore(false) }
+  def stop() { process.killCore(waitForExit = true) }
+  def kill() { process.killCore(waitForExit = false) }
 
   def request(module: String, function: String, input: Json, ctrl: String = controller): Json =
   {
@@ -27,9 +27,9 @@ class Core(var controller: String, executable: String) {
         try {
           val output = map("output")
           if (map("success")) output
-          else throw (
-            if (output("code") == -1) new CoreProtocolException(output("message"))
-            else new CoreUserException(output("message"), output("code")))
+          else
+            if (output("code").intValue == -1) throw new CoreProtocolException(output("message"))
+            else throw new CoreUserException(output("message"), output("code"))
         } catch {
           case e: NoSuchElementException =>
             throw new CoreProtocolException(e.toString + " for JSON: " + JsonObject(map).toString)
