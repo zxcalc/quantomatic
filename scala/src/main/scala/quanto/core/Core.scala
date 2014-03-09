@@ -45,7 +45,7 @@ class Core(var controller: String, executable: String) {
   def help(module: String) : String = 
     this.request("sytem", "help", JsonObject("module"->module), "!!")
   
-  def version(): String = this.request("system", "version", JsonNull(), "!!")
+  def version(): String = this.request("system", "version", JsonNull, "!!")
 }
 
 

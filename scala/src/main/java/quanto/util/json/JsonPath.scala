@@ -14,17 +14,17 @@ case class JsonPath(components: List[JsonPath.Component]) {
     }
 
   private def _get(json: Json, comps: List[Component]): Json = comps match {
-    case (Field(f) :: cs) => json.get(f) match { case Some(j) => _get(j, cs); case None => JsonNull() }
-    case (Index(i) :: cs) => json.get(i) match { case Some(j) => _get(j, cs); case None => JsonNull() }
+    case (Field(f) :: cs) => json.get(f) match { case Some(j) => _get(j, cs); case None => JsonNull }
+    case (Index(i) :: cs) => json.get(i) match { case Some(j) => _get(j, cs); case None => JsonNull }
     case _ => json
   }
 
   private def _update(json: Json, comps: List[Component], fn: Json => Json): Json = comps match {
     case (Field(f) :: cs) =>
       val map = json.asObject.mapValue
-      JsonObject(map + (f -> _update(map.getOrElse(f, JsonNull()), cs, fn)))
+      JsonObject(map + (f -> _update(map.getOrElse(f, JsonNull), cs, fn)))
     case (Index(i) :: cs) =>
-      val vect = json.asArray.vectorValue.padTo(i+1, JsonNull())
+      val vect = json.asArray.vectorValue.padTo(i+1, JsonNull)
       JsonArray(vect.updated(i, _update(vect(i), cs, fn)))
     case _ => fn(json)
   }

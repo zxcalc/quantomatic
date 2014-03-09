@@ -54,7 +54,7 @@ sealed abstract class Json {
   def asObject: JsonObject = this match {
     case obj: JsonObject => obj
     case JsonArray(x)    => x.foldLeft(JsonObject()) { (o,k) => o + (k.stringValue -> JsonObject()) }
-    case JsonNull()      => JsonObject()
+    case JsonNull        => JsonObject()
     case other           => throw new JsonAccessException("Expected: JsonObject, JsonArray, or JsonNull", other)
   }
 
@@ -62,7 +62,7 @@ sealed abstract class Json {
   def asArray: JsonArray = this match {
     case arr: JsonArray  => arr
     case JsonObject(x)   => JsonArray(x.keys.toVector.sorted.map(JsonString(_)))
-    case JsonNull()      => JsonArray()
+    case JsonNull        => JsonArray()
     case other           => throw new JsonAccessException("Expected: JsonObject, JsonArray, or JsonNull", other)
   }
 
@@ -93,7 +93,7 @@ sealed abstract class Json {
   def /@(key: String)   = this(key).asArray
 
   // optional child notation
-  def ?(key: String)    = getOrElse(key, JsonNull())
+  def ?(key: String)    = getOrElse(key, JsonNull)
 
   // shorthand coercions for optional arrays and objects. The will return an empty collection of the appropriate
   // type if the given field is missing.
@@ -187,7 +187,7 @@ object JsonArray {
   def apply[T <% Json](c: TraversableOnce[T]): JsonArray = c.foldLeft(JsonArray()){ (a, v) => a :+ v }
 }
 
-case class JsonNull() extends Json {
+case object JsonNull extends Json {
   val v = null
   def writeTo(out: Json.Output) { out.g.writeNull() }
   override def get(key: String): Option[Json] = None
@@ -310,7 +310,7 @@ object Json {
           case JsonToken.END_OBJECT => Some(stack.pop()._1)
           case JsonToken.VALUE_FALSE => Some(JsonBool(false))
           case JsonToken.VALUE_TRUE => Some(JsonBool(true))
-          case JsonToken.VALUE_NULL => Some(JsonNull())
+          case JsonToken.VALUE_NULL => Some(JsonNull)
           case JsonToken.VALUE_NUMBER_FLOAT => Some(JsonDouble(p.getValueAsDouble))
           case JsonToken.VALUE_NUMBER_INT => Some(JsonInt(p.getValueAsInt))
           case JsonToken.VALUE_STRING => Some(JsonString(p.getText))

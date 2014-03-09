@@ -95,7 +95,7 @@ object NodeV {
   def apply(coord: (Double,Double)): NodeV = NodeV(annotation = JsonObject("coord" -> JsonArray(coord._1,coord._2)))
 
   def toJson(d: NodeV, theory: Theory) = JsonObject(
-    "data" -> (if (d.data == theory.vertexTypes(d.typ).defaultData) JsonNull() else d.data),
+    "data" -> (if (d.data == theory.vertexTypes(d.typ).defaultData) JsonNull else d.data),
     "annotation" -> d.annotation).noEmpty
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): NodeV = {
     val data = json.getOrElse("data", thy.defaultVertexData).asObject

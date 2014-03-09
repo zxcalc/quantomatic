@@ -107,7 +107,7 @@ class JsonSpec extends FlatSpec {
   }
 
   it should "return null, empty array, or empty object for missing optional fields" in {
-    assert((result ? "missing") === JsonNull())
+    assert((result ? "missing") === JsonNull)
     assert((result ?@ "missing") === JsonArray())
     assert((result ?# "missing") === JsonObject())
   }

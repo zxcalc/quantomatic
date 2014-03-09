@@ -3,7 +3,7 @@ package quanto.data
 import quanto.util.json._
 
 trait RuleException
-class RuleLoadException(message: String, cause: Throwable = null)
+case class RuleLoadException(message: String, cause: Throwable = null)
   extends Exception(message, cause)
   with RuleException
 
@@ -22,7 +22,7 @@ object Rule {
     JsonObject(
       "lhs" -> Graph.toJson(rule.lhs, thy),
       "rhs" -> Graph.toJson(rule.rhs, thy),
-      "derivation" -> (rule.derivation match { case Some(x) => JsonString(x) ; case None => JsonNull() })
+      "derivation" -> (rule.derivation match { case Some(x) => JsonString(x) ; case None => JsonNull })
     ).noEmpty
   }
 }

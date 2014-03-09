@@ -131,13 +131,13 @@ object Theory {
     implicit def toJson(v: VertexStyleDesc) =
       JsonObject(
         "shape" -> v.shape,
-        "custom_shape" -> JsonNull(),
+        "custom_shape" -> JsonNull,
         "stroke_color" -> v.strokeColor,
         "fill_color" -> v.fillColor,
         "label" -> JsonObject(
           "position" -> v.labelPosition,
           "fg_color" -> v.labelForegroundColor,
-          "bg_color" -> v.labelBackgroundColor.map(x=>x:Json).getOrElse(JsonNull())
+          "bg_color" -> v.labelBackgroundColor.map(x=>x:Json).getOrElse(JsonNull)
         ).noEmpty
       ).noEmpty
   }
@@ -166,7 +166,7 @@ object Theory {
         "label" -> JsonObject(
           "position" -> v.labelPosition,
           "fg_color" -> v.labelForegroundColor,
-          "bg_color" -> v.labelBackgroundColor.map(x=>x:Json).getOrElse(JsonNull())
+          "bg_color" -> v.labelBackgroundColor.map(x=>x:Json).getOrElse(JsonNull)
         ).noEmpty
       ).noEmpty
   }

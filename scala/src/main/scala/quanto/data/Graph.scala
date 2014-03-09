@@ -468,7 +468,7 @@ object Graph {
           "contains"   -> JsonArray(graph.contents(bb)),
           "parent"     -> (graph.bboxParent.get(bb) match {
             case Some(p) => JsonString(p.toString)
-            case None    => JsonNull() }),
+            case None    => JsonNull }),
           "data"       -> d.data,
           "annotation" -> d.annotation
         ).noEmpty)
