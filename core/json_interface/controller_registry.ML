@@ -14,7 +14,10 @@ struct
 
 open JsonControllerUtil
 
-structure RG_Controller = JsonController(RG_Theory)
+structure RG_Controller = JsonController(
+  structure Theory = RG_Theory
+  structure GraphComponentDataIO = RG_ComponentDataIO
+)
 
 val ctab = Symtab.make [
  (RG_Controller.Theory.theory_name, RG_Controller.mtab)

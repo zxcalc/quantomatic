@@ -291,6 +291,7 @@ PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
 PolyML.Project.make "json_interface/controller_util.ML";
 PolyML.Project.make "json_interface/controller_module.ML";
 PolyML.Project.make "json_interface/modules/test.ML";
+PolyML.Project.make "json_interface/modules/rewrite.ML";
 PolyML.Project.make "json_interface/controller.ML";
 PolyML.Project.make "json_interface/controller_registry.ML";
 PolyML.Project.make "json_interface/protocol.ML";
