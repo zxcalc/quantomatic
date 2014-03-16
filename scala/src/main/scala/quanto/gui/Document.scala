@@ -6,6 +6,7 @@ import scala.swing.event.Event
 import quanto.data.{RuleLoadException, GraphLoadException}
 import quanto.util.json.JsonParseException
 import javax.swing.filechooser.FileNameExtensionFilter
+import java.util.prefs.Preferences
 
 abstract class DocumentEvent extends Event
 case class DocumentChanged(sender: Document) extends DocumentEvent
@@ -101,9 +102,27 @@ abstract class Document extends Publisher {
       messageType = Dialog.Message.Error)
   }
 
+  def previousDir_=(f: File) {
+    val dir = if (f.isDirectory) f.getPath
+              else f.getParent
+    if (dir != null) {
+//      println("Setting previous dir to: " + dir)
+      val prefs = Preferences.userRoot().node(this.getClass.getName)
+      prefs.put("previousDir", dir)
+    }
+  }
+
+  def previousDir: File = {
+    val prefs = Preferences.userRoot().node(this.getClass.getName)
+    new File(prefs.get("previousDir", System.getProperty("user.home")))
+  }
+
   def showSaveAsDialog(rootDir: Option[String] = None) {
     val chooser = new FileChooser()
-    rootDir.map { d => chooser.peer.setCurrentDirectory(new File(d)) }
+    chooser.peer.setCurrentDirectory(rootDir match {
+      case Some(d) => new File(d)
+      case None => previousDir
+    })
     chooser.fileFilter = new FileNameExtensionFilter("Quantomatic " + description + " File (*." + fileExtension + ")", fileExtension)
     chooser.showSaveDialog(parent) match {
       case FileChooser.Result.Approve =>
@@ -115,10 +134,14 @@ abstract class Document extends Publisher {
   def showOpenDialog(rootDir: Option[String] = None) {
     if (promptUnsaved()) {
       val chooser = new FileChooser()
-      rootDir.map { d => chooser.peer.setCurrentDirectory(new File(d)) }
+      chooser.peer.setCurrentDirectory(rootDir match {
+        case Some(d) => new File(d)
+        case None => previousDir
+      })
       chooser.fileFilter = new FileNameExtensionFilter("Quantomatic " + description + " File (*." + fileExtension + ")", fileExtension)
       chooser.showOpenDialog(parent) match {
         case FileChooser.Result.Approve =>
+          previousDir = chooser.selectedFile
           load(chooser.selectedFile)
         case _ =>
       }

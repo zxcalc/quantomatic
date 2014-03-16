@@ -2,37 +2,37 @@
   "lhs": {
     "bang_boxes": {
       "bx5": {
-        "contains": [
+        "contents": [
           "b2"
         ],
         "parent": "bx2"
       },
       "bx0": {
-        "contains": [
+        "contents": [
           "b0",
           "v0"
         ]
       },
       "bx4": {
-        "contains": [
+        "contents": [
           "b1"
         ],
         "parent": "bx1"
       },
       "bx3": {
-        "contains": [
+        "contents": [
           "b0"
         ],
         "parent": "bx0"
       },
       "bx1": {
-        "contains": [
+        "contents": [
           "b1",
           "v1"
         ]
       },
       "bx2": {
-        "contains": [
+        "contents": [
           "b2",
           "v2"
         ]
@@ -151,35 +151,35 @@
   "rhs": {
     "bang_boxes": {
       "bx5": {
-        "contains": [
+        "contents": [
           "b2"
         ],
         "parent": "bx2"
       },
       "bx0": {
-        "contains": [
+        "contents": [
           "b0"
         ]
       },
       "bx4": {
-        "contains": [
+        "contents": [
           "b1"
         ],
         "parent": "bx1"
       },
       "bx3": {
-        "contains": [
+        "contents": [
           "b0"
         ],
         "parent": "bx0"
       },
       "bx1": {
-        "contains": [
+        "contents": [
           "b1"
         ]
       },
       "bx2": {
-        "contains": [
+        "contents": [
           "b2"
         ]
       }

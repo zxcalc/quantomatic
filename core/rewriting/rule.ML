@@ -77,6 +77,9 @@ sig
 
   (* expand a bbox on both sides *)
   val expand_bbox : B.name -> T -> T
+
+  (* kill a bbox on both sides *)
+  val kill_bbox : B.name -> T -> T
   
   (* for pretty printing *)
   val pretty : T -> Pretty.T
@@ -231,6 +234,13 @@ fun expand_bbox b rule =
 let
   val (exp, lhs') = Graph.expand_bbox_op b (get_lhs rule)
   val rhs' = Graph.replay_bbox_ops [exp] (get_rhs rule)
+in mk (lhs', rhs')
+end
+
+fun kill_bbox b rule =
+let
+  val (kill, lhs') = Graph.kill_bbox_op b (get_lhs rule)
+  val rhs' = Graph.replay_bbox_ops [kill] (get_rhs rule)
 in mk (lhs', rhs')
 end
 

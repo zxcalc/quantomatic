@@ -23,6 +23,10 @@ sig
   sharing MatchSearch.Sharing.Match = Match.Sharing
   sharing MatchSearch.Sharing.Graph = Graph.Sharing
 
+  structure Rewriter : REWRITER
+  sharing Rewriter.Sharing.Rule = Rule.Sharing
+  sharing type Rewriter.Sharing.match = Match.T
+
   (* Sets of rules and matching for those sets *)
   structure RulesetRewriter : RULESET_REWRITER
   sharing RulesetRewriter.Sharing.Ruleset = Ruleset.Sharing 
@@ -43,12 +47,14 @@ struct
   structure MatchSearch = GreedyMatchSearch(Graph)
   structure Match = MatchSearch.Match
 
-  structure RulesetRewriter = RulesetRewriter(
-    structure Ruleset = Ruleset;
-    structure Rewriter = BangGraphRewriter(
+  structure Rewriter = BangGraphRewriter(
       structure Rule = Ruleset.BangGraphRule
       structure Matcher = MatchSearch
     )
+
+  structure RulesetRewriter = RulesetRewriter(
+    structure Ruleset = Ruleset
+    structure Rewriter = Rewriter
   )
 end
 

@@ -435,7 +435,7 @@ object Graph {
       (json ? "bang_boxes").asObject.foldLeft(_) { (g,bb) =>
         val data = (bb._2 ? "data").asObject
         val annotation = (bb._2 ? "annotation").asObject
-        val contains = (bb._2 ? "contains").vectorValue map { VName(_) }
+        val contains = (bb._2 ? "contents").vectorValue map { VName(_) }
         val parent = bb._2.get("parent") map { BBName(_) }
         g.addBBox(bb._1, BBData(data, annotation), contains.toSet, parent)
       }
@@ -465,7 +465,7 @@ object Graph {
     val bangBoxes = graph.bbdata.foldLeft(JsonObject()) { case (obj, (bb, d)) =>
       obj + (bb.toString ->
         JsonObject(
-          "contains"   -> JsonArray(graph.contents(bb)),
+          "contents"   -> JsonArray(graph.contents(bb)),
           "parent"     -> (graph.bboxParent.get(bb) match {
             case Some(p) => JsonString(p.toString)
             case None    => JsonNull }),

@@ -6,6 +6,12 @@
  * RHS of the rule.
  *)
 
+signature REWRITER_SHARING =
+sig
+  structure Rule : OGRAPH_RULE_SHARING
+  type match
+end
+
 signature REWRITER =
 sig
   structure Log : LOG
@@ -14,6 +20,10 @@ sig
   structure Rule : OGRAPH_RULE
   structure Graph : OGRAPH
   type match
+
+  structure Sharing : REWRITER_SHARING
+  sharing Sharing.Rule = Rule.Sharing
+  sharing type Sharing.match = match
 
   (**
    * Find all matches of a rule's LHS in a graph
@@ -154,5 +164,11 @@ struct
 
   val print_match = Matcher.Match.print
   val pretty_match = Matcher.Match.pretty
+
+  structure Sharing : REWRITER_SHARING
+  = struct
+    structure Rule = Rule.Sharing
+    type match = match
+  end
 end
 

@@ -29,7 +29,7 @@ class GraphView(val theory: Theory) extends Panel
   var snapToGrid = false
   var gridMajor = 1.0
   var gridSubs = 4
-  var showNames = false
+  var showNames = true
 
   var selectionBox: Option[Rectangle2D] = None
   //var bangBoxList: List[Rectangle2D] = Nil
