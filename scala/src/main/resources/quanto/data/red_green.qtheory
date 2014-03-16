@@ -2,7 +2,7 @@
   "name" : "Red/green theory",
   "core_name" : "redgreen",
   "vertex_types" : {
-    "red" : {
+    "X" : {
       "value" : {
         "path" : "$.value",
         "validate_with_core" : false,
@@ -19,11 +19,11 @@
         "shape" : "circle"
       },
       "default_data" : {
-        "type" : "red",
+        "type" : "X",
         "value" : ""
       }
     },
-    "green" : {
+    "Z" : {
       "value" : {
         "path" : "$.value",
         "validate_with_core" : false,
@@ -40,7 +40,7 @@
         "shape" : "circle"
       },
       "default_data" : {
-        "type" : "green",
+        "type" : "Z",
         "value" : ""
       }
     }
@@ -68,6 +68,6 @@
       }
     }
   },
-  "default_vertex_type" : "green",
+  "default_vertex_type" : "Z",
   "default_edge_type" : "string"
 }

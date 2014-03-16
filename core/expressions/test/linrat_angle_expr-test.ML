@@ -68,6 +68,7 @@ local
 in
   val _ = test_reparse zero
   val _ = test_parse "0" zero
+  val _ = test_parse "" zero
 
   val _ = test_reparse (const one)
   val _ = test_parse "\\pi" (const one)

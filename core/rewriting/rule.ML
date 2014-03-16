@@ -74,6 +74,9 @@ sig
 
   (* swaps lhs and rhs *)
   val symmetric : T -> T
+
+  (* expand a bbox on both sides *)
+  val expand_bbox : B.name -> T -> T
   
   (* for pretty printing *)
   val pretty : T -> Pretty.T
@@ -224,6 +227,12 @@ fun update_boundary_vertices f (Rule rep) =
 (* swap lhs and rhs of a rule *)
 fun symmetric r = mk (get_rhs r, get_lhs r)
 
+fun expand_bbox b rule =
+let
+  val (exp, lhs') = Graph.expand_bbox_op b (get_lhs rule)
+  val rhs' = Graph.replay_bbox_ops [exp] (get_rhs rule)
+in mk (lhs', rhs')
+end
 
 fun get_vertices rule =
     V.NSet.union_merge

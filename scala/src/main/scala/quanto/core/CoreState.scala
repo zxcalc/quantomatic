@@ -9,14 +9,38 @@ case object CoreInitialized
 case class CoreResponse(requestId: Int, resp: Json)
 case class UnhandledRequest(requestId: Int, reason: String)
 abstract class CoreRequest {
-  def requestId: Int
   def json : Json
   def decode(resp: Json): Any
 }
-case class SimpleRequest(jsonString: String) extends CoreRequest {
-  val json = Json.parse(jsonString)
-  def requestId = (json / "request_id").intValue
+case class SimpleRequest(json: Json) extends CoreRequest {
   def decode(resp: Json): Json = resp
+}
+
+case class Call(controller: String, module: String, function: String, input: Json)
+extends CoreRequest
+{
+  val json = JsonObject(
+    "controller" -> controller,
+    "module" -> module,
+    "function" -> function,
+    "input" -> input
+  )
+
+  def decode(resp: Json) = Call.decode(resp)
+}
+
+abstract class CallResponse
+case class Success(output: Json) extends CallResponse
+case class Error(code: Int, message: String) extends CallResponse
+
+object Call {
+  def decode(json: Json) =
+    if ((json / "success").boolValue) Success(json / "output")
+    else Error((json / "output" / "code").intValue, (json / "output" / "message").stringValue)
+}
+
+case class JsonRequest(json: Json) extends CoreRequest {
+  def decode(resp: Json) = Call.decode(resp)
 }
 
 class CoreState(executable: String) extends Actor with ActorLogging {
@@ -24,6 +48,8 @@ class CoreState(executable: String) extends Actor with ActorLogging {
   var reader: ActorRef = _
   var writer: ActorRef = _
   val listeners = collection.mutable.Map[Int, (ActorRef,CoreRequest)]()
+  private var requestId = 0
+
   coreProcess.startCore(executable)
   reader = context.actorOf(Props { new CoreReader(coreProcess) }, name = "core_reader")
   writer = context.actorOf(Props { new CoreWriter(coreProcess) }, name = "core_writer")
@@ -66,8 +92,10 @@ class CoreState(executable: String) extends Actor with ActorLogging {
   def receive = {
     case req : CoreRequest =>
       //log.info("Request: " + req)
-      listeners += req.requestId -> (sender, req)
-      writer ! req
+      val json = req.json.setPath("$.request_id", JsonInt(requestId))
+      listeners += requestId -> (sender, req)
+      writer ! json
+      requestId += 1
     case CoreResponse(rid, resp) =>
       //log.info("Response: " + resp)
       listeners.get(rid) match {
@@ -92,8 +120,8 @@ class CoreReader(process: CoreProcess) extends Actor {
 
 class CoreWriter(process: CoreProcess) extends Actor {
   def receive = {
-    case req : CoreRequest =>
-      req.json.writeTo(process.stdin)
+    case reqJson : Json =>
+      reqJson.writeTo(process.stdin)
       process.stdin.flush()
   }
 }

@@ -12,7 +12,6 @@ case object RuleNormal extends RuleVariant { override def toString = "normal" }
 case object RuleInverse extends RuleVariant { override def toString = "inverse" }
 
 case class DStep(name: DSName,
-                 parent: Option[DSName],
                  rule: String,
                  variant: RuleVariant,
                  matchedVertices: Set[VName],
@@ -20,10 +19,10 @@ case class DStep(name: DSName,
                  graph: Graph)
 
 object DStep {
-  def toJson(dstep: DStep, thy: Theory = Theory.DefaultTheory): Json = {
+  def toJson(dstep: DStep, parent: Option[DSName], thy: Theory = Theory.DefaultTheory): Json = {
     JsonObject(
       "name" -> dstep.name.toString,
-      "parent" -> dstep.parent.map(_.toString),
+      "parent" -> parent.map(_.toString),
       "rule" -> dstep.rule,
       "rule_variant" -> (dstep.variant match { case RuleNormal => JsonNull; case v => v.toString }),
       "matched" -> JsonObject("vertices" -> dstep.matchedVertices.map(_.toString)),
@@ -35,11 +34,10 @@ object DStep {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory) : DStep = try {
     DStep(
       name = DSName((json / "name").stringValue),
-      parent = json.get("parent").map { p => DSName(p.stringValue) },
       rule = (json / "rule").stringValue,
       variant = json ? "rule_variant" match { case JsonString("inverse") => RuleInverse; case _ => RuleNormal },
       matchedVertices = (json / "matched" / "vertices").vectorValue.map(v => VName(v.stringValue)).toSet,
-      replacedVertices = null,
+      replacedVertices = (json / "replaced" / "vertices").vectorValue.map(v => VName(v.stringValue)).toSet,
       graph = null
     )
   } catch {
@@ -47,7 +45,11 @@ object DStep {
   }
 }
 
-case class Derivation(theory: Theory, head: Graph, steps: Map[DSName,DStep])
+case class Derivation(theory: Theory,
+                      root: Graph,
+                      steps: Map[DSName,DStep],
+                      heads: Set[DSName],
+                      parent: PFun[DSName,DSName])
 
 object Derivation {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory) = try {
@@ -59,10 +61,11 @@ object Derivation {
   }
 
   def toJson(derive: Derivation, thy: Theory = Theory.DefaultTheory) = {
-    val steps = derive.steps.map { case (k, v) => (k.toString, DStep.toJson(v,thy)) }
+    val steps = derive.steps.map { case (k, v) => (k.toString, DStep.toJson(v, derive.parent.get(k), thy)) }
     JsonObject(
-      "head" -> Graph.toJson(derive.head, thy),
-      "steps" -> JsonObject(steps)
+      "root" -> Graph.toJson(derive.root, thy),
+      "steps" -> JsonObject(steps),
+      "heads" -> JsonArray(derive.heads.map(_.toString))
     ).noEmpty
   }
 }

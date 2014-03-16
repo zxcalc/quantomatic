@@ -195,6 +195,8 @@ case object JsonNull extends Json {
   override def get(index: Int): Option[Json] = None
   override def asObject = JsonObject()
   override def asArray = JsonArray()
+  override def vectorValue = Vector()
+  override def mapValue = Map()
   def isEmpty = true
 }
 

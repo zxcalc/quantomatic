@@ -272,7 +272,8 @@ struct
 
   end
 
-  val parse = LinratParser.parse
+  fun parse "" = zero
+     |  parse s = LinratParser.parse s
 
 end
 

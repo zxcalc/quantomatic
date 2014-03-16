@@ -15,7 +15,10 @@ struct
 open JsonControllerUtil
 
 structure Theory = Theory
-structure CModTest = CModTest(Theory)
+structure CModTest = CModTest(
+  structure Theory = Theory
+  structure GraphComponentDataIO = GraphComponentDataIO)
+
 structure CModRewrite = CModRewrite(
 	structure Theory = Theory
 	structure GraphComponentDataIO = GraphComponentDataIO)

@@ -3,10 +3,20 @@ sig
   include CONTROLLER_MODULE
 end
 
-functor CModTest(Theory : GRAPHICAL_THEORY) : CMOD_TEST =
+functor CModTest(
+  structure Theory : GRAPHICAL_THEORY
+  structure GraphComponentDataIO : GRAPH_COMPONENT_DATA_IO
+  sharing type Theory.Graph.nvdata = GraphComponentDataIO.nvdata
+  sharing type Theory.Graph.edata = GraphComponentDataIO.edata
+) : CMOD_TEST =
 struct
 
 open JsonControllerUtil
+
+structure IO = JsonObjectAnnotatedGraphicalTheoryIO(
+  structure Theory = Theory
+  structure GraphComponentDataIO = GraphComponentDataIO)
+
   
 val ftab = Symtab.empty
 
@@ -19,6 +29,26 @@ val ftab = ftab |> register
   output = S json_t
 } (fn x => (
   x
+))
+
+(* test graph parsing *)
+val ftab = ftab |> register
+{
+  name   = "echo_graph",
+  doc    = "Echoes graph as JSON",
+  input  = S graph_t,
+  output = S graph_t
+} (fn x => (
+  
+let
+  val graph = IO.InputGraphJSON.input x
+                   handle IO.InputGraphJSON.bad_input_exp (error , item) =>
+                     raise user_exn ("Error parsing graph/" ^ item ^" : " ^ error)
+  val json = IO.OutputGraphJSON.output graph
+in
+  json
+end
+
 ))
 
 (* test named args *)
