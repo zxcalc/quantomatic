@@ -5,27 +5,35 @@ import java.util.logging._
 import quanto.util.json.Json
 
 import quanto.util.StreamRedirector
+import java.net.{InetAddress, Socket}
 
 class CoreProcess(parallel: Boolean = false) {
   import CoreProcess._
   private var backend: Process = _
   var stdin : Json.Output = _
   var stdout : Json.Input = _
+  var socket : Socket = _
 
   def startCore() { startCore(quantoCoreExecutable) }
   
   def startCore(executable : String) {
     try {
       val pb = new ProcessBuilder(
-        executable,
+        executable, "--socket",
         if (parallel) "--par-json-protocol" else "--json-protocol")
 
       pb.redirectErrorStream(false)
       logger.log(Level.FINEST, "Starting {0}...", executable)
       backend = pb.start()
+
+      Thread.sleep(200)
       
-      stdin = new Json.Output(new BufferedWriter(new OutputStreamWriter(backend.getOutputStream)))
-      stdout = new Json.Input(new BufferedReader(new InputStreamReader(backend.getInputStream)))
+      //stdin = new Json.Output(new BufferedWriter(new OutputStreamWriter(backend.getOutputStream)))
+      //stdout = new Json.Input(new BufferedReader(new InputStreamReader(backend.getInputStream)))
+      socket = new Socket(InetAddress.getByName("localhost"), 4321)
+      stdin = new Json.Output(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream)))
+      stdout = new Json.Input(new BufferedReader(new InputStreamReader(socket.getInputStream)))
+
       
       logger.log(Level.FINEST, "{0} started successfully", executable)
 
@@ -45,6 +53,9 @@ class CoreProcess(parallel: Boolean = false) {
   def killCore(waitForExit: Boolean = true) {
     if (backend != null) {
         logger.log(Level.FINEST, "Shutting down the core process")
+        stdin.close()
+        stdout.close()
+        socket.close()
         val killThread = new Thread() {
           override def run() {
             if (waitForExit) {
