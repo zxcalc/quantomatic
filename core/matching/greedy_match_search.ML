@@ -340,13 +340,46 @@ struct
     Seq.map (fn ims => (lvl+1,set_inner_state ims ms))
             (InnerMatchSearch.match_bare_wires ms ims)
   end
+
+  (* get the orbit of a single vertex under a series of expansions of a single bbox *)
+  fun get_orbit (bbox_ops as (BBExpand {bbox=bbox,boundary_map=boundary_map,bbox_map=_} :: ops)) =
+    (case V.NSet.get_local_bot (VSub.get_dom_set boundary_map)
+       of SOME v =>
+            let
+              fun orb (BBExpand {bbox=bbox',boundary_map=boundary_map',bbox_map=_} :: ops) =
+                    if B.name_eq (bbox,bbox')
+                    then V.NSet.add (VSub.get boundary_map' v) (orb ops)
+                    else V.NSet.empty
+                | orb _ = V.NSet.empty
+            in orb bbox_ops
+            end
+        | NONE => V.NSet.empty)
+    | get_orbit _ = V.NSet.empty
+
   fun match_pending (lvl,ms) = let
+    val ims = get_inner_state ms
+  in
+    Seq.map_filter (fn ims =>
+      let
+        val orbit = get_orbit (get_bbox_ops ms)
+        val _ = Log.logf 2 (fn () => 
+            "orbit: " ^ Pretty.string_of (V.NSet.pretty orbit)) ()
+        val orbit_map = (InnerMatchState.get_vmap ims)
+              |> VVInj.restrict_dom orbit
+      in
+        if VVInj.is_monotone orbit_map
+        then SOME (lvl+1, ms |> set_inner_state ims)
+        else NONE
+      end) (InnerMatchSearch.match_pending ms ims)
+  end
+
+  (*fun match_pending (lvl,ms) = let
     fun update_ms ims =
           (lvl+1,set_inner_state ims ms)
     val ims = get_inner_state ms
   in
     Seq.map update_ms (InnerMatchSearch.match_pending ms ims)
-  end
+  end*)
 
   fun finish_match ms =
       Seq.filter is_total
