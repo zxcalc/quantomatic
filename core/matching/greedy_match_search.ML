@@ -381,6 +381,7 @@ struct
     Seq.map update_ms (InnerMatchSearch.match_pending ms ims)
   end*)
 
+
   fun finish_match ms =
       Seq.filter is_total
         (match_bare_wires ms)
@@ -576,6 +577,7 @@ struct
       (Seq.maps match_pending_bbs (match_pending x))
 
   fun match_loop ms = match_loop' (0,ms)
+
 
   fun matches_from_ms (_,ms) = let
     val ims = get_inner_state ms

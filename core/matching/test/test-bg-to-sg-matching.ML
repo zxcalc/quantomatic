@@ -93,7 +93,7 @@ struct
       |> add_vunit2 "s3"
       |> add_undir_eunit1 "e3" "c" "s3";
 
-  val _ = Testing.test "M.match - circles pattern --> empty"
+  (*val _ = Testing.test "M.match - circles pattern --> empty"
                        (find_n_correct_matches 1) (circles_pat,G.empty);
   val _ = Testing.test "M.match - circles pattern --> one circle"
                        (find_n_correct_matches 2) (circles_pat,one_circle);
@@ -126,7 +126,7 @@ struct
   val _ = Testing.test "M.match - star pattern --> two-spoke star"
                        (find_n_correct_matches 2) (star_pat,star_two);
   val _ = Testing.test "M.match - star pattern --> three-spoke star"
-                       (find_n_correct_matches 6) (star_pat,star_three);
+                       (find_n_correct_matches 6) (star_pat,star_three);*)
 
 
   (*
@@ -182,7 +182,7 @@ struct
       |> add_vunit2 "l2-b"
       |> add_dir_eunit1 "e22" "l1-b" "l2-b";
 
-  val _ = Testing.test "M.match - balanced tree --> tree {}"
+  (*val _ = Testing.test "M.match - balanced tree --> tree {}"
           ((assert_n_wild_bboxes 1) o List.hd o (find_n_correct_matches 1))
           (balanced_tree_pat,min_tree);
   val _ = Testing.test "M.match - arbitrary tree --> tree {}"
@@ -194,7 +194,7 @@ struct
   val _ = Testing.test "M.match - balanced tree --> tree {2}"
                        (find_n_correct_matches 2) (balanced_tree_pat,tree_2);
   val _ = Testing.test "M.match - arbitrary tree --> tree {2}"
-                       (find_n_correct_matches 2) (arbitrary_tree_pat,tree_2);
+                       (find_n_correct_matches 2) (arbitrary_tree_pat,tree_2);*)
 
 
   val _ = Testing.assert_no_failed_tests();
