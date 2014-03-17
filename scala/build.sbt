@@ -24,7 +24,7 @@ libraryDependencies += "org.scala-lang" % "scala-swing" % "2.10.0"
 
 EclipseKeys.withSource := true
 
-exportJars := true
+//exportJars := true
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
