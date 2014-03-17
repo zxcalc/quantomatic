@@ -20,9 +20,9 @@ in
   else if List.exists (fn s => s = "--par-json-protocol") argList then
     if List.exists (fn s => s = "--socket") argList
     then let
-           val _ = TextIO.print "waiting for connection...\n"
+           val _ = TextIO.print "CORE: waiting for connection...\n"
            val s = TextSocket.local_connect 4321
-           val _ = TextIO.print "connected\n"
+           val _ = TextIO.print "CORE: connected\n"
            val (ins, outs) = TextSocket.get_io_stream s
            val _ = JsonControllerProtocol.parallel_run_in_textstreams (ins, outs)
            val _ = TextSocket.close s
@@ -32,7 +32,9 @@ in
   else if List.exists (fn s => s = "--json-protocol") argList then
     if List.exists (fn s => s = "--socket") argList
     then let
+           val _ = TextIO.print "CORE: waiting for connection...\n"
            val s = TextSocket.local_connect 4321
+           val _ = TextIO.print "CORE: connected\n"
            val (ins, outs) = TextSocket.get_io_stream s
            val _ = JsonControllerProtocol.run_in_textstreams (ins, outs)
            val _ = TextSocket.close s

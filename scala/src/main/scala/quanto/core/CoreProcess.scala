@@ -38,6 +38,7 @@ class CoreProcess(parallel: Boolean = false) {
       logger.log(Level.FINEST, "{0} started successfully", executable)
 
       new StreamRedirector(backend.getErrorStream, System.err).start()
+      new StreamRedirector(backend.getInputStream, System.out).start()
     } catch {
       case e : IOException => {
         logger.log(Level.SEVERE,
