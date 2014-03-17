@@ -1247,7 +1247,9 @@ fun expand_bbox bb ((vsub,esub,bsub),g) = let
   val old_bb_children = get_bbox_children g bb
   val old_vertices = get_vertices_in_bbox g bb
   val old_edges = V.NSet.fold (E.NSet.union_merge o get_adj_edges' g) old_vertices E.NSet.empty
-  val vsub' = VSub.extend_fresh old_vertices vsub
+  (* if this function is called by replay_bbox_op, vsub might have a bigger domain than
+   * old_vertices *)
+  val vsub' = VSub.restrict_dom old_vertices (VSub.extend_fresh old_vertices vsub)
   val esub' = ESub.extend_fresh old_edges esub
   val bsub' = BSub.extend_fresh old_bb_children bsub
 
@@ -1268,7 +1270,11 @@ fun expand_bbox bb ((vsub,esub,bsub),g) = let
     val e' = ESub.get esub' e
     val (old_s,old_t) = (get_edge_source g e, get_edge_target g e)
     val s = case VSub.get_opt vsub' old_s of SOME s' => s' | NONE => old_s
+    val _ = if V.NSet.contains (get_vertices g) s then ()
+            else raise no_such_vertex_exp ("cp_edge", s, g)
     val t = case VSub.get_opt vsub' old_t of SOME t' => t' | NONE => old_t
+    val _ = if V.NSet.contains (get_vertices g) t then ()
+            else raise no_such_vertex_exp ("cp_edge", t, g)
   in
     g |> add_named_edge' e' (get_edge_dir_and_data g e) s t
   end
@@ -1331,7 +1337,7 @@ fun expand_bbox_op bb g = let
   val ern = ESub.mk_from_avoids (get_edges g)
   val brn = BSub.mk_from_avoids (get_bboxes g)
   val ((vrn',_,bbox_map),g') = expand_bbox bb ((vrn,ern,brn),g)
-  val vmap = VSub.filter_dom (fn v => BVRel.is_mapped (get_bbox_rel g) (bb,v)) vrn'
+  val vmap = VSub.filter_dom (V.NSet.contains (get_vertices_in_bbox g bb)) vrn'
 in (BBExpand { bbox=bb, vmap=vmap, bbox_map=bbox_map }, g')
 end
 
@@ -1362,7 +1368,7 @@ fun replay_bbox_op (BBExpand {bbox,vmap,bbox_map}) g =
                     |> VSub.avoid_set_in_cod (VSub.get_cod_set vmap)
                     |> VSub.extend_fresh (get_vertices g))
     val vrn = vmap |> VSub.avoid_set_in_cod (get_vertices g')
-    val ern = ESub.empty   |> ESub.avoid_set_in_cod (get_edges g')
+    val ern = ESub.empty |> ESub.avoid_set_in_cod (get_edges g')
     val brn = bbox_map
   in snd (expand_bbox bbox ((vrn,ern,brn), g'))
   end

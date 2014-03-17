@@ -23,6 +23,6 @@ object Rule {
       "lhs" -> Graph.toJson(rule.lhs, thy),
       "rhs" -> Graph.toJson(rule.rhs, thy),
       "derivation" -> (rule.derivation match { case Some(x) => JsonString(x) ; case None => JsonNull })
-    ).noEmpty
+    )
   }
 }

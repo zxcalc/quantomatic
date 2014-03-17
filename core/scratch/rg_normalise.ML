@@ -1,5 +1,5 @@
 PolyML.SaveState.loadState "../heaps/quanto.heap";
-PolyML.Compiler.printDepth:=10;
+PolyML.Compiler.printDepth:=100;
 
 structure G = RG_Theory.Graph;
 
@@ -10,8 +10,22 @@ structure IO = JsonObjectAnnotatedGraphicalTheoryIO(
 
 val (sample, gann) = IO.InputGraphJSON.input (Json.read_file "sample2.qgraph");
 
-fun load_rule s = fst (IO.InputRuleJSON.input (Json.read_file s))
+fun load_rule s = fst (IO.InputRuleJSON.input (Json.read_file (s^".qrule")))
 fun save_graph file g = Json.write_file file (IO.OutputGraphJSON.output (g, gann))
+
+fun ruleset rule_list = fold (fn r => fn rs => (
+    let
+      val (rname, rs') = RG_Theory.Ruleset.add_fresh_rule r rs
+    in RG_Theory.Ruleset.activate_rule rname rs'
+    end
+  )) rule_list RG_Theory.Ruleset.empty
+
+fun REDUCE_ALL ruleset graph =
+  Seq.make (fn () => (
+    case Seq.pull (RG_Theory.RulesetRewriter.apply ruleset graph)
+      of SOME (((_,r),g'), _) => SOME ((r,g'), REDUCE_ALL ruleset g')
+       | NONE => NONE
+  ))
 
 fun REDUCE rule graph =
   Seq.make (fn () => (
@@ -101,16 +115,27 @@ in
      | NONE => 0
 end
 
-val rotate = load_rule "rot.qrule"
-val green_ids = load_rule "green_ids.qrule"
-val green_elim = load_rule "green_elim.qrule"
+val rotate = load_rule "rules/rotate"
+val green_ids = load_rule "rules/green_ids"
+val green_elim = load_rule "rules/green_elim"
+
+val red_copy = load_rule "rules/red_copy"
+val red_sp = load_rule "rules/red_sp"
+val green_sp = load_rule "rules/green_sp"
+val green_scalar = load_rule "rules/green_scalar"
+val red_scalar = load_rule "rules/red_scalar"
+val hopf = load_rule "rules/hopf"
+
+val simps = ruleset [red_copy, red_sp, green_sp, hopf, red_scalar, green_scalar]
 
 fun simproc g = g |> (
+  REDUCE_ALL simps ++
   REDUCE_METRIC num_boundary_red green_ids ++
   LOOP (
     REDUCE_METRIC_TO 1 min_green_arity rotate ++
     REDUCE green_elim
-  )
+  ) ++
+  REDUCE_ALL simps
 )
 
 val SOME (_, g') = final (simproc sample)
