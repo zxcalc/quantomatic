@@ -342,13 +342,13 @@ struct
   end
 
   (* get the orbit of a single vertex under a series of expansions of a single bbox *)
-  fun get_orbit (bbox_ops as (BBExpand {bbox=bbox,boundary_map=boundary_map,bbox_map=_} :: ops)) =
-    (case V.NSet.get_local_bot (VSub.get_dom_set boundary_map)
+  fun get_orbit (bbox_ops as (BBExpand {bbox=bbox,vmap=vmap,bbox_map=_} :: ops)) =
+    (case V.NSet.get_local_bot (VSub.get_dom_set vmap)
        of SOME v =>
             let
-              fun orb (BBExpand {bbox=bbox',boundary_map=boundary_map',bbox_map=_} :: ops) =
+              fun orb (BBExpand {bbox=bbox',vmap=vmap',bbox_map=_} :: ops) =
                     if B.name_eq (bbox,bbox')
-                    then V.NSet.add (VSub.get boundary_map' v) (orb ops)
+                    then V.NSet.add (VSub.get vmap' v) (orb ops)
                     else V.NSet.empty
                 | orb _ = V.NSet.empty
             in orb bbox_ops
