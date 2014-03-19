@@ -78,8 +78,8 @@ class CoreProcess(parallel: Boolean = false) {
   }
 
   object CoreProcess {
-    val logger = Logger.getLogger("quanto.core");
-    var quantoCoreExecutable = "quanto-core";
+    val logger = Logger.getLogger("quanto.core")
+    var quantoCoreExecutable = "quanto-core"
   }
   
   // def inputStream : InputStream =

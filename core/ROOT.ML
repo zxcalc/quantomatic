@@ -298,6 +298,11 @@ PolyML.Project.make "json_interface/protocol.ML";
 PolyML.Project.make "json_interface/run.ML";
 
 
+(* some combinators and shorthand functions for simprocs *)
+PolyML.Project.make "rewriting/simp_util.ML";
+PolyML.Project.make "theories/red_green/rg_simp_util.ML";
+
+
 (*
  * Top-level testing
  *)
