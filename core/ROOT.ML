@@ -204,6 +204,7 @@ PolyML.Project.make "theories/string_ve/test/test.ML";
 PolyML.Project.make "theories/red_green/theory.ML";
 PolyML.Project.make "theories/red_green/io.ML";
 Testing.make_test "theories/red_green/test/test.ML";
+Testing.make_test "theories/red_green/rg_mathematica.ML";
 
 (* ghz-w specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/ghz_w/theory.ML";

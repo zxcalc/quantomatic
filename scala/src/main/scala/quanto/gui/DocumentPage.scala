@@ -29,3 +29,8 @@ class RuleDocumentPage(val theory: Theory)
 extends DocumentPage(new RuleEditPanel(theory)) {
   val documentType = "Rule"
 }
+
+class MLDocumentPage
+extends DocumentPage(new MLEditPanel) {
+  val documentType = "ML Code"
+}

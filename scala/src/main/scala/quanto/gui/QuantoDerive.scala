@@ -10,6 +10,7 @@ import quanto.data._
 import java.io.{FilenameFilter, IOException, File}
 import java.nio.file.{Files, Paths}
 import javax.swing.plaf.metal.MetalLookAndFeel
+import java.util.prefs.Preferences
 
 
 object QuantoDerive extends SimpleSwingApplication {
@@ -24,12 +25,27 @@ object QuantoDerive extends SimpleSwingApplication {
     case e: Exception => e.printStackTrace()
   }
 
-  var CurrentProject : Option[Project] = None
+  val prefs = Preferences.userRoot().node(this.getClass.getName)
+
+  var CurrentProject : Option[Project] = prefs.get("lastProjectFolder", null) match {
+    case path : String =>
+      try {
+        val folder = Paths.get(path)
+        val projectFile = new File(folder.resolve("main.qproject").toString)
+        if (projectFile.exists) Some(Project.fromJson(Json.parse(projectFile), folder.toString))
+        else None
+      } catch {
+        case e: Exception =>
+          e.printStackTrace()
+          None
+      }
+    case _ => None
+  }
 
   val ProjectFileTree = new FileTree
   ProjectFileTree.preferredSize = new Dimension(250,360)
   ProjectFileTree.filenameFilter = Some(new FilenameFilter {
-    val extns = Set("qgraph", "qrule", "qderive")
+    val extns = Set("qgraph", "qrule", "qderive", "ML")
     def accept(parent: File, name: String) = {
       val extn = name.lastIndexOf('.') match {
         case i if i > 0 => name.substring(i+1) ; case _ => ""}
@@ -37,6 +53,8 @@ object QuantoDerive extends SimpleSwingApplication {
       else new File(parent, name).isDirectory
     }
   })
+
+  ProjectFileTree.root = CurrentProject.map { _.rootFolder }
 
   val MainTabbedPane = new ClosableTabbedPane
 
@@ -137,10 +155,12 @@ object QuantoDerive extends SimpleSwingApplication {
               Files.createDirectory(folder.resolve("axioms"))
               Files.createDirectory(folder.resolve("theorems"))
               Files.createDirectory(folder.resolve("derivations"))
+              Files.createDirectory(folder.resolve("code"))
               val proj = Project(theoryFile = thy, rootFolder = folder.toString)
               Project.toJson(proj).writeTo(new File(folder.resolve("main.qproject").toString))
               CurrentProject = Some(proj)
               ProjectFileTree.root = Some(folder.toString)
+              prefs.put("lastProjectFolder", folder.toString)
             }
         }
       }
@@ -160,6 +180,7 @@ object QuantoDerive extends SimpleSwingApplication {
                 val proj = Project.fromJson(Json.parse(projectFile), folder)
                 CurrentProject = Some(proj)
                 ProjectFileTree.root = Some(folder)
+                prefs.put("lastProjectFolder", folder.toString)
               } catch {
                 case _: ProjectLoadException =>
                   error("Error loading project file")
@@ -262,6 +283,21 @@ object QuantoDerive extends SimpleSwingApplication {
 //    contents += new MenuItem(LayoutAction) { mnemonic = Key.L }
   }
 
+  val WindowMenu = new Menu("Window") { menu =>
+    val CloseAction = new Action("Close tab") {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_W, CommandMask))
+      enabled = false
+      menu.contents += new MenuItem(this) { mnemonic = Key.C }
+      def apply() {
+        MainTabbedPane.currentContent match {
+          case Some(doc: HasDocument) =>
+            if (doc.document.promptUnsaved()) MainTabbedPane.pages.remove(MainTabbedPane.selection.index)
+          case _ =>
+        }
+      }
+    }
+  }
+
   listenTo(ProjectFileTree, MainTabbedPane.selection)
 
   reactions += {
@@ -285,6 +321,7 @@ object QuantoDerive extends SimpleSwingApplication {
               val pageOpt = extn match {
                 case "qgraph" => Some(new GraphDocumentPage(project.theory))
                 case "qrule"  => Some(new RuleDocumentPage(project.theory))
+                case "ML"     => Some(new MLDocumentPage)
                 case _ => None
               }
 
@@ -301,11 +338,13 @@ object QuantoDerive extends SimpleSwingApplication {
     case SelectionChanged(_) =>
       MainTabbedPane.currentContent match {
         case Some(doc: HasDocument) =>
+          WindowMenu.CloseAction.enabled = true
           FileMenu.SaveAction.enabled = true
           FileMenu.SaveAction.title = "Save " + doc.document.description
           FileMenu.SaveAsAction.enabled = true
           FileMenu.SaveAsAction.title = "Save " + doc.document.description + " As..."
         case _ =>
+          WindowMenu.CloseAction.enabled = false
           FileMenu.SaveAction.enabled = false
           FileMenu.SaveAction.title = "Save"
           FileMenu.SaveAsAction.enabled = false
@@ -321,7 +360,7 @@ object QuantoDerive extends SimpleSwingApplication {
     size = new Dimension(1280,720)
 
     menuBar = new MenuBar {
-      contents += (FileMenu, EditMenu)
+      contents += (FileMenu, EditMenu, WindowMenu)
     }
   }
 }
