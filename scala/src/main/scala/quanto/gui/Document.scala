@@ -19,7 +19,8 @@ case class DocumentSaved(sender: Document) extends DocumentEvent
 
 abstract class Document extends Publisher {
   var file: Option[File] = None
-  val undoStack = new UndoStack
+  private val _undoStack = new UndoStack
+  def undoStack = _undoStack
   def unsavedChanges : Boolean
   def description: String
   def fileExtension: String
@@ -149,7 +150,7 @@ abstract class Document extends Publisher {
   }
 
   // any time the graph state changes in a meaningful way, an undo is registered
-  listenTo(undoStack)
+  listenTo(_undoStack)
   reactions += {
     case UndoRegistered(_) =>
       publish(DocumentChanged(this))

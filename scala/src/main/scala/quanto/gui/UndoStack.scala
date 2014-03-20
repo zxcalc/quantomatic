@@ -11,6 +11,7 @@ case class RedoPerformed(name: String) extends UndoEvent
 
 class UndoStackException(msg: String) extends Exception(msg)
 
+
 class UndoStack extends Publisher {
   private var redoMode = false
 
