@@ -4,7 +4,6 @@ PolyML.Compiler.printDepth:=100;
 
 open RG_SimpUtil
 
-
 val rotate = load_rule "rules/rotate"
 val green_ids = load_rule "rules/green_ids"
 val green_elim = load_rule "rules/green_elim"
@@ -23,7 +22,8 @@ val simproc = (
   REDUCE_METRIC num_boundary_red green_ids ++
   LOOP (
     REDUCE_METRIC_TO 1 min_green_arity rotate ++
-    REDUCE green_elim
+    REDUCE_WITH { PRE  = fn g => (min_green_arity g = 1),
+                  POST = K true } green_elim
   ) ++
   REDUCE_ALL simps
 )
@@ -31,11 +31,11 @@ val simproc = (
 
 (* testing simproc *)
 
-(*val (sample, gann) = JsonIO.InputGraphJSON.input (Json.read_file "sample2.qgraph");
+val (sample, gann) = JsonIO.InputGraphJSON.input (Json.read_file "sample2.qgraph");
 
 val SOME (_, g') = final (simproc sample)
 
-val _ = Json.write_file "test.qgraph" (JsonIO.OutputGraphJSON.output (g', gann))*)
+val _ = Json.write_file "test.qgraph" (JsonIO.OutputGraphJSON.output (g', gann))
 
 
 

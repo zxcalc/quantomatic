@@ -18,10 +18,11 @@ sig
     sharing Sharing.Graph = Graph.Sharing
     sharing Sharing.Match = Match.Sharing
   
+  
   val match : Graph.T      (* pattern graph *)
     -> Graph.T             (* target graph *)
     -> Match.T Seq.seq (* (lazy) list of matches *)
-  
+
   val match_subgraph : Graph.T  (* pattern graph *)
     -> Graph.T                  (* target graph *)
     -> V.NSet.T             (* target subgraph verts *)
@@ -64,6 +65,14 @@ sig
   val match
      : Graph.T              (* pattern graph *)
     -> Graph.T              (* target graph *)
+    -> Match.T Seq.seq      (* (lazy) list of matches *)
+
+  (* Searches for matches that complete the given node map. If the
+     given node map is already invalid, returns no matches. *)
+  val match_with_initial_nodes
+     : Graph.T              (* pattern graph *)
+    -> Graph.T              (* target graph *)
+    -> VVInj.T              (* an initial node map *)
     -> Match.T Seq.seq      (* (lazy) list of matches *)
   
   (* Searches for matches *)

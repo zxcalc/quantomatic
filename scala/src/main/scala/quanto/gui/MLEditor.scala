@@ -7,14 +7,20 @@ import org.gjt.sp.jedit.{Registers, Mode}
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.datatransfer._
-import java.io.PrintStream
+import java.io.{BufferedWriter, FileWriter, File, PrintStream}
 import quanto.util.{StreamRedirector, SignallingStreamRedirector}
 import scala.swing.event.Key
-import javax.swing.KeyStroke
+import javax.swing.{UIManager, KeyStroke}
+import javax.swing.plaf.metal.MetalLookAndFeel
 
 
 object MLEditor extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
+  try {
+    UIManager.setLookAndFeel(new MetalLookAndFeel) // tabs in OSX PLAF look bad
+  } catch {
+    case e: Exception => e.printStackTrace()
+  }
 
   def top = new MainFrame {
     title = "ML Editor"
@@ -22,6 +28,20 @@ object MLEditor extends SimpleSwingApplication {
     val pb = new ProcessBuilder("poly")
     pb.redirectErrorStream(true)
     val poly = pb.start()
+
+    val pid = try {
+      val pidField = poly.getClass.getDeclaredField("pid")
+      pidField.setAccessible(true)
+      val p = pidField.getInt(poly)
+      pidField.setAccessible(false)
+      Some(p)
+    } catch {
+      case e: Throwable =>
+        e.printStackTrace()
+        None
+    }
+
+    println(pid)
 
     val polyCode = new PrintStream(poly.getOutputStream)
 
@@ -45,8 +65,13 @@ object MLEditor extends SimpleSwingApplication {
     val polySignals = new SignallingStreamRedirector(poly.getInputStream, textOut)
     polySignals.start()
 
-    polyCode.println("TextIO.print \"hello\\n\";" + ";")
-    polyCode.flush()
+
+
+    var exec = 0
+    val codeWrapper =
+    """PolyML.exception_trace (fn () => (use "%1$s"; TextIO.print ("\n<"^"<[S]%2$d>>\n")))"""+
+    """  handle SML90.Interrupt => TextIO.print ("\n<"^"<[I]%2$d>>\n")"""+
+    """       | _               => TextIO.print ("\n<"^"<[E]%2$d>>\n");"""
 
     val FileMenu = new Menu("File") { menu =>
       mnemonic = Key.F
@@ -61,9 +86,29 @@ object MLEditor extends SimpleSwingApplication {
         accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_B, CommandMask))
         menu.contents += new MenuItem(this) { mnemonic = Key.G }
         def apply() {
-          polyCode.println(mlCode.getBuffer.getText)
-          polyCode.println(";")
+          val file = File.createTempFile("ml-code", ".ML")
+          val fw = new BufferedWriter(new FileWriter(file))
+          fw.write(mlCode.getBuffer.getText)
+          fw.write("\n")
+          fw.close()
+
+          polySignals.addListener(exec) { s =>
+            println("Completed with signal: " + s)
+            if (file.exists) file.delete()
+          }
+          val code = codeWrapper.format(file.getAbsolutePath, exec)
+          println(code)
+          polyCode.println(code)
           polyCode.flush()
+          exec += 1
+        }
+      }
+
+      val InterruptAction = new Action("Interrupt") {
+        accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_PERIOD, CommandMask))
+        menu.contents += new MenuItem(this) { mnemonic = Key.G }
+        def apply() {
+          pid.map { p => Runtime.getRuntime.exec("kill -SIGINT " + p) }
         }
       }
     }

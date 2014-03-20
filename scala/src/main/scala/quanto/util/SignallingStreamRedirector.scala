@@ -29,8 +29,8 @@ extends Thread("Signalling Stream Redirector") {
       case 'I' => Interrupted(id)
     }
 
-    listeners(id).foreach { f => f(sig) }
-    listeners.remove(id)
+
+    listeners.remove(id).map { _.foreach( f => f(sig)) }
   }
 
   // process string via tiny state machine
@@ -39,14 +39,14 @@ extends Thread("Signalling Stream Redirector") {
     case 1 => if (c == '<') state = 2 else state = 0
     case 2 => if (c == '[') state = 3 else state = 0
     case 3 => if (c == 'S' || c == 'F' || c == 'I') { currentCode = c ; state = 4 }
-    else { currentCode = 'X' ; state = 0 }
+              else { currentCode = 'X' ; state = 0 }
     case 4 => if (c == ']') state = 5
-    else { currentCode = 'X' ; state = 0 }
-    case 5 => if (c.isDigit) currentId = (10 * currentId) + c.toInt
-    else if (c == '>') state = 6
-    else { currentCode = 'X' ; currentId = 0; state = 0 }
+              else { currentCode = 'X' ; state = 0 }
+    case 5 => if (c.isDigit) currentId = (10 * currentId) + c.toString.toInt
+              else if (c == '>') state = 6
+              else { currentCode = 'X' ; currentId = 0; state = 0 }
     case 6 => if (c == '>') fire(currentCode, currentId)
-      currentCode = 'X' ; currentId = 0; state = 0
+              currentCode = 'X' ; currentId = 0; state = 0
   }
 
   def addListener(id: Int)(f : Signal => Any) {

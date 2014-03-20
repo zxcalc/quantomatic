@@ -67,6 +67,11 @@ sig
   structure MatchState : OGRAPH_MATCH_STATE
   structure Hooks : PROGRESSIVE_MATCH_SEARCH_HOOKS
 
+  val match_new_nv : Hooks.Context
+                     -> (V.name * V.name)
+                     -> MatchState.T
+                     -> MatchState.T option
+
   (* Match all queued unmatched circles and node vertices, and extend the
    * matchings of any scheduled partially-matched node vertices as much as
    * possible using queued unmatched wire vertices.
@@ -331,14 +336,34 @@ functor ProgressiveMatchSearch(
           end
   end
   
-  
-    
+  fun match_new_nv' lvl context (nv, tnv) match_state =
+    (* note this hook is now being called *before* scheduling the new node,
+     * but I don't think this matters. *)
+    if Hooks.vertex_match_is_allowed context match_state nv tnv
+    then
+      case Graph.match_vdata (Graph.get_vertex_data (MatchState.get_pat match_state) nv,
+                              Graph.get_vertex_data (MatchState.get_tgt match_state) tnv)
+                              (MatchState.get_match_psubst match_state)
+        of SOME subst => SOME (
+            match_state
+             |> MatchState.update_u_nodeverts  (V.NSet.delete nv)
+             |> MatchState.update_p_nodeverts  (V.NSet.add nv)
+             |> MatchState.update_ps_nodeverts (V.NSet.add nv)
+             |> MatchState.set_match_psubst subst
+             |> add_vertex_to_match lvl (nv, tnv)
+             |> MatchState.update_tgt_verts (V.NSet.delete tnv)
+           )
+         | NONE => NONE
+      else NONE
+
+  val match_new_nv = match_new_nv' 0
+
   fun match_pending context match_state = let
     val _ = Log.log 2 "== Starting inner match"
     val _ = log_graph 4 "Pattern" (MatchState.get_pat match_state)
     val _ = log_graph 4 "Target" (MatchState.get_tgt match_state)
     val p_vertex_may_be_completed = Hooks.p_vertex_may_be_completed context
-    val vertex_match_is_allowed = Hooks.vertex_match_is_allowed context
+    (*val vertex_match_is_allowed = Hooks.vertex_match_is_allowed context*)
   
     (* main matching loop *)
     fun match_main lvl ms = let
@@ -419,23 +444,9 @@ functor ProgressiveMatchSearch(
       fun match_and_schedule_new nv = let
         val _ = Log.logf 3 (fn () => ind lvl
               "== Next unmatched: "^(V.string_of_name nv)) ()
-        val ms' = ms |> MatchState.update_u_nodeverts  (V.NSet.delete nv)
-                     |> MatchState.update_p_nodeverts  (V.NSet.add nv)
-                     |> MatchState.update_ps_nodeverts (V.NSet.add nv)
-        val nv_data = Graph.get_vertex_data (MatchState.get_pat ms') nv
-        val match_is_allowed = vertex_match_is_allowed ms' nv
         fun match_nv_and_continue tnv =
-          case Graph.match_vdata (nv_data,
-                                  Graph.get_vertex_data (MatchState.get_tgt ms') tnv)
-                                 (MatchState.get_match_psubst ms')
-            of SOME subst =>
-                if match_is_allowed tnv
-                then
-                   match_main (lvl+1)
-                              (ms' |> MatchState.set_match_psubst subst
-                                   |> add_vertex_to_match lvl (nv, tnv)
-                                   |> MatchState.update_tgt_verts (V.NSet.delete tnv))
-                else Seq.empty
+          case ms |> match_new_nv' lvl context (nv, tnv)
+            of SOME ms' => match_main (lvl+1) ms'
              | NONE => Seq.empty
       in
         Seq.maps match_nv_and_continue

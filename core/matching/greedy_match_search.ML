@@ -609,6 +609,8 @@ struct
   fun match pat tgt =
     match_normalised (Graph.normalise pat) (Graph.normalise tgt)
 
+  fun match_with_initial_nodes pat tgt nmap = match pat tgt
+
   fun match_subgraph_normalised pat tgt tgt_verts = let
     val _ = log_graph 3 0 "GreedyMatchSearch: normalised pattern" pat
     val _ = log_graph 3 0 "GreedyMatchSearch: normalised target" tgt

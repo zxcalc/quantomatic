@@ -1,3 +1,5 @@
+infixr 4 ++
+
 functor SimpUtil(
   structure Theory : GRAPHICAL_THEORY
   structure IO : GRAPH_COMPONENT_DATA_IO
@@ -33,7 +35,18 @@ fun REDUCE rule graph =
        | NONE => NONE
   ))
 
-fun REDUCE_METRIC metric rule graph =
+fun REDUCE_WITH {PRE=PRE, POST=POST} rule graph =
+  Seq.make (fn () => (
+    if not (PRE graph) then NONE
+    else case Seq.pull (Seq.filter
+                       (fn (_, g') => POST (graph, g'))
+                       (Theory.Rewriter.find_rewrites rule graph))
+           of SOME ((r,g'), _) => SOME ((r,g'), REDUCE_WITH {PRE=PRE,POST=POST} rule g')
+            | NONE => NONE
+  ))
+
+
+(*fun REDUCE_METRIC metric rule graph =
   Seq.make (fn () => (
     let
       val m = metric graph
@@ -44,9 +57,16 @@ fun REDUCE_METRIC metric rule graph =
         of SOME ((r,g'), _) => SOME ((r,g'), REDUCE_METRIC metric rule g')
          | NONE => NONE
     end
-  ))
+  ))*)
 
-fun REDUCE_METRIC_TO i metric rule graph =
+
+fun REDUCE_METRIC_TO i metric =
+  REDUCE_WITH { PRE  = (fn g => (i <= metric g)),
+                POST = (fn (g,g') => (metric g' < metric g)) }
+
+val REDUCE_METRIC = REDUCE_METRIC_TO 0
+
+(*fun REDUCE_METRIC_TO i metric rule graph =
   Seq.make (fn () => (
     let
       val m = metric graph
@@ -58,7 +78,7 @@ fun REDUCE_METRIC_TO i metric rule graph =
              of SOME ((r,g'), _) => SOME ((r,g'), REDUCE_METRIC_TO i metric rule g')
               | NONE => NONE
     end
-  ))
+  ))*)
 
 fun final seq = let
   fun fin prev seq = case Seq.pull seq
@@ -77,8 +97,6 @@ fun op++ (seqf1, seqf2) graph = let
     ))
 in chain NONE (seqf1 graph)
 end
-
-infixr 4 ++
 
 fun LOOP seqf graph =
   Seq.make (fn () => (
