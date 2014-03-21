@@ -8,7 +8,7 @@ import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.datatransfer._
 import java.io.{BufferedWriter, FileWriter, File, PrintStream}
-import quanto.util.{StreamRedirector, SignallingStreamRedirector}
+import quanto.util.SignallingStreamRedirector
 import scala.swing.event.Key
 import javax.swing.{UIManager, KeyStroke}
 import javax.swing.plaf.metal.MetalLookAndFeel

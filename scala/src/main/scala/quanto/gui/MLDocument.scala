@@ -15,8 +15,14 @@ class JEditBufferUndoStack(textArea: StandaloneTextArea) extends UndoStack {
   override def redoActionName = if (canRedo) Some("Edit") else None
   override def undoActionName = if (canUndo) Some("Edit") else None
 
-  override def redo() = buffer.redo(textArea)
-  override def undo() = buffer.undo(textArea)
+  override def redo() = {
+    buffer.redo(textArea)
+    publish(RedoPerformed("Edit"))
+  }
+  override def undo() = {
+    buffer.undo(textArea)
+    publish(UndoPerformed("Edit"))
+  }
 
   // none of these do anything
   override def register(aName: String)(f: => Any) {}
@@ -28,7 +34,6 @@ class JEditBufferUndoStack(textArea: StandaloneTextArea) extends UndoStack {
     buffer.setDirty(false)
     buffer match {
       case b1 : JEditBuffer1 =>
-        println("clearing undo stack")
         b1.clearUndoStack()
       case _ =>
     }
@@ -45,6 +50,13 @@ class MLDocument(val parent: Component, textArea: StandaloneTextArea) extends Do
   val fileExtension = "ML"
   private val _jeditUndoStack = new JEditBufferUndoStack(textArea)
   override def undoStack = _jeditUndoStack
+
+  listenTo(_jeditUndoStack)
+
+  reactions += {
+    case UndoPerformed(_) => publish(DocumentChanged(this))
+    case RedoPerformed(_) => publish(DocumentChanged(this))
+  }
 
   // the ML, as it was last saved or loaded
 //  private var storedCode: String = ""
