@@ -10,6 +10,7 @@ class MLEditPanel extends BorderPanel with HasDocument {
   sml.setProperty("file", getClass.getResource("ml.xml").getPath)
   println(sml.getProperty("file"))
   val mlCode = StandaloneTextArea.createTextArea()
+  mlCode.setBuffer(new JEditBuffer1())
   mlCode.getBuffer.setMode(sml)
   val document = new MLDocument(this, mlCode)
   peer.add(mlCode, BorderLayout.CENTER)

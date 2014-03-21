@@ -5,6 +5,7 @@ import org.gjt.sp.jedit.textarea.StandaloneTextArea
 import scala.io.Source
 import scala.swing.Component
 import org.gjt.sp.jedit.buffer.{BufferAdapter, JEditBuffer}
+import javax.swing.text.Segment
 
 class JEditBufferUndoStack(textArea: StandaloneTextArea) extends UndoStack {
   val buffer = textArea.getBuffer
@@ -23,7 +24,19 @@ class JEditBufferUndoStack(textArea: StandaloneTextArea) extends UndoStack {
   override def commit() {}
   override def +=(f: => Any) {}
   override def start(aName: String) {}
-  override def clear() {}
+  override def clear() {
+    buffer.setDirty(false)
+    buffer match {
+      case b1 : JEditBuffer1 =>
+        println("clearing undo stack")
+        b1.clearUndoStack()
+      case _ =>
+    }
+  }
+}
+
+class JEditBuffer1 extends JEditBuffer {
+  def clearUndoStack() { undoMgr.clear() }
 }
 
 
@@ -34,17 +47,20 @@ class MLDocument(val parent: Component, textArea: StandaloneTextArea) extends Do
   override def undoStack = _jeditUndoStack
 
   // the ML, as it was last saved or loaded
-  private var storedCode: String = ""
-  def unsavedChanges = storedCode != textArea.getBuffer.getText
+//  private var storedCode: String = ""
+  def unsavedChanges = textArea.getBuffer.isDirty
 
-  textArea.getBuffer.addBufferListener(new BufferAdapter {
+  object BufferChanges extends BufferAdapter {
     override def contentInserted(buffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
       publish(DocumentChanged(doc))
     }
     override def contentRemoved(buffer: JEditBuffer, startLine: Int, offset: Int, numLines: Int, length: Int) {
       publish(DocumentChanged(doc))
     }
-  })
+  }
+
+  textArea.getBuffer.addBufferListener(BufferChanges)
+
 
   def code = textArea.getBuffer.getText
   def code_=(c: String) {
@@ -56,16 +72,21 @@ class MLDocument(val parent: Component, textArea: StandaloneTextArea) extends Do
 
   protected def loadDocument(f: File) {
     val text = Source.fromFile(f).mkString
-    storedCode = text
     textArea.setText(text)
+
+    undoStack.clear()
+    textArea.getBuffer.setDirty(false)
+//    textArea.setText("foo")
+//    println("can undo: " + textArea.getBuffer.canUndo)
   }
 
   protected def saveDocument(f: File) {
-    storedCode = textArea.getText
+    //storedCode = textArea.getText
     val fw = new BufferedWriter(new FileWriter(f))
-    fw.write(storedCode)
+    fw.write(textArea.getText)
     fw.write("\n")
     fw.close()
+    textArea.getBuffer.setDirty(false)
   }
 
   protected def clearDocument() {

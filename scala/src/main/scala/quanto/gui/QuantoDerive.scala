@@ -233,9 +233,9 @@ object QuantoDerive extends SimpleSwingApplication {
       listenTo(MainTabbedPane.selection)
 
       reactions += {
-        case _: UndoEvent => updateUndoCommand()
+        case DocumentChanged(_) => updateUndoCommand()
         case SelectionChanged(_) =>
-          currentDocument.map { doc => listenTo(doc.document.undoStack) }
+          currentDocument.map { doc => listenTo(doc.document) }
           updateUndoCommand()
       }
     }
@@ -263,9 +263,9 @@ object QuantoDerive extends SimpleSwingApplication {
       listenTo(MainTabbedPane.selection)
 
       reactions += {
-        case _: UndoEvent => updateRedoCommand()
+        case DocumentChanged(_) => updateRedoCommand()
         case SelectionChanged(_) =>
-          currentDocument.map { doc => listenTo(doc.document.undoStack) }
+          currentDocument.map { doc => listenTo(doc.document) }
           updateRedoCommand()
       }
     }
