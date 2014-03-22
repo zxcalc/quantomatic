@@ -82,7 +82,12 @@ Testing.make_test "io/test/linrat-json-test.ML";
 (*
  * Graphs
  *)
-PolyML.Project.make "graph/arity.ML"; (* arity of vertices (in,out,undir) *)
+
+(* arity of vertices (in,out,undir) *)
+PolyML.Project.make "graph/arity.ML";
+(* neighbourhood data for non-commutative vertices *)
+PolyML.Project.make "graph/nhd.ML"; 
+
 
 PolyML.Project.make "graph/graph_data.ML";
 PolyML.Project.make "graph/ograph.sig.ML";
@@ -97,6 +102,7 @@ PolyML.Project.make "io/graph_annotations_json.ML";
 PolyML.Project.make "io/graph_dot_output.ML";
 
 Testing.make_test "graph/test/test-graph-setup.ML";
+Testing.make_test "graph/test/test-nhd.ML";
 Testing.make_test "graph/test/test-ograph.ML";
 Testing.make_test "graph/test/test-bang-graph.ML";
 
