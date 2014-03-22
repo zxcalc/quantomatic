@@ -20,6 +20,10 @@ val json_of : T -> Json.json
 val rename : (ESub.T * BSub.T) -> T -> T
 val eq : T * T -> bool
 
+val kill : B.name -> T -> T
+val expand : B.name -> (ESub.T * BSub.T) -> T -> T
+val copy : B.name -> (ESub.T * BSub.T) -> T -> T
+
 exception nhd_exn of string
 
 end
@@ -42,15 +46,15 @@ val mk = NHD
 
 val empty = NHD []
 
-fun rename (emap, bmap) (NHD exprs) =
-let
-  fun rn (I e) = I (ESub.get emap e)
-    | rn (O e) = O (ESub.get emap e)
-    | rn (U e) = U (ESub.get emap e)
-    | rn (L (bb, es)) = L (BSub.get bmap bb, map rn es)
-    | rn (R (bb, es)) = R (BSub.get bmap bb, map rn es)
-in NHD (map rn exprs)
-end
+fun rename_expr (emap, bmap) (I e) = I (ESub.get emap e)
+  | rename_expr (emap, bmap) (O e) = O (ESub.get emap e)
+  | rename_expr (emap, bmap) (U e) = U (ESub.get emap e)
+  | rename_expr (emap, bmap) (L (bb, es)) =
+      L (BSub.get bmap bb, map (rename_expr (emap, bmap)) es)
+  | rename_expr (emap, bmap) (R (bb, es)) =
+      R (BSub.get bmap bb, map (rename_expr (emap, bmap)) es)
+
+fun rename (emap, bmap) (NHD exprs) = mk (map (rename_expr (emap, bmap)) exprs)
 
 fun eq (NHD exprs, NHD exprs') =
 let
@@ -65,17 +69,53 @@ let
     | ex_eq (I e, I e') = E.name_eq (e,e')
     | ex_eq (O e, O e') = E.name_eq (e,e')
     | ex_eq (U e, U e') = E.name_eq (e,e')
+    | ex_eq _ = false
 in ListPair.allEq ex_eq (exprs,exprs')
    handle ListPair.UnequalLengths => false
 end
 
-(*fun expand bb (emap, bmap) (NHD exprs) =
+fun kill bb (NHD exprs) =
 let
-  fun ex (L (bb', exprs') rest =
-    if B.name_eq (bb, bb')
-    then L (bb, exprs') :: exprs' @ rest
-    else L (bb', fold_rev ex rest []) :: rest
-*)
+  fun kill_e (L (bb', es)) =
+        if B.name_eq (bb, bb')
+        then NONE
+        else SOME (L (bb', map_filter kill_e es))
+    | kill_e (R (bb', es)) =
+        if B.name_eq (bb, bb')
+        then NONE
+        else SOME (R (bb', map_filter kill_e es))
+    | kill_e e = SOME e
+in NHD (map_filter kill_e exprs)
+end
+
+fun expand bb (emap, bmap) (NHD exprs) =
+let
+  fun expand_e (L (bb', exprs')) =
+        if B.name_eq (bb, bb')
+        then (map (rename_expr (emap, bmap)) exprs') @ [L (bb, exprs')]
+        else [L (bb', maps expand_e exprs')]
+    | expand_e (R (bb', exprs')) =
+        if B.name_eq (bb, bb')
+        then R (bb, exprs') :: (map (rename_expr (emap, bmap)) exprs')
+        else [R (bb', maps expand_e exprs')]
+    | expand_e expr = [expr]
+in mk (maps expand_e exprs)
+end
+
+fun copy bb (emap, bmap) (NHD exprs) =
+let
+  fun copy_e (expr as L (bb', exprs')) =
+        if B.name_eq (bb, bb')
+        then [rename_expr (emap, bmap) expr, expr]
+        else [L (bb', maps copy_e exprs')]
+    | copy_e (expr as R (bb', exprs')) =
+        if B.name_eq (bb, bb')
+        then [expr, rename_expr (emap, bmap) expr]
+        else [R (bb', maps copy_e exprs')]
+    | copy_e expr = [expr]
+in mk (maps copy_e exprs)
+end
+
 
 
 fun expr_of_json (Json.Array lst) =

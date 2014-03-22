@@ -28,9 +28,21 @@ val _ = Testing.test "Nhd.of_json/json_of" (fn () =>
   end) ()
 
 
+val _ = Testing.test "Nhd.rename" (fn () =>
+  let
+    val n1 = Nhd.mk [Nhd.L (Ba, [Nhd.I a, Nhd.R (Bb, [Nhd.I b, Nhd.O c]), Nhd.O d])]
+    val n2 = Nhd.mk [Nhd.L (Bb, [Nhd.I d, Nhd.R (Ba, [Nhd.I b, Nhd.O c]), Nhd.O e])]
+    val esub = ESub.empty |> ESub.add (a, d) |> ESub.add (d, e)
+                          |> ESub.extend_fixed (E.NSet.of_list [b, c])
+    val bsub = BSub.empty |> BSub.add (Ba, Bb) |> BSub.add (Bb, Ba)
+    val _ = Testing.assert "renaming works correctly"
+              (Nhd.eq (Nhd.rename (esub,bsub) n1, n2))
+  in ()
+  end) ()
+
 val _ = Testing.assert_no_failed_tests()
 
 
 end;
 
-OS.Process.exit OS.Process.success;
+(*val _ = OS.Process.exit OS.Process.success;*)
