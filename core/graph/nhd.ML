@@ -9,6 +9,9 @@ datatype expr =
   L of B.name * (expr list) | (* bbox (expand left) *)
   R of B.name * (expr list) (* bbox (expand right) *)
 
+datatype dir = IN | OUT | UNDIR
+type ectx = E.name * dir * B.name list
+
 type T
 
 val mk : expr list -> T
@@ -26,6 +29,13 @@ val kill : B.name -> T -> T
 val expand : B.name -> (ESub.T * BSub.T) -> T -> T
 val copy : B.name -> (ESub.T * BSub.T) -> T -> T
 
+(* get a list of all edge contexts *)
+val get_ctxs : T -> ectx list
+
+(* get edge contexts referring to a particular name. There should be
+ * one for normal edges and two for self-loops. *)
+val get_ctxs_for : E.name -> T -> ectx list
+
 exception nhd_exn of string
 
 end
@@ -41,6 +51,9 @@ datatype expr =
   U of E.name |
   L of B.name * (expr list) |
   R of B.name * (expr list)
+
+datatype dir = IN | OUT | UNDIR
+type ectx = E.name * dir * B.name list
 
 datatype T = NHD of expr list
 
@@ -144,6 +157,17 @@ in mk (maps copy_e exprs)
 end
 
 
+fun get_ctxs (NHD exprs) =
+let
+  fun ctxs (L (bb', exprs')) = map (fn (e,d,bbs) => (e,d,bb' :: bbs)) (maps ctxs exprs')
+    | ctxs (R (bb', exprs')) = map (fn (e,d,bbs) => (e,d,bb' :: bbs)) (maps ctxs exprs')
+    | ctxs (I e) = [(e, IN, [])]
+    | ctxs (O e) = [(e, OUT, [])]
+    | ctxs (U e) = [(e, UNDIR, [])]
+in maps ctxs exprs
+end
+
+fun get_ctxs_for e nhd = filter (fn (e',_,_) => E.name_eq (e,e')) (get_ctxs nhd)
 
 fun expr_of_json (Json.Array lst) =
  (case lst

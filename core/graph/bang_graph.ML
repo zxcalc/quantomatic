@@ -11,6 +11,7 @@ datatype T = BG of {
   edata  : (dir_or_undir * Data.edata) ETab.T,
   source : EVFn.T,
   target : EVFn.T,
+  nhd    : Nhd.T VTab.T,
   
   bboxes   : B.NSet.T,
   bbox_rel : BVRel.T,
@@ -34,6 +35,7 @@ val empty : T = BG {
   edata  = ETab.empty,
   source = EVFn.empty,
   target = EVFn.empty,
+  nhd    = VTab.empty,
   
   bboxes   = B.NSet.empty,
   bbox_rel = BVRel.empty,
@@ -75,30 +77,34 @@ exception merge_bbox_exp of string
 (* Note that it is possible to break a graph by calling these updaters, so they should
  * all be private. Also note that these functions are automatically generated, so avoid
  * making changes *)
-
-fun update_vdata f (BG r) = BG {vdata=f(#vdata r),edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
-fun update_edata f (BG r) = BG {vdata= #vdata r,edata=f(#edata r),source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
-fun update_source f (BG r) = BG {vdata= #vdata r,edata= #edata r,source=f(#source r),target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
-fun update_target f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target=f(#target r),bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
-fun update_bboxes f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes=f(#bboxes r),bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
-fun update_bbox_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel=f(#bbox_rel r),bbox_child_rel= #bbox_child_rel r}
-fun update_bbox_child_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel=f(#bbox_child_rel r)}
+fun update_vdata f (BG r) = BG {vdata=f(#vdata r),edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
+fun update_edata f (BG r) = BG {vdata= #vdata r,edata=f(#edata r),source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
+fun update_source f (BG r) = BG {vdata= #vdata r,edata= #edata r,source=f(#source r),target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
+fun update_target f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target=f(#target r),nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
+fun update_nhd f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd=f(#nhd r),bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
+fun update_bboxes f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes=f(#bboxes r),bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
+fun update_bbox_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel=f(#bbox_rel r),bbox_child_rel= #bbox_child_rel r}
+fun update_bbox_child_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel=f(#bbox_child_rel r)}
 
 fun get_vdata          (BG r) = #vdata r
 fun get_edata          (BG r) = #edata r
 fun get_source         (BG r) = #source r
 fun get_target         (BG r) = #target r
+fun get_nhd            (BG r) = #nhd r
 fun get_bboxes         (BG r) = #bboxes r
 fun get_bbox_rel       (BG r) = #bbox_rel r
 fun get_bbox_child_rel (BG r) = #bbox_child_rel r
 
-val set_vdata             = update_vdata          o K
-val set_edata             = update_edata          o K
-val set_source            = update_source         o K
-val set_target            = update_target         o K
-val set_bboxes            = update_bboxes         o K
-val set_bbox_rel          = update_bbox_rel       o K
-val set_bbox_child_rel    = update_bbox_child_rel o K
+fun set_vdata          x  = update_vdata          (fn _ => x)
+fun set_edata          x  = update_edata          (fn _ => x)
+fun set_source         x  = update_source         (fn _ => x)
+fun set_target         x  = update_target         (fn _ => x)
+fun set_nhd            x  = update_nhd            (fn _ => x)
+fun set_bboxes         x  = update_bboxes         (fn _ => x)
+fun set_bbox_rel       x  = update_bbox_rel       (fn _ => x)
+fun set_bbox_child_rel x  = update_bbox_child_rel (fn _ => x)
+
+
 
 (*********************************)
 (******* DERIVED ACCESSORS *******)
@@ -903,10 +909,22 @@ fun merge g1 g2 = let
   val bbox_rel = BVRel.fold BVRel.add (get_bbox_rel g2) (get_bbox_rel g1)
   val bbox_child_rel = BBRel.fold BBRel.add (get_bbox_child_rel g2)
                                             (get_bbox_child_rel g1)
+
+  val nhd = VTab.fold (fn (v,n) => fn nhd' => (
+      case VTab.get_opt nhd' v
+        of SOME n' =>
+            if Nhd.eq (n,n')
+            then nhd'
+            else raise bad_graph_merge_exp (g1,g2) (* v has different nhds in g1, g2 *)
+         | NONE =>
+            if V.NSet.contains shared_vs v
+            then raise bad_graph_merge_exp (g1,g2) (* v has nhd in g1, but not g2 *)
+            else VTab.add (v,n) nhd'
+    )) (get_nhd g1) (get_nhd g2)
   (* check wvs *)
 in
   BG { vdata = vdata, edata = edata,
-       source = source, target = target,
+       source = source, target = target, nhd = nhd,
        bboxes = bboxes, bbox_rel = bbox_rel,
        bbox_child_rel = bbox_child_rel }
 end
