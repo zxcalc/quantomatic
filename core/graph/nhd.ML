@@ -20,6 +20,8 @@ val json_of : T -> Json.json
 val rename : (ESub.T * BSub.T) -> T -> T
 val eq : T * T -> bool
 
+val reduce : T -> T
+val drop : B.name -> T -> T
 val kill : B.name -> T -> T
 val expand : B.name -> (ESub.T * BSub.T) -> T -> T
 val copy : B.name -> (ESub.T * BSub.T) -> T -> T
@@ -74,6 +76,17 @@ in ListPair.allEq ex_eq (exprs,exprs')
    handle ListPair.UnequalLengths => false
 end
 
+(* remove empty bboxes *)
+fun reduce (NHD exprs) =
+let
+  fun reduce_e (L (bb, es)) =
+       (case maps reduce_e es of [] => [] | es' => [L (bb, es')])
+    | reduce_e (R (bb, es)) =
+       (case maps reduce_e es of [] => [] | es' => [R (bb, es')])
+    | reduce_e e = [e]
+in mk (maps reduce_e exprs)
+end
+
 fun kill bb (NHD exprs) =
 let
   fun kill_e (L (bb', es)) =
@@ -85,7 +98,21 @@ let
         then NONE
         else SOME (R (bb', map_filter kill_e es))
     | kill_e e = SOME e
-in NHD (map_filter kill_e exprs)
+in reduce (mk (map_filter kill_e exprs))
+end
+
+fun drop bb (NHD exprs) =
+let
+  fun drop_e (L (bb', es)) =
+        if B.name_eq (bb, bb')
+        then maps drop_e es
+        else [L (bb', maps drop_e es)]
+    | drop_e (R (bb', es)) =
+        if B.name_eq (bb, bb')
+        then maps drop_e es
+        else [R (bb', maps drop_e es)]
+    | drop_e e = [e]
+in mk (maps drop_e exprs)
 end
 
 fun expand bb (emap, bmap) (NHD exprs) =
