@@ -58,25 +58,25 @@ val fr_e = fold ESub.add [(a,e),(b,f),(c,g),(d,h)] ESub.empty
 val fr_bb = fold BSub.add [(Ba,Bc),(Bb,Bd)] BSub.empty
 
 
-val _ = Testing.test "Nhd.get_ctxs" (fn () =>
+val _ = Testing.test "Nhd.get_edge_contexts" (fn () =>
   let
     val ctxs = [(a, Nhd.IN, [Ba]), (b, Nhd.OUT, [Ba]), (c, Nhd.IN, [Ba, Bb]), (d, Nhd.OUT, [])]
     val _ = Testing.assert "gets correct contexts" (ListPair.allEq
              (fn ((e,d,bs), (e',d',bs')) => (
                 E.name_eq (e, e') andalso d = d' andalso ListPair.allEq B.name_eq (bs,bs')
              ))
-             (Nhd.get_ctxs nhd, ctxs))
+             (Nhd.get_edge_contexts nhd, ctxs))
   in ()
   end) ()
 
-val _ = Testing.test "Nhd.get_ctxs_for" (fn () =>
+val _ = Testing.test "Nhd.get_edge_contexts_for" (fn () =>
   let
     val ctxs = [(a, Nhd.IN, [Ba])]
     val _ = Testing.assert "gets correct contexts" (ListPair.allEq
              (fn ((e,d,bs), (e',d',bs')) => (
                 E.name_eq (e, e') andalso d = d' andalso ListPair.allEq B.name_eq (bs,bs')
              ))
-             (Nhd.get_ctxs_for a nhd, ctxs))
+             (Nhd.get_edge_contexts_for a nhd, ctxs))
   in ()
   end) ()
 

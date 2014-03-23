@@ -30,11 +30,12 @@ val expand : B.name -> (ESub.T * BSub.T) -> T -> T
 val copy : B.name -> (ESub.T * BSub.T) -> T -> T
 
 (* get a list of all edge contexts *)
-val get_ctxs : T -> ectx list
+val get_edge_contexts : T -> ectx list
 
 (* get edge contexts referring to a particular name. There should be
  * one for normal edges and two for self-loops. *)
-val get_ctxs_for : E.name -> T -> ectx list
+val get_edge_contexts_for : E.name -> T -> ectx list
+
 
 exception nhd_exn of string
 
@@ -157,7 +158,7 @@ in mk (maps copy_e exprs)
 end
 
 
-fun get_ctxs (NHD exprs) =
+fun get_edge_contexts (NHD exprs) =
 let
   fun ctxs (L (bb', exprs')) = map (fn (e,d,bbs) => (e,d,bb' :: bbs)) (maps ctxs exprs')
     | ctxs (R (bb', exprs')) = map (fn (e,d,bbs) => (e,d,bb' :: bbs)) (maps ctxs exprs')
@@ -167,7 +168,7 @@ let
 in maps ctxs exprs
 end
 
-fun get_ctxs_for e nhd = filter (fn (e',_,_) => E.name_eq (e,e')) (get_ctxs nhd)
+fun get_edge_contexts_for e nhd = filter (fn (e',_,_) => E.name_eq (e,e')) (get_edge_contexts nhd)
 
 fun expr_of_json (Json.Array lst) =
  (case lst

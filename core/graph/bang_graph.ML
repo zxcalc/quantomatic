@@ -403,6 +403,36 @@ end
 (****** ADD/REMOVE/MODIFY FUNCTIONS ******)
 (*****************************************)
 
+fun check_vertex_nhd v nhd g =
+let
+  val ctxs = Nhd.get_edge_contexts nhd
+  val nhd_edges = fold (fn (e,_,_) => E.NSet.add e) ctxs E.NSet.empty
+  val v_bboxes = get_bboxes_containing_vertex g v
+  fun check_bbox_nesting (b1 :: b2 :: bs) =
+        not (B.NSet.contains v_bboxes b1) andalso
+        BBRel.is_mapped (get_bbox_child_rel g) (b1, b2) andalso
+        check_bbox_nesting (b2 :: bs)
+    | check_bbox_nesting [b1] = not (B.NSet.contains v_bboxes b1)
+    | check_bbox_nesting [] = true
+  fun check_edge_dir e Nhd.UNDIR = (get_edge_dir g e = Undirected)
+    | check_edge_dir e Nhd.IN    = (get_edge_dir g e = Directed andalso
+                                    V.name_eq (get_edge_target g e, v))
+    | check_edge_dir e Nhd.OUT   = (get_edge_dir g e = Directed andalso
+                                    V.name_eq (get_edge_source g e, v))
+  fun check_other_vertex e bs =
+        B.NSet.eq (B.NSet.union_merge v_bboxes (B.NSet.of_list bs))
+                  (get_bboxes_containing_vertex g (edge_get_other_vertex g e v))
+in
+  E.NSet.eq nhd_edges (get_adj_edges g v) andalso
+  forall (fn (e,d,bs) => (
+    check_bbox_nesting bs andalso
+    check_edge_dir e d andalso
+    check_other_vertex e bs
+  )) ctxs
+end
+
+(*fun set_vertex_nhd v nhd g =*)
+
 fun add_vertex_to_bbox' bb v g =
   if (has_bbox g bb) then g |> update_bbox_rel (BVRel.add (bb, v))
   else raise no_such_bbox_exp ("add_vertex_to_bbox'", bb, g)
