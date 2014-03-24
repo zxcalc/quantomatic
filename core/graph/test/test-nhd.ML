@@ -134,4 +134,4 @@ val _ = Testing.assert_no_failed_tests()
 
 end;
 
-val _ = OS.Process.exit OS.Process.success;
+(*val _ = OS.Process.exit OS.Process.success;*)

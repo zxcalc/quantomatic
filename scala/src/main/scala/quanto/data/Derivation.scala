@@ -1,6 +1,7 @@
 package quanto.data
 
 import quanto.util.json._
+import javax.management.remote.rmi._RMIConnectionImpl_Tie
 
 trait DerivationException
 case class DerivationLoadException(message: String, cause: Throwable = null)
@@ -12,10 +13,9 @@ case object RuleNormal extends RuleVariant { override def toString = "normal" }
 case object RuleInverse extends RuleVariant { override def toString = "inverse" }
 
 case class DStep(name: DSName,
-                 rule: String,
+                 ruleName: String,
+                 rule: Rule,
                  variant: RuleVariant,
-                 matchedVertices: Set[VName],
-                 replacedVertices: Set[VName],
                  graph: Graph)
 
 object DStep {
@@ -23,10 +23,9 @@ object DStep {
     JsonObject(
       "name" -> dstep.name.toString,
       "parent" -> parent.map(_.toString),
-      "rule" -> dstep.rule,
+      "rule_name" -> dstep.ruleName,
+      "rule" -> Rule.toJson(dstep.rule, thy),
       "rule_variant" -> (dstep.variant match { case RuleNormal => JsonNull; case v => v.toString }),
-      "matched" -> JsonObject("vertices" -> dstep.matchedVertices.map(_.toString)),
-      "replaced" -> JsonObject("vertices" -> dstep.replacedVertices.map(_.toString)),
       "graph" -> Graph.toJson(dstep.graph, thy)
     ).noEmpty
   }
@@ -34,11 +33,10 @@ object DStep {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory) : DStep = try {
     DStep(
       name = DSName((json / "name").stringValue),
-      rule = (json / "rule").stringValue,
+      ruleName = (json / "ruleName").stringValue,
+      rule = Rule.fromJson(json / "rule", thy),
       variant = json ? "rule_variant" match { case JsonString("inverse") => RuleInverse; case _ => RuleNormal },
-      matchedVertices = (json / "matched" / "vertices").vectorValue.map(v => VName(v.stringValue)).toSet,
-      replacedVertices = (json / "replaced" / "vertices").vectorValue.map(v => VName(v.stringValue)).toSet,
-      graph = null
+      graph = Graph.fromJson(json / "graph", thy)
     )
   } catch {
     case e: Exception => throw new DerivationLoadException("Error reading JSON")
@@ -53,9 +51,27 @@ case class Derivation(theory: Theory,
 
 object Derivation {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory) = try {
-    Rule(lhs = Graph.fromJson(json / "lhs", thy),
-      rhs = Graph.fromJson(json / "rhs", thy),
-      derivation = json.get("derivation").map(_.stringValue))
+    val parent = (json / "steps").asObject.foldLeft(PFun[DSName,DSName]()) {
+      case (pf,(step,obj)) => obj.get("parent") match {
+        case Some(JsonString(p)) => pf + (DSName(step) -> DSName(p))
+        case _ => pf
+      }
+    }
+
+    val steps = (json / "steps").asObject.foldLeft(Map[DSName,DStep]()) {
+      case (mp,(step,obj)) => mp + (DSName(step) -> DStep.fromJson(obj, thy))
+    }
+
+    val heads = (json / "heads").asArray.map(h => DSName(h.stringValue)).toSet
+
+
+    Derivation(
+      theory = thy,
+      root = Graph.fromJson(json / "root", thy),
+      steps = steps,
+      heads = heads,
+      parent = parent
+    )
   } catch {
     case e: Exception => throw new DerivationLoadException("Error reading JSON", e)
   }

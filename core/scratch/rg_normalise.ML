@@ -33,11 +33,13 @@ val simproc = (
 
 val (sample, gann) = JsonIO.InputGraphJSON.input (Json.read_file "sample2.qgraph");
 
+val steps = Seq.list_of (simproc sample)
+
 (*val SOME (_, g') = final (simproc sample)
 
 val _ = Json.write_file "test.qgraph" (JsonIO.OutputGraphJSON.output (g', gann))*)
 
-TextIO.print (RG_Mathematica.to_mathematica "sample" sample)
+(*TextIO.print (RG_Mathematica.to_mathematica "sample" sample)*)
 
 
 

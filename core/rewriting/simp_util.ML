@@ -12,26 +12,24 @@ structure JsonIO = JsonObjectAnnotatedGraphicalTheoryIO(
   structure Theory = Theory
   structure GraphComponentDataIO = IO)
 
-fun load_rule s = fst (JsonIO.InputRuleJSON.input (Json.read_file (s^".qrule")))
+fun load_rule s = (R.mk s, fst (JsonIO.InputRuleJSON.input (Json.read_file (s^".qrule"))))
 
 fun ruleset rule_list = fold (fn r => fn rs => (
-    let
-      val (rname, rs') = Theory.Ruleset.add_fresh_rule r rs
-    in Theory.Ruleset.activate_rule rname rs'
-    end
+    rs |> Theory.Ruleset.update_rule r
+       |> Theory.Ruleset.activate_rule (fst r)
   )) rule_list Theory.Ruleset.empty
 
 fun REDUCE_ALL ruleset graph =
   Seq.make (fn () => (
     case Seq.pull (Theory.RulesetRewriter.apply ruleset graph)
-      of SOME (((_,r),g'), _) => SOME ((r,g'), REDUCE_ALL ruleset g')
+      of SOME ((r,g'), _) => SOME ((r,g'), REDUCE_ALL ruleset g')
        | NONE => NONE
   ))
 
 fun REDUCE rule graph =
   Seq.make (fn () => (
-    case Seq.pull (Theory.Rewriter.find_rewrites rule graph)
-      of SOME ((r,g'), _) => SOME ((r,g'), REDUCE rule g')
+    case Seq.pull (Theory.Rewriter.find_rewrites (snd rule) graph)
+      of SOME ((r,g'), _) => SOME (((fst rule, r),g'), REDUCE rule g')
        | NONE => NONE
   ))
 
@@ -40,8 +38,8 @@ fun REDUCE_WITH {PRE=PRE, POST=POST} rule graph =
     if not (PRE graph) then NONE
     else case Seq.pull (Seq.filter
                        (fn (_, g') => POST (graph, g'))
-                       (Theory.Rewriter.find_rewrites rule graph))
-           of SOME ((r,g'), _) => SOME ((r,g'), REDUCE_WITH {PRE=PRE,POST=POST} rule g')
+                       (Theory.Rewriter.find_rewrites (snd rule) graph))
+           of SOME ((r,g'), _) => SOME (((fst rule, r),g'), REDUCE_WITH {PRE=PRE,POST=POST} rule g')
             | NONE => NONE
   ))
 
