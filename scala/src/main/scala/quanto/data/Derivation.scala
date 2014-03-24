@@ -47,7 +47,26 @@ case class Derivation(theory: Theory,
                       root: Graph,
                       steps: Map[DSName,DStep],
                       heads: Set[DSName],
-                      parent: PFun[DSName,DSName])
+                      parent: PFun[DSName,DSName]) {
+  def copy(theory: Theory = theory,
+           root: Graph = root,
+           steps: Map[DSName,DStep] = steps,
+           heads: Set[DSName] = heads,
+           parent: PFun[DSName,DSName] = parent) = Derivation(theory,root,steps,heads,parent)
+
+  def stepsTo(head: DSName): Array[DSName] =
+    (parent.get(head) match {
+      case Some(p) => stepsTo(p)
+      case None => Array()
+    }) :+ head
+
+  def graphsTo(head : DSName) = root +: stepsTo(head).map(s => steps(s).graph)
+
+  def addStep(parent: DSName, step: DStep) = copy (
+    steps = steps + (step.name -> step),
+    heads = (if (heads.contains(parent)) heads - parent else heads) + step.name
+  )
+}
 
 object Derivation {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory) = try {
