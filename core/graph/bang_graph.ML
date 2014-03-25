@@ -15,7 +15,13 @@ datatype T = BG of {
   
   bboxes   : B.NSet.T,
   bbox_rel : BVRel.T,
-  bbox_child_rel : BBRel.T
+  bbox_child_rel : BBRel.T,
+
+  (* annotations *)
+  g_anno : Json.jobj,
+  v_anno : Json.jobj VTab.T,
+  e_anno : Json.jobj ETab.T,
+  bb_anno : Json.jobj BTab.T
 }
 
 structure Sharing =
@@ -39,7 +45,12 @@ val empty : T = BG {
   
   bboxes   = B.NSet.empty,
   bbox_rel = BVRel.empty,
-  bbox_child_rel = BBRel.empty
+  bbox_child_rel = BBRel.empty,
+
+  g_anno = Json.empty_obj,
+  v_anno = VTab.empty,
+  e_anno = ETab.empty,
+  bb_anno = BTab.empty
 }
 
 (*********************************)
@@ -77,14 +88,18 @@ exception merge_bbox_exp of string
 (* Note that it is possible to break a graph by calling these updaters, so they should
  * all be private. Also note that these functions are automatically generated, so avoid
  * making changes *)
-fun update_vdata f (BG r) = BG {vdata=f(#vdata r),edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
-fun update_edata f (BG r) = BG {vdata= #vdata r,edata=f(#edata r),source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
-fun update_source f (BG r) = BG {vdata= #vdata r,edata= #edata r,source=f(#source r),target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
-fun update_target f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target=f(#target r),nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
-fun update_nhd f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd=f(#nhd r),bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
-fun update_bboxes f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes=f(#bboxes r),bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
-fun update_bbox_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel=f(#bbox_rel r),bbox_child_rel= #bbox_child_rel r}
-fun update_bbox_child_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel=f(#bbox_child_rel r)}
+fun update_vdata f (BG r) = BG {vdata=f(#vdata r),edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,g_anno= #g_anno r,v_anno= #v_anno r,e_anno= #e_anno r,bb_anno= #bb_anno r}
+fun update_edata f (BG r) = BG {vdata= #vdata r,edata=f(#edata r),source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,g_anno= #g_anno r,v_anno= #v_anno r,e_anno= #e_anno r,bb_anno= #bb_anno r}
+fun update_source f (BG r) = BG {vdata= #vdata r,edata= #edata r,source=f(#source r),target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,g_anno= #g_anno r,v_anno= #v_anno r,e_anno= #e_anno r,bb_anno= #bb_anno r}
+fun update_target f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target=f(#target r),nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,g_anno= #g_anno r,v_anno= #v_anno r,e_anno= #e_anno r,bb_anno= #bb_anno r}
+fun update_nhd f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd=f(#nhd r),bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,g_anno= #g_anno r,v_anno= #v_anno r,e_anno= #e_anno r,bb_anno= #bb_anno r}
+fun update_bboxes f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes=f(#bboxes r),bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,g_anno= #g_anno r,v_anno= #v_anno r,e_anno= #e_anno r,bb_anno= #bb_anno r}
+fun update_bbox_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel=f(#bbox_rel r),bbox_child_rel= #bbox_child_rel r,g_anno= #g_anno r,v_anno= #v_anno r,e_anno= #e_anno r,bb_anno= #bb_anno r}
+fun update_bbox_child_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel=f(#bbox_child_rel r),g_anno= #g_anno r,v_anno= #v_anno r,e_anno= #e_anno r,bb_anno= #bb_anno r}
+fun update_g_anno f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,g_anno=f(#g_anno r),v_anno= #v_anno r,e_anno= #e_anno r,bb_anno= #bb_anno r}
+fun update_v_anno f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,g_anno= #g_anno r,v_anno=f(#v_anno r),e_anno= #e_anno r,bb_anno= #bb_anno r}
+fun update_e_anno f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,g_anno= #g_anno r,v_anno= #v_anno r,e_anno=f(#e_anno r),bb_anno= #bb_anno r}
+fun update_bb_anno f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,nhd= #nhd r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,g_anno= #g_anno r,v_anno= #v_anno r,e_anno= #e_anno r,bb_anno=f(#bb_anno r)}
 
 fun get_vdata          (BG r) = #vdata r
 fun get_edata          (BG r) = #edata r
@@ -94,6 +109,10 @@ fun get_nhd            (BG r) = #nhd r
 fun get_bboxes         (BG r) = #bboxes r
 fun get_bbox_rel       (BG r) = #bbox_rel r
 fun get_bbox_child_rel (BG r) = #bbox_child_rel r
+fun get_g_anno         (BG r) = #g_anno r
+fun get_v_anno         (BG r) = #v_anno r
+fun get_e_anno         (BG r) = #e_anno r
+fun get_bb_anno        (BG r) = #bb_anno r
 
 fun set_vdata          x  = update_vdata          (fn _ => x)
 fun set_edata          x  = update_edata          (fn _ => x)
@@ -103,6 +122,11 @@ fun set_nhd            x  = update_nhd            (fn _ => x)
 fun set_bboxes         x  = update_bboxes         (fn _ => x)
 fun set_bbox_rel       x  = update_bbox_rel       (fn _ => x)
 fun set_bbox_child_rel x  = update_bbox_child_rel (fn _ => x)
+fun set_g_anno         x  = update_g_anno         (fn _ => x)
+fun set_v_anno         x  = update_v_anno         (fn _ => x)
+fun set_e_anno         x  = update_e_anno         (fn _ => x)
+fun set_bb_anno        x  = update_bb_anno        (fn _ => x)
+
 
 
 
@@ -212,6 +236,17 @@ fun is_bboxed g v = if has_vertex g v
   then V.NSet.contains (BVRel.get_cod_set (get_bbox_rel g)) v
   else raise no_such_vertex_exp ("is_bboxed", v, g)
 
+val get_graph_annotation = get_g_anno
+val set_graph_annotation = set_g_anno
+fun get_vertex_annotation_opt g v = VTab.get_opt (get_v_anno g) v
+fun get_vertex_annotation g v = VTab.get (get_v_anno g) v
+fun set_vertex_annotation (v,ann) g = g |> update_v_anno (VTab.set (v,ann))
+fun get_edge_annotation_opt g e = ETab.get_opt (get_e_anno g) e
+fun get_edge_annotation g e = ETab.get (get_e_anno g) e
+fun set_edge_annotation (e,ann) g = g |> update_e_anno (ETab.set (e,ann))
+fun get_bbox_annotation_opt g bb = BTab.get_opt (get_bb_anno g) bb
+fun get_bbox_annotation g bb = BTab.get (get_bb_anno g) bb
+fun set_bbox_annotation (bb,ann) g = g |> update_bb_anno (BTab.set (bb,ann))
 
 (**************************************)
 (***** EXTRA DATA/SUBST FUNCTIONS *****)
@@ -951,12 +986,23 @@ fun merge g1 g2 = let
             then raise bad_graph_merge_exp (g1,g2) (* v has nhd in g1, but not g2 *)
             else VTab.add (v,n) nhd'
     )) (get_nhd g1) (get_nhd g2)
+
+  (* annotations from g1 supercede g2 *)
+  val g_anno = Json.fold Json.update (get_g_anno g1) (get_g_anno g2)
+  val v_anno = VTab.fold VTab.set (get_v_anno g1) (get_v_anno g2)
+  val e_anno = ETab.fold ETab.set (get_e_anno g1) (get_e_anno g2)
+  val bb_anno = BTab.fold BTab.set (get_bb_anno g1) (get_bb_anno g2)
+
   (* check wvs *)
 in
   BG { vdata = vdata, edata = edata,
        source = source, target = target, nhd = nhd,
        bboxes = bboxes, bbox_rel = bbox_rel,
-       bbox_child_rel = bbox_child_rel }
+       bbox_child_rel = bbox_child_rel,
+       g_anno = g_anno,
+       v_anno = v_anno,
+       e_anno = e_anno,
+       bb_anno = bb_anno }
 end
 
 fun merge_opt g1 g2 = SOME (merge g1 g2)

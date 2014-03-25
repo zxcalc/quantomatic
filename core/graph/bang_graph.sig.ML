@@ -145,4 +145,9 @@ sig
   val rename_bboxes          : BSub.T -> T -> T
   val rename_bbox            : B.name -> B.name -> T -> T
   val rename_bbox_opt        : B.name -> B.name -> T -> T option
+
+
+  val get_bbox_annotation : T -> B.name -> Json.jobj
+  val get_bbox_annotation_opt : T -> B.name -> Json.jobj option
+  val set_bbox_annotation : B.name * Json.jobj -> T -> T
 end

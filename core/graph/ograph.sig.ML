@@ -174,6 +174,7 @@ val add_named_edge
     : E.name -> dir_or_undir * edata -> V.name -> V.name -> T -> T (* can raise *)
 
 
+
 (* delete is no-op if there is no such edge/vertex *)
 val delete_edge : E.name -> T -> T
 val delete_vertex : V.name -> T -> T
@@ -355,6 +356,17 @@ val plug_and_normalise_anon : V.name -> V.name -> T -> T
  *)
 val get_open_subgraph : T -> V.NSet.T -> T
 
+
+(* Getters and setters for annotations *)
+
+val get_graph_annotation : T -> Json.jobj
+val set_graph_annotation : Json.jobj -> T -> T
+val get_vertex_annotation : T -> V.name -> Json.jobj
+val get_vertex_annotation_opt : T -> V.name -> Json.jobj option
+val set_vertex_annotation : V.name * Json.jobj -> T -> T
+val get_edge_annotation : T -> E.name -> Json.jobj
+val get_edge_annotation_opt : T -> E.name -> Json.jobj option
+val set_edge_annotation : E.name * Json.jobj -> T -> T
 
 (*
 (* TODO: ? *)
