@@ -31,9 +31,14 @@ val simproc = (
 
 (* testing simproc *)
 
-val (sample, gann) = JsonIO.InputGraphJSON.input (Json.read_file "sample2.qgraph");
+val sample = load_graph "sample2";
 
-val steps = Seq.list_of (simproc sample)
+val steps = Json.Object (fold_index (fn (i,step) => (
+    Json.update ("s" ^ Int.toString i, Json.Int step)
+  )) [0,1,2,3,4] Json.empty_obj)
+
+
+(*(Seq.list_of (simproc sample)) Json.empty_obj)*)
 
 (*val SOME (_, g') = final (simproc sample)
 

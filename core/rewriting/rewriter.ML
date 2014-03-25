@@ -9,6 +9,7 @@
 signature REWRITER_SHARING =
 sig
   structure Rule : OGRAPH_RULE_SHARING
+  structure Graph : OGRAPH_SHARING
   type match
 end
 
@@ -19,10 +20,12 @@ sig
   (* NB: we don't require the Rule.Graph and Graph to be the same *)
   structure Rule : OGRAPH_RULE
   structure Graph : OGRAPH
+  sharing Rule.Sharing.Graph = Graph.Sharing
   type match
 
   structure Sharing : REWRITER_SHARING
   sharing Sharing.Rule = Rule.Sharing
+  sharing Sharing.Graph = Graph.Sharing
   sharing type Sharing.match = match
 
   (**
@@ -169,6 +172,7 @@ struct
   structure Sharing : REWRITER_SHARING
   = struct
     structure Rule = Rule.Sharing
+    structure Graph = Graph.Sharing
     type match = match
   end
 end

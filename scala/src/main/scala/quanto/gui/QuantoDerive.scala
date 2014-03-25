@@ -16,6 +16,8 @@ import java.util.prefs.Preferences
 object QuantoDerive extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
+  println(new File(".").getAbsolutePath)
+
   def error(msg: String) = Dialog.showMessage(
     title = "Error", message = msg, messageType = Dialog.Message.Error)
 
