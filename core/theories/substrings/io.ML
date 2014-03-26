@@ -28,9 +28,5 @@ structure Substrings_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
   end
 end
 
-(* Use this for convenience if you don't need annotations *)
-structure Substrings_GraphicalTheoryIO = GraphicalTheoryIO(
-  structure Theory = Substrings_Theory
-  structure GraphComponentDataIO = Substrings_ComponentDataIO
-)
+
 

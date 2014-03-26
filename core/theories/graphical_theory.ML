@@ -31,12 +31,24 @@ sig
   structure RulesetRewriter : RULESET_REWRITER
   sharing RulesetRewriter.Sharing.Ruleset = Ruleset.Sharing 
   sharing type RulesetRewriter.Sharing.match = Match.T
+
+  structure GraphJSON : GRAPH_JSON
+  sharing Graph.Sharing = GraphJSON.Graph.Sharing
+
+  structure RuleJSON : RULE_JSON
+  sharing Rule.Sharing = RuleJSON.Rule.Sharing
+
+  structure RulesetJSON : RULESET_JSON
+  sharing Ruleset.Sharing = RulesetJSON.Ruleset.Sharing
 end
 
 
 
 functor GraphicalTheory(
   structure Data : GRAPH_DATA
+  structure DataIO : GRAPH_COMPONENT_DATA_IO
+  sharing type Data.nvdata = DataIO.nvdata
+  sharing type Data.edata = DataIO.edata
 ) : GRAPHICAL_THEORY =
 struct
   val theory_name = Pretty.string_of Data.pretty_theory_name;
@@ -55,6 +67,25 @@ struct
   structure RulesetRewriter = RulesetRewriter(
     structure Ruleset = Ruleset
     structure Rewriter = Rewriter
+  )
+
+  (* NEW json I/O structures *)
+  structure GraphJSON = GraphJSON(
+    structure Graph = Graph
+    structure InputVertexData  = DataIO.IVDataInputJSON
+    structure InputEdgeData    = DataIO.EDataInputJSON
+    structure OutputVertexData = DataIO.IVDataOutputJSON
+    structure OutputEdgeData   = DataIO.EDataOutputJSON
+  )
+
+  structure RuleJSON = RuleJSON(
+    structure Rule = Rule
+    structure GraphJSON = GraphJSON
+  )
+
+  structure RulesetJSON = RulesetJSON(
+    structure Ruleset = Ruleset
+    structure RuleJSON = RuleJSON
   )
 end
 

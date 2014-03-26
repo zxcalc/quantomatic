@@ -50,9 +50,4 @@ structure GHZW_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
   end
 end
 
-(* Use this for convenience if you don't need annotations *)
-structure GHZW_GraphicalTheoryIO = GraphicalTheoryIO(
-  structure Theory = GHZW_Theory
-  structure GraphComponentDataIO = GHZW_ComponentDataIO
-)
 

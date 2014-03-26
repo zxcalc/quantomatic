@@ -50,9 +50,3 @@ structure Petri_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
   end
 end
 
-(* Use this for convenience if you don't need annotations *)
-structure Petri_GraphicalTheoryIO = GraphicalTheoryIO(
-  structure Theory = Petri_Theory
-  structure GraphComponentDataIO = Petri_ComponentDataIO
-)
-

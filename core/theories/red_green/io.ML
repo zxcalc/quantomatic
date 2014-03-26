@@ -67,9 +67,4 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
   end
 end
 
-(* Use this for convenience if you don't need annotations *)
-structure RG_GraphicalTheoryIO = GraphicalTheoryIO(
-  structure Theory = RG_Theory
-  structure GraphComponentDataIO = RG_ComponentDataIO
-)
 

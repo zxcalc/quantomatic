@@ -16,7 +16,7 @@ functor GraphJSON(
         and OutputEdgeData : OUTPUT_JSON
   sharing type InputVertexData.data = OutputVertexData.data = Graph.nvdata
   sharing type InputEdgeData.data = OutputEdgeData.data = Graph.edata
-)  : GRAPH_JSON
+) : GRAPH_JSON
 = struct
   structure Graph = Graph
 

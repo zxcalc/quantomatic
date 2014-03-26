@@ -56,9 +56,4 @@ structure Substr_Linrat_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
   end
 end
 
-(* Use this for convenience if you don't need annotations *)
-structure Substr_Linrat_GraphicalTheoryIO = GraphicalTheoryIO(
-  structure Theory = Substr_Linrat_Theory
-  structure GraphComponentDataIO = Substr_Linrat_ComponentDataIO
-)
 

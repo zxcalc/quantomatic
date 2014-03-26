@@ -45,6 +45,9 @@ sig
   val print : T -> unit
 
   val rename_ograph_rule : (VSub.T * ESub.T) -> T -> (VSub.T * ESub.T) * T
+
+  val get_rule_annotation : T -> Json.jobj
+  val set_rule_annotation : Json.jobj -> T -> T
 end
 
 signature BANG_GRAPH_RULE =
@@ -89,6 +92,9 @@ sig
 
   val rename_bang_graph_rule : (VSub.T * ESub.T * BSub.T) -> T ->
                                (VSub.T * ESub.T * BSub.T) * T
+  
+  val get_rule_annotation : T -> Json.jobj
+  val set_rule_annotation : Json.jobj -> T -> T
 end
 
 
@@ -100,7 +106,24 @@ structure Graph = Graph
 
 datatype T = Rule of { lhs : Graph.T,
                        rhs : Graph.T,
-                       boundary_vertices : V.NSet.T }
+                       boundary_vertices : V.NSet.T,
+                       rule_annotation : Json.jobj }
+
+fun update_lhs f (Rule r) = Rule {lhs=f(#lhs r),rhs= #rhs r,boundary_vertices= #boundary_vertices r,rule_annotation= #rule_annotation r}
+fun update_rhs f (Rule r) = Rule {lhs= #lhs r,rhs=f(#rhs r),boundary_vertices= #boundary_vertices r,rule_annotation= #rule_annotation r}
+fun update_boundary_vertices f (Rule r) = Rule {lhs= #lhs r,rhs= #rhs r,boundary_vertices=f(#boundary_vertices r),rule_annotation= #rule_annotation r}
+fun update_rule_annotation f (Rule r) = Rule {lhs= #lhs r,rhs= #rhs r,boundary_vertices= #boundary_vertices r,rule_annotation=f(#rule_annotation r)}
+
+fun get_lhs               (Rule r) = #lhs r
+fun get_rhs               (Rule r) = #rhs r
+fun get_boundary_vertices (Rule r) = #boundary_vertices r
+fun get_rule_annotation   (Rule r) = #rule_annotation r
+
+fun set_lhs               x  = update_lhs               (fn _ => x)
+fun set_rhs               x  = update_rhs               (fn _ => x)
+fun set_boundary_vertices x  = update_boundary_vertices (fn _ => x)
+fun set_rule_annotation   x  = update_rule_annotation   (fn _ => x)
+
 
 exception bad_rule_exp of string * Graph.T * Graph.T
 
@@ -213,10 +236,11 @@ val mk = fst o mk_with_renamings
 fun mk (lhs,rhs) =
   let
     val bnd = get_rule_bounds lhs rhs
-  in (Rule { lhs = lhs, rhs = rhs, boundary_vertices = bnd })
+  in (Rule { lhs = lhs, rhs = rhs, boundary_vertices = bnd,
+             rule_annotation = Json.empty_obj })
   end
 
-fun get_lhs (Rule rep) = #lhs rep;
+(*fun get_lhs (Rule rep) = #lhs rep;
 fun get_rhs (Rule rep) = #rhs rep;
 fun get_boundary_vertices (Rule rep) = #boundary_vertices rep;
 
@@ -225,7 +249,7 @@ fun update_lhs f (Rule rep) =
 fun update_rhs f (Rule rep) =
     Rule { lhs = #lhs rep, rhs = f (#rhs rep), boundary_vertices = #boundary_vertices rep };
 fun update_boundary_vertices f (Rule rep) =
-    Rule { lhs = #lhs rep, rhs = #rhs rep, boundary_vertices = f (#boundary_vertices rep) };
+    Rule { lhs = #lhs rep, rhs = #rhs rep, boundary_vertices = f (#boundary_vertices rep) };*)
 
 (* swap lhs and rhs of a rule *)
 fun symmetric r = mk (get_rhs r, get_lhs r)

@@ -42,8 +42,3 @@ struct
       "[style=filled,fillcolor=white,fontcolor=black,shape=circle]"
   end
 end
-
-structure StringVE_IO = GraphicalTheoryIO(
-  structure Theory = StringVE_Theory
-  structure GraphComponentDataIO = StringVE_ComponentDataIO
-)

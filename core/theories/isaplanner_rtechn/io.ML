@@ -97,9 +97,3 @@ structure RTechn_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
   end
 end
 
-(* Use this for convenience if you don't need annotations *)
-structure RTechn_GraphicalTheoryIO = GraphicalTheoryIO(
-  structure Theory = RTechn_Theory
-  structure GraphComponentDataIO = RTechn_ComponentDataIO
-)
-
