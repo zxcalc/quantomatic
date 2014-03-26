@@ -5,8 +5,6 @@ sig
   structure Theory : GRAPHICAL_THEORY
   type dstep = (R.name * Theory.Rule.T) * Theory.Graph.T
   type simproc = Theory.Graph.T -> dstep Seq.seq
-  val load_rule : string -> R.name * Theory.Rule.T
-  (*val load_graph : string -> Theory.Graph.T*)
   val ruleset : (R.name * Theory.Rule.T) list -> Theory.Ruleset.T
   val REDUCE_ALL : Theory.Ruleset.T -> simproc
   val REDUCE : (R.name * Theory.Rule.T) -> simproc
@@ -28,13 +26,13 @@ sig
 
 
   val derive : simproc -> Theory.Graph.T -> Json.json
+  val load_rule : string -> (R.name * Theory.Rule.T)
+  val load_graph : string -> Theory.Graph.T
+  val save_graph : string -> Theory.Graph.T -> unit
 end
 
 functor SimpUtil(
   structure Theory : GRAPHICAL_THEORY
-  structure IO : GRAPH_COMPONENT_DATA_IO
-  sharing type Theory.Graph.nvdata = IO.nvdata
-  sharing type Theory.Graph.edata = IO.edata
 ) : SIMP_UTIL = 
 struct
 
@@ -42,13 +40,10 @@ structure Theory = Theory
 type dstep = (R.name * Theory.Rule.T) * Theory.Graph.T
 type simproc = Theory.Graph.T -> dstep Seq.seq
 
-structure JsonIO = JsonObjectAnnotatedGraphicalTheoryIO(
-  structure Theory = Theory
-  structure GraphComponentDataIO = IO)
 
-fun load_rule s = (R.mk s, fst (JsonIO.InputRuleJSON.input (Json.read_file (s^".qrule"))))
-
-(*fun load_graph s = fst (JsonIO.InputGraphJSON.input (Json.read_file (s^".qgraph")))*)
+fun load_rule s = (R.mk s, Theory.RuleJSON.input (Json.read_file (s^".qrule")))
+fun load_graph s = Theory.GraphJSON.input (Json.read_file (s^".qgraph"))
+fun save_graph file g = Json.write_file file (Theory.GraphJSON.output g)
 
 fun ruleset rule_list = fold (fn r => fn rs => (
     rs |> Theory.Ruleset.update_rule r
