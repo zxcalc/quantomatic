@@ -731,6 +731,7 @@ fun rename_vertices sub g = let
   val rnmi = VSub.inverse_of rnm
 in
   g |> update_vdata    (fn m => VTab.compose (m,rnmi))
+    |> update_v_anno   (fn m => VTab.compose (m,rnmi))
     |> update_source   (fn m => EVFn.compose (rnm,m))
     |> update_target   (fn m => EVFn.compose (rnm,m))
     |> update_bbox_rel (fn m => BVRel.compose (rnm,m))
@@ -748,6 +749,7 @@ fun rename_edges sub g = let
   val rnmi = ESub.inverse_of rnm
 in
   g |> update_edata  (fn m => ETab.compose (m,rnmi))
+    |> update_e_anno (fn m => ETab.compose (m,rnmi))
     |> update_source (fn m => EVFn.compose (m,rnmi))
     |> update_target (fn m => EVFn.compose (m,rnmi))
 end
@@ -763,6 +765,7 @@ fun rename_bboxes sub g = let
   val rnmi = BSub.inverse_of rnm
 in
   g |> update_bboxes (BSub.img_of_set rnm)
+    |> update_bb_anno (fn m => BTab.compose (m,rnmi))
     |> update_bbox_rel (fn m => BVRel.compose (m, rnmi))
     |> update_bbox_child_rel (fn m => BBRel.compose3 (rnm, m, rnmi))
 end
@@ -789,6 +792,9 @@ in
       |> update_bboxes   (BSub.img_of_set brnm)
       |> update_bbox_rel (fn m => BVRel.compose3 (vrnm, m, brnmi))
       |> update_bbox_child_rel (fn m => BBRel.compose3 (brnm, m, brnmi))
+      |> update_v_anno   (fn m => VTab.compose (m,vrnmi))
+      |> update_e_anno   (fn m => ETab.compose (m,ernmi))
+      |> update_bb_anno  (fn m => BTab.compose (m,brnmi))
   )
 end
 
