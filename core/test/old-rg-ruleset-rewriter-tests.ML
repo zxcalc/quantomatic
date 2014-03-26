@@ -10,7 +10,7 @@ local
   structure G = RG_Theory.Graph
   val ruleset = "rulesets/red_green/basic.rules"
                 |> Json.read_file
-                |> RG_GraphicalTheoryIO.InputRulesetJSON.input
+                |> RG_Theory.RulesetJSON.input
 
   val isom_rule = Ruleset.get_rule ruleset (R.mk "isometry_red")
   val x_abelian1_rule = Ruleset.get_rule ruleset (R.mk "x_abelian1")

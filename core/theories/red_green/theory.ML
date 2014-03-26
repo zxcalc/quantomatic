@@ -5,10 +5,10 @@ structure RG_Theory = GraphicalTheory(
   structure DataIO = RG_ComponentDataIO)
 
 (* Use this for convenience if you don't need annotations *)
-structure RG_GraphicalTheoryIO = GraphicalTheoryIO(
+(*structure RG_GraphicalTheoryIO = GraphicalTheoryIO(
   structure Theory = RG_Theory
   structure GraphComponentDataIO = RG_ComponentDataIO
-)
+)*)
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* terms used within the RG theory. *)

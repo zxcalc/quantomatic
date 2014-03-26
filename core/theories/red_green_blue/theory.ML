@@ -6,7 +6,7 @@ structure RGB_Theory = GraphicalTheory(
 
 
 (* Use this for convenience if you don't need annotations *)
-structure RGB_GraphicalTheoryIO = GraphicalTheoryIO(
+(*structure RGB_GraphicalTheoryIO = GraphicalTheoryIO(
   structure Theory = RGB_Theory
   structure GraphComponentDataIO = RGB_ComponentDataIO
-)
+)*)

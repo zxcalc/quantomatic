@@ -1,18 +1,17 @@
 (* Red/Green *)
 local
   open RG_Theory
-  structure IO = RG_GraphicalTheoryIO
   structure G = Graph
   structure HomeoFinder = BangGraphHomeomorphismSearcher(Graph)
 in
 val _ = Testing.test "ruleset rewriting 1: ladder with red spider (all)" (fn () => let
   val ruleset = "rulesets/red_green/basic.rules"
                 |> Json.read_file
-                |> IO.InputRulesetJSON.input
+                |> RulesetJSON.input
 
   val graph = "graphs/red_green/d2-ladder_rw1.graph"
               |> Json.read_file
-              |> IO.InputGraphJSON.input
+              |> GraphJSON.input
 
   val _ = RulesetRewriter.apply_first ruleset graph
 
@@ -21,11 +20,11 @@ val _ = Testing.test "ruleset rewriting 1: ladder with red spider (all)" (fn () 
 val _ = Testing.test "ruleset rewriting 2: ladder with red spider (full subgraph)" (fn () => let
   val ruleset = "rulesets/red_green/basic.rules"
                 |> Json.read_file
-                |> IO.InputRulesetJSON.input
+                |> RulesetJSON.input
 
   val graph = "graphs/red_green/d2-ladder_rw1.graph"
               |> Json.read_file
-              |> IO.InputGraphJSON.input
+              |> GraphJSON.input
 
   val vset = G.get_vertices graph
   val _ = RulesetRewriter.apply_first_in ruleset graph vset
@@ -34,14 +33,14 @@ val _ = Testing.test "ruleset rewriting 2: ladder with red spider (full subgraph
 val _ = Testing.test "ruleset rewriting 2: ladder with red spider (rpt)" (fn () => let
   val ruleset = "rulesets/red_green/basic_all.rules" 
                 |> Json.read_file
-                |> IO.InputRulesetJSON.input
+                |> RulesetJSON.input
 
   val graph = "graphs/red_green/d2-ladder_rw3.graph"
               |> Json.read_file
-              |> IO.InputGraphJSON.input
+              |> GraphJSON.input
   val exp_graph = "graphs/red_green/d2-ladder_rw3_norm.graph"
                   |> Json.read_file
-                  |> IO.InputGraphJSON.input
+                  |> GraphJSON.input
 
   fun do_rw g =
     case RulesetRewriter.apply_first ruleset g
@@ -60,7 +59,6 @@ end
 local
   open GHZW_Theory
   structure Controller = GHZW_Controller
-  structure IO = GHZW_GraphicalTheoryIO
   structure G = Graph
   structure HomeoFinder = BangGraphHomeomorphismSearcher(Graph)
   fun ctrlr_assert_ok Commands.OkResponse = ()
@@ -73,14 +71,14 @@ in
 val _ = Testing.test "GHZ/W ruleset rewriting 1: 2x2" (fn () => let
   val ruleset = "rulesets/ghz_w/default.rules"
                 |> Json.read_file
-                |> IO.InputRulesetJSON.input
+                |> RulesetJSON.input
 
   val graph = "graphs/ghz_w/2 times 2.graph"
               |> Json.read_file
-              |> IO.InputGraphJSON.input
+              |> GraphJSON.input
   val exp_graph = "graphs/ghz_w/4.graph"
                   |> Json.read_file
-                  |> IO.InputGraphJSON.input
+                  |> GraphJSON.input
 
   fun do_rw g = let
     val vset = G.get_vertices g

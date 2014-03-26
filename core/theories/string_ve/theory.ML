@@ -7,7 +7,7 @@ structure StringVE_Theory = GraphicalTheory(
 )
 
 (* OLD I/O structure *)
-structure StringVE_IO = GraphicalTheoryIO(
+(*structure StringVE_IO = GraphicalTheoryIO(
   structure Theory = StringVE_Theory
   structure GraphComponentDataIO = StringVE_ComponentDataIO
-)
+)*)
