@@ -14,15 +14,15 @@ import Names._
 
 trait NoTweaks extends Constraints {
 	val radius = 0.2
-	override def initialize(g: Graph) {
-	    super.initialize(g)
+	override def initialize(g: Graph, randomCoords: Boolean = true) {
+	    super.initialize(g, randomCoords)
 	    constraints.nextLayer()
 	    println("Clusters at layer " + constraints.currentLayer)
 
 	    // for edges we get rid of the
 	       
 	    for(v <- g.verts){
-	    	val edges = g.inEdges(v) ++ g.outEdges(v);
+	    	val edges = g.inEdges(v) ++ g.outEdges(v)
 	    	val compEdges = g.edges -- edges
 	    	
 	    	// for each vertex, the distance to each compEdges

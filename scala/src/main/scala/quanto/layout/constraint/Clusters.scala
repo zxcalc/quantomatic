@@ -27,9 +27,8 @@ trait Clusters extends Constraints {
     (px > lx) && (px < ux) && (py > ly) && (py < uy)
   }
   
-  override def initialize(g: Graph) {
-    super
-    .initialize(g)
+  override def initialize(g: Graph, randomCoords: Boolean = true) {
+    super.initialize(g, randomCoords)
     constraints.nextLayer()
     //println("Clusters at layer " + constraints.currentLayer)
     

@@ -6,8 +6,10 @@ import swing.event._
 import Key.Modifier
 import quanto.data._
 import Names._
-import quanto.layout.QLayout
+import quanto.layout.{ForceLayout, QLayout}
 import quanto.util.json._
+import quanto.layout.constraint.{Clusters, VerticalBoundary, Ranking}
+import java.awt.event.{ActionEvent, ActionListener}
 
 class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   private var _mouseState: MouseState = SelectTool()
@@ -33,6 +35,27 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   var edgeTypeSelect : ComboBox[String] = _
   var edgeDirectedCheckBox : CheckBox = _
   var dataField : TextField = _
+
+  val qLayout = new ForceLayout with Clusters
+  qLayout.alpha0 = 0.001
+  qLayout.alphaAdjust = 1.0
+
+  val layoutTimer = new javax.swing.Timer(10, new ActionListener {
+    def actionPerformed(e: ActionEvent) {
+      if (qLayout.graph != null) {
+        qLayout.step()
+        qLayout.updateGraph()
+        graph = qLayout.graph
+        view.invalidateAllVerts()
+        view.invalidateAllEdges()
+        view.invalidateAllBBoxes()
+        view.repaint()
+      } else {
+        println("null graph")
+      }
+    }
+  })
+
 
   // listen to undo stack
   private var _undoStack: UndoStack = new UndoStack
@@ -199,8 +222,8 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   }
 
   def layoutGraph() {
-    val qLayout = new QLayout
-    replaceGraph(qLayout.layout(graph), "Layout Graph")
+    val lo = new ForceLayout with Clusters
+    replaceGraph(lo.layout(graph), "Layout Graph")
   }
 
   view.listenTo(view.mouse.clicks, view.mouse.moves)
@@ -437,6 +460,8 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   }
   
   view.listenTo(view.keys)
+  var rDown = false
+
   view.reactions += {
     case KeyPressed(_, (Key.Delete | Key.BackSpace), _, _) =>
       if (!readOnly && (!selectedVerts.isEmpty || !selectedEdges.isEmpty || !selectedBBoxes.isEmpty)) {
@@ -447,5 +472,19 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
         undoStack.commit()
         view.repaint()
       }
+    case KeyPressed(_, Key.R, _, _) =>
+      if (!rDown) {
+        rDown = true
+        qLayout.initialize(graph, randomCoords = false)
+        qLayout.lockedVertices.clear()
+        if (!selectedVerts.isEmpty) {
+          graph.verts.foreach { v => if (!selectedVerts.contains(v)) qLayout.lockedVertices += v }
+        }
+
+        layoutTimer.start()
+      }
+    case KeyReleased(_, Key.R, _, _) =>
+      rDown = false
+      layoutTimer.stop()
   }
 }

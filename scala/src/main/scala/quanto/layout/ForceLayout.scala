@@ -44,8 +44,8 @@ class ForceLayout extends GraphLayout with Constraints {
   var energy: Double = _
   var progress: Int = _
 
-  override def initialize(g: Graph) {
-    super.initialize(g)
+  override def initialize(g: Graph, randomCoords: Boolean = true) {
+    super.initialize(g, randomCoords)
     alpha = alpha0
     prevEnergy = 0.0
     energy = 0.0
@@ -101,6 +101,7 @@ class ForceLayout extends GraphLayout with Constraints {
         val k = (alpha * strength * displacement) / d
         energy += 0.5 * strength * displacement * displacement
         val shift = (dx * k, dy * k)
+
         setCoord(graph.source(e), (sp._1 + shift._1, sp._2 + shift._2))
         setCoord(graph.target(e), (tp._1 - shift._1, tp._2 - shift._2))
       }
@@ -120,7 +121,7 @@ class ForceLayout extends GraphLayout with Constraints {
     val quad = computeCharges(QuadTree(graph.verts.toSeq.map { v => (coord(v), (Some(v),charge(v))) }))
 
     // apply charge forces
-    for (v <- graph.verts) {
+    for (v <- graph.verts if !lockedVertices.contains(v)) {
       var p = coord(v)
       quad.visit { nd =>
         nd.value match {
@@ -182,12 +183,12 @@ class ForceLayout extends GraphLayout with Constraints {
   def step() {
     relax()
     projectConstraints()
-    recenter()
+    if (lockedVertices.isEmpty) recenter()
   }
 
   def compute() {
     var iteration = 0
-    while (alpha > 0.001 && iteration < maxIterations) {
+    while (alpha > 0.01 && iteration < maxIterations) {
       step()
       iteration += 1
     }

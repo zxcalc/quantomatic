@@ -10,8 +10,8 @@ trait Ranking extends Constraints {
   import Constraint.distance
   var rankSep: Double = 1.0
 
-  override def initialize(g: Graph) {
-    super.initialize(g)
+  override def initialize(g: Graph, randomCoords: Boolean = true) {
+    super.initialize(g, randomCoords)
     constraints.nextLayer()
     println("Ranking at layer " + constraints.currentLayer)
 

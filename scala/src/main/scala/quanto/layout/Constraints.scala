@@ -76,7 +76,7 @@ trait Constraints extends GraphLayout {
            // val (dx,dy) = ((p2._1 - p1._1) * dir._1, (p2._2 - p1._2) * dir._2)
 
             // the coordinates of vector projected on direction
-            val p1p2 = ((p2._1 - p1._1),(p2._2 - p1._2))
+            val p1p2 = (p2._1 - p1._1,p2._2 - p1._2)
             val (dx,dy) = projectVector((p1p2._1, p1p2._2), dir)
             
             // Add direction to the distance
@@ -94,7 +94,7 @@ trait Constraints extends GraphLayout {
             }
 //            // if it is 0 then they are perpendicular
             // this constraint cannot be projected.
-            if ((vectorProduct(p1p2,dir)==0.0)&& !(isConstraintSatisfied(constraint))){
+            if ((vectorProduct(p1p2,dir)==0.0)&& !isConstraintSatisfied(constraint)){
             	if (bug) println("constraint " + constraint)
             	if (bug) println("vector p1 p2 is " + p1p2)
             	if (bug) println("vector direction " + dir)
