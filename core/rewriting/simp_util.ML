@@ -24,6 +24,8 @@ sig
   val ++ : simproc * simproc -> simproc
   val LOOP : simproc -> simproc
 
+  val normalise : simproc -> Theory.Graph.T -> Theory.Graph.T option
+
 
   val derive : simproc -> Theory.Graph.T -> Json.json
   val load_rule : string -> (R.name * Theory.Rule.T)
@@ -43,7 +45,7 @@ type simproc = Theory.Graph.T -> dstep Seq.seq
 
 fun load_rule s = (R.mk s, Theory.RuleJSON.input (Json.read_file (s^".qrule")))
 fun load_graph s = Theory.GraphJSON.input (Json.read_file (s^".qgraph"))
-fun save_graph file g = Json.write_file file (Theory.GraphJSON.output g)
+fun save_graph s g = Json.write_file (s^".qgraph") (Theory.GraphJSON.output g)
 
 fun ruleset rule_list = fold (fn r => fn rs => (
     rs |> Theory.Ruleset.update_rule r
@@ -129,11 +131,12 @@ end
 
 (*fun save_derivation seq = *)
 
-fun final seq = let
-  fun fin prev seq = case Seq.pull seq
-                     of SOME (v, seq') => fin (SOME v) seq'
-                      | NONE => prev
-in fin NONE seq
+fun normalise simp g = let
+  val seq = (simp g)
+  fun norm prev seq = case Seq.pull seq
+                        of SOME ((_,g), seq') => norm (SOME g) seq'
+                         | NONE => prev
+in norm NONE seq
 end
 
 (* produces a rewrite sequence by feeding the last graph in seqf1 to seqf2 *)
