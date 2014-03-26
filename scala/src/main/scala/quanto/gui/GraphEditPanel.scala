@@ -102,20 +102,20 @@ with GraphEditControls
 with HasDocument
 {
 
+  val document = new GraphDocument(this, theory)
+//  def graph = document.graph
+//  def graph_=(g: Graph) { document.graph = g }
+
   // GUI components
-  val graphView = new GraphView(theory) {
+  val graphView = new GraphView(theory, document) {
     drawGrid = true
     focusable = true
   }
 
-  val document = new GraphDocument(graphView)
-  def graph = document.graph
-  def graph_=(g: Graph) { document.graph = g }
-
   // alias for graph_=, used in java code
-  def setGraph(g: Graph) { graph_=(g) }
+//  def setGraph(g: Graph) { graph_=(g) }
 
-  val graphEditController = new GraphEditController(graphView, readOnly) {
+  val graphEditController = new GraphEditController(document, graphView, readOnly) {
     undoStack            = document.undoStack
     vertexTypeSelect     = VertexTypeSelect
     edgeTypeSelect       = EdgeTypeSelect

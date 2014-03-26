@@ -1,26 +1,23 @@
 package quanto.gui
 
 import java.io.File
-import graphview.GraphView
-import quanto.data.Graph
+import quanto.data.{Theory, HasGraph, Graph}
 import quanto.util.json.Json
+import scala.swing.Component
 
 
-class GraphDocument(view: GraphView) extends Document {
+class GraphDocument(val parent: Component, theory: Theory) extends Document with HasGraph {
   val description = "Graph"
   val fileExtension = "qgraph"
 
   // the graph, as it was last saved or loaded
-  private var storedGraph: Graph = Graph(view.theory)
-  def unsavedChanges = storedGraph != view.graph
-  val parent = view
+  private var storedGraph: Graph = Graph(theory)
+  var _graph = storedGraph
+  def unsavedChanges = storedGraph != _graph
 
-  def graph = view.graph
+  def graph = _graph
   def graph_=(g: Graph) {
-    storedGraph = g
-    view.graph = g
-    view.invalidateGraph()
-    view.repaint()
+    _graph = g
 
     // clears any stored filename and the undo stack
     resetDocumentInfo()
@@ -28,20 +25,17 @@ class GraphDocument(view: GraphView) extends Document {
 
   protected def loadDocument(f: File) {
     val json = Json.parse(f)
-    val g = Graph.fromJson(json, view.theory)
-    storedGraph = g
-    view.graph = g
-    view.invalidateGraph()
-    view.repaint()
+    _graph = Graph.fromJson(json, theory)
+    storedGraph = _graph
   }
 
   protected def saveDocument(f: File) {
-    val json = Graph.toJson(view.graph, view.theory)
+    val json = Graph.toJson(_graph, theory)
     json.writeTo(f)
-    storedGraph = view.graph
+    storedGraph = _graph
   }
 
   protected def clearDocument() {
-    graph_=(Graph(view.theory))
+    graph_=(Graph(theory))
   }
 }

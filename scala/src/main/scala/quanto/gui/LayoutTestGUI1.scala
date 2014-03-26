@@ -19,7 +19,7 @@ object LayoutTestGUI1 extends SimpleSwingApplication {
   var json : Json = _
   
   
-  val graphView = new GraphView(Theory.DefaultTheory) {
+  val graphView = new GraphView(Theory.DefaultTheory, new HasGraph { var graph = Graph(Theory.DefaultTheory) }) {
     drawGrid = true
     focusable = true
   }

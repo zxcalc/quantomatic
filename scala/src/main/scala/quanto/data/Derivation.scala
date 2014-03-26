@@ -45,9 +45,9 @@ object DStep {
 
 case class Derivation(theory: Theory,
                       root: Graph,
-                      steps: Map[DSName,DStep],
-                      heads: Set[DSName],
-                      parent: PFun[DSName,DSName]) {
+                      steps: Map[DSName,DStep] = Map(),
+                      heads: Set[DSName] = Set(),
+                      parent: PFun[DSName,DSName] = PFun()) {
   def copy(theory: Theory = theory,
            root: Graph = root,
            steps: Map[DSName,DStep] = steps,

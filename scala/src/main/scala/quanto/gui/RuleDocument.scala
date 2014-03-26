@@ -2,48 +2,39 @@ package quanto.gui
 
 import quanto.gui.graphview.GraphView
 import java.io.File
-import quanto.data.{Rule, Graph}
+import quanto.data.{Theory, Rule, Graph}
 import quanto.util.json.Json
+import scala.swing.Component
 
-class RuleDocument(lhsView: GraphView, rhsView: GraphView) extends Document {
+class RuleDocument(val parent: Component, theory: Theory) extends Document {
   val description = "Rule"
   val fileExtension = "qrule"
+  var lhsGraph = Graph(theory)
+  var rhsGraph = Graph(theory)
 
-  protected def parent = lhsView
-  private var storedRule: Rule = Rule(Graph(lhsView.theory), Graph(rhsView.theory))
+  private var storedRule: Rule = Rule(Graph(theory), Graph(theory))
   def unsavedChanges =
-    storedRule.lhs != lhsView.graph ||
-    storedRule.rhs != rhsView.graph
+    storedRule.lhs != lhsGraph ||
+    storedRule.rhs != rhsGraph
 
   protected def loadDocument(f: File) {
     val json = Json.parse(f)
-    val r = Rule.fromJson(json, lhsView.theory)
+    val r = Rule.fromJson(json, theory)
+    lhsGraph = r.lhs
+    rhsGraph = r.rhs
     storedRule = r
-
-    lhsView.graph = r.lhs
-    lhsView.invalidateGraph()
-    lhsView.repaint()
-
-    rhsView.graph = r.rhs
-    rhsView.invalidateGraph()
-    rhsView.repaint()
   }
 
   protected def saveDocument(f: File)  {
-    val r = Rule(lhsView.graph, rhsView.graph)
-    val json = Rule.toJson(r, lhsView.theory)
+    val r = Rule(lhsGraph, rhsGraph)
+    val json = Rule.toJson(r, theory)
     json.writeTo(f)
     storedRule = r
   }
 
   protected def clearDocument() = {
-    val r = Rule(Graph(lhsView.theory), Graph(rhsView.theory))
-    lhsView.graph = r.lhs
-    lhsView.invalidateGraph()
-    lhsView.repaint()
-
-    rhsView.graph = r.rhs
-    rhsView.invalidateGraph()
-    rhsView.repaint()
+    lhsGraph = Graph(theory)
+    rhsGraph = Graph(theory)
+    storedRule = Rule(lhsGraph, rhsGraph)
   }
 }

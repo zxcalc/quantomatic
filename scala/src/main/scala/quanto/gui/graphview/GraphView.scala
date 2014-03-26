@@ -16,7 +16,7 @@ import java.awt.font.TextLayout
 case class EdgeOverlay(pt: Point, src: VName, tgt: Option[VName])
 case class BBoxOverlay(pt: Point, src: BBName, vtgt : Option[VName], bbtgt : Option[BBName])
 
-class GraphView(val theory: Theory) extends Panel
+class GraphView(val theory: Theory, graphRef: HasGraph) extends Panel
   with Scrollable
   with EdgeDisplayData
   with VertexDisplayData
@@ -24,7 +24,7 @@ class GraphView(val theory: Theory) extends Panel
 {
   import GraphView._
 
-  var drawGrid = false
+  var drawGrid = true
   var drawBBoxConnections = false
   var snapToGrid = false
   var gridMajor = 1.0
@@ -35,7 +35,7 @@ class GraphView(val theory: Theory) extends Panel
   //var bangBoxList: List[Rectangle2D] = Nil
   var edgeOverlay: Option[EdgeOverlay] = None
   var bboxOverlay: Option[BBoxOverlay] = None
-  focusable = false
+  focusable = true
 
   // gets called when the component is first painted
   lazy val init = {
@@ -53,7 +53,8 @@ class GraphView(val theory: Theory) extends Panel
     computeBBoxDisplay()
   }
 
-  var graph = Graph(theory)
+  def graph = graphRef.graph
+  def graph_=(g: Graph) { graphRef.graph = g }
   var trans = new Transformer
 
   var selectedVerts = Set[VName]()

@@ -11,7 +11,7 @@ import quanto.util.json._
 import quanto.layout.constraint.{Clusters, VerticalBoundary, Ranking}
 import java.awt.event.{ActionEvent, ActionListener}
 
-class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
+class GraphEditController(graphRef: HasGraph, view: GraphView, val readOnly: Boolean = false) {
   private var _mouseState: MouseState = SelectTool()
   def mouseState = _mouseState
 
@@ -77,8 +77,8 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   }
 
   // wire up the view's internal state
-  def graph = view.graph
-  def graph_=(g: Graph) { view.graph = g }
+  def graph = graphRef.graph
+  def graph_=(g: Graph) { graphRef.graph = g }
   def selectedVerts = view.selectedVerts
   def selectedVerts_=(s: Set[VName]) { view.selectedVerts = s }
   def selectedEdges = view.selectedEdges

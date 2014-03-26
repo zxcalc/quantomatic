@@ -13,7 +13,7 @@ import scala.util._
 
 object LayoutTest extends SimpleSwingApplication {
 
-  val graphView = new GraphView(Theory.DefaultTheory) {
+  val graphView = new GraphView(Theory.DefaultTheory, new HasGraph { var graph = Graph(Theory.DefaultTheory) }) {
     drawGrid = true
     focusable = true
   }
