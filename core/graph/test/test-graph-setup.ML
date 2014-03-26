@@ -319,6 +319,15 @@ struct
     structure OutputVertexData = ComponentDataIO.IVDataOutputJSON
     structure OutputEdgeData = ComponentDataIO.EDataOutputJSON
   )
+
+  structure GraphJSON = GraphJSON(
+    structure Graph = Test_Bang_Graph
+    structure InputVertexData = ComponentDataIO.IVDataInputJSON
+    structure InputEdgeData = ComponentDataIO.EDataInputJSON
+    structure OutputVertexData = ComponentDataIO.IVDataOutputJSON
+    structure OutputEdgeData = ComponentDataIO.EDataOutputJSON
+  )
+
   structure OutputGraphDot = OutputGraphDot(
     structure Graph = Test_Bang_Graph
     structure DotStyle = ComponentDataIO.DotStyle
@@ -492,8 +501,10 @@ struct
   open Test_OG_Tools
 
   structure G = BG
-  structure GJsonInput = Test_Bang_Graph_IO.InputGraphJSON
-  structure GJsonOutput = Test_Bang_Graph_IO.OutputGraphJSON
+  (*structure GJsonInput = Test_Bang_Graph_IO.InputGraphJSON
+  structure GJsonOutput = Test_Bang_Graph_IO.OutputGraphJSON*)
+  structure GJsonInput = Test_Bang_Graph_IO.GraphJSON
+  structure GJsonOutput = Test_Bang_Graph_IO.GraphJSON
   structure GDotOutput = Test_Bang_Graph_IO.OutputGraphDot
 
   fun add_to_bbox _ [] = I

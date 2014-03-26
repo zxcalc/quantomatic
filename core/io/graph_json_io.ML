@@ -2,21 +2,32 @@ signature GRAPH_JSON =
 sig
   structure Graph : BANG_GRAPH
   val input : Json.json -> Graph.T
+  val output : Graph.T -> Json.json
+  val output_vertex_desc : Graph.T -> V.name -> Json.json
+  val output_edge_desc : Graph.T -> E.name -> Json.json
+  val output_bbox_desc : Graph.T -> B.name -> Json.json
 end
 
 functor GraphJSON(
   structure Graph : BANG_GRAPH
         and InputVertexData : INPUT_JSON
         and InputEdgeData : INPUT_JSON
-  sharing type InputVertexData.data = Graph.nvdata
-  sharing type InputEdgeData.data = Graph.edata
+        and OutputVertexData : OUTPUT_JSON
+        and OutputEdgeData : OUTPUT_JSON
+  sharing type InputVertexData.data = OutputVertexData.data = Graph.nvdata
+  sharing type InputEdgeData.data = OutputEdgeData.data = Graph.edata
 )  : GRAPH_JSON
 = struct
   structure Graph = Graph
 
   open JsonInputUtils
+  open JsonOutputUtils
 
-  fun get_nv_vdata obj propName =
+  (*************************************)
+  (************** Input ****************)
+  (*************************************)
+
+  fun input_nv_vdata obj propName =
     case Json.lookup obj propName
       of SOME Json.Null => Graph.default_nv_vdata
        | SOME data => (Graph.NVert (InputVertexData.input data)
@@ -24,7 +35,7 @@ functor GraphJSON(
                          raise bad_input_exp (m,prepend_prop propName l))
        | NONE => Graph.default_nv_vdata
 
-  fun get_edata obj propName =
+  fun input_edata obj propName =
     case Json.lookup obj propName
       of SOME Json.Null => Graph.default_edata
        | SOME data => (InputEdgeData.input data
@@ -32,7 +43,7 @@ functor GraphJSON(
                          raise bad_input_exp (m,prepend_prop propName l))
        | NONE => Graph.default_edata
 
-  fun get_wverts obj prop = let
+  fun input_wverts obj prop = let
     fun add_vert1 (Json.String vn) g =
           Graph.add_named_vertex (V.mk vn) Graph.WVert g
       | add_vert1 _ _ = raise bad_input_exp ("Expected string","")
@@ -46,13 +57,13 @@ functor GraphJSON(
              raise bad_input_exp ("Duplicate vertex ("^(V.dest vn)^")", prop)
   end
 
-  fun get_nverts obj prop = let
+  fun input_nverts obj prop = let
     fun add_def_vert (Json.String vn) g =
           Graph.add_named_vertex (V.mk vn) Graph.default_nv_vdata g
       | add_def_vert _ _ = raise bad_input_exp ("Expected string","")
     fun add_vert (vn,Json.Null) g = add_def_vert (Json.String vn) g
       | add_vert (vn,Json.Object obj') g =
-          g |> Graph.add_named_vertex (V.mk vn) (get_nv_vdata obj' "data")
+          g |> Graph.add_named_vertex (V.mk vn) (input_nv_vdata obj' "data")
             |> (case Json.lookup obj' "annotation"
                   of SOME (Json.Object ann) => Graph.set_vertex_annotation (V.mk vn, ann)
                    | SOME Json.Null => I
@@ -65,10 +76,10 @@ functor GraphJSON(
              raise bad_input_exp ("Duplicate vertex ("^(V.dest vn)^")", prop)
   end
 
-  fun get_edges dir_or_undir obj prop = let
+  fun input_edges dir_or_undir obj prop = let
     fun add_edge (en,Json.Object obj') g =
          (g |> Graph.add_named_edge (E.mk en)
-                 (dir_or_undir,(get_edata obj' "data"))
+                 (dir_or_undir,(input_edata obj' "data"))
                  (V.mk (get_string obj' "src"))
                  (V.mk (get_string obj' "tgt"))
             |> (case Json.lookup obj' "annotation"
@@ -85,7 +96,7 @@ functor GraphJSON(
              raise bad_input_exp ("Duplicate edge ("^(E.dest en)^")", prop)
   end
 
-  fun get_bboxes obj prop = let
+  fun input_bboxes obj prop = let
     fun set_bbox_parent (bn,Json.Object obj') g =
           (let
              val bp = get_string_easy "" obj' "parent"
@@ -140,11 +151,11 @@ functor GraphJSON(
 
   fun input (Json.Object obj) =
         Graph.empty
-            |> get_wverts obj "wire_vertices"
-            |> get_nverts obj "node_vertices"
-            |> get_edges Undirected obj "undir_edges"
-            |> get_edges Directed obj "dir_edges"
-            |> get_bboxes obj "bang_boxes"
+            |> input_wverts obj "wire_vertices"
+            |> input_nverts obj "node_vertices"
+            |> input_edges Undirected obj "undir_edges"
+            |> input_edges Directed obj "dir_edges"
+            |> input_bboxes obj "bang_boxes"
             |> (case Json.lookup obj "annotation"
                   of SOME (Json.Object ann) => Graph.set_graph_annotation ann
                    | SOME Json.Null => I
@@ -152,4 +163,142 @@ functor GraphJSON(
                    | NONE => I)
     | input Json.Null = Graph.empty
     | input _ = raise bad_input_exp ("Expected object","")
+
+
+  (*************************************)
+  (************** Output ***************)
+  (*************************************)
+
+  fun output_vertex_desc g v = let
+    val (is_wv,vd) =
+      case Graph.get_vertex_data g v
+        of Graph.WVert => (true,Json.Null)
+         | Graph.NVert d => (false,OutputVertexData.output d)
+  in
+    Json.Object (
+      Json.empty_obj |> update ("name",Json.String (V.dest v))
+                     |> update ("is_wire_vertex",Json.Bool is_wv)
+                     |> update ("data",vd)
+                     |> (case Graph.get_vertex_annotation_opt g v
+                           of SOME ann => update ("annotation",Json.Object ann)
+                            | NONE => I)
+    )
+  end
+
+  fun output_edge_desc g e = let
+    val ((dir,ed),(s,t)) = (Graph.get_edge_dir_and_data g e, (Graph.get_edge_source g e, Graph.get_edge_target g e))
+  in
+    Json.Object (
+      Json.empty_obj |> update ("name",Json.String (E.dest e))
+                     |> update ("is_directed",Json.Bool (dir = Directed))
+                     |> update ("src",Json.String (V.dest s))
+                     |> update ("tgt",Json.String (V.dest t))
+                     |> update ("data",OutputEdgeData.output ed)
+                     |> (case Graph.get_edge_annotation_opt g e
+                           of SOME ann => update ("annotation",Json.Object ann)
+                            | NONE => I)
+    )
+  end
+
+  fun output_bbox_desc g b = let
+    val add_parent =
+      case B.NSet.get_local_bot (Graph.get_bbox_parents g b) (* TODO: handle multiple parents *)
+        of SOME bp => update ("parent",Json.String (B.dest bp))
+         | NONE => I
+    val jvs = map (fn v => Json.String (V.dest v))
+                  (V.NSet.list_of (Graph.get_vertices_in_bbox g b))
+  in
+    Json.Object (
+      Json.empty_obj |> update ("name",Json.String (B.dest b))
+                     |> add_parent
+                     |> update ("contents",Json.Array jvs)
+                     |> (case Graph.get_bbox_annotation_opt g b
+                           of SOME ann => update ("annotation",Json.Object ann)
+                            | NONE => I)
+    )
+  end
+
+  fun get_verts g = let
+    fun nv_info v vd =
+      Json.Object (
+        Json.empty_obj |> update ("data",OutputVertexData.output vd)
+                       |> (case Graph.get_vertex_annotation_opt g v
+                             of SOME ann => update ("annotation",Json.Object ann)
+                              | NONE => I)
+      )
+    fun wv_info v =
+      Json.Object (
+        Json.empty_obj |> (case Graph.get_vertex_annotation_opt g v
+                             of SOME ann => update ("annotation",Json.Object ann)
+                              | NONE => I)
+      )
+    fun add_vert v (wvobj,nvobj) =
+      case Graph.get_vertex_data g v
+        of Graph.NVert vd => (wvobj, update (V.dest v, nv_info v vd) nvobj)
+         | Graph.WVert => (update (V.dest v,wv_info v) wvobj, nvobj)
+    val (wvobj,nvobj) = V.NSet.fold add_vert
+                                    (Graph.get_vertices g)
+                                    (Json.empty_obj,Json.empty_obj)
+  in
+    (Json.Object wvobj,Json.Object nvobj)
+  end
+
+  fun get_edges g = let
+    fun edge_info e ed s t =
+      Json.Object (
+        Json.empty_obj |> update ("src",Json.String (V.dest s))
+                       |> update ("tgt",Json.String (V.dest t))
+                       |> update ("data",OutputEdgeData.output ed)
+                       |> (case Graph.get_edge_annotation_opt g e
+                             of SOME ann => update ("annotation",Json.Object ann)
+                              | NONE => I)
+      )
+    fun add_edge e (dobj,udobj) = let
+      val (s,t) = (Graph.get_edge_source g e, Graph.get_edge_target g e)
+      val (edir, ed) = Graph.get_edge_dir_and_data g e
+    in case edir of Directed => (update (E.dest e,edge_info e ed s t) dobj, udobj)
+                  | Undirected => (dobj,update (E.dest e,edge_info e ed s t) udobj)
+    end
+    val (dobj,udobj) = E.NSet.fold add_edge
+                                   (Graph.get_edges g)
+                                   (Json.empty_obj,Json.empty_obj)
+  in
+    (Json.Object dobj,Json.Object udobj)
+  end
+
+  fun get_bboxes g = let
+    fun add_bbox b = let
+        val add_parent =
+          case B.NSet.get_local_bot (Graph.get_bbox_parents g b) (* TODO: handle multiple parents *)
+            of SOME bp => update ("parent",Json.String (B.dest bp))
+             | NONE => I
+        val jvs = map (fn v => Json.String (V.dest v))
+                      (V.NSet.list_of (Graph.get_vertices_in_bbox g b))
+        val obj = Json.empty_obj |> add_parent
+                                 |> update ("contents",Json.Array jvs)
+                                 |> (case Graph.get_bbox_annotation_opt g b
+                                       of SOME ann => update ("annotation",Json.Object ann)
+                                        | NONE => I)
+      in
+        update (B.dest b, Json.Object obj)
+      end
+  in
+    Json.Object (B.NSet.fold add_bbox (Graph.get_bboxes g) Json.empty_obj)
+  end
+
+  fun output g = let
+    val (wverts,nverts) = get_verts g
+    val (dedges,udedges) = get_edges g
+    val bboxes = get_bboxes g
+  in
+    Json.Object
+    (Json.empty_obj |> opt_update ("wire_vertices",wverts)
+                    |> opt_update ("node_vertices",nverts)
+                    |> opt_update ("undir_edges",udedges)
+                    |> opt_update ("dir_edges",dedges)
+                    |> opt_update ("bang_boxes",bboxes)
+                    |> (if Json.is_empty_obj (Graph.get_graph_annotation g) then I
+                        else update ("annotation",Json.Object (Graph.get_graph_annotation g)))
+    )
+  end
 end
