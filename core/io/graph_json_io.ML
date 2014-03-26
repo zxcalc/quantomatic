@@ -49,7 +49,12 @@ functor GraphJSON(
       | add_vert1 _ _ = raise bad_input_exp ("Expected string","")
     fun add_vert2 (vn,Json.Null) g = add_vert1 (Json.String vn) g
       | add_vert2 (vn,Json.Object obj') g =
-          Graph.add_named_vertex (V.mk vn) Graph.WVert g
+          g |> Graph.add_named_vertex (V.mk vn) Graph.WVert
+            |> (case Json.lookup obj' "annotation"
+                  of SOME (Json.Object ann) => Graph.set_vertex_annotation (V.mk vn, ann)
+                   | SOME Json.Null => I
+                   | SOME _ => raise bad_input_exp ("Annotation must be object or null","")
+                   | NONE => I)
       | add_vert2 _ _ = raise bad_input_exp ("Expected object","")
   in
     fold_obj_or_arr_easy (add_vert2,add_vert1) obj prop
