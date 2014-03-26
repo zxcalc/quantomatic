@@ -541,6 +541,7 @@ fun add_edge_anon dd s t g = snd (add_edge dd s t g)
 
 fun delete_edge e g =
   g |> update_edata (ETab.delete e)
+    |> update_e_anno (ETab.delete e)
     |> update_source (EVFn.delete e)
     |> update_target (EVFn.delete e)
 
@@ -560,6 +561,7 @@ fun add_vertex_anon d g = snd (add_vertex d g)
     
 fun delete_vertex v g =
   g |> update_vdata (VTab.delete v)
+    |> update_v_anno (VTab.delete v)
     |> E.NSet.fold delete_edge (get_adj_edges' g v)
     |> update_bbox_rel (BVRel.inv_delete v)
 
@@ -580,6 +582,7 @@ fun delete_bbox bb g =
     |> update_bbox_rel (BVRel.delete bb)
     |> update_bbox_child_rel (BBRel.delete bb)
     |> update_bbox_child_rel (BBRel.inv_delete bb)
+    |> update_bb_anno (BTab.delete bb)
 
 fun remove_vertex_from_bbox' bb v = update_bbox_rel (BVRel.unmap (bb, v))
 fun remove_vertex_from_bbox bb v g =
