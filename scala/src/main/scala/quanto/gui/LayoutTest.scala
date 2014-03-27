@@ -13,12 +13,12 @@ import scala.util._
 
 object LayoutTest extends SimpleSwingApplication {
 
-  val graphView = new GraphView(Theory.DefaultTheory, new HasGraph { var graph = Graph(Theory.DefaultTheory) }) {
+  val graphView = new GraphView(Theory.DefaultTheory, new HasGraph { var gr = Graph(Theory.DefaultTheory) }) {
     drawGrid = true
     focusable = true
   }
   
-  /*graphView.graph = (Graph()
+  /*graphView.graph = (Graph()s
 	 addVertex("v00", NodeV())
 	 addVertex("v01", NodeV())
 	 addVertex("v02", NodeV())
@@ -150,7 +150,7 @@ object LayoutTest extends SimpleSwingApplication {
 
       layout.updateGraph()
       graphView.graph = layout.graph
-      graphView.invalidateGraph()
+      graphView.invalidateGraph(clearSelection = false)
       graphView.repaint()
 
 //      if (layout.prevEnergy < layout.energy) {

@@ -38,6 +38,9 @@ class ForceLayout extends GraphLayout with Constraints {
   // maximum iterations
   var maxIterations = 3000
 
+  // re-center graph after each iteration
+  var keepCentered = true
+
   // step size alpha is re-computed on the fly using trust region heuristic
   var alpha: Double = _
   var prevEnergy: Double = _
@@ -183,7 +186,7 @@ class ForceLayout extends GraphLayout with Constraints {
   def step() {
     relax()
     projectConstraints()
-    if (lockedVertices.isEmpty) recenter()
+    if (lockedVertices.isEmpty && keepCentered) recenter()
   }
 
   def compute() {

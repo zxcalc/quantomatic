@@ -285,6 +285,27 @@ object QuantoDerive extends SimpleSwingApplication {
 //    contents += new MenuItem(LayoutAction) { mnemonic = Key.L }
   }
 
+  val DeriveMenu = new Menu("Derive") { menu =>
+    val StartDerivation = new Action("Start derivation") {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_D, CommandMask))
+      enabled = false
+      menu.contents += new MenuItem(this) { mnemonic = Key.D }
+      def apply() = (CurrentProject, MainTabbedPane.currentContent) match {
+          case (Some(project), Some(doc: HasDocument)) =>
+            doc.document match {
+              case (graphDoc: GraphDocument) =>
+                val page = new DerivationDocumentPage(project.theory)
+                page.document.asInstanceOf[DerivationDocument].root = graphDoc.graph
+                MainTabbedPane += page
+                MainTabbedPane.selection.index = page.index
+              case _ =>
+                System.err.println("WARNING: Start derivation called with no graph active")
+            }
+          case _ => // no project and/or document open, do nothing
+      }
+    }
+  }
+
   val WindowMenu = new Menu("Window") { menu =>
     val CloseAction = new Action("Close tab") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_W, CommandMask))
@@ -321,10 +342,11 @@ object QuantoDerive extends SimpleSwingApplication {
                 case i if i > 0 => file.getName.substring(i+1) ; case _ => ""}
 
               val pageOpt = extn match {
-                case "qgraph" => Some(new GraphDocumentPage(project.theory))
-                case "qrule"  => Some(new RuleDocumentPage(project.theory))
-                case "ML"     => Some(new MLDocumentPage)
-                case _ => None
+                case "qgraph"  => Some(new GraphDocumentPage(project.theory))
+                case "qrule"   => Some(new RuleDocumentPage(project.theory))
+                case "qderive" => Some(new DerivationDocumentPage(project.theory))
+                case "ML"      => Some(new MLDocumentPage)
+                case _         => None
               }
 
               pageOpt.map{ page =>
@@ -345,7 +367,15 @@ object QuantoDerive extends SimpleSwingApplication {
           FileMenu.SaveAction.title = "Save " + doc.document.description
           FileMenu.SaveAsAction.enabled = true
           FileMenu.SaveAsAction.title = "Save " + doc.document.description + " As..."
+
+          doc.document match {
+            case _: GraphDocument =>
+              DeriveMenu.StartDerivation.enabled = true
+            case _ =>
+              DeriveMenu.StartDerivation.enabled = false
+          }
         case _ =>
+          DeriveMenu.StartDerivation.enabled = false
           WindowMenu.CloseAction.enabled = false
           FileMenu.SaveAction.enabled = false
           FileMenu.SaveAction.title = "Save"
@@ -362,7 +392,7 @@ object QuantoDerive extends SimpleSwingApplication {
     size = new Dimension(1280,720)
 
     menuBar = new MenuBar {
-      contents += (FileMenu, EditMenu, WindowMenu)
+      contents += (FileMenu, EditMenu, DeriveMenu, WindowMenu)
     }
   }
 }

@@ -6,14 +6,16 @@ import swing.event._
 import Key.Modifier
 import quanto.data._
 import Names._
-import quanto.layout.{ForceLayout, QLayout}
+import quanto.layout.ForceLayout
 import quanto.util.json._
-import quanto.layout.constraint.{Clusters, VerticalBoundary, Ranking}
+import quanto.layout.constraint.Clusters
 import java.awt.event.{ActionEvent, ActionListener}
 
-class GraphEditController(graphRef: HasGraph, view: GraphView, val readOnly: Boolean = false) {
+class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   private var _mouseState: MouseState = SelectTool()
   def mouseState = _mouseState
+
+  def graphRef = view.graphRef
 
   def mouseState_=(s: MouseState) {
     if (readOnly) s match {
@@ -39,6 +41,7 @@ class GraphEditController(graphRef: HasGraph, view: GraphView, val readOnly: Boo
   val qLayout = new ForceLayout with Clusters
   qLayout.alpha0 = 0.001
   qLayout.alphaAdjust = 1.0
+  qLayout.keepCentered = false
 
   val layoutTimer = new javax.swing.Timer(10, new ActionListener {
     def actionPerformed(e: ActionEvent) {
@@ -46,10 +49,7 @@ class GraphEditController(graphRef: HasGraph, view: GraphView, val readOnly: Boo
         qLayout.step()
         qLayout.updateGraph()
         graph = qLayout.graph
-        view.invalidateAllVerts()
-        view.invalidateAllEdges()
-        view.invalidateAllBBoxes()
-        view.repaint()
+        graphRef.publish(GraphReplaced(graphRef, clearSelection = false))
       } else {
         println("null graph")
       }
@@ -216,8 +216,7 @@ class GraphEditController(graphRef: HasGraph, view: GraphView, val readOnly: Boo
   private def replaceGraph(gr : Graph, desc: String) {
     val oldGraph = graph
     graph = gr
-    view.invalidateGraph()
-    view.repaint()
+    graphRef.publish(GraphReplaced(graphRef, clearSelection = false))
     undoStack.register(desc) { replaceGraph(oldGraph, desc) }
   }
 
@@ -408,18 +407,16 @@ class GraphEditController(graphRef: HasGraph, view: GraphView, val readOnly: Boo
           val vertexData = vertexTypeSelect.selection.item match {
             case "<wire>" => WireV(theory = theory)
             case typ      =>
-              println("adding: " + theory.vertexTypes(typ).defaultData)
+//              println("adding: " + theory.vertexTypes(typ).defaultData)
               NodeV(data = theory.vertexTypes(typ).defaultData, theory = theory).withCoord(coord)
           }
 
           addVertex(graph.verts.freshWithSuggestion(VName("v0")), vertexData.withCoord(coord))
-          view.repaint()
 
         case AddBoundaryTool() =>
           val coord = view.trans fromScreen (pt.getX, pt.getY)
           val vertexData = WireV(theory = theory, annotation = JsonObject("boundary" -> JsonBool(true)))
           addVertex(graph.verts.freshWithSuggestion(VName("b0")), vertexData.withCoord(coord))
-          view.repaint()
 
         case DragEdge(startV) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
@@ -481,10 +478,15 @@ class GraphEditController(graphRef: HasGraph, view: GraphView, val readOnly: Boo
           graph.verts.foreach { v => if (!selectedVerts.contains(v)) qLayout.lockedVertices += v }
         }
 
+        undoStack.start("Relax layout")
+        replaceGraph(graph, "")
         layoutTimer.start()
       }
     case KeyReleased(_, Key.R, _, _) =>
       rDown = false
       layoutTimer.stop()
+
+      replaceGraph(graph, "")
+      undoStack.commit()
   }
 }

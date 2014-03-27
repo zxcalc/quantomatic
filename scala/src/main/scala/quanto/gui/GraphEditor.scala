@@ -4,13 +4,15 @@ package quanto.gui
 import swing._
 import event.Key
 import quanto.data._
-import javax.swing.{JToolBar, KeyStroke}
+import javax.swing.{UIManager, JToolBar, KeyStroke}
 import java.awt.event.KeyEvent
 import quanto.util.json.Json
+import javax.swing.plaf.metal.MetalLookAndFeel
 
 
 object GraphEditor extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
+  UIManager.setLookAndFeel(new MetalLookAndFeel)
 
   // println("loading theory " + GraphEditor.getClass.getResource("strategy_graph.qtheory"))
   // val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("strategy_graph.qtheory"))

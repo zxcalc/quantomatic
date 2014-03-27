@@ -1,20 +1,25 @@
 package quanto.gui
 
 import quanto.data._
-import scala.swing.{GridPanel, ScrollPane, BorderPanel}
+import scala.swing._
+import quanto.util.swing.ToolBar
 import quanto.gui.graphview.GraphView
-import scala.swing.event.UIElementResized
+import scala.swing.event._
+import javax.swing.ImageIcon
 
-class DerivationPanel(val theory: Theory, val readOnly: Boolean = false)
+sealed abstract class DeriveState
+case class StepState(s: DSName) extends DeriveState
+case class HeadState(h: Option[DSName]) extends DeriveState
+
+class DerivationPanel(val theory: Theory)
   extends BorderPanel
-  with GraphEditControls
   with HasDocument
 {
-
-  object DummyRef extends HasGraph { var graph = Graph(theory) }
+  val document = new DerivationDocument(this)
+  object DummyRef extends HasGraph { var gr = Graph(theory) }
 
   // GUI components
-  val LhsView = new GraphView(theory, DummyRef) {
+  val LhsView = new GraphView(theory, document.rootRef) {
     drawGrid = true
     focusable = true
   }
@@ -24,51 +29,132 @@ class DerivationPanel(val theory: Theory, val readOnly: Boolean = false)
     focusable = true
   }
 
-  val document = new DerivationDocument(this)
+  val controls = new GraphEditControls(theory)
 
-  val lhsController = new GraphEditController(DummyRef, LhsView, readOnly) {
+  val lhsController = new GraphEditController(LhsView, true) {
     undoStack            = document.undoStack
-    vertexTypeSelect     = VertexTypeSelect
-    edgeTypeSelect       = EdgeTypeSelect
-    edgeDirectedCheckBox = EdgeDirected
+    vertexTypeSelect     = controls.VertexTypeSelect
+    edgeTypeSelect       = controls.EdgeTypeSelect
+    edgeDirectedCheckBox = controls.EdgeDirected
   }
 
-  val rhsController = new GraphEditController(DummyRef, RhsView, readOnly) {
+  val rhsController = new GraphEditController(RhsView, true) {
     undoStack            = document.undoStack
-    vertexTypeSelect     = VertexTypeSelect
-    edgeTypeSelect       = EdgeTypeSelect
-    edgeDirectedCheckBox = EdgeDirected
+    vertexTypeSelect     = controls.VertexTypeSelect
+    edgeTypeSelect       = controls.EdgeTypeSelect
+    edgeDirectedCheckBox = controls.EdgeDirected
   }
 
-  def setMouseState(m: MouseState) {
-    lhsController.mouseState = m
-    rhsController.mouseState = m
+
+  val FirstButton = new Button() {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("go-first.png"), "First step")
   }
 
-  val LhsScrollPane = new ScrollPane(LhsView)
-  val RhsScrollPane = new ScrollPane(RhsView)
+  val PreviousButton = new Button() {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("go-previous.png"), "Previous step")
+  }
+
+  val NextButton = new Button() {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("go-next.png"), "Next step")
+  }
+
+  val LastButton = new Button() {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("go-last.png"), "Last step")
+  }
+
+  val navigationButtons = List(FirstButton, PreviousButton, NextButton, LastButton)
+
+  navigationButtons.foreach { listenTo(_) }
+
+  val DeriveToolbar = new ToolBar {
+    contents += (FirstButton, PreviousButton, NextButton, LastButton)
+  }
+
+  val LhsGraphPane = new ScrollPane(LhsView)
+  val RhsGraphPane = new ScrollPane(RhsView)
+  val RhsRewritePane = new BorderPanel
+
+  val LhsLabel = new Label("(root)")
+  val RhsLabel = new Label("(head)")
+
+  val Lhs = new BorderPanel {
+    add(LhsGraphPane, BorderPanel.Position.Center)
+    add(LhsLabel, BorderPanel.Position.South)
+  }
+
+  val Rhs = new BorderPanel {
+    def setStepMode() {
+      add(RhsGraphPane, BorderPanel.Position.Center)
+      revalidate()
+      repaint()
+    }
+    
+    def setHeadMode() {
+      add(RhsRewritePane, BorderPanel.Position.Center)
+      revalidate()
+      repaint()
+    }
+
+    add(RhsLabel, BorderPanel.Position.South)
+  }
+
+  Rhs.setStepMode()
 
   object GraphViewPanel extends GridPanel(1,2) {
-    contents += LhsScrollPane
-    contents += RhsScrollPane
+    contents += (Lhs, Rhs)
   }
 
-  if (!readOnly) {
-    add(MainToolBar, BorderPanel.Position.North)
-    add(BottomPanel, BorderPanel.Position.South)
-  }
-
+  add(DeriveToolbar, BorderPanel.Position.North)
   add(GraphViewPanel, BorderPanel.Position.Center)
 
 
-  listenTo(LhsScrollPane, RhsScrollPane, document)
+  // move to a named step in the derivation
+  private var _state : DeriveState = HeadState(None)
+  def state = _state
+  def state_=(s: DeriveState) {
+    _state = s
+    s match {
+      case HeadState(headOpt) =>
+        Rhs.setHeadMode()
+        RhsLabel.text = "(head)"
+
+        headOpt match {
+          case Some(head) =>
+            LhsLabel.text = head.toString
+          case None => // at the root
+            LhsLabel.text = "(root)"
+        }
+      case StepState(step) =>
+        Rhs.setStepMode()
+        RhsLabel.text = step.toString
+        document.derivation.parent.get(step) match {
+          case Some(parent) =>
+            LhsLabel.text = parent.toString
+          case None =>
+            LhsLabel.text = "(root)"
+        }
+    }
+  }
+
+  // move to a named head, or None for root (as a head)
+  def moveToHead(s: Option[DSName]) {
+
+  }
+
+
+  listenTo(LhsGraphPane, RhsGraphPane, document)
 
   reactions += {
-    case UIElementResized(LhsScrollPane) =>
+    case UIElementResized(LhsGraphPane) =>
       LhsView.resizeViewToFit()
       LhsView.repaint()
-    case UIElementResized(RhsScrollPane) =>
+    case UIElementResized(RhsGraphPane) =>
       RhsView.resizeViewToFit()
       RhsView.repaint()
+    case MouseStateChanged(m) =>
+      lhsController.mouseState = m
+      rhsController.mouseState = m
+    case ButtonClicked(LastButton) =>
+
   }
 }

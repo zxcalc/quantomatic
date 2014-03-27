@@ -34,3 +34,8 @@ class MLDocumentPage
 extends DocumentPage(new MLEditPanel) {
   val documentType = "ML Code"
 }
+
+class DerivationDocumentPage(val theory: Theory)
+extends DocumentPage(new DerivationPanel(theory)) {
+  val documentType = "Derivation"
+}

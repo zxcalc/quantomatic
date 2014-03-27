@@ -3,7 +3,7 @@ package quanto.gui
 import scala.swing.{Component, FileChooser, Dialog, Publisher}
 import java.io.{FileNotFoundException, IOException, File}
 import scala.swing.event.Event
-import quanto.data.{RuleLoadException, GraphLoadException}
+import quanto.data._
 import quanto.util.json.JsonParseException
 import javax.swing.filechooser.FileNameExtensionFilter
 import java.util.prefs.Preferences
@@ -67,6 +67,7 @@ abstract class Document extends Publisher {
       case _: JsonParseException => errorDialog("load", "mal-formed JSON")
       case _: GraphLoadException => errorDialog("load", "invalid graph")
       case _: RuleLoadException => errorDialog("load", "invalid rule")
+      case _: DerivationLoadException => errorDialog("load", "invalid derivation")
       case _: FileNotFoundException => errorDialog("load", "not found")
       case _: IOException => errorDialog("load", "file unreadable")
       case e: Exception =>

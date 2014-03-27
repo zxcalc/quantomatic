@@ -7,8 +7,9 @@ import swing.event._
 import javax.swing.ImageIcon
 import quanto.util.swing.ToolBar
 
-trait GraphEditControls extends Reactor {
-  def theory : Theory
+case class MouseStateChanged(m : MouseState) extends Event
+
+class GraphEditControls(theory: Theory) extends Publisher {
 
   val VertexTypeLabel  = new Label("Vertex Type:  ") { xAlignment = Alignment.Right; enabled = false }
   val VertexTypeSelect = new ComboBox(theory.vertexTypes.keys.toSeq :+ "<wire>") { enabled = false }
@@ -23,12 +24,16 @@ trait GraphEditControls extends Reactor {
   }
 
   trait ToolButton { var tool: MouseState = SelectTool() }
-  def setMouseState(m : MouseState)
+  def setMouseState(m : MouseState) { publish(MouseStateChanged(m)) }
+
+  val ge = GraphEditor.getClass
+
+//  val icon = new ImageIcon(GraphEditor.getClass.getResource("select-rectangular.png"), "Select")
 
   val SelectButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("select-rectangular.png"), "Select")
-    selected = true
     tool = SelectTool()
+    selected = true
   }
 
   val AddVertexButton = new ToggleButton() with ToolButton {
@@ -56,6 +61,8 @@ trait GraphEditControls extends Reactor {
     AddBoundaryButton,
     AddEdgeButton,
     AddBangBoxButton)
+
+  //GraphToolGroup.select(SelectButton)
 
   val MainToolBar = new ToolBar {
     contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton)
@@ -98,7 +105,6 @@ trait GraphEditControls extends Reactor {
 
 class GraphEditPanel(val theory: Theory, val readOnly: Boolean = false)
 extends BorderPanel
-with GraphEditControls
 with HasDocument
 {
 
@@ -112,33 +118,35 @@ with HasDocument
     focusable = true
   }
 
+  val controls = new GraphEditControls(theory)
+
   // alias for graph_=, used in java code
 //  def setGraph(g: Graph) { graph_=(g) }
 
-  val graphEditController = new GraphEditController(document, graphView, readOnly) {
+  val graphEditController = new GraphEditController(graphView, readOnly) {
     undoStack            = document.undoStack
-    vertexTypeSelect     = VertexTypeSelect
-    edgeTypeSelect       = EdgeTypeSelect
-    edgeDirectedCheckBox = EdgeDirected
+    vertexTypeSelect     = controls.VertexTypeSelect
+    edgeTypeSelect       = controls.EdgeTypeSelect
+    edgeDirectedCheckBox = controls.EdgeDirected
   }
-
-  def setMouseState(m: MouseState) { graphEditController.mouseState = m }
 
   val GraphViewScrollPane = new ScrollPane(graphView)
 
   if (!readOnly) {
-    add(MainToolBar, BorderPanel.Position.North)
-    add(BottomPanel, BorderPanel.Position.South)
+    add(controls.MainToolBar, BorderPanel.Position.North)
+    add(controls.BottomPanel, BorderPanel.Position.South)
   }
 
   add(GraphViewScrollPane, BorderPanel.Position.Center)
 
 
-  listenTo(GraphViewScrollPane, document)
+  listenTo(GraphViewScrollPane, controls, document)
 
   reactions += {
     case UIElementResized(GraphViewScrollPane) =>
       graphView.resizeViewToFit()
       graphView.repaint()
+    case MouseStateChanged(m) =>
+      graphEditController.mouseState = m
   }
 }

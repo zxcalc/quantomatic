@@ -7,43 +7,28 @@ import scala.swing.event.UIElementResized
 
 class RuleEditPanel(val theory: Theory, val readOnly: Boolean = false)
 extends BorderPanel
-with GraphEditControls
 with HasDocument
 {
   val document = new RuleDocument(this, theory)
 
-  object LhsGraph extends HasGraph {
-    def graph = document.lhsGraph
-    def graph_=(g: Graph) { document.lhsGraph = g }
-  }
-
-  object RhsGraph extends HasGraph {
-    def graph = document.rhsGraph
-    def graph_=(g: Graph) { document.rhsGraph = g }
-  }
-
   // GUI components
-  val lhsView = new GraphView(theory,LhsGraph)
+  val lhsView = new GraphView(theory, document.lhsRef)
+  val rhsView = new GraphView(theory, document.rhsRef)
 
-  val rhsView = new GraphView(theory,RhsGraph)
+  val controls = new GraphEditControls(theory)
 
-  val lhsController = new GraphEditController(LhsGraph, lhsView, readOnly) {
+  val lhsController = new GraphEditController(lhsView, readOnly) {
     undoStack            = document.undoStack
-    vertexTypeSelect     = VertexTypeSelect
-    edgeTypeSelect       = EdgeTypeSelect
-    edgeDirectedCheckBox = EdgeDirected
+    vertexTypeSelect     = controls.VertexTypeSelect
+    edgeTypeSelect       = controls.EdgeTypeSelect
+    edgeDirectedCheckBox = controls.EdgeDirected
   }
 
-  val rhsController = new GraphEditController(RhsGraph, rhsView, readOnly) {
+  val rhsController = new GraphEditController(rhsView, readOnly) {
     undoStack            = document.undoStack
-    vertexTypeSelect     = VertexTypeSelect
-    edgeTypeSelect       = EdgeTypeSelect
-    edgeDirectedCheckBox = EdgeDirected
-  }
-
-  def setMouseState(m: MouseState) {
-    lhsController.mouseState = m
-    rhsController.mouseState = m
+    vertexTypeSelect     = controls.VertexTypeSelect
+    edgeTypeSelect       = controls.EdgeTypeSelect
+    edgeDirectedCheckBox = controls.EdgeDirected
   }
 
   val LhsScrollPane = new ScrollPane(lhsView)
@@ -55,14 +40,14 @@ with HasDocument
   }
 
   if (!readOnly) {
-    add(MainToolBar, BorderPanel.Position.North)
-    add(BottomPanel, BorderPanel.Position.South)
+    add(controls.MainToolBar, BorderPanel.Position.North)
+    add(controls.BottomPanel, BorderPanel.Position.South)
   }
 
   add(GraphViewPanel, BorderPanel.Position.Center)
 
 
-  listenTo(LhsScrollPane, RhsScrollPane, document)
+  listenTo(LhsScrollPane, RhsScrollPane, document, controls)
 
   reactions += {
     case UIElementResized(LhsScrollPane) =>
@@ -71,5 +56,8 @@ with HasDocument
     case UIElementResized(RhsScrollPane) =>
       rhsView.resizeViewToFit()
       rhsView.repaint()
+    case MouseStateChanged(m) =>
+      lhsController.mouseState = m
+      rhsController.mouseState = m
   }
 }

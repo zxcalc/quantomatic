@@ -12,14 +12,15 @@ import javax.swing.UIManager
 import quanto.util.json.Json
 import java.io.File
 import javax.swing.JOptionPane
+import javax.swing.plaf.metal.MetalLookAndFeel
 
 
 object LayoutTestGUI1 extends SimpleSwingApplication {
-
+  UIManager.setLookAndFeel(new MetalLookAndFeel)
   var json : Json = _
   
   
-  val graphView = new GraphView(Theory.DefaultTheory, new HasGraph { var graph = Graph(Theory.DefaultTheory) }) {
+  val graphView = new GraphView(Theory.DefaultTheory, new HasGraph { var gr = Graph(Theory.DefaultTheory) }) {
     drawGrid = true
     focusable = true
   }
@@ -43,14 +44,13 @@ object LayoutTestGUI1 extends SimpleSwingApplication {
       layout.step()
       layout.updateGraph()
       graphView.graph = layout.graph
-      graphView.invalidateGraph()
+      graphView.invalidateGraph(clearSelection = false)
       graphView.repaint()
 
     }
   })
 
   def top = new MainFrame {
-    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
      menuBar = new MenuBar {
          contents += new Menu("File"){
            contents += new MenuItem(Action("Open"){

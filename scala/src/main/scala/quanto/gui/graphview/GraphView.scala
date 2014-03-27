@@ -16,7 +16,7 @@ import java.awt.font.TextLayout
 case class EdgeOverlay(pt: Point, src: VName, tgt: Option[VName])
 case class BBoxOverlay(pt: Point, src: BBName, vtgt : Option[VName], bbtgt : Option[BBName])
 
-class GraphView(val theory: Theory, graphRef: HasGraph) extends Panel
+class GraphView(val theory: Theory, val graphRef: HasGraph) extends Panel
   with Scrollable
   with EdgeDisplayData
   with VertexDisplayData
@@ -42,9 +42,16 @@ class GraphView(val theory: Theory, graphRef: HasGraph) extends Panel
     resizeViewToFit()
   }
 
-  listenTo(this)
+  listenTo(this, graphRef)
   reactions += {
     case _: FocusEvent => repaint()
+    case GraphChanged(_) =>
+      resizeViewToFit()
+      repaint()
+    case GraphReplaced(_, clearSelection) =>
+      resizeViewToFit()
+      invalidateGraph(clearSelection)
+      repaint()
   }
 
   def computeDisplayData() {
@@ -61,12 +68,14 @@ class GraphView(val theory: Theory, graphRef: HasGraph) extends Panel
   var selectedEdges = Set[EName]()
   var selectedBBoxes = Set[BBName]()
 
-  def invalidateGraph() {
+  def invalidateGraph(clearSelection: Boolean) {
     invalidateAllVerts()
     invalidateAllEdges()
-    selectedVerts = Set[VName]()
-    selectedEdges = Set[EName]()
-    selectedBBoxes = Set[BBName]()
+    if (clearSelection) {
+      selectedVerts = Set[VName]()
+      selectedEdges = Set[EName]()
+      selectedBBoxes = Set[BBName]()
+    }
   }
 
   private def drawGridLines(g: Graphics2D) {
@@ -127,7 +136,7 @@ class GraphView(val theory: Theory, graphRef: HasGraph) extends Panel
     if (changed) {
       trans.origin = (trans.origin._1 - topLeft._1, trans.origin._2 - topLeft._2)
       preferredSize = new Dimension(w.toInt, h.toInt)
-      invalidateGraph()
+      invalidateGraph(clearSelection = false)
       revalidate()
     }
   }

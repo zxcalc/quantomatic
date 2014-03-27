@@ -1,7 +1,7 @@
 package quanto.gui
 
 import java.io.File
-import quanto.data.{Theory, HasGraph, Graph}
+import quanto.data._
 import quanto.util.json.Json
 import scala.swing.Component
 
@@ -12,30 +12,32 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
 
   // the graph, as it was last saved or loaded
   private var storedGraph: Graph = Graph(theory)
-  var _graph = storedGraph
-  def unsavedChanges = storedGraph != _graph
+  protected var gr = storedGraph
+  def unsavedChanges = storedGraph != graph
 
-  def graph = _graph
-  def graph_=(g: Graph) {
-    _graph = g
-
-    // clears any stored filename and the undo stack
-    resetDocumentInfo()
-  }
+//  protected def gr = _graph
+//  protected def gr_=(g: Graph) {
+//    _graph = g
+//
+//    // clears any stored filename and the undo stack
+//    resetDocumentInfo()
+//  }
 
   protected def loadDocument(f: File) {
     val json = Json.parse(f)
-    _graph = Graph.fromJson(json, theory)
-    storedGraph = _graph
+    storedGraph = Graph.fromJson(json, theory)
+    graph = storedGraph
+    publish(GraphReplaced(this, clearSelection = true))
   }
 
   protected def saveDocument(f: File) {
-    val json = Graph.toJson(_graph, theory)
+    val json = Graph.toJson(graph, theory)
     json.writeTo(f)
-    storedGraph = _graph
+    storedGraph = graph
   }
 
   protected def clearDocument() {
-    graph_=(Graph(theory))
+    graph = Graph(theory)
+    publish(GraphReplaced(this, clearSelection = true))
   }
 }

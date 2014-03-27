@@ -66,22 +66,28 @@ case class Derivation(theory: Theory,
     steps = steps + (step.name -> step),
     heads = (if (heads.contains(parent)) heads - parent else heads) + step.name
   )
+
+  def uniqueChild(s: DSName) {
+    val set = parent.codf(s)
+    if (set.size == 1) Some(set.iterator.next())
+    else None
+  }
 }
 
 object Derivation {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory) = try {
-    val parent = (json / "steps").asObject.foldLeft(PFun[DSName,DSName]()) {
+    val parent = (json ? "steps").asObject.foldLeft(PFun[DSName,DSName]()) {
       case (pf,(step,obj)) => obj.get("parent") match {
         case Some(JsonString(p)) => pf + (DSName(step) -> DSName(p))
         case _ => pf
       }
     }
 
-    val steps = (json / "steps").asObject.foldLeft(Map[DSName,DStep]()) {
+    val steps = (json ? "steps").asObject.foldLeft(Map[DSName,DStep]()) {
       case (mp,(step,obj)) => mp + (DSName(step) -> DStep.fromJson(obj, thy))
     }
 
-    val heads = (json / "heads").asArray.map(h => DSName(h.stringValue)).toSet
+    val heads = (json ? "heads").asArray.map(h => DSName(h.stringValue)).toSet
 
 
     Derivation(
