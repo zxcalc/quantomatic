@@ -113,6 +113,7 @@ class DerivationPanel(val theory: Theory)
   def state = _state
   def state_=(s: DeriveState) {
     _state = s
+
     s match {
       case HeadState(headOpt) =>
         Rhs.setHeadMode()
@@ -120,21 +121,31 @@ class DerivationPanel(val theory: Theory)
 
         headOpt match {
           case Some(head) =>
+            PreviousButton.enabled = true
             LhsLabel.text = head.toString
           case None => // at the root
+            PreviousButton.enabled = false
             LhsLabel.text = "(root)"
         }
+
       case StepState(step) =>
         Rhs.setStepMode()
         RhsLabel.text = step.toString
         document.derivation.parent.get(step) match {
           case Some(parent) =>
+            PreviousButton.enabled = true
             LhsLabel.text = parent.toString
           case None =>
+            PreviousButton.enabled = false
             LhsLabel.text = "(root)"
         }
+        NextButton.enabled = (document.derivation.isHead(step) && !document.derivation.hasChildren(step)) ||
+                             (!document.derivation.isHead(step) && document.derivation.hasUniqueChild(step))
+        LastButton.enabled = true
     }
   }
+
+  state = HeadState(None)
 
   // move to a named head, or None for root (as a head)
   def moveToHead(s: Option[DSName]) {
@@ -154,7 +165,27 @@ class DerivationPanel(val theory: Theory)
     case MouseStateChanged(m) =>
       lhsController.mouseState = m
       rhsController.mouseState = m
+    case ButtonClicked(FirstButton) =>
+      state = HeadState(None)
     case ButtonClicked(LastButton) =>
-
+    case ButtonClicked(PreviousButton) =>
+      state match {
+        case HeadState(Some(s)) => state = StepState(s)
+        case StepState(s) =>
+          document.derivation.parent.get(s) match {
+            case Some(p) => state = StepState(p)
+            case None => state = HeadState(None)
+          }
+        case _ => // do nothing
+      }
+    case ButtonClicked(NextButton) =>
+      state match {
+        case StepState(s) =>
+          if (document.derivation.isHead(s) && !document.derivation.hasChildren(s))
+            state = HeadState(Some(s))
+          else
+            document.derivation.uniqueChild(s).map { ch => state = StepState(ch) }
+        case _ => // do nothing
+      }
   }
 }

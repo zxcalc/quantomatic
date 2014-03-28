@@ -15,7 +15,13 @@ object Rule {
          rhs = Graph.fromJson(json / "rhs", thy),
          derivation = json.get("derivation").map(_.stringValue))
   } catch {
-    case e: Exception => throw new RuleLoadException("Error reading JSON", e)
+    case e: JsonAccessException =>
+      throw new RuleLoadException(e.getMessage, e)
+    case e: GraphLoadException =>
+      throw new RuleLoadException("Graph: " + e.getMessage, e)
+    case e: Exception =>
+      e.printStackTrace()
+      throw new RuleLoadException("Unexpected error reading JSON", e)
   }
 
   def toJson(rule: Rule, thy: Theory = Theory.DefaultTheory) = {

@@ -2,6 +2,7 @@ package quanto.data
 
 import quanto.util.json._
 import javax.management.remote.rmi._RMIConnectionImpl_Tie
+import scala.collection.SortedSet
 
 trait DerivationException
 case class DerivationLoadException(message: String, cause: Throwable = null)
@@ -30,28 +31,36 @@ object DStep {
     ).noEmpty
   }
 
-  def fromJson(json: Json, thy: Theory = Theory.DefaultTheory) : DStep = try {
+  def fromJson(name: DSName, json: Json, thy: Theory = Theory.DefaultTheory) : DStep = try {
     DStep(
-      name = DSName((json / "name").stringValue),
-      ruleName = (json / "ruleName").stringValue,
+      name = name,
+      ruleName = (json / "rule_name").stringValue,
       rule = Rule.fromJson(json / "rule", thy),
       variant = json ? "rule_variant" match { case JsonString("inverse") => RuleInverse; case _ => RuleNormal },
       graph = Graph.fromJson(json / "graph", thy)
     )
   } catch {
-    case e: Exception => throw new DerivationLoadException("Error reading JSON")
+    case e: JsonAccessException =>
+      throw new DerivationLoadException(e.getMessage)
+    case e: RuleLoadException =>
+      throw new DerivationLoadException("Rule at step '" + name + "': " + e.getMessage)
+    case e: GraphLoadException =>
+      throw new DerivationLoadException("Graph at step '" + name + "': " + e.getMessage)
+    case e: Exception =>
+      e.printStackTrace()
+      throw new DerivationLoadException("Unexpected error reading JSON")
   }
 }
 
 case class Derivation(theory: Theory,
                       root: Graph,
                       steps: Map[DSName,DStep] = Map(),
-                      heads: Set[DSName] = Set(),
+                      heads: SortedSet[DSName] = SortedSet(),
                       parent: PFun[DSName,DSName] = PFun()) {
   def copy(theory: Theory = theory,
            root: Graph = root,
            steps: Map[DSName,DStep] = steps,
-           heads: Set[DSName] = heads,
+           heads: SortedSet[DSName] = heads,
            parent: PFun[DSName,DSName] = parent) = Derivation(theory,root,steps,heads,parent)
 
   def stepsTo(head: DSName): Array[DSName] =
@@ -67,11 +76,20 @@ case class Derivation(theory: Theory,
     heads = (if (heads.contains(parent)) heads - parent else heads) + step.name
   )
 
-  def uniqueChild(s: DSName) {
+  def uniqueChild(s: DSName) = {
     val set = parent.codf(s)
-    if (set.size == 1) Some(set.iterator.next())
+    if (set.size == 1) Some(set.head)
     else None
   }
+
+  def hasParent(s: DSName) = parent.domSet.contains(s)
+  def hasUniqueChild(s: DSName) = parent.codf(s).size == 1
+  def hasChildren(s: DSName) = parent.codSet.contains(s)
+  def isHead(s: DSName) = heads.contains(s)
+
+  def firstHead = heads.headOption
+  def nextHead(s: DSName) = heads.find(s1 => s < s1)
+  def hasNextHead(s: DSName) = heads.lastOption match { case Some(s1) => s != s1; case None => false }
 }
 
 object Derivation {
@@ -84,11 +102,10 @@ object Derivation {
     }
 
     val steps = (json ? "steps").asObject.foldLeft(Map[DSName,DStep]()) {
-      case (mp,(step,obj)) => mp + (DSName(step) -> DStep.fromJson(obj, thy))
+      case (mp,(step,obj)) => mp + (DSName(step) -> DStep.fromJson(DSName(step), obj, thy))
     }
 
-    val heads = (json ? "heads").asArray.map(h => DSName(h.stringValue)).toSet
-
+    val heads = (json ? "heads").asArray.foldLeft(SortedSet[DSName]()) { case (set,h) => set + DSName(h.stringValue) }
 
     Derivation(
       theory = thy,
@@ -98,7 +115,13 @@ object Derivation {
       parent = parent
     )
   } catch {
-    case e: Exception => throw new DerivationLoadException("Error reading JSON", e)
+    case e: JsonAccessException => throw new DerivationLoadException(e.getMessage, e)
+    case e: GraphLoadException =>
+      throw new DerivationLoadException("Graph 'root': " + e.getMessage, e)
+    case e: DerivationLoadException => throw e
+    case e: Exception =>
+      e.printStackTrace()
+      throw new DerivationLoadException("Error reading JSON", e)
   }
 
   def toJson(derive: Derivation, thy: Theory = Theory.DefaultTheory) = {

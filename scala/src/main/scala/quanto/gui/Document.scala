@@ -64,12 +64,12 @@ abstract class Document extends Publisher {
       publish(DocumentChanged(this))
       success = true
     } catch {
-      case _: JsonParseException => errorDialog("load", "mal-formed JSON")
-      case _: GraphLoadException => errorDialog("load", "invalid graph")
-      case _: RuleLoadException => errorDialog("load", "invalid rule")
-      case _: DerivationLoadException => errorDialog("load", "invalid derivation")
-      case _: FileNotFoundException => errorDialog("load", "not found")
-      case _: IOException => errorDialog("load", "file unreadable")
+      case e: JsonParseException => errorDialog("load", "mal-formed JSON: " + e.getMessage)
+      case e: GraphLoadException => errorDialog("load", "invalid graph: " + e.getMessage)
+      case e: RuleLoadException => errorDialog("load", "invalid rule: " + e.getMessage)
+      case e: DerivationLoadException => errorDialog("load", "invalid derivation: " + e.getMessage)
+      case e: FileNotFoundException => errorDialog("load", "file not found")
+      case e: IOException => errorDialog("load", "file unreadable")
       case e: Exception =>
         errorDialog("load", "unexpected error")
         e.printStackTrace()
