@@ -3,6 +3,8 @@ package quanto.data
 import quanto.util.json._
 import javax.management.remote.rmi._RMIConnectionImpl_Tie
 import scala.collection.SortedSet
+import quanto.gui.{StepState, HeadState, DeriveState}
+import quanto.util.TreeSeq
 
 trait DerivationException
 case class DerivationLoadException(message: String, cause: Throwable = null)
@@ -56,7 +58,9 @@ case class Derivation(theory: Theory,
                       root: Graph,
                       steps: Map[DSName,DStep] = Map(),
                       heads: SortedSet[DSName] = SortedSet(),
-                      parent: PFun[DSName,DSName] = PFun()) {
+                      parent: PFun[DSName,DSName] = PFun())
+extends TreeSeq[DeriveState]
+{
   def copy(theory: Theory = theory,
            root: Graph = root,
            steps: Map[DSName,DStep] = steps,
@@ -76,8 +80,10 @@ case class Derivation(theory: Theory,
     heads = (if (heads.contains(parent)) heads - parent else heads) + step.name
   )
 
+  def children(s: DSName) = parent.codf(s)
+
   def uniqueChild(s: DSName) = {
-    val set = parent.codf(s)
+    val set = children(s)
     if (set.size == 1) Some(set.head)
     else None
   }
@@ -88,11 +94,40 @@ case class Derivation(theory: Theory,
   def isHead(s: DSName) = heads.contains(s)
 
   def firstHead = heads.headOption
+  def firstSteps = steps.keySet.filter(!parent.domSet.contains(_))
+
 //  def nextHead(s: DSName) = heads.find(s1 => s < s1)
 //  def hasNextHead(s: DSName) = heads.lastOption match { case Some(s1) => s != s1; case None => false }
 
   def rewind(s: DSName): DSName = parent.get(s) match { case Some(p) => rewind(p); case None => s }
   def fastForward(s: DSName): DSName = uniqueChild(s) match { case Some(ch) => fastForward(ch); case None => s }
+
+  private def dft(step: DSName, rest: Vector[DeriveState]) : Vector[DeriveState] =
+    if (isHead(step)) Vector(StepState(step), HeadState(Some(step)))
+    else StepState(step) +: children(step).foldRight(rest) { case (ch,rest1) => dft(ch,rest1) }
+
+  lazy val stateVector: Vector[DeriveState] = {
+    HeadState(None) +:
+    firstSteps.foldRight(Vector[DeriveState]()) { case (step, rest) => dft(step, rest) }
+  }
+
+  // implementations of TreeSeq methods
+  def toSeq : Seq[DeriveState] = stateVector
+  def indexOf(state : DeriveState): Int = stateVector.indexOf(state)
+  def parent(state: DeriveState): Option[DeriveState] =
+    state match {
+      case HeadState(None) => None
+      case HeadState(Some(step)) => Some(StepState(step))
+      case StepState(step) => Some(parent.get(step) match {case Some(p) => StepState(p); case None => HeadState(None)})
+    }
+  def children(state: DeriveState): Seq[DeriveState] =
+    state match {
+      case HeadState(None) => firstSteps.toSeq.map(StepState)
+      case HeadState(_) => Seq()
+      case StepState(step) =>
+        if (isHead(step)) children(step).toSeq.map(StepState) :+ HeadState(Some(step))
+        else children(step).toSeq.map(StepState)
+    }
 }
 
 object Derivation {

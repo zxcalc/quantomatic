@@ -6,6 +6,13 @@ import java.awt.{Font => AWTFont,FontMetrics,Graphics}
 
 
 class HistView[A <: HistNode](data: TreeSeq[A]) extends ListView[(Seq[TreeSeq.Decoration[A]],A)](data.flatten) {
+  private var _treeData = data
+  def treeData = _treeData
+  def treeData_=(data: TreeSeq[A]) {
+    _treeData = data
+    listData = data.flatten
+  }
+
   var itemWidth = -1
   def computeItemWidth() {
     val gr = peer.getGraphics

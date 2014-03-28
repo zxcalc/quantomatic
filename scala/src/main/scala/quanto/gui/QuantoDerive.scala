@@ -11,6 +11,7 @@ import java.io.{FilenameFilter, IOException, File}
 import java.nio.file.{Files, Paths}
 import javax.swing.plaf.metal.MetalLookAndFeel
 import java.util.prefs.Preferences
+import quanto.gui.histview.HistView
 
 
 object QuantoDerive extends SimpleSwingApplication {
@@ -66,9 +67,34 @@ object QuantoDerive extends SimpleSwingApplication {
       case _ => None
     }
 
+  object HistViewSlot extends BorderPanel {
+    def setHistView(hv: HistView[DeriveState]) {
+      add(new ScrollPane(hv), BorderPanel.Position.Center)
+      revalidate()
+      repaint()
+    }
+
+    def clearHistView() {
+      add(new BorderPanel(), BorderPanel.Position.Center)
+      revalidate()
+      repaint()
+    }
+  }
+
+  private var _histView: Option[HistView[DeriveState]] = None
+  def histView_=(hvOpt: Option[HistView[DeriveState]]) {
+    _histView = hvOpt
+    hvOpt match {
+      case Some(hv) => HistViewSlot.setHistView(hv)
+      case None => HistViewSlot.clearHistView()
+    }
+  }
+
+  def histView = _histView
+
   object LeftSplit extends SplitPane {
     orientation = Orientation.Horizontal
-    contents_=(ProjectFileTree, new BorderPanel)
+    contents_=(ProjectFileTree, HistViewSlot)
   }
 
   object Split extends SplitPane {
@@ -360,6 +386,7 @@ object QuantoDerive extends SimpleSwingApplication {
       }
 
     case SelectionChanged(_) =>
+      // set GUI for general document-based panels
       MainTabbedPane.currentContent match {
         case Some(doc: HasDocument) =>
           WindowMenu.CloseAction.enabled = true
@@ -368,12 +395,6 @@ object QuantoDerive extends SimpleSwingApplication {
           FileMenu.SaveAsAction.enabled = true
           FileMenu.SaveAsAction.title = "Save " + doc.document.description + " As..."
 
-          doc.document match {
-            case _: GraphDocument =>
-              DeriveMenu.StartDerivation.enabled = true
-            case _ =>
-              DeriveMenu.StartDerivation.enabled = false
-          }
         case _ =>
           DeriveMenu.StartDerivation.enabled = false
           WindowMenu.CloseAction.enabled = false
@@ -382,6 +403,19 @@ object QuantoDerive extends SimpleSwingApplication {
           FileMenu.SaveAsAction.enabled = false
           FileMenu.SaveAsAction.title = "Save As..."
 
+      }
+
+      // document-specific settings
+      MainTabbedPane.currentContent match {
+        case Some(panel: GraphEditPanel) =>
+          DeriveMenu.StartDerivation.enabled = true
+          histView = None
+        case Some(panel: DerivationPanel) =>
+          DeriveMenu.StartDerivation.enabled = false
+          histView = Some(panel.histView)
+        case _ =>
+          DeriveMenu.StartDerivation.enabled = false
+          histView = None
       }
   }
 

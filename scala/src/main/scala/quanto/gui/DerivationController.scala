@@ -3,10 +3,19 @@ package quanto.gui
 import quanto.data.DSName
 import scala.swing._
 import scala.swing.event.{ButtonClicked, Event}
+import quanto.gui.histview.{HistView, HistNode}
+import java.awt.Color
 
-sealed abstract class DeriveState
-case class StepState(s: DSName) extends DeriveState
-case class HeadState(h: Option[DSName]) extends DeriveState
+sealed abstract class DeriveState extends HistNode
+case class StepState(s: DSName) extends DeriveState {
+  def color = new Color(180,255,180)
+  def label = s.toString
+}
+
+case class HeadState(hOpt: Option[DSName]) extends DeriveState {
+  def color = Color.WHITE
+  def label = if (hOpt.isEmpty) "(root)" else "(head)"
+}
 
 case class DeriveStateChanged(state: DeriveState) extends Event
 
@@ -67,6 +76,9 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
   reactions += {
     case DocumentReplaced(_) =>
       state = HeadState(derivation.firstHead)
+//      println(derivation)
+//      println(derivation.toSeq)
+      panel.histView.treeData = derivation
     case ButtonClicked(panel.RewindButton) =>
       state match {
         case StepState(s) => state = StepState(derivation.rewind(s))

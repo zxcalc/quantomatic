@@ -6,6 +6,7 @@ import quanto.util.swing.ToolBar
 import quanto.gui.graphview.GraphView
 import scala.swing.event._
 import javax.swing.ImageIcon
+import quanto.gui.histview.HistView
 
 
 class DerivationPanel(val theory: Theory)
@@ -99,6 +100,8 @@ class DerivationPanel(val theory: Theory)
   object GraphViewPanel extends GridPanel(1,2) {
     contents += (Lhs, Rhs)
   }
+
+  val histView = new HistView(derivation)
 
   add(DeriveToolbar, BorderPanel.Position.North)
   add(GraphViewPanel, BorderPanel.Position.Center)

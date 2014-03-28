@@ -16,7 +16,7 @@ abstract class TreeSeq[A] {
     Seq.fill[WhiteSpace[A]](size) { WhiteSpace[A](collapseBottom = false, collapseTop = true) }
 
   def flatten: Seq[(Seq[Decoration[A]], A)] =
-    (toSeq.foldLeft(Seq[(Seq[Decoration[A]], A)]()) { (rows, a) =>
+    toSeq.foldLeft(Seq[(Seq[Decoration[A]], A)]()) { (rows, a) =>
       val node = NodeLink(parent(a), children(a))
       val prev = if (rows.isEmpty) Seq[Decoration[A]]()
                  else rows.last._1
@@ -64,12 +64,15 @@ abstract class TreeSeq[A] {
 
 
       rows :+ (if (!inserted) {
-        if (node.input.isEmpty) current :+ node
-        else throw new TreeSeqFormatException("Node '" + a.toString + "' occurs before its parent")
+        node.input match {
+          case Some (p) =>
+            throw new TreeSeqFormatException("Node '" + a.toString + "' occurs before its parent '" + p + "'")
+          case None => current :+ node
+        }
       } else {
         current
       }, a)
-    })
+    }
 }
 
 object TreeSeq {
