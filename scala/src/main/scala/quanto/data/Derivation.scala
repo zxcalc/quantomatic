@@ -99,12 +99,17 @@ extends TreeSeq[DeriveState]
 //  def nextHead(s: DSName) = heads.find(s1 => s < s1)
 //  def hasNextHead(s: DSName) = heads.lastOption match { case Some(s1) => s != s1; case None => false }
 
-  def rewind(s: DSName): DSName = parent.get(s) match { case Some(p) => rewind(p); case None => s }
-  def fastForward(s: DSName): DSName = uniqueChild(s) match { case Some(ch) => fastForward(ch); case None => s }
+//  def rewind(s: DSName): DSName = parent.get(s) match { case Some(p) => rewind(p); case None => s }
+
+  // find a head that is downstream from this step
+  def fastForward(s: DSName): DSName =
+    if (isHead(s)) s
+    else children(s).headOption match { case Some(ch) => fastForward(ch); case None => s }
 
   private def dft(step: DSName, rest: Vector[DeriveState]) : Vector[DeriveState] =
-    if (isHead(step)) Vector(StepState(step), HeadState(Some(step)))
-    else StepState(step) +: children(step).foldRight(rest) { case (ch,rest1) => dft(ch,rest1) }
+    (if (isHead(step)) Vector(StepState(step), HeadState(Some(step)))
+     else Vector(StepState(step))) ++
+    children(step).foldRight(rest) { case (ch,rest1) => dft(ch,rest1) }
 
   lazy val stateVector: Vector[DeriveState] = {
     HeadState(None) +:

@@ -376,9 +376,11 @@ object QuantoDerive extends SimpleSwingApplication {
               }
 
               pageOpt.map{ page =>
-                if (page.document.load(file)) {
-                  MainTabbedPane += page
-                  MainTabbedPane.selection.index = page.index
+                MainTabbedPane += page
+                MainTabbedPane.selection.index = page.index
+
+                if (!page.document.load(file)) {
+                  // TODO: clear up, because file load failed
                 }
               }
           }

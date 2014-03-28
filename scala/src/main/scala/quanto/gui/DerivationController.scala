@@ -2,7 +2,7 @@ package quanto.gui
 
 import quanto.data.DSName
 import scala.swing._
-import scala.swing.event.{ButtonClicked, Event}
+import scala.swing.event.{SelectionChanged, ButtonClicked, Event}
 import quanto.gui.histview.{HistView, HistNode}
 import java.awt.Color
 
@@ -27,6 +27,7 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
   def state = _state
   def state_=(s: DeriveState) {
     _state = s
+    panel.histView.selectedNode = Some(s)
     publish(DeriveStateChanged(s))
 
     s match {
@@ -38,15 +39,17 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
           case Some(head) => // at a named head
             panel.PreviousButton.enabled = true
             panel.RewindButton.enabled = true
+            panel.FastForwardButton.enabled = false
             panel.LhsLabel.text = head.toString
           case None => // at the root
             panel.PreviousButton.enabled = false
             panel.RewindButton.enabled = false
+            panel.FastForwardButton.enabled = !derivation.heads.isEmpty
             panel.LhsLabel.text = "(root)"
         }
 
         panel.NextButton.enabled = false
-        panel.FastForwardButton.enabled = false
+
 
       case StepState(step) =>
         panel.Rhs.setStepMode()
@@ -63,34 +66,31 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
             panel.LhsLabel.text = "(root)"
         }
 
-        panel.NextButton.enabled = (derivation.isHead(step) && !derivation.hasChildren(step)) ||
-                                   (!derivation.isHead(step) && derivation.hasUniqueChild(step))
-        panel.FastForwardButton.enabled = derivation.isHead(step) ||
-                                          derivation.fastForward(step) != step
+        panel.NextButton.enabled = true
+        panel.FastForwardButton.enabled = true
     }
   }
 
   panel.navigationButtons.foreach { listenTo(_) }
-  listenTo(panel.document)
+  listenTo(panel.document, panel.histView.selection)
 
   reactions += {
     case DocumentReplaced(_) =>
       state = HeadState(derivation.firstHead)
+      panel.histView.treeData = derivation
+      panel.histView.selectedNode = Some(state)
 //      println(derivation)
 //      println(derivation.toSeq)
-      panel.histView.treeData = derivation
     case ButtonClicked(panel.RewindButton) =>
-      state match {
-        case StepState(s) => state = StepState(derivation.rewind(s))
-        case HeadState(Some(s)) => state = StepState(derivation.rewind(s))
-        case HeadState(None) => // can't rewind from root
-      }
+      state = HeadState(None)
     case ButtonClicked(panel.FastForwardButton) =>
       state match {
         case StepState(s) =>
           val ff = derivation.fastForward(s)
-          state = if (derivation.isHead(ff)) HeadState(Some(ff)) else StepState(ff)
-        case HeadState(_) => // can't ff from head
+          state = HeadState(Some(ff))
+        case HeadState(None) => // ff from root goes to the first head
+          derivation.firstHead.map { h => state = HeadState(Some(h)) }
+        case HeadState(Some(_)) => // can't ff from named head
       }
     case ButtonClicked(panel.PreviousButton) =>
       state match {
@@ -101,11 +101,14 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
     case ButtonClicked(panel.NextButton) =>
       state match {
         case StepState(s) =>
-          if (derivation.isHead(s) && !derivation.hasChildren(s))
-            state = HeadState(Some(s))
-          else
-            derivation.uniqueChild(s).map { ch => state = StepState(ch) }
-        case HeadState(_) => // do nothing
+          if (derivation.isHead(s)) state = HeadState(Some(s))
+          else derivation.children(s).headOption.map { ch => state = StepState(ch) }
+        case HeadState(None) =>
+          derivation.firstSteps.headOption.map { ch => state = StepState(ch) }
+        case HeadState(Some(_)) => // do nothing
       }
+    case SelectionChanged(_) =>
+      if (panel.histView.selectedNode != Some(state))
+        panel.histView.selectedNode.map { st => state = st }
   }
 }

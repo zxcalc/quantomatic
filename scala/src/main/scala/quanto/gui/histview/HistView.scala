@@ -3,17 +3,21 @@ package quanto.gui.histview
 import swing._
 import quanto.util._
 import java.awt.{Font => AWTFont,FontMetrics,Graphics}
+import scala.swing.ListView.IntervalMode
 
 
 class HistView[A <: HistNode](data: TreeSeq[A]) extends ListView[(Seq[TreeSeq.Decoration[A]],A)](data.flatten) {
+  private var itemWidth = -1
   private var _treeData = data
+  selection.intervalMode = IntervalMode.Single // multiple selection doesn't make sense for history view
+
   def treeData = _treeData
   def treeData_=(data: TreeSeq[A]) {
     _treeData = data
+    itemWidth = -1
     listData = data.flatten
   }
 
-  var itemWidth = -1
   def computeItemWidth() {
     val gr = peer.getGraphics
     for ((dec,value) <- listData) {
@@ -31,6 +35,19 @@ class HistView[A <: HistNode](data: TreeSeq[A]) extends ListView[(Seq[TreeSeq.De
       new HistViewItem[A](a._1, a._2, isSelected, new Dimension(math.max(itemWidth,bounds.getWidth.toInt),30))
     }
   }
+
+  def selectedNode_=(aOpt: Option[A]) = aOpt match {
+    case Some(a) =>
+      val i = treeData.indexOf(a)
+      if (i != -1) selectIndices(i)
+      else selectIndices()
+    case None =>
+      selectIndices()
+  }
+
+  def selectedNode: Option[A] =
+    if (selection.indices.isEmpty) None
+    else Some(treeData.toSeq(selection.indices.head))
 }
 
 object HistView {
