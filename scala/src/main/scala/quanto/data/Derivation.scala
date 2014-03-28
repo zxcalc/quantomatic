@@ -88,8 +88,11 @@ case class Derivation(theory: Theory,
   def isHead(s: DSName) = heads.contains(s)
 
   def firstHead = heads.headOption
-  def nextHead(s: DSName) = heads.find(s1 => s < s1)
-  def hasNextHead(s: DSName) = heads.lastOption match { case Some(s1) => s != s1; case None => false }
+//  def nextHead(s: DSName) = heads.find(s1 => s < s1)
+//  def hasNextHead(s: DSName) = heads.lastOption match { case Some(s1) => s != s1; case None => false }
+
+  def rewind(s: DSName): DSName = parent.get(s) match { case Some(p) => rewind(p); case None => s }
+  def fastForward(s: DSName): DSName = uniqueChild(s) match { case Some(ch) => fastForward(ch); case None => s }
 }
 
 object Derivation {

@@ -7,15 +7,14 @@ import quanto.gui.graphview.GraphView
 import scala.swing.event._
 import javax.swing.ImageIcon
 
-sealed abstract class DeriveState
-case class StepState(s: DSName) extends DeriveState
-case class HeadState(h: Option[DSName]) extends DeriveState
 
 class DerivationPanel(val theory: Theory)
   extends BorderPanel
   with HasDocument
 {
   val document = new DerivationDocument(this)
+  def derivation = document.derivation
+
   object DummyRef extends HasGraph { var gr = Graph(theory) }
 
   // GUI components
@@ -45,8 +44,7 @@ class DerivationPanel(val theory: Theory)
     edgeDirectedCheckBox = controls.EdgeDirected
   }
 
-
-  val FirstButton = new Button() {
+  val RewindButton = new Button() {
     icon = new ImageIcon(GraphEditor.getClass.getResource("go-first.png"), "First step")
   }
 
@@ -58,16 +56,14 @@ class DerivationPanel(val theory: Theory)
     icon = new ImageIcon(GraphEditor.getClass.getResource("go-next.png"), "Next step")
   }
 
-  val LastButton = new Button() {
+  val FastForwardButton = new Button() {
     icon = new ImageIcon(GraphEditor.getClass.getResource("go-last.png"), "Last step")
   }
 
-  val navigationButtons = List(FirstButton, PreviousButton, NextButton, LastButton)
-
-  navigationButtons.foreach { listenTo(_) }
+  val navigationButtons = List(RewindButton, PreviousButton, NextButton, FastForwardButton)
 
   val DeriveToolbar = new ToolBar {
-    contents += (FirstButton, PreviousButton, NextButton, LastButton)
+    contents += (RewindButton, PreviousButton, NextButton, FastForwardButton)
   }
 
   val LhsGraphPane = new ScrollPane(LhsView)
@@ -107,54 +103,6 @@ class DerivationPanel(val theory: Theory)
   add(DeriveToolbar, BorderPanel.Position.North)
   add(GraphViewPanel, BorderPanel.Position.Center)
 
-
-  // move to a named step in the derivation
-  private var _state : DeriveState = HeadState(None)
-  def state = _state
-  def state_=(s: DeriveState) {
-    _state = s
-
-    s match {
-      case HeadState(headOpt) =>
-        Rhs.setHeadMode()
-        RhsLabel.text = "(head)"
-
-        headOpt match {
-          case Some(head) =>
-            PreviousButton.enabled = true
-            LhsLabel.text = head.toString
-          case None => // at the root
-            PreviousButton.enabled = false
-            LhsLabel.text = "(root)"
-        }
-
-      case StepState(step) =>
-        Rhs.setStepMode()
-        RhsLabel.text = step.toString
-        document.derivation.parent.get(step) match {
-          case Some(parent) =>
-            PreviousButton.enabled = true
-            LhsLabel.text = parent.toString
-          case None =>
-            PreviousButton.enabled = false
-            LhsLabel.text = "(root)"
-        }
-        NextButton.enabled = (document.derivation.isHead(step) && !document.derivation.hasChildren(step)) ||
-                             (!document.derivation.isHead(step) && document.derivation.hasUniqueChild(step))
-        LastButton.enabled = true
-    }
-  }
-
-  state = HeadState(None)
-
-  // move to a named head, or None for root (as a head)
-  def moveToHead(s: Option[DSName]) {
-
-  }
-
-
-  listenTo(LhsGraphPane, RhsGraphPane, document)
-
   reactions += {
     case UIElementResized(LhsGraphPane) =>
       LhsView.resizeViewToFit()
@@ -162,30 +110,8 @@ class DerivationPanel(val theory: Theory)
     case UIElementResized(RhsGraphPane) =>
       RhsView.resizeViewToFit()
       RhsView.repaint()
-    case MouseStateChanged(m) =>
-      lhsController.mouseState = m
-      rhsController.mouseState = m
-    case ButtonClicked(FirstButton) =>
-      state = HeadState(None)
-    case ButtonClicked(LastButton) =>
-    case ButtonClicked(PreviousButton) =>
-      state match {
-        case HeadState(Some(s)) => state = StepState(s)
-        case StepState(s) =>
-          document.derivation.parent.get(s) match {
-            case Some(p) => state = StepState(p)
-            case None => state = HeadState(None)
-          }
-        case _ => // do nothing
-      }
-    case ButtonClicked(NextButton) =>
-      state match {
-        case StepState(s) =>
-          if (document.derivation.isHead(s) && !document.derivation.hasChildren(s))
-            state = HeadState(Some(s))
-          else
-            document.derivation.uniqueChild(s).map { ch => state = StepState(ch) }
-        case _ => // do nothing
-      }
   }
+
+  // construct the controller last, as it depends on the panel elements already being initialised
+  val controller = new DerivationController(this)
 }

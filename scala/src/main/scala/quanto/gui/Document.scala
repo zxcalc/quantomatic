@@ -11,6 +11,7 @@ import java.util.prefs.Preferences
 abstract class DocumentEvent extends Event
 case class DocumentChanged(sender: Document) extends DocumentEvent
 case class DocumentSaved(sender: Document) extends DocumentEvent
+case class DocumentReplaced(sender: Document) extends DocumentEvent
 
 /**
  * For an object connected to a single file. Provides an undo stack, tracks changes, and gives
@@ -61,6 +62,7 @@ abstract class Document extends Publisher {
     try {
       file = Some(f)
       loadDocument(f)
+      publish(DocumentReplaced(this))
       publish(DocumentChanged(this))
       success = true
     } catch {
