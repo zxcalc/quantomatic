@@ -43,51 +43,18 @@ case class JsonRequest(json: Json) extends CoreRequest {
   def decode(resp: Json) = Call.decode(resp)
 }
 
-class CoreState(executable: String) extends Actor with ActorLogging {
+class CoreState extends Actor with ActorLogging {
   val coreProcess = new CoreProcess(parallel = true)
   var reader: ActorRef = _
   var writer: ActorRef = _
   val listeners = collection.mutable.Map[Int, (ActorRef,CoreRequest)]()
   private var requestId = 0
 
-  coreProcess.startCore(executable)
+  coreProcess.startCore()
   reader = context.actorOf(Props { new CoreReader(coreProcess) }, name = "core_reader")
   writer = context.actorOf(Props { new CoreWriter(coreProcess) }, name = "core_writer")
 
   log.info("fired up")
-
-//  val coreDown: Receive = {
-//    case StartCore =>
-//      coreProcess.startCore(executable)
-//      reader = context.actorOf(Props { new CoreReader(coreProcess) }, name = "core_reader")
-//      writer = context.actorOf(Props { new CoreWriter(coreProcess) }, name = "core_writer")
-//      context.become(coreRunning)
-//    case req : CoreRequest =>
-//      sender ! UnhandledRequest(req.requestId, "Core down")
-//      log.warning("Unhandled request: " + req + " in state coreDown.")
-//    case x => log.warning("Unexpected message: " + x + " in state coreDown.")
-//  }
-
-//  val coreWaitForInit: Receive = {
-//    case CoreInitialized => context.become(coreRunning)
-//    case req : CoreRequest =>
-//      sender ! UnhandledRequest(req.requestId, "Core initializing")
-//    case x => log.warning("Unexpected message: " + x + " in state coreWaitForInit.")
-//  }
-
-//  val coreRunning: Receive = {
-//    case req : CoreRequest =>
-//      log.info("Request: " + req)
-//      listeners += req.requestId -> (sender, req)
-//      writer ! req
-//    case CoreResponse(rid, resp) =>
-//      log.info("Response: " + resp)
-//      listeners.get(rid) match {
-//        case Some((listener, req)) => listener ! req.decode(resp)
-//        case None => log.warning("Orphaned response for request_id: " + rid)
-//      }
-//    case x => log.warning("Unexpected message: " + x + " in state coreRunning.")
-//  }
 
   def receive = {
     case req : CoreRequest =>

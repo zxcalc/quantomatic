@@ -72,7 +72,7 @@ EXAMPLES:
 
 object JsonConsole extends SimpleSwingApplication {
   val sys = ActorSystem("QuantoConsole")
-  val core = sys.actorOf(Props { new CoreState("../core/bin/quanto-core") }, "core_state")
+  val core = sys.actorOf(Props { new CoreState }, "core_state")
   implicit val timeout = Timeout(1.day)
 
   def appendResult(out: CoreOutputItem) {

@@ -28,6 +28,12 @@ class MLEditPanel extends BorderPanel with HasDocument {
     }
   })
 
+  val document = new MLDocument(this, mlCode)
+
+  val textPanel = new BorderPanel {
+    peer.add(mlCode, BorderLayout.CENTER)
+  }
+
   val RunButton = new Button() {
     icon = new ImageIcon(GraphEditor.getClass.getResource("start.png"), "Run buffer in Poly/ML")
   }
@@ -40,8 +46,17 @@ class MLEditPanel extends BorderPanel with HasDocument {
     contents += (RunButton, InterruptButton)
   }
 
+  val outputTextArea = new TextArea()
+  outputTextArea.enabled = false
+
+  val polyOutput = new TextAreaOutputStream(outputTextArea)
+
   add(MLToolbar, BorderPanel.Position.North)
 
-  val document = new MLDocument(this, mlCode)
-  peer.add(mlCode, BorderLayout.CENTER)
+  object Split extends SplitPane {
+    orientation = Orientation.Horizontal
+    contents_=(textPanel, new ScrollPane(outputTextArea))
+  }
+
+  add(Split, BorderPanel.Position.Center)
 }
