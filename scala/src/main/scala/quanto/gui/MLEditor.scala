@@ -62,7 +62,7 @@ object MLEditor extends SimpleSwingApplication {
 
     val textOut = new TextAreaOutputStream(outputTextArea)
 
-    val polySignals = new SignallingStreamRedirector(poly.getInputStream, textOut)
+    val polySignals = new SignallingStreamRedirector(poly.getInputStream, Some(textOut))
     polySignals.start()
 
 

@@ -29,7 +29,7 @@ class CoreProcess(parallel: Boolean = false) {
 
       // wire up console I/O
       consoleInput = new BufferedWriter(new OutputStreamWriter(backend.getOutputStream))
-      consoleOutput = new SignallingStreamRedirector(backend.getInputStream, System.out)
+      consoleOutput = new SignallingStreamRedirector(backend.getInputStream, Some(System.out))
 
       // wait for signal from run_protocol.ML before connecting to socket
       var spinLock = true

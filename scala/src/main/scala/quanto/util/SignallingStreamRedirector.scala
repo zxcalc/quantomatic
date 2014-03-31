@@ -15,12 +15,14 @@ case class Interrupted(id: Int) extends Signal(id)
  *
  */
 
-class SignallingStreamRedirector(from: InputStream, to: OutputStream)
+class SignallingStreamRedirector(from: InputStream, to: Option[OutputStream] = None)
 extends Thread("Signalling Stream Redirector") {
   private var state = 0
   private var currentCode = 'X'
   private var currentId = 0
   private val listeners = collection.mutable.Map[Int, List[(Signal => Any)]]()
+  private val outputStreams = collection.mutable.Buffer[OutputStream]()
+  to.map { s => outputStreams += s }
 
   private def fire(code: Char, id: Int) {
     val sig = code match {
@@ -29,8 +31,9 @@ extends Thread("Signalling Stream Redirector") {
       case 'I' => Interrupted(id)
     }
 
-
-    listeners.remove(id).map { _.foreach( f => f(sig)) }
+    listeners.synchronized {
+      listeners.remove(id).map { _.foreach( f => f(sig)) }
+    }
   }
 
   // process string via tiny state machine
@@ -50,10 +53,24 @@ extends Thread("Signalling Stream Redirector") {
   }
 
   def addListener(id: Int)(f : Signal => Any) {
-    listeners.put(id, listeners.get(id) match {
-      case Some(list) => f :: list
-      case None => List(f)
-    })
+    listeners.synchronized {
+      listeners.put(id, listeners.get(id) match {
+        case Some(list) => f :: list
+        case None => List(f)
+      })
+    }
+  }
+
+  def addOutputStream(out: OutputStream) {
+    outputStreams.synchronized {
+      outputStreams += out
+    }
+  }
+
+  def removeOutputStream(out : OutputStream) {
+    outputStreams.synchronized {
+      outputStreams -= out
+    }
   }
 
   override def run() {
@@ -62,8 +79,14 @@ extends Thread("Signalling Stream Redirector") {
       var count: Int = from.read(buffer)
       while (count != -1) {
         for (i <- 0 to count - 1) processChar(buffer(i).toChar)
-        to.write(buffer, 0, count)
-        to.flush()
+
+        outputStreams.synchronized {
+          outputStreams.foreach { out =>
+            out.write(buffer, 0, count)
+            out.flush()
+          }
+        }
+
         count = from.read(buffer)
       }
     }
