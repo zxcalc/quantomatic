@@ -27,7 +27,8 @@ sig
   val normalise : simproc -> Theory.Graph.T -> Theory.Graph.T option
 
 
-  val derive : simproc -> Theory.Graph.T -> Json.json
+  val json_of_derivation : simproc -> Theory.Graph.T -> Json.json
+  val save_derivation : string -> simproc -> Theory.Graph.T -> unit
   val load_rule : string -> (R.name * Theory.Rule.T)
   val load_graph : string -> Theory.Graph.T
   val save_graph : string -> Theory.Graph.T -> unit
@@ -113,23 +114,28 @@ val REDUCE_METRIC = REDUCE_METRIC_TO 0
 
 (*fun derivation g simproc =*)
 
-fun derive simp g = let
+fun json_of_derivation simp g = let
   val steps = Seq.list_of (simp g)
 in
-  Json.Object (fold_index (fn (i,((rname,rule),graph)) =>
-      Json.update (
-        "s" ^ Int.toString i,
-        Json.mk_object [
-          ("parent", if i = 0 then Json.Null else Json.String ("s" ^ Int.toString (i - 1))),
-          ("rule_name", Json.String (R.dest rname))(*,
-          ("rule", JsonIO.OutputRuleJSON.output
-                   (rule,JsonIO.OutputRuleJSON.OA.empty_annotation))*)
-        ]
-      ))
-    steps Json.empty_obj)
+  Json.mk_object [
+    ("root", Theory.GraphJSON.output g),
+    ("steps",
+        Json.Object (fold_index (fn (i,((rname,rule),graph)) =>
+            Json.update (
+              "s" ^ Int.toString i,
+              Json.mk_object [
+                ("parent", if i = 0 then Json.Null else Json.String ("s" ^ Int.toString (i - 1))),
+                ("rule_name", Json.String (R.dest rname)),
+                ("rule", Theory.RuleJSON.output rule),
+                ("graph", Theory.GraphJSON.output graph)
+              ]
+            ))
+          steps Json.empty_obj)),
+    ("heads", Json.Array [Json.String ("s" ^ Int.toString (length steps - 1))])
+  ]
 end
 
-(*fun save_derivation seq = *)
+fun save_derivation s simp g = Json.write_file (s^".qderive") (json_of_derivation simp g)
 
 fun normalise simp g = let
   val seq = (simp g)

@@ -330,6 +330,17 @@ object QuantoDerive extends SimpleSwingApplication {
           case _ => // no project and/or document open, do nothing
       }
     }
+
+    val LayoutDerivation = new Action("Layout derivation") {
+//      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
+      enabled = false
+      menu.contents += new MenuItem(this) { mnemonic = Key.L }
+      def apply() = (CurrentProject, MainTabbedPane.currentContent) match {
+        case (Some(project), Some(derivePanel: DerivationPanel)) =>
+          derivePanel.controller.layoutDerivation()
+        case _ => // no project and/or derivation open, do nothing
+      }
+    }
   }
 
   val WindowMenu = new Menu("Window") { menu =>
@@ -411,12 +422,15 @@ object QuantoDerive extends SimpleSwingApplication {
       MainTabbedPane.currentContent match {
         case Some(panel: GraphEditPanel) =>
           DeriveMenu.StartDerivation.enabled = true
+          DeriveMenu.LayoutDerivation.enabled = false
           histView = None
         case Some(panel: DerivationPanel) =>
           DeriveMenu.StartDerivation.enabled = false
+          DeriveMenu.LayoutDerivation.enabled = true
           histView = Some(panel.histView)
         case _ =>
           DeriveMenu.StartDerivation.enabled = false
+          DeriveMenu.LayoutDerivation.enabled = false
           histView = None
       }
   }

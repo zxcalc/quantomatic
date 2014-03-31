@@ -9,7 +9,7 @@ trait VerticalBoundary extends Constraints {
   override def initialize(g: Graph, randomCoords: Boolean = true) {
     super.initialize(g, randomCoords)
     constraints.nextLayer()
-    println("VerticalBoundary at layer " + constraints.currentLayer)
+    //println("VerticalBoundary at layer " + constraints.currentLayer)
     
     for (bnd <- Iterator(g.inputs,g.outputs); if !bnd.isEmpty) {
       val it = bnd.iterator
@@ -25,7 +25,7 @@ trait VerticalBoundary extends Constraints {
         
         else
           //constraints += { (distance from v1 to v2 along (0.0,1.0)) === 0.0 }
-          constraints += { (distance from v1 to v2 along (0.0,1.0)) === 0.0 }
+          constraints += { (distance from v1 to v2 along (0.0,1.0)) ~== 0.0 }
         //  v1 = v2
       }
     }
@@ -38,7 +38,7 @@ trait VerticalBoundary extends Constraints {
         }
           
         else
-          constraints += { (distance from s to t along (1.0,0.0)) === 0.0 }
+          constraints += { (distance from s to t along (1.0,0.0)) ~== 0.0 }
         
       }
     }

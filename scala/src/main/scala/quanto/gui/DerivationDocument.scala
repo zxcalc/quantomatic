@@ -3,6 +3,7 @@ package quanto.gui
 import java.io.File
 import quanto.data._
 import quanto.util.json.Json
+import quanto.layout._
 
 class DerivationDocument(panel: DerivationPanel) extends Document {
   val description = "Derivation"
@@ -12,6 +13,11 @@ class DerivationDocument(panel: DerivationPanel) extends Document {
   private var storedDerivation: Derivation = Derivation(panel.theory, Graph(panel.theory))
   private var _derivation: Derivation = storedDerivation
   def derivation = _derivation
+  def derivation_=(d: Derivation) = {
+    _derivation = d
+    publish(DocumentChanged(this))
+  }
+
   def unsavedChanges = _derivation != storedDerivation
 
   object rootRef extends HasGraph {
@@ -20,6 +26,15 @@ class DerivationDocument(panel: DerivationPanel) extends Document {
       _derivation = _derivation.copy(root = g)
     }
   }
+
+  class StepRef(s: DSName) extends HasGraph {
+    protected def gr = _derivation.steps(s).graph
+    protected def gr_=(g: Graph) {
+      _derivation = _derivation.updateGraphInStep(s, g)
+    }
+  }
+
+  def stepRef(s: DSName) = new StepRef(s)
 
   protected def loadDocument(f: File) {
     val json = Json.parse(f)

@@ -142,7 +142,7 @@ struct
     val _ = log_graph 4 "OGraphSubst.rewrite: LHS (prepared)" (Rule.get_lhs rule')
 
   in
-    (rule', Graph.merge (Rule.get_rhs rule') h)
+    (rule', Graph.merge h (Rule.get_rhs rule'))
   end
 
   fun rewrite_at rule m = let

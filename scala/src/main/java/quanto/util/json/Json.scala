@@ -197,6 +197,9 @@ case object JsonNull extends Json {
   override def asArray = JsonArray()
   override def vectorValue = Vector()
   override def mapValue = Map()
+  override def stringValue = ""
+  override def intValue = 0
+  override def boolValue = false
   def isEmpty = true
 }
 
@@ -216,7 +219,7 @@ case class JsonInt(v: Int) extends Json {
 
 case class JsonDouble(v: Double) extends Json {
   override def doubleValue = v
-  def writeTo(out: Json.Output) { out.g.writeNumber(v) }
+  def writeTo(out: Json.Output) { out.g.writeNumber(v.toString) }
   def isEmpty = false
 }
 

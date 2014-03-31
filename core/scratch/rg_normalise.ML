@@ -40,9 +40,11 @@ val steps = Json.Object (fold_index (fn (i,step) => (
 
 (*(Seq.list_of (rotate_simproc sample)) Json.empty_obj)*)
 
-val SOME g' = normalise rotate_simproc sample
+(*val SOME g' = normalise rotate_simproc sample
 
-val _ = save_graph "sample2_simp" g'
+val _ = save_graph "sample2_simp" g'*)
+
+val _ = save_derivation "sample2_simp" rotate_simproc sample
 
 (*
 val _ = Json.write_file "test.qgraph" (JsonIO.OutputGraphJSON.output (g', gann))*)

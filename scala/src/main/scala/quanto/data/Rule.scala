@@ -13,7 +13,7 @@ object Rule {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory) = try {
     Rule(lhs = Graph.fromJson(json / "lhs", thy),
          rhs = Graph.fromJson(json / "rhs", thy),
-         derivation = json.get("derivation").map(_.stringValue))
+         derivation = json.get("derivation") match { case Some(JsonString(s)) => Some(s); case _ => None })
   } catch {
     case e: JsonAccessException =>
       throw new RuleLoadException(e.getMessage, e)
@@ -24,11 +24,15 @@ object Rule {
       throw new RuleLoadException("Unexpected error reading JSON", e)
   }
 
-  def toJson(rule: Rule, thy: Theory = Theory.DefaultTheory) = {
-    JsonObject(
+  def toJson(rule: Rule, thy: Theory = Theory.DefaultTheory): Json = {
+    val obj = JsonObject(
       "lhs" -> Graph.toJson(rule.lhs, thy),
-      "rhs" -> Graph.toJson(rule.rhs, thy),
-      "derivation" -> (rule.derivation match { case Some(x) => JsonString(x) ; case None => JsonNull })
+      "rhs" -> Graph.toJson(rule.rhs, thy)
     )
+
+    rule.derivation match {
+      case Some(x) => obj + ("derivation" -> JsonString(x))
+      case None => obj
+    }
   }
 }

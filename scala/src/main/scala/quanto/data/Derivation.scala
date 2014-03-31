@@ -19,7 +19,14 @@ case class DStep(name: DSName,
                  ruleName: String,
                  rule: Rule,
                  variant: RuleVariant,
-                 graph: Graph)
+                 graph: Graph) {
+  def copy(name: DSName = name,
+           ruleName: String = ruleName,
+           rule: Rule = rule,
+           variant: RuleVariant = variant,
+           graph: Graph = graph)
+  = DStep(name,ruleName,rule,variant,graph)
+}
 
 object DStep {
   def toJson(dstep: DStep, parent: Option[DSName], thy: Theory = Theory.DefaultTheory): Json = {
@@ -80,26 +87,18 @@ extends TreeSeq[DeriveState]
     heads = (if (heads.contains(parent)) heads - parent else heads) + step.name
   )
 
-  def children(s: DSName) = parent.codf(s)
-
-  def uniqueChild(s: DSName) = {
-    val set = children(s)
-    if (set.size == 1) Some(set.head)
-    else None
+  def updateGraphInStep(s: DSName, g: Graph) = {
+    val s1 = steps(s).copy(graph = g)
+    copy (steps = steps + (s -> s1))
   }
 
+  def children(s: DSName) = parent.codf(s)
   def hasParent(s: DSName) = parent.domSet.contains(s)
-  def hasUniqueChild(s: DSName) = parent.codf(s).size == 1
   def hasChildren(s: DSName) = parent.codSet.contains(s)
   def isHead(s: DSName) = heads.contains(s)
 
   def firstHead = heads.headOption
   def firstSteps = steps.keySet.filter(!parent.domSet.contains(_))
-
-//  def nextHead(s: DSName) = heads.find(s1 => s < s1)
-//  def hasNextHead(s: DSName) = heads.lastOption match { case Some(s1) => s != s1; case None => false }
-
-//  def rewind(s: DSName): DSName = parent.get(s) match { case Some(p) => rewind(p); case None => s }
 
   // find a head that is downstream from this step
   def fastForward(s: DSName): DSName =

@@ -129,7 +129,9 @@ class ForceLayout extends GraphLayout with Constraints {
       quad.visit { nd =>
         nd.value match {
           case Some((optV,nodeCharge)) =>
-            val (dx,dy) = (nd.p._1 - p._1, nd.p._2 - p._2)
+            val (dx1,dy1) = (nd.p._1 - p._1, nd.p._2 - p._2)
+            val dx = if (abs(dx1) < 0.01) 0.01 else dx1
+            val dy = if (abs(dy1) < 0.01) 0.01 else dy1
             val d2 = dx*dx + dy*dy
 
             if (d2 == 0.0) false

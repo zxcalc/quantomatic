@@ -16,7 +16,9 @@ import java.awt.font.TextLayout
 case class EdgeOverlay(pt: Point, src: VName, tgt: Option[VName])
 case class BBoxOverlay(pt: Point, src: BBName, vtgt : Option[VName], bbtgt : Option[BBName])
 
-class GraphView(val theory: Theory, val graphRef: HasGraph) extends Panel
+case class Highlight(color: Color, vertices: Set[VName])
+
+class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   with Scrollable
   with EdgeDisplayData
   with VertexDisplayData
@@ -28,8 +30,20 @@ class GraphView(val theory: Theory, val graphRef: HasGraph) extends Panel
   var drawBBoxConnections = false
   var snapToGrid = false
   var gridMajor = 1.0
-  var gridSubs = 4
+  var gridSubs = 2
   var showNames = true
+  val highlights = collection.mutable.Set[Highlight]()
+
+  private var _graphRef = gRef
+
+  def graphRef = _graphRef
+  def graphRef_=(gRef: HasGraph) {
+    deafTo(_graphRef)
+    listenTo(gRef)
+    _graphRef = gRef
+    invalidateGraph(clearSelection = true)
+    repaint()
+  }
 
   var selectionBox: Option[Rectangle2D] = None
   //var bangBoxList: List[Rectangle2D] = Nil
@@ -46,10 +60,10 @@ class GraphView(val theory: Theory, val graphRef: HasGraph) extends Panel
   reactions += {
     case _: FocusEvent => repaint()
     case GraphChanged(_) =>
-      resizeViewToFit()
+      //resizeViewToFit()
       repaint()
     case GraphReplaced(_, clearSelection) =>
-      resizeViewToFit()
+      //resizeViewToFit()
       invalidateGraph(clearSelection)
       repaint()
   }
@@ -62,11 +76,22 @@ class GraphView(val theory: Theory, val graphRef: HasGraph) extends Panel
 
   def graph = graphRef.graph
   def graph_=(g: Graph) { graphRef.graph = g }
-  var trans = new Transformer
+  val trans = new Transformer
 
   var selectedVerts = Set[VName]()
   var selectedEdges = Set[EName]()
   var selectedBBoxes = Set[BBName]()
+
+  private var _zoom = 1.0
+  def zoom = _zoom
+  def zoom_=(d: Double) {
+    _zoom = d
+    trans.scale = _zoom * 50.0
+    trans.origin = (_zoom * 250.0, _zoom * 250.0)
+    invalidateGraph(clearSelection = false)
+    resizeViewToFit()
+    repaint()
+  }
 
   def invalidateGraph(clearSelection: Boolean) {
     invalidateAllVerts()
@@ -141,6 +166,16 @@ class GraphView(val theory: Theory, val graphRef: HasGraph) extends Panel
     }
   }
 
+  def addHighlight(h : Highlight) {
+    highlights += h
+    repaint()
+  }
+
+  def clearHighlights() {
+    highlights.clear()
+    repaint()
+  }
+
   override def repaint() {
     //if (dynamicResize) resizeViewToFit()
     super.repaint()
@@ -204,6 +239,18 @@ class GraphView(val theory: Theory, val graphRef: HasGraph) extends Panel
 
       g.setFont(VertexLabelFont)
       g.drawString(bb.s, corner.getX.toFloat - 5.0f, bbd.corner.getY.toFloat - 5.0f)
+    }
+
+    // draw highlights under nodes/edges, but over bboxes
+    highlights.map { h =>
+      val c = new Color(h.color.getRed, h.color.getGreen, h.color.getBlue, 100)
+      g.setStroke(new BasicStroke(10))
+      g.setColor(c)
+      h.vertices.foreach { v =>
+        vertexDisplay.get(v).map { d =>
+          g.draw(d.shape)
+        }
+      }
     }
 
     for ((e, ed) <- edgeDisplay) {

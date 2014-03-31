@@ -1091,7 +1091,7 @@ in
       val g      = g |> B.NSet.fold (fn b => add_vertex_to_bbox' b wv) bbs
       val (e1,g) = g |> add_edge' dir_and_data s wv
       val (e2,g) = g |> add_edge' dir_and_data wv t
-    in ((s,t,V.NSet.single wv,E.NSet.of_list [e1,e1]), g) end
+    in ((s,t,V.NSet.single wv,E.NSet.of_list [e1,e2]), g) end
   else
     let val (e,g') = g |> delete_wire wire
                        |> add_edge' dir_and_data s t

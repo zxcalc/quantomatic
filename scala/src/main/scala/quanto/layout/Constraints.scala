@@ -15,13 +15,19 @@ trait Constraints extends GraphLayout {
   var constraintIterations = 10
   var bug = false
   val constraints = new ConstraintSeq
+
+  override def initialize(g: Graph, randomCoords: Boolean = true) {
+    super.initialize(g, randomCoords)
+    constraints.clear()
+  }
+
   def isConstraintSatisfied (c: Constraint): Boolean = {
     val (v1x,v1y) = coord(c.v1)
     val (v2x,v2y) = coord(c.v2)
     val (v1v2x,v1v2y) = (v2x-v1x, v2y-v1y)
     
     val dir = c.direction match  {
-      case Some(dir) => dir
+      case Some(d) => d
       case None => (0.0,0.0)
     }
     
@@ -161,7 +167,7 @@ class ConstraintSeq extends Iterable[(Constraint,Int)] {
   private val cs = collection.mutable.ListBuffer[() => Iterator[(Constraint,Int)]]()
 
   def nextLayer() { _currentLayer += 1 }
-  def clear() { cs.clear() }
+  def clear() { cs.clear(); _currentLayer = 0 }
 
   def +=(c: Constraint) {
     val layer = _currentLayer

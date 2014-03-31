@@ -8,7 +8,7 @@ import quanto.data._
 import Names._
 import quanto.layout.ForceLayout
 import quanto.util.json._
-import quanto.layout.constraint.Clusters
+import quanto.layout.constraint._
 import java.awt.event.{ActionEvent, ActionListener}
 
 class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
@@ -39,7 +39,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   var dataField : TextField = _
 
   val qLayout = new ForceLayout with Clusters
-  qLayout.alpha0 = 0.001
+  qLayout.alpha0 = 0.005
   qLayout.alphaAdjust = 1.0
   qLayout.keepCentered = false
 
@@ -459,6 +459,8 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   view.listenTo(view.keys)
   var rDown = false
 
+  val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
+
   view.reactions += {
     case KeyPressed(_, (Key.Delete | Key.BackSpace), _, _) =>
       if (!readOnly && (!selectedVerts.isEmpty || !selectedEdges.isEmpty || !selectedBBoxes.isEmpty)) {
@@ -488,5 +490,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
       replaceGraph(graph, "")
       undoStack.commit()
+    case KeyPressed(_, Key.Minus, _, _)  => view.zoom *= 0.6
+    case KeyPressed(_, Key.Equals, _, _) => view.zoom *= 1.6
   }
 }

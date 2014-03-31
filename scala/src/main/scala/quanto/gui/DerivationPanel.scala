@@ -24,10 +24,16 @@ class DerivationPanel(val theory: Theory)
     focusable = true
   }
 
+  LhsView.trans.scale = 20.0f
+  LhsView.trans.origin = (100.0f, 100.0f)
+
   val RhsView = new GraphView(theory, DummyRef) {
     drawGrid = true
     focusable = true
   }
+
+  RhsView.trans.scale = 20.0f
+  RhsView.trans.origin = (100.0f, 100.0f)
 
   val controls = new GraphEditControls(theory)
 

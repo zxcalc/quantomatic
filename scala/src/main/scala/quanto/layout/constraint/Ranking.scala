@@ -13,7 +13,6 @@ trait Ranking extends Constraints {
   override def initialize(g: Graph, randomCoords: Boolean = true) {
     super.initialize(g, randomCoords)
     constraints.nextLayer()
-    println("Ranking at layer " + constraints.currentLayer)
 
     val dag = g.dagCopy
     for (e <- dag.edges)
