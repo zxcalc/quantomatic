@@ -4,9 +4,9 @@ import java.io.{IOException, OutputStream, InputStream}
 import java.util.logging.Level
 
 sealed abstract class Signal(id: Int)
-case class Success(id: Int) extends Signal(id)
-case class Failed(id: Int) extends Signal(id)
-case class Interrupted(id: Int) extends Signal(id)
+case class SuccessSignal(id: Int) extends Signal(id)
+case class FailedSignal(id: Int) extends Signal(id)
+case class InterruptedSignal(id: Int) extends Signal(id)
 
 /**
  * A simple stream redirector that allows bits of code to listen for signals coming over the stream, all of
@@ -26,9 +26,9 @@ extends Thread("Signalling Stream Redirector") {
 
   private def fire(code: Char, id: Int) {
     val sig = code match {
-      case 'S' => Success(id)
-      case 'F' => Failed(id)
-      case 'I' => Interrupted(id)
+      case 'S' => SuccessSignal(id)
+      case 'F' => FailedSignal(id)
+      case 'I' => InterruptedSignal(id)
     }
 
     listeners.synchronized {

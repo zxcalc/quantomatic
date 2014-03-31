@@ -5,17 +5,28 @@ import scala.swing._
 import scala.swing.event.{SelectionChanged, Key}
 import javax.swing.{UIManager, KeyStroke}
 import java.awt.event.KeyEvent
-import quanto.util.json.Json
+import quanto.util.json.{JsonString, Json}
 import quanto.data._
 import java.io.{FilenameFilter, IOException, File}
 import java.nio.file.{Files, Paths}
 import javax.swing.plaf.metal.MetalLookAndFeel
 import java.util.prefs.Preferences
 import quanto.gui.histview.HistView
+import akka.actor.{Props, ActorSystem}
+import quanto.core.{Success, Call, Core}
+import akka.pattern.ask
+import akka.util.Timeout
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
+import ExecutionContext.Implicits.global
+import java.awt.Color
 
 
 object QuantoDerive extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
+  val actorSystem = ActorSystem("QuantoDerive")
+  val core = actorSystem.actorOf(Props { new Core }, "core")
+  implicit val timeout = Timeout(1.day)
 
   println(new File(".").getAbsolutePath)
 
@@ -231,7 +242,7 @@ object QuantoDerive extends SimpleSwingApplication {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Q, CommandMask))
       def apply() {
         //if (ruleDocument.promptUnsaved())
-          sys.exit(0)
+          scala.sys.exit(0)
       }
     }
   }
@@ -358,6 +369,20 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
+  val CoreStatus = new Label("???")
+  CoreStatus.foreground = Color.BLUE
+  val ConsoleProgress = new ProgressBar
+
+  val StatusBar = new GridPanel(1,2) {
+    contents += new FlowPanel(FlowPanel.Alignment.Left) ( new Label("Core status:"), CoreStatus )
+    contents += new FlowPanel(FlowPanel.Alignment.Right) ( ConsoleProgress )
+  }
+
+  val Main = new BorderPanel {
+    add(Split, BorderPanel.Position.Center)
+    add(StatusBar, BorderPanel.Position.South)
+  }
+
   listenTo(ProjectFileTree, MainTabbedPane.selection)
 
   reactions += {
@@ -435,9 +460,14 @@ object QuantoDerive extends SimpleSwingApplication {
       }
   }
 
+  val versionResp = core ? Call("!!", "system", "version")
+  versionResp.onSuccess { case Success(JsonString(version)) =>
+    Swing.onEDT { CoreStatus.text = "OK"; CoreStatus.foreground = new Color(0,150,0) }
+  }
+
   def top = new MainFrame {
     title = "QuantoDerive"
-    contents = Split
+    contents = Main
 
     size = new Dimension(1280,720)
 

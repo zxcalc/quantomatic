@@ -3,13 +3,17 @@ package quanto.gui
 import scala.swing._
 import org.gjt.sp.jedit.{Registers, Mode}
 import org.gjt.sp.jedit.textarea.StandaloneTextArea
-import java.awt.BorderLayout
+import java.awt.{Color, BorderLayout}
 import java.awt.event.{KeyEvent, KeyAdapter}
 import javax.swing.ImageIcon
 import quanto.util.swing.ToolBar
+import quanto.core._
+import scala.swing.event.ButtonClicked
+import quanto.util._
 
 class MLEditPanel extends BorderPanel with HasDocument {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
+
   val sml = new Mode("StandardML")
   sml.setProperty("file", getClass.getResource("ml.xml").getPath)
   println(sml.getProperty("file"))
@@ -48,6 +52,9 @@ class MLEditPanel extends BorderPanel with HasDocument {
 
   val outputTextArea = new TextArea()
   outputTextArea.enabled = false
+  val textOut = new TextAreaOutputStream(outputTextArea)
+
+  QuantoDerive.core ! AddConsoleOutput(textOut)
 
   val polyOutput = new TextAreaOutputStream(outputTextArea)
 
@@ -59,4 +66,35 @@ class MLEditPanel extends BorderPanel with HasDocument {
   }
 
   add(Split, BorderPanel.Position.Center)
+
+  listenTo(RunButton, InterruptButton)
+
+  reactions += {
+    case ButtonClicked(RunButton) =>
+      QuantoDerive.ConsoleProgress.indeterminate = true
+      QuantoDerive.CoreStatus.text = "Compiling ML"
+      QuantoDerive.CoreStatus.foreground = Color.BLUE
+
+      val compileMessage = CompileML(mlCode.getBuffer.getText) {
+        case SuccessSignal(_) => Swing.onEDT {
+          QuantoDerive.CoreStatus.text = "ML compiled sucessfully"
+          QuantoDerive.CoreStatus.foreground = new Color(0, 150, 0)
+          QuantoDerive.ConsoleProgress.indeterminate = false
+        }
+        case FailedSignal(_) => Swing.onEDT {
+          QuantoDerive.CoreStatus.text = "ML compilation finished with error"
+          QuantoDerive.CoreStatus.foreground = Color.RED
+          QuantoDerive.ConsoleProgress.indeterminate = false
+        }
+        case InterruptedSignal(_) => Swing.onEDT {
+          QuantoDerive.CoreStatus.text = "ML compilation interrupted"
+          QuantoDerive.CoreStatus.foreground = new Color(255, 100, 0)
+          QuantoDerive.ConsoleProgress.indeterminate = false
+        }
+      }
+
+      QuantoDerive.core ! compileMessage
+    case ButtonClicked(InterruptButton) =>
+      QuantoDerive.core ! InterruptML
+  }
 }

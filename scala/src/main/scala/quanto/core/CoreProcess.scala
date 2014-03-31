@@ -14,7 +14,8 @@ class CoreProcess {
   var stdout : Json.Input = _
   var socket : Socket = _
   var consoleOutput : SignallingStreamRedirector = _
-  var consoleInput : BufferedWriter = _
+  var consoleInput : PrintStream = _
+  var polyPid : Option[Int] = None
 
   def startCore() { startCore(CoreProcess.quantoHome) }
   
@@ -27,8 +28,21 @@ class CoreProcess {
       CoreProcess.logger.log(Level.FINEST, "Starting {0}...", CoreProcess.polyExe)
       backend = pb.start()
 
+      // get a PID for sending interrupt to poly process. Will return None unless system is UNIX-like
+      polyPid = try {
+        val pidField = backend.getClass.getDeclaredField("pid")
+        pidField.setAccessible(true)
+        val p = pidField.getInt(backend)
+        pidField.setAccessible(false)
+        Some(p)
+      } catch {
+        case e: Throwable =>
+          e.printStackTrace()
+          None
+      }
+
       // wire up console I/O
-      consoleInput = new BufferedWriter(new OutputStreamWriter(backend.getOutputStream))
+      consoleInput = new PrintStream(backend.getOutputStream)
       consoleOutput = new SignallingStreamRedirector(backend.getInputStream, Some(System.out))
 
       // wait for signal from run_protocol.ML before connecting to socket
