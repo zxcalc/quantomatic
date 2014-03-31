@@ -8,7 +8,7 @@ import quanto.util.{SignallingStreamRedirector, StreamRedirector}
 import java.net.{InetAddress, Socket}
 import java.nio.file.Paths
 
-class CoreProcess(parallel: Boolean = false) {
+class CoreProcess {
   private var backend: Process = _
   var stdin : Json.Output = _
   var stdout : Json.Input = _

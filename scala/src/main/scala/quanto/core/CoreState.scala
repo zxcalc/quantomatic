@@ -44,7 +44,7 @@ case class JsonRequest(json: Json) extends CoreRequest {
 }
 
 class CoreState extends Actor with ActorLogging {
-  val coreProcess = new CoreProcess(parallel = true)
+  val coreProcess = new CoreProcess
   var reader: ActorRef = _
   var writer: ActorRef = _
   val listeners = collection.mutable.Map[Int, (ActorRef,CoreRequest)]()
