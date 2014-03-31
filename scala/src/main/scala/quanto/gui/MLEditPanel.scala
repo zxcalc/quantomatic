@@ -5,6 +5,8 @@ import org.gjt.sp.jedit.{Registers, Mode}
 import org.gjt.sp.jedit.textarea.StandaloneTextArea
 import java.awt.BorderLayout
 import java.awt.event.{KeyEvent, KeyAdapter}
+import javax.swing.ImageIcon
+import quanto.util.swing.ToolBar
 
 class MLEditPanel extends BorderPanel with HasDocument {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
@@ -25,6 +27,20 @@ class MLEditPanel extends BorderPanel with HasDocument {
       }
     }
   })
+
+  val RunButton = new Button() {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("start.png"), "Run buffer in Poly/ML")
+  }
+
+  val InterruptButton = new Button() {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("stop.png"), "Interrupt execution")
+  }
+
+  val MLToolbar = new ToolBar {
+    contents += (RunButton, InterruptButton)
+  }
+
+  add(MLToolbar, BorderPanel.Position.North)
 
   val document = new MLDocument(this, mlCode)
   peer.add(mlCode, BorderLayout.CENTER)

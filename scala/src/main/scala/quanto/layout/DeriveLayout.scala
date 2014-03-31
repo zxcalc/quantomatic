@@ -35,7 +35,7 @@ class DeriveLayout {
         layoutProc.initialize(g, randomCoords = false)
 
         // relax a bit to layout new coords
-        for (i <- 1 to 20) layoutProc.step()
+        for (i <- 1 to 10) layoutProc.step()
         layoutProc.updateGraph()
 
         // layout the graph, and add the step
