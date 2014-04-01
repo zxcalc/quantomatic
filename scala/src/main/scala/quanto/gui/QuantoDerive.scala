@@ -13,7 +13,7 @@ import javax.swing.plaf.metal.MetalLookAndFeel
 import java.util.prefs.Preferences
 import quanto.gui.histview.HistView
 import akka.actor.{Props, ActorSystem}
-import quanto.core.{Success, Call, Core}
+import quanto.core._
 import akka.pattern.ask
 import akka.util.Timeout
 import scala.concurrent.duration._
@@ -242,7 +242,8 @@ object QuantoDerive extends SimpleSwingApplication {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Q, CommandMask))
       def apply() {
         //if (ruleDocument.promptUnsaved())
-          scala.sys.exit(0)
+        core ! StopCore
+        scala.sys.exit(0)
       }
     }
   }

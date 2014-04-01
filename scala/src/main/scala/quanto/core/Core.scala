@@ -3,7 +3,7 @@ package quanto.core
 import akka.actor._
 import quanto.util.json._
 import java.io.{FileWriter, BufferedWriter, File, OutputStream}
-import quanto.util.Signal
+import quanto.util._
 
 case object StartCore
 case object StopCore
@@ -34,7 +34,7 @@ extends CoreRequest
 abstract class PolyConsoleMessage
 case class AddConsoleOutput(out: OutputStream) extends PolyConsoleMessage
 case class RemoveConsoleOutput(out: OutputStream) extends PolyConsoleMessage
-case class CompileML(code: String)(val onComplete : Signal => Any) extends PolyConsoleMessage
+case class CompileML(fileName: Option[String], code: String)(val onComplete : StreamMessage => Any) extends PolyConsoleMessage
 case object InterruptML extends PolyConsoleMessage
 
 
@@ -57,6 +57,7 @@ class Core extends Actor with ActorLogging {
   var reader: ActorRef = _
   var writer: ActorRef = _
   val listeners = collection.mutable.Map[Int, (ActorRef,CoreRequest)]()
+  val activeRequests = collection.mutable.Set[Int]()
   private var requestId = 10
   private var mlCompileId = 10
 
@@ -91,23 +92,31 @@ class Core extends Actor with ActorLogging {
       coreProcess.consoleOutput.addOutputStream(out)
     case RemoveConsoleOutput(out) =>
       coreProcess.consoleOutput.removeOutputStream(out)
-    case compileMessage: CompileML =>
-      val file = File.createTempFile("ml-code", ".ML")
-      val fw = new BufferedWriter(new FileWriter(file))
-      fw.write(compileMessage.code)
-      fw.write("\n")
-      fw.close()
-
-      coreProcess.consoleOutput.addListener(mlCompileId) { _ => if (file.exists) file.delete() }
-      coreProcess.consoleOutput.addListener(mlCompileId)(compileMessage.onComplete)
-
-      val code = codeWrapper.format(file.getAbsolutePath, mlCompileId)
-      println(code)
-      coreProcess.consoleInput.println(code)
-      coreProcess.consoleInput.flush()
+    case msg: CompileML =>
+//      val file = File.createTempFile("ml-code", ".ML")
+//      val fw = new BufferedWriter(new FileWriter(file))
+//      fw.write(compileMessage.code)
+//      fw.write("\n")
+//      fw.close()
+      activeRequests.synchronized(activeRequests += mlCompileId)
+      coreProcess.consoleOutput.addListener(mlCompileId)(msg.onComplete)
+      coreProcess.consoleOutput.addListener(mlCompileId)
+        { _ => activeRequests.synchronized(activeRequests -= mlCompileId) }
+      val sm = StreamMessage.compileMessage(mlCompileId, msg.fileName.getOrElse("untitled"), msg.code)
+      sm.writeTo(coreProcess.consoleInput)
+//
+//      val code = codeWrapper.format(file.getAbsolutePath, mlCompileId)
+//      println(code)
+//      coreProcess.consoleInput.println(code)
+//      coreProcess.consoleInput.flush()
       mlCompileId += 1
     case InterruptML =>
-      coreProcess.polyPid.map { p => Runtime.getRuntime.exec("kill -SIGINT " + p) }
+      log.info("Interrupt: " + activeRequests)
+      activeRequests.synchronized { activeRequests.foreach{ rid =>
+        val sm = StreamMessage(CodePart('K'), IntPart(rid), CodePart('k'))
+        sm.writeTo(coreProcess.consoleInput)
+      }}
+      //coreProcess.polyPid.map { p => Runtime.getRuntime.exec("kill -SIGINT " + p) }
 
     case x => log.warning("Unexpected message: " + x)
   }

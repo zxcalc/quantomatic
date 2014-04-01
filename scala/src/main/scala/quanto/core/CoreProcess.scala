@@ -4,7 +4,7 @@ import java.io._
 import java.util.logging._
 import quanto.util.json.Json
 
-import quanto.util.{SignallingStreamRedirector, StreamRedirector}
+import quanto.util.{StreamMessage, SignallingStreamRedirector, StreamRedirector}
 import java.net.{InetAddress, Socket}
 import java.nio.file.Paths
 
@@ -14,15 +14,16 @@ class CoreProcess {
   var stdout : Json.Input = _
   var socket : Socket = _
   var consoleOutput : SignallingStreamRedirector = _
-  var consoleInput : PrintStream = _
+  var consoleInput : OutputStream = _
   var polyPid : Option[Int] = None
 
   def startCore() { startCore(CoreProcess.quantoHome) }
   
   def startCore(quantoHome : String) {
     try {
-      val pb = new ProcessBuilder(
-        CoreProcess.polyExe, "--use", "run_protocol.ML")
+//      val pb = new ProcessBuilder(
+//        CoreProcess.polyExe, "--use", "run_protocol.ML")
+      val pb = new ProcessBuilder(CoreProcess.polyExe, "--ideprotocol")
       pb.directory(new File(quantoHome + "/core"))
       pb.redirectErrorStream(true)
       CoreProcess.logger.log(Level.FINEST, "Starting {0}...", CoreProcess.polyExe)
@@ -42,14 +43,24 @@ class CoreProcess {
       }
 
       // wire up console I/O
-      consoleInput = new PrintStream(backend.getOutputStream)
+      consoleInput = backend.getOutputStream
       consoleOutput = new SignallingStreamRedirector(backend.getInputStream, Some(System.out))
+      consoleOutput.start()
+
+      var spinLock = true
+      val sm = StreamMessage.compileMessage(0, "init", "use \"run_protocol.ML\";\n")
+      consoleOutput.addListener(0) { _ => println("done"); spinLock = false }
+      sm.writeTo(consoleInput)
+
+      while (spinLock) Thread.sleep(50)
+      //Thread.sleep(500)
+
 
       // wait for signal from run_protocol.ML before connecting to socket
-      var spinLock = true
-      consoleOutput.addListener(0) { _ => spinLock = false }
-      consoleOutput.start()
-      while (spinLock) Thread.sleep(50)
+//      var spinLock = true
+//      consoleOutput.addListener(0) { _ => spinLock = false }
+//      consoleOutput.start()
+//      while (spinLock) Thread.sleep(500)
       
       //stdin = new Json.Output(new BufferedWriter(new OutputStreamWriter(backend.getOutputStream)))
       //stdout = new Json.Input(new BufferedReader(new InputStreamReader(backend.getInputStream)))

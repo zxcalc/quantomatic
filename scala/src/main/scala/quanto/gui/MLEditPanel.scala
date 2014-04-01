@@ -10,6 +10,7 @@ import quanto.util.swing.ToolBar
 import quanto.core._
 import scala.swing.event.ButtonClicked
 import quanto.util._
+import java.io.PrintStream
 
 class MLEditPanel extends BorderPanel with HasDocument {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
@@ -51,12 +52,12 @@ class MLEditPanel extends BorderPanel with HasDocument {
   }
 
   val outputTextArea = new TextArea()
-  outputTextArea.enabled = false
+  outputTextArea.editable = false
   val textOut = new TextAreaOutputStream(outputTextArea)
 
   QuantoDerive.core ! AddConsoleOutput(textOut)
 
-  val polyOutput = new TextAreaOutputStream(outputTextArea)
+  val polyOutput = new PrintStream(new TextAreaOutputStream(outputTextArea))
 
   add(MLToolbar, BorderPanel.Position.North)
 
@@ -75,22 +76,22 @@ class MLEditPanel extends BorderPanel with HasDocument {
       QuantoDerive.CoreStatus.text = "Compiling ML"
       QuantoDerive.CoreStatus.foreground = Color.BLUE
 
-      val compileMessage = CompileML(mlCode.getBuffer.getText) {
-        case SuccessSignal(_) => Swing.onEDT {
-          QuantoDerive.CoreStatus.text = "ML compiled sucessfully"
-          QuantoDerive.CoreStatus.foreground = new Color(0, 150, 0)
-          QuantoDerive.ConsoleProgress.indeterminate = false
-        }
-        case FailedSignal(_) => Swing.onEDT {
-          QuantoDerive.CoreStatus.text = "ML compilation finished with error"
-          QuantoDerive.CoreStatus.foreground = Color.RED
-          QuantoDerive.ConsoleProgress.indeterminate = false
-        }
-        case InterruptedSignal(_) => Swing.onEDT {
-          QuantoDerive.CoreStatus.text = "ML compilation interrupted"
-          QuantoDerive.CoreStatus.foreground = new Color(255, 100, 0)
-          QuantoDerive.ConsoleProgress.indeterminate = false
-        }
+      val compileMessage = CompileML(document.file.map(_.getName), mlCode.getBuffer.getText) { msg =>
+        Swing.onEDT(msg.stripCodes match {
+          case (_ :: _ :: StringPart("S") :: _) =>
+            QuantoDerive.CoreStatus.text = "ML compiled sucessfully"
+            QuantoDerive.CoreStatus.foreground = new Color(0, 150, 0)
+            QuantoDerive.ConsoleProgress.indeterminate = false
+          case (_ :: _ :: StringPart("X") :: _ :: _ :: StringPart(exnMsg) :: _) =>
+            QuantoDerive.CoreStatus.text = "Exception in ML"
+            QuantoDerive.CoreStatus.foreground = Color.RED
+            QuantoDerive.ConsoleProgress.indeterminate = false
+            polyOutput.println("Exception: " + exnMsg)
+          case _ =>
+            QuantoDerive.CoreStatus.text = "Unrecognised response from Poly/ML"
+            QuantoDerive.CoreStatus.foreground = Color.BLUE
+            QuantoDerive.ConsoleProgress.indeterminate = false
+        })
       }
 
       QuantoDerive.core ! compileMessage
