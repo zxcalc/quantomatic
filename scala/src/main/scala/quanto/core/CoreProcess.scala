@@ -44,7 +44,8 @@ class CoreProcess {
 
       // wire up console I/O
       consoleInput = backend.getOutputStream
-      consoleOutput = new SignallingStreamRedirector(backend.getInputStream, Some(System.out))
+      //consoleOutput = new SignallingStreamRedirector(backend.getInputStream, Some(System.out))
+      consoleOutput = new SignallingStreamRedirector(backend.getInputStream)
       consoleOutput.start()
 
       var spinLock = true
