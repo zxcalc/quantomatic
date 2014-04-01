@@ -66,9 +66,11 @@ class Core extends Actor with ActorLogging {
   writer = context.actorOf(Props { new CoreWriter(coreProcess) }, name = "core_writer")
 
   val codeWrapper =
-    """PolyML.exception_trace (fn () => (use "%1$s"; TextIO.print ("\n<"^"<[S]%2$d>>\n")))"""+
-    """  handle SML90.Interrupt => TextIO.print ("\n<"^"<[I]%2$d>>\n")"""+
-    """       | _               => TextIO.print ("\n<"^"<[E]%2$d>>\n");"""
+    """PolyML.exception_trace (fn () => (use "%1$s"; TextIO.print ("\n<Success>\n")))"""
+
+//  +
+//    """  handle SML90.Interrupt => TextIO.print ("\n<Interrupted>\n")"""+
+//    """       | _               => TextIO.print ("\n<Finished with error>\n");"""
 
   log.info("fired up")
 
@@ -93,16 +95,20 @@ class Core extends Actor with ActorLogging {
     case RemoveConsoleOutput(out) =>
       coreProcess.consoleOutput.removeOutputStream(out)
     case msg: CompileML =>
-//      val file = File.createTempFile("ml-code", ".ML")
-//      val fw = new BufferedWriter(new FileWriter(file))
-//      fw.write(compileMessage.code)
-//      fw.write("\n")
-//      fw.close()
+      val file = File.createTempFile("ml-code", ".ML")
+      val fw = new BufferedWriter(new FileWriter(file))
+      fw.write(msg.code)
+      fw.write("\n")
+      fw.close()
+      val code = codeWrapper.format(file.getAbsolutePath, mlCompileId)
+
       activeRequests.synchronized(activeRequests += mlCompileId)
       coreProcess.consoleOutput.addListener(mlCompileId)(msg.onComplete)
-      coreProcess.consoleOutput.addListener(mlCompileId)
-        { _ => activeRequests.synchronized(activeRequests -= mlCompileId) }
-      val sm = StreamMessage.compileMessage(mlCompileId, msg.fileName.getOrElse("untitled"), msg.code)
+      coreProcess.consoleOutput.addListener(mlCompileId) { _ =>
+        activeRequests.synchronized(activeRequests -= mlCompileId)
+        if (file.exists()) file.delete()
+      }
+      val sm = StreamMessage.compileMessage(mlCompileId, msg.fileName.getOrElse("untitled"), code)
       sm.writeTo(coreProcess.consoleInput)
 //
 //      val code = codeWrapper.format(file.getAbsolutePath, mlCompileId)
@@ -111,7 +117,6 @@ class Core extends Actor with ActorLogging {
 //      coreProcess.consoleInput.flush()
       mlCompileId += 1
     case InterruptML =>
-      log.info("Interrupt: " + activeRequests)
       activeRequests.synchronized { activeRequests.foreach{ rid =>
         val sm = StreamMessage(CodePart('K'), IntPart(rid), CodePart('k'))
         sm.writeTo(coreProcess.consoleInput)

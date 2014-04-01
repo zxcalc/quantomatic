@@ -9,6 +9,7 @@ class TextAreaOutputStream(textArea: TextArea) extends OutputStream {
 
   override def flush() {
     textArea.append(sb.toString())
+    textArea.caret.position = textArea.text.length
     sb.setLength(0)
   }
 

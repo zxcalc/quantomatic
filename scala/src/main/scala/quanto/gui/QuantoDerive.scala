@@ -117,7 +117,7 @@ object QuantoDerive extends SimpleSwingApplication {
   val FileMenu = new Menu("File") { menu =>
     mnemonic = Key.F
 
-    val NewGraphAction = new Action("New Graph..") {
+    val NewGraphAction = new Action("New Graph...") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask))
       menu.contents += new MenuItem(this) { mnemonic = Key.G }
       def apply() {

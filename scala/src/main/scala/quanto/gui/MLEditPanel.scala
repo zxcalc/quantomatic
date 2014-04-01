@@ -82,11 +82,18 @@ class MLEditPanel extends BorderPanel with HasDocument {
             QuantoDerive.CoreStatus.text = "ML compiled sucessfully"
             QuantoDerive.CoreStatus.foreground = new Color(0, 150, 0)
             QuantoDerive.ConsoleProgress.indeterminate = false
-          case (_ :: _ :: StringPart("X") :: _ :: _ :: StringPart(exnMsg) :: _) =>
+//          case (_ :: _ :: StringPart("X") :: _ :: _ :: StringPart("Interrupt\n") :: _) =>
+//            QuantoDerive.CoreStatus.text = "ML execution interrupted"
+//            QuantoDerive.CoreStatus.foreground = new Color(200, 100, 0)
+//            QuantoDerive.ConsoleProgress.indeterminate = false
+//          case (_ :: _ :: StringPart("C") :: _) =>
+//            QuantoDerive.CoreStatus.text = "ML compilation interrupted"
+//            QuantoDerive.CoreStatus.foreground = new Color(200, 100, 0)
+//            QuantoDerive.ConsoleProgress.indeterminate = false
+          case (_ :: _ :: StringPart("X") :: _) =>
             QuantoDerive.CoreStatus.text = "Exception in ML"
             QuantoDerive.CoreStatus.foreground = Color.RED
             QuantoDerive.ConsoleProgress.indeterminate = false
-            polyOutput.println("Exception: " + exnMsg)
           case _ =>
             QuantoDerive.CoreStatus.text = "Unrecognised response from Poly/ML"
             QuantoDerive.CoreStatus.foreground = Color.BLUE
