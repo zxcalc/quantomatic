@@ -59,8 +59,9 @@ case class NodeV(
   /** Type of the vertex */
   def typ = (data / "type").stringValue
 
-  def label = data.getOrElse("label","").stringValue
-  def value = data ? "value"
+  def value = (data.getPath(theory.vertexTypes(typ).value.path)).stringValue
+  def label = data.getOrElse("label",value).stringValue
+ // def value = data ? "value"
 
   def typeInfo = theory.vertexTypes(typ)
 
@@ -69,7 +70,7 @@ case class NodeV(
   
   /** Create a copy of the current vertex with the new value */
   def withValue(s: String) =
-    copy(data = data.setPath("$.value", s).setPath("$.label", s).asObject)
+    copy(data = data.setPath(theory.vertexTypes(typ).value.path, s).setPath("$.label", s).asObject)
 
   def isWireVertex = false
   def isBoundary = false

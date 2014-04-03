@@ -46,13 +46,14 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
   def loadGraph(json : Json) {
     try {
       // force to layout the graph before drawing
-      val lo = new ForceLayout with Clusters
-      graph = lo.layout(Graph.fromJson(json, theory) )
+      //val lo = new ForceLayout with Clusters
+      val layout = new ForceLayout with IRanking with VerticalBoundary with Clusters
+      graph = layout.layout(Graph.fromJson(json, theory))
       publish(GraphReplaced(this, clearSelection = true))
 
     } catch {
-      case _: JsonParseException => error("load - mal-formed JSON")
-      case _: GraphLoadException => error("load - invalid graph")
+      case _: JsonParseException => sys.error("load - mal-formed JSON")
+      case _: GraphLoadException => sys.error("load - invalid graph")
     }
   }
 

@@ -84,6 +84,8 @@ object Theory {
   type EdgeLabelPosition = EdgeLabelPosition.Value
 
   case class ValueDesc(
+    //by LYH: restore the feature of path
+    path: JsonPath = JsonPath("$"),
     typ: ValueType = ValueType.Empty,
     enumOptions: Vector[String] = Vector[String](),
     latexConstants: Boolean = false,
@@ -92,6 +94,8 @@ object Theory {
   object ValueDesc {
     implicit def fromJson(json: Json): ValueDesc =
       ValueDesc(
+        //by LYH: restore the feature of path
+        path = JsonPath(json / "path"),
         typ  = json / "type",
         enumOptions = (json ? "enum_options").vectorValue.map(_.stringValue),
         latexConstants = json.getOrElse("latex_constants", false),
@@ -100,6 +104,8 @@ object Theory {
 
     implicit def toJson(v: ValueDesc) =
       JsonObject(
+      //by LYH: restore the feature of path
+        "path" -> v.path.toString,
         "type" -> v.typ,
         "enum_options" -> v.enumOptions,
         "latex_constants" -> v.latexConstants,

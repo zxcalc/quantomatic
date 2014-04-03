@@ -17,8 +17,9 @@ abstract class EData extends GraphElementData {
 
   def typeInfo = theory.edgeTypes(typ)
 
-  def label = data.getOrElse("label","").stringValue
-  def value = data ? "value"
+
+  def value = data.getPath(theory.edgeTypes(typ).value.path).stringValue //data ? "value"
+  def label = data.getOrElse("label",value).stringValue
 
   /** Create a copy of the current edge data, but with the new value */
   def withValue(v: String): EData
@@ -36,7 +37,7 @@ case class DirEdge(
   theory: Theory = Theory.DefaultTheory
 ) extends EData {
   def isDirected = true
-  def withValue(v: String): DirEdge = copy(data = data.setPath("$.value", v).setPath("$.label", v).asObject)
+  def withValue(v: String): DirEdge = copy(data = data.setPath(typeInfo.value.path, v).setPath("$.label", v).asObject)
   override def toJson = DirEdge.toJson(this, theory)
 }
 
@@ -52,7 +53,7 @@ case class UndirEdge(
   theory: Theory = Theory.DefaultTheory
 ) extends EData {
   def isDirected = false
-  def withValue(v: String): UndirEdge = copy(data = data.setPath("$.value", v).setPath("$.label", v).asObject)
+  def withValue(v: String): UndirEdge = copy(data = data.setPath(typeInfo.value.path, v).setPath("$.label", v).asObject)
   override def toJson = UndirEdge.toJson(this, theory)
 }
 
