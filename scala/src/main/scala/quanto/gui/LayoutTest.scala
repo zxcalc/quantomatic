@@ -132,7 +132,7 @@ object LayoutTest extends SimpleSwingApplication {
 //  
 //  graphView.graph = Graph.random(20,20,1)
 
-  val layout = new QLayout
+  val layout = new ForceLayout with IRanking with VerticalBoundary with Clusters
   //layout.alpha0 = 0.2
 
   //layout.initialize(graphView.graph)
