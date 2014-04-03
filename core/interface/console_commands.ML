@@ -60,9 +60,6 @@ structure ConsoleCommands : CONSOLE_COMMANDS
     | parse_response (Commands.StringResponse { data }) = data
     | parse_response (Commands.StringListResponse { data }) = (String.concatWith "\n" data)
     | parse_response (Commands.CountResponse { count }) = Int.toString count
-    | parse_response (Commands.ComponentDataResponse { data as (ComponentData.Unit) }) = ""
-    | parse_response (Commands.ComponentDataResponse { data as (ComponentData.String s) }) = s
-    | parse_response (Commands.ComponentDataResponse { data as (ComponentData.LinratAngleExpr a) }) = Pretty.string_of (LinratAngleExpr.pretty a)
     | parse_response (Commands.MetricResponse { data }) = (String.concatWith "\n" (List.map Int.toString data))
     | parse_response _ = raise unexpected_response_exp;
 
@@ -128,20 +125,6 @@ structure ConsoleCommands : CONSOLE_COMMANDS
       (fn [graph] => (Commands.ExportGraphRequest
                        { graphName = graph, format = Commands.PrettyGraphFormat })
         | _       => bad_args_req))),
-
-    ("hilb",
-     ("GRAPH FORMAT", "Display the hilbert space term of GRAPH where FORMAT is one of {plain, latex, mathematica, matlab}.",
-      (fn [graph,"plain"]       => (Commands.ExportGraphRequest
-                       { graphName = graph, format = Commands.HilbertSpaceGraphFormat })
-        | [graph,"mathematica"] => (Commands.ExportGraphRequest
-                       { graphName = graph, format = Commands.MathematicaGraphFormat })
-        | [graph,"matlab"]      => (Commands.ExportGraphRequest
-                       { graphName = graph, format = Commands.MatlabGraphFormat })
-        | [graph,"latex"]       => (Commands.ExportGraphRequest
-                       { graphName = graph, format = Commands.TikzGraphFormat })
-        | [_,fmt]               => Commands.DummyRequest { response = Commands.ErrorResponse
-                       { errorCode = "BADARGS", message = "Unknown format \""^fmt^"\"" } }
-        | _                     => bad_args_req))),
 
     ("undo",
      ("GRAPH", "Undo the last change to GRAPH",
@@ -416,8 +399,8 @@ structure ConsoleCommands : CONSOLE_COMMANDS
         | _  => bad_args_req))),
     ("print_user_data",
      ("GRAPH", "Prints out all the user data attached to GRAPH",
-      (fn [graph] => (Commands.DescribeGraphRequest {
-                     graphName = graph, desc = Commands.PrintUserData})
+      (fn [graph] => (Commands.PrettyUserDataRequest {
+                     graphName = graph})
         | _       => bad_args_req))),
 
     ("list_metrics_names",

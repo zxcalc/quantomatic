@@ -4,6 +4,7 @@ local
   structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
   open Tools;
   structure Rule = Test_BG_Rule;
+  structure HomeoFinder = BangGraphHomeomorphismSearcher(G)
 
   fun test_mk_bad_rule (lhs,rhs) =
      (Rule.mk (lhs,rhs);
@@ -130,7 +131,7 @@ local
   val lhs = g
           |> add_bbox "b1" []
           |> add_bbox "b2" ["in1","in2"]
-          |> add_child_bbox "b3" "b2" ["in1"];
+          |> add_bbox_with_parent "b3" "b2" ["in1"];
   val rhs = lhs;
   val _ = Testing.test "same bboxes" Rule.mk (lhs,rhs);
 
@@ -151,13 +152,31 @@ local
   val lhs = g
           |> add_bbox "b1" []
           |> add_bbox "b2" ["in1","in2"]
-          |> add_child_bbox "b3" "b2" ["in1"];
+          |> add_bbox_with_parent "b3" "b2" ["in1"];
   val rhs = g
           |> add_bbox "b1" []
           |> add_bbox "b2" ["in1","in2"]
           |> add_bbox "b3" ["in1"];
   val _ = Testing.test "differing !-box parents"
                        test_mk_bad_rule (lhs,rhs);
+
+  (* Rule.symmetric *)
+
+
+  val lhs = G.empty |> add_wv "in1"
+                    |> add_vunit1 "n1"
+                    |> add_dir_eunit1 "e1" "in1" "n1"
+  val rhs = G.empty |> add_wv "in1"
+                    |> add_vunit2 "n1"
+                    |> add_vunit2 "n2"
+                    |> add_dir_eunit1 "e1" "in1" "n1"
+                    |> add_dir_eunit1 "e2" "n1" "n2"
+  val rule = Rule.mk (lhs,rhs)
+  val rule' = Rule.symmetric rule
+  val _ = Testing.assert "new RHS iso to old LHS"
+            (HomeoFinder.is_homeomorphic lhs (Rule.get_rhs rule'))
+  val _ = Testing.assert "new LHS iso to old RHS"
+            (HomeoFinder.is_homeomorphic rhs (Rule.get_lhs rule'))
 
 in
   val _ = Testing.assert_no_failed_tests();

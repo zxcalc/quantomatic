@@ -35,6 +35,7 @@ trait BinRel[A,B] extends Iterable[(A,B)] {
    * current one except '''kv'''
    */
   def unmap(kv: (A,B)): BinRel[A,B]
+  def -(kv: (A,B)) : BinRel[A,B] = unmap(kv)
 
   /**
    * Remove all relation pairs '''(d,_)'''
@@ -54,9 +55,11 @@ trait BinRel[A,B] extends Iterable[(A,B)] {
 
   /** The domain set of the relation */
   def dom = domf.keys
+  def domSet = domf.keySet
 
   /** The codomain set of the relation */
   def cod = codf.keys
+  def codSet = codf.keySet
 
   /**
    * The codomain image of a set of domain elements under this relation

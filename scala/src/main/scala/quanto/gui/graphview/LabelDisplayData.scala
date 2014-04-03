@@ -21,7 +21,8 @@ object LabelDisplayData {
     val (x,y) = centerPoint
     val arr = text.toCharArray
     val h = fm.getHeight.toDouble
-    val w = max(fm.charsWidth(arr, 0, arr.size).toDouble, h)
+    //val w = max(fm.charsWidth(arr, 0, arr.size).toDouble, h)
+    val w = fm.charsWidth(arr, 0, arr.size).toDouble
     val bds = new Rectangle2D.Double(x - (w/2), y - (h/2), w, h)
     LabelDisplayData(text, bds, bds.getMaxY - fm.getDescent, foregroundColor, backgroundColor)
   }

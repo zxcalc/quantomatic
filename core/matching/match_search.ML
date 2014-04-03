@@ -2,83 +2,96 @@
 (* see docs/matching_algo for details *)
 signature MATCH_SEARCH_SHARING =
 sig
-  structure G : OGRAPH_SHARING
-  structure MatchState : OGRAPH_MATCH_STATE_SHARING
-  sharing G = MatchState.G
+  structure Graph : OGRAPH_SHARING
+  structure Match : OGRAPH_MATCH_SHARING
+  sharing Graph = Match.Graph
 end
 
 signature MATCH_SEARCH =
 sig
   structure Log : LOG;
 
-  structure MatchState : OGRAPH_MATCH_STATE
-  structure G : OGRAPH
+
+  structure Match : OGRAPH_MATCH
+  structure Graph : OGRAPH
   structure Sharing : MATCH_SEARCH_SHARING
-    sharing Sharing.G = G.SharingOGraph
-    sharing Sharing.MatchState = MatchState.Sharing
+    sharing Sharing.Graph = Graph.Sharing
+    sharing Sharing.Match = Match.Sharing
   
-  val match : G.T           (* pattern graph *)
-    -> G.T                  (* target graph *)
-    -> MatchState.T Seq.seq (* (lazy) list of matches *)
   
-  val match_subgraph : G.T  (* pattern graph *)
-    -> G.T                  (* target graph *)
+  val match : Graph.T      (* pattern graph *)
+    -> Graph.T             (* target graph *)
+    -> Match.T Seq.seq (* (lazy) list of matches *)
+
+  val match_subgraph : Graph.T  (* pattern graph *)
+    -> Graph.T                  (* target graph *)
     -> V.NSet.T             (* target subgraph verts *)
-    -> MatchState.T Seq.seq (* (lazy) list of matches *)
+    -> Match.T Seq.seq      (* (lazy) list of matches *)
   
   (* these versions are for efficiency if you can guarantee
    * that the graphs are already normalised
    *)
-  val match_normalised : G.T (* pattern graph (normalised) *)
-    -> G.T                   (* target graph (normalised) *)
-    -> MatchState.T Seq.seq  (* (lazy) list of matches *)
+
+  val match_normalised : Graph.T (* pattern graph (normalised) *)
+    -> Graph.T                   (* target graph (normalised) *)
+    -> Match.T Seq.seq       (* (lazy) list of matches *)
   
-  val match_subgraph_normalised : G.T (* pattern graph (normalised) *)
-    -> G.T                            (* target graph (normalised) *)
+  val match_subgraph_normalised : Graph.T (* pattern graph (normalised) *)
+    -> Graph.T                            (* target graph (normalised) *)
     -> V.NSet.T                       (* target subgraph verts *)
-    -> MatchState.T Seq.seq           (* (lazy) list of matches *)
+    -> Match.T Seq.seq                (* (lazy) list of matches *)
+end
+
+signature BG_MATCH_SEARCH_SHARING =
+sig
+  structure Graph : OGRAPH_SHARING
+  structure Match : BANG_GRAPH_MATCH_SHARING
+  sharing Graph = Match.Graph
 end
 
 signature BG_MATCH_SEARCH =
 sig
-  include MATCH_SEARCH;
-  structure BG : BANG_GRAPH;
-  structure BGMatchState : BANG_GRAPH_MATCH_STATE;
-  sharing G.SharingOGraph = BG.SharingOGraph;
-  sharing BGMatchState.G.SharingOGraph = G.SharingOGraph;
-  sharing MatchState.Sharing = BGMatchState.Sharing
+
+  structure Log : LOG;
+  structure InnerLog : LOG;
+
+  structure Graph : BANG_GRAPH;
+  structure Match: BANG_GRAPH_MATCH;
+  structure Sharing : MATCH_SEARCH_SHARING
+    sharing Sharing.Graph = Graph.Sharing
+    sharing Sharing.Match = Match.Sharing
   
   (* Searches for matches *)
-  val match_avoiding_tracking
-     : (V.NSet.T *          (* names to avoid *)
-        V.NSet.T)           (* names to track *)
-    -> G.T                  (* pattern graph *)
-    -> G.T                  (* target graph *)
-    -> MatchState.T Seq.seq (* (lazy) list of matches *)
+  val match
+     : Graph.T              (* pattern graph *)
+    -> Graph.T              (* target graph *)
+    -> Match.T Seq.seq      (* (lazy) list of matches *)
+
+  (* Searches for matches that complete the given node map. If the
+     given node map is already invalid, returns no matches. *)
+  val match_with_initial_nodes
+     : Graph.T              (* pattern graph *)
+    -> Graph.T              (* target graph *)
+    -> VVInj.T              (* an initial node map *)
+    -> Match.T Seq.seq      (* (lazy) list of matches *)
   
   (* Searches for matches *)
-  val match_subgraph_avoiding_tracking
-     : (V.NSet.T *          (* names to avoid *)
-        V.NSet.T)           (* names to track *)
-    -> G.T                  (* pattern graph *)
-    -> G.T                  (* target graph *)
+  val match_subgraph
+     : Graph.T              (* pattern graph *)
+    -> Graph.T              (* target graph *)
     -> V.NSet.T             (* target subgraph verts *)
-    -> MatchState.T Seq.seq (* (lazy) list of matches *)
+    -> Match.T Seq.seq      (* (lazy) list of matches *)
   
   (* Searches for matches *)
-  val match_normalised_avoiding_tracking
-     : (V.NSet.T *          (* names to avoid *)
-        V.NSet.T)           (* names to track *)
-    -> G.T                  (* pattern graph (normalised) *)
-    -> G.T                  (* target graph (normalised) *)
-    -> MatchState.T Seq.seq (* (lazy) list of matches *)
+  val match_normalised
+     : Graph.T              (* pattern graph *)
+    -> Graph.T              (* target graph (normalised) *)
+    -> Match.T Seq.seq      (* (lazy) list of matches *)
   
   (* Searches for matches *)
-  val match_subgraph_normalised_avoiding_tracking
-     : (V.NSet.T *          (* names to avoid *)
-        V.NSet.T)           (* names to track *)
-    -> G.T                  (* pattern graph (normalised) *)
-    -> G.T                  (* target graph (normalised) *)
+  val match_subgraph_normalised
+     : Graph.T              (* pattern graph *)
+    -> Graph.T              (* target graph (normalised) *)
     -> V.NSet.T             (* target subgraph verts *)
-    -> MatchState.T Seq.seq (* (lazy) list of matches *)
+    -> Match.T Seq.seq      (* (lazy) list of matches *)
 end

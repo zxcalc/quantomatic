@@ -14,12 +14,33 @@ in
     TextIO.print "  -h, --help                Print this help and exit\n";
     TextIO.print "      --protocol            Run the (old) tool communication protocol\n";
     TextIO.print "      --json-protocol       Run the (sequential) JSON protocol\n";
-    TextIO.print "      --par-json-protocol   Run the parallel JSON protocol\n"
+    TextIO.print "      --par-json-protocol   Run the parallel JSON protocol\n";
+    TextIO.print "      --socket              Use localhost:4321 instead of stdio\n"
     )
   else if List.exists (fn s => s = "--par-json-protocol") argList then
-    JsonControllerProtocol.parallel_run_in_stdio ()
+    if List.exists (fn s => s = "--socket") argList
+    then let
+           val _ = TextIO.print "CORE: waiting for connection...\n"
+           val s = TextSocket.local_connect 4321
+           val _ = TextIO.print "CORE: connected\n"
+           val (ins, outs) = TextSocket.get_io_stream s
+           val _ = JsonControllerProtocol.parallel_run_in_textstreams (ins, outs)
+           val _ = TextSocket.close s
+          in ()
+          end
+    else JsonControllerProtocol.parallel_run_in_stdio ()
   else if List.exists (fn s => s = "--json-protocol") argList then
-    JsonControllerProtocol.run_in_stdio ()
+    if List.exists (fn s => s = "--socket") argList
+    then let
+           val _ = TextIO.print "CORE: waiting for connection...\n"
+           val s = TextSocket.local_connect 4321
+           val _ = TextIO.print "CORE: connected\n"
+           val (ins, outs) = TextSocket.get_io_stream s
+           val _ = JsonControllerProtocol.run_in_textstreams (ins, outs)
+           val _ = TextSocket.close s
+          in ()
+          end
+    else JsonControllerProtocol.run_in_stdio ()
   else if List.exists (fn s => s = "--protocol") argList then
     ProtocolInterface.run_in_stdio ()
   else

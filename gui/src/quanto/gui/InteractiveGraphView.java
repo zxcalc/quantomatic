@@ -138,28 +138,30 @@ public class InteractiveGraphView
 						viewer.add(labeler);
 						Color colour = new Color(0, 0, 0, 0);
 						labeler.setColor(colour);
-						labeler.addChangeListener(new ChangeListener() {
+						labeler.addLabelChangeListener(new Labeler.LabelChangeListener() {
 
-							public void stateChanged(ChangeEvent e) {
-								Labeler lab = (Labeler) e.getSource();
-								if (qVertex != null) {
-									try {
-										String newN = lab.getText();
-										String oldN = qVertex.getCoreName();
-										String displacedName = core.renameVertex(getGraph(), qVertex, newN);
-										if (verticesCache != null) {
-											if (displacedName != null) {
-												Point2D oldP = verticesCache.get(newN);
-												verticesCache.put(displacedName, oldP);
-												verticesCache.remove(newN);
-											}
-											Point2D oldP = verticesCache.get(oldN);
-											verticesCache.put(newN, oldP);
-											verticesCache.remove(oldN);
+							public boolean aboutToChangeLabel(Labeler.LabelChangeEvent evt) {
+								if (qVertex == null) {
+									return true; // why not?
+								}
+								try {
+									String newN = evt.getNewText();
+									String oldN = qVertex.getCoreName();
+									String displacedName = core.renameVertex(getGraph(), qVertex, newN);
+									if (verticesCache != null) {
+										if (displacedName != null) {
+											Point2D oldP = verticesCache.get(newN);
+											verticesCache.put(displacedName, oldP);
+											verticesCache.remove(newN);
 										}
-									} catch (CoreException err) {
-										errorDialog(err.getMessage());
+										Point2D oldP = verticesCache.get(oldN);
+										verticesCache.put(newN, oldP);
+										verticesCache.remove(oldN);
 									}
+									return true;
+								} catch (CoreException err) {
+									errorDialog(err.getMessage());
+									return false;
 								}
 							}
 						});
@@ -177,16 +179,18 @@ public class InteractiveGraphView
 						if (colour != null) {
 							labeler.setColor(colour);
 						}
-						labeler.addChangeListener(new ChangeListener() {
+						labeler.addLabelChangeListener(new Labeler.LabelChangeListener() {
 
-							public void stateChanged(ChangeEvent e) {
-								Labeler lab = (Labeler) e.getSource();
-								if (qVertex != null) {
-									try {
-										core.setVertexAngle(getGraph(), qVertex, lab.getText());
-									} catch (CoreException err) {
-										coreErrorMessage("The label could not be updated", err);
-									}
+							public boolean aboutToChangeLabel(Labeler.LabelChangeEvent evt) {
+								if (qVertex == null) {
+									return true; // sure, I guess?
+								}
+								try {
+									core.setVertexAngle(getGraph(), qVertex, evt.getNewText());
+									return true;
+								} catch (CoreException err) {
+									coreErrorMessage("The label could not be updated", err);
+									return false;
 								}
 							}
 						});
@@ -273,19 +277,21 @@ public class InteractiveGraphView
 					viewer.add(labeler);
 					Color colour = new Color(0, 0, 0, 0);
 					labeler.setColor(colour);
-					labeler.addChangeListener(new ChangeListener() {
+					labeler.addLabelChangeListener(new Labeler.LabelChangeListener() {
 
-						public void stateChanged(ChangeEvent e) {
-							Labeler lab = (Labeler) e.getSource();
-							if (qBb != null) {
-								try {
-									String newN = lab.getText();
-									String oldN = qBb.getCoreName();
-									core.renameBangBox(getGraph(), oldN, newN);
-									qBb.updateCoreName(newN);
-								} catch (CoreException err) {
-									errorDialog(err.getMessage());
-								}
+						public boolean aboutToChangeLabel(Labeler.LabelChangeEvent evt) {
+							if (qBb == null) {
+								return true; // sure?
+							}
+							try {
+								String newN = evt.getNewText();
+								String oldN = qBb.getCoreName();
+								core.renameBangBox(getGraph(), oldN, newN);
+								qBb.updateCoreName(newN);
+								return true;
+							} catch (CoreException err) {
+								errorDialog(err.getMessage());
+								return false;
 							}
 						}
 					});
@@ -1507,27 +1513,6 @@ public class InteractiveGraphView
 					updateGraph(rect);
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not duplicate !-box", ex);
-				}
-			}
-		});
-
-		actionMap.put(CommandManager.Command.DumpHilbertTermAsText.toString(), new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				try {
-					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Plain));
-				} catch (CoreException ex) {
-					coreErrorDialog("Could not create Hilbert term", ex);
-				}
-			}
-		});
-		actionMap.put(CommandManager.Command.DumpHilbertTermAsMathematica.toString(), new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				try {
-					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Mathematica));
-				} catch (CoreException ex) {
-					coreErrorDialog("Could not create Hilbert term", ex);
 				}
 			}
 		});

@@ -24,10 +24,55 @@ case class ErrorMessage(rid: Int, output: String) extends CoreOutputItem {
 case class Output(rid: Int, output: String) extends CoreOutputItem {
   override def toString = output
 }
+
 /*
+EXAMPLES:
+
+{
+"controller": "!!",
+"module": "system",
+"function": "version"
+}
+
+{
+"controller": "!!",
+"module": "system",
+"function": "help",
+"input": {
+  "controller": "red_green",
+  "module": "test",
+  "function": "echo"
+}
+}
+
+{
+"controller": "red_green",
+"module": "test",
+"function": "echo",
+"input": {
+  "foo": "bar",
+  "baz": 12
+}
+}
+
+{
+"controller": "red_green",
+"module": "test",
+"function": "diverge"
+}
+
+{
+"controller": "!!",
+"module": "system",
+"function": "kill",
+"input": { "job": 8 }
+}
+
+ */
+
 object JsonConsole extends SimpleSwingApplication {
   val sys = ActorSystem("QuantoConsole")
-  val core = sys.actorOf(Props { new CoreState("../core/bin/quanto-core") }, "core_state")
+  val core = sys.actorOf(Props { new Core }, "core")
   implicit val timeout = Timeout(1.day)
 
   def appendResult(out: CoreOutputItem) {
@@ -71,7 +116,7 @@ object JsonConsole extends SimpleSwingApplication {
     }
   }
 
-  var rid = 0
+  var outputSlot = 0
 
   val JsonInput = new TextArea { input =>
     preferredSize = new Dimension(400,250)
@@ -79,24 +124,26 @@ object JsonConsole extends SimpleSwingApplication {
     reactions += {
       case KeyPressed(_, Key.Enter, mods, _) =>
         if ((mods & Key.Modifier.Shift) == Key.Modifier.Shift) {
-          JsonOutput.listData = Waiting(rid) +: JsonOutput.listData
+          val i = outputSlot
+          JsonOutput.listData = Waiting(i) +: JsonOutput.listData
 
           try {
             val json = Json.parse(input.text)
-            val req = SimpleRequest(json.setPath("$.request_id", rid).toString)
-            val future = core ? req
-            future.foreach { case resp : Json => Swing.onEDT {
-              val out = if ((resp /"success").boolValue)
-                        Output((resp / "request_id").intValue, resp.toString)
-                        else ErrorMessage((resp / "request_id").intValue, resp.toString)
-              appendResult(out)
-            }}
+            val future = core ? JsonRequest(json)
+            future.map { x =>
+              val out = x match {
+                case Success(resp) => Output(i, resp.toString)
+                case Error(code, message) => ErrorMessage(i, "Error " + code + ": " + message)
+              }
+
+              Swing.onEDT { appendResult(out) }
+            }
           } catch {
-            case e : JsonParseException => appendResult(ErrorMessage(rid, "Parse error"))
+            case e : JsonParseException => Swing.onEDT { appendResult(ErrorMessage(i, "Parse error")) }
           }
 
           JsonOutput.repaint()
-          rid += 1
+          outputSlot += 1
         }
     }
     listenTo(keys)
@@ -122,4 +169,4 @@ object JsonConsole extends SimpleSwingApplication {
     }
   }
 }
-*/
+

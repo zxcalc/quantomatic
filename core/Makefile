@@ -12,13 +12,14 @@ ISAPLIB_SOURCES=../../isaplib
 # polyml executable
 POLYML_HOME=$(shell ../tools/findpoly.sh)
 POLYML=$(POLYML_HOME)/bin/poly
-POLYFLAGS=-H 200
+POLYFLAGS=-H 200 $(if $(FAST),--disable-tests) $(if $(V),--test-log-level=$(V))
 
 
 ################################
 # dynamic variables checked on call to make. 
 ################################
 ML_SRC_FILES = $(shell find . | grep ".ML$$" | grep -v "test/protocol/" | grep -v "test/PROTOCOLTEST.ML$$" | grep -v "toplevel/")
+COSY_ML_SRC_FILES = $(shell find ../cosy | grep ".ML$$")
 ISAP_ML_SRC_FILES = $(ISAPLIB_SOURCES)/Makefile $(shell find $(ISAPLIB_SOURCES)/* | grep ".ML$$")
 
 ################################
@@ -35,13 +36,13 @@ ALL_BINS=$(CORE_BIN) bin/quanto-xml-to-json
 ################################
 default: all
 
-$(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAP_ML_SRC_FILES)
+$(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAP_ML_SRC_FILES) $(COSY_ML_SRC_FILES)
 	@mkdir -p heaps
 	POLYFLAGS="$(POLYFLAGS)" ../tools/poly-build-heap -p -o $@ ROOT.ML
 
 heap: $(QUANTO_HEAP)
 
-bin/%: toplevel/%.ML $(QUANTO_HEAP)
+bin/%: toplevel/%.ML $(QUANTO_HEAP) $(shell find "toplevel/$%" | grep ".ML$$")
 	@mkdir -p bin
 	POLYFLAGS="$(POLYFLAGS)" ../tools/polyc -l $(QUANTO_HEAP) -o $@ $<
 
@@ -60,7 +61,7 @@ run: ml-shell
 
 # 
 localclean:
-	rm -f heaps/*.polyml-heap
+	rm -f heaps/*.heap
 	rm -f bin/*.o
 	find . -type d -name .polysave | xargs rm -rf
 	rm -f $(ALL_BINS)

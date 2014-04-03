@@ -37,11 +37,11 @@ object SockJson {
     if (resp){
       Json.parse(sockIn) match {
         case JsonObject(map) => map("output")
-        case _ => JsonNull()
+        case _ => JsonNull
       }
     }
     else{
-      JsonNull()
+      JsonNull
     }
 
   }
@@ -63,7 +63,7 @@ object SockJson {
   }
 
   def requestMode () : Boolean =  {
-    val mode = request ("mode_choice", JsonNull(), true);
+    val mode = request ("mode_choice", JsonNull, true);
     mode match{
       case JsonBool(v) => v
       case _ => true
@@ -73,7 +73,7 @@ object SockJson {
   def requestInit (mode : Boolean, json_graph : Json)  = {
 
     if (mode) //active mode
-      request("active_init", JsonNull(), true);
+      request("active_init", JsonNull, true);
     else // passive mode
     {
       request ("passive_init", json_graph , true);
@@ -82,10 +82,10 @@ object SockJson {
   }
 
   def requestNext () = {
-    val json = request("next_status", JsonNull(), true);
+    val json = request("next_status", JsonNull, true);
 
     json match{
-      case JsonNull() =>
+      case JsonNull =>
         throw new SockJsonError ("Eval error !", SockJsonErrorType.ErrEval)
       case JsonString(v) =>
         if (json.stringValue == "SUCCESS")
@@ -98,9 +98,9 @@ object SockJson {
   }
 
   def requestPrev () = {
-    val json = request("previous_status", JsonNull(), true);
+    val json = request("previous_status", JsonNull, true);
     json match{
-      case JsonNull() =>
+      case JsonNull =>
         throw new SockJsonError ("Eval error !", SockJsonErrorType.ErrEval)
       case JsonString(v) =>
         if (json.stringValue == "TOP")
@@ -112,9 +112,9 @@ object SockJson {
     }
   }
     def requestBacktrack () = {
-      val json = request("backtrack", JsonNull(), true);
+      val json = request("backtrack", JsonNull, true);
       json match{
-        case JsonNull() =>
+        case JsonNull =>
           throw new SockJsonError ("Eval error !", SockJsonErrorType.ErrEval)
         case JsonString(v) =>
           if (json.stringValue == "TOP")
@@ -128,6 +128,6 @@ object SockJson {
 
 
   def requestDeinit () = {
-    request("close", JsonNull(), false);
+    request("close", JsonNull, false);
   }
 }

@@ -83,7 +83,7 @@ fun update_deps (Theory rep) = Theory {deps = f (#deps rep)};
 val set_deps = update_deps o K;
 
 (* implicit: thry n *)
-val get_r_deps = Dep.domf o get_deps;
+val get_r_deps = Dep.get o get_deps;
 (* implicit: n nset thry *)
 val add_r_deps = update_deps oo Dep.add_to_dom;
 (* implicit: n n2 thry, where n2 is uses n1 *)

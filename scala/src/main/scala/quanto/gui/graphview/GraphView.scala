@@ -7,13 +7,18 @@ import swing._
 import event.FocusEvent
 import java.awt.{Font => AWTFont, BasicStroke, RenderingHints, Color}
 import math._
-import java.awt.geom.{Line2D, Rectangle2D}
+import java.awt.geom.{AffineTransform, Line2D, Rectangle2D}
+import java.awt.Font
+import java.awt.font.TextLayout
 
 
 // a visual overlay for edge drawing
 case class EdgeOverlay(pt: Point, src: VName, tgt: Option[VName])
+case class BBoxOverlay(pt: Point, src: BBName, vtgt : Option[VName], bbtgt : Option[BBName])
 
-class GraphView(val theory: Theory) extends Panel
+case class Highlight(color: Color, vertices: Set[VName])
+
+class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   with Scrollable
   with EdgeDisplayData
   with VertexDisplayData
@@ -21,25 +26,46 @@ class GraphView(val theory: Theory) extends Panel
 {
   import GraphView._
 
-  var drawGrid = false
+  var drawGrid = true
+  var drawBBoxConnections = false
   var snapToGrid = false
-  var dynamicResize = false
   var gridMajor = 1.0
-  var gridSubs = 4
+  var gridSubs = 2
+  var showNames = true
+  val highlights = collection.mutable.Set[Highlight]()
+
+  private var _graphRef = gRef
+
+  def graphRef = _graphRef
+  def graphRef_=(gRef: HasGraph) {
+    deafTo(_graphRef)
+    listenTo(gRef)
+    _graphRef = gRef
+    invalidateGraph(clearSelection = true)
+    repaint()
+  }
 
   var selectionBox: Option[Rectangle2D] = None
   //var bangBoxList: List[Rectangle2D] = Nil
   var edgeOverlay: Option[EdgeOverlay] = None
-  focusable = false
+  var bboxOverlay: Option[BBoxOverlay] = None
+  focusable = true
 
   // gets called when the component is first painted
   lazy val init = {
     resizeViewToFit()
   }
 
-  listenTo(this)
+  listenTo(this, graphRef)
   reactions += {
     case _: FocusEvent => repaint()
+    case GraphChanged(_) =>
+      //resizeViewToFit()
+      repaint()
+    case GraphReplaced(_, clearSelection) =>
+      //resizeViewToFit()
+      invalidateGraph(clearSelection)
+      repaint()
   }
 
   def computeDisplayData() {
@@ -48,19 +74,33 @@ class GraphView(val theory: Theory) extends Panel
     computeBBoxDisplay()
   }
 
-  var graph = Graph(theory)
-  var trans = new Transformer
+  def graph = graphRef.graph
+  def graph_=(g: Graph) { graphRef.graph = g }
+  val trans = new Transformer
 
   var selectedVerts = Set[VName]()
   var selectedEdges = Set[EName]()
   var selectedBBoxes = Set[BBName]()
 
-  def invalidateGraph() {
+  private var _zoom = 1.0
+  def zoom = _zoom
+  def zoom_=(d: Double) {
+    _zoom = d
+    trans.scale = _zoom * 50.0
+    trans.origin = (_zoom * 250.0, _zoom * 250.0)
+    invalidateGraph(clearSelection = false)
+    resizeViewToFit()
+    repaint()
+  }
+
+  def invalidateGraph(clearSelection: Boolean) {
     invalidateAllVerts()
     invalidateAllEdges()
-    selectedVerts = Set[VName]()
-    selectedEdges = Set[EName]()
-    selectedBBoxes = Set[BBName]()
+    if (clearSelection) {
+      selectedVerts = Set[VName]()
+      selectedEdges = Set[EName]()
+      selectedBBoxes = Set[BBName]()
+    }
   }
 
   private def drawGridLines(g: Graphics2D) {
@@ -68,9 +108,9 @@ class GraphView(val theory: Theory) extends Panel
     val minor = (trans scaleToScreen gridMajor) / gridSubs.toDouble
 
     val iterations = List(
-      ceil((origin._1)/minor),
+      ceil(origin._1/minor),
       ceil((bounds.width - origin._1)/minor),
-      ceil((origin._2)/minor),
+      ceil(origin._2/minor),
       ceil((bounds.height - origin._2)/minor)
     ).max.toInt
 
@@ -121,13 +161,23 @@ class GraphView(val theory: Theory) extends Panel
     if (changed) {
       trans.origin = (trans.origin._1 - topLeft._1, trans.origin._2 - topLeft._2)
       preferredSize = new Dimension(w.toInt, h.toInt)
-      invalidateGraph()
+      invalidateGraph(clearSelection = false)
       revalidate()
     }
   }
 
+  def addHighlight(h : Highlight) {
+    highlights += h
+    repaint()
+  }
+
+  def clearHighlights() {
+    highlights.clear()
+    repaint()
+  }
+
   override def repaint() {
-    if (dynamicResize) resizeViewToFit()
+    //if (dynamicResize) resizeViewToFit()
     super.repaint()
   }
 
@@ -151,11 +201,56 @@ class GraphView(val theory: Theory) extends Panel
     g.setStroke(new BasicStroke(1))
 
 
-    for ((bb, BBDisplay(rect)) <- bboxDisplay) {
-      g.setColor(new Color(0.5f,0.5f,0.5f,0.2f))
-      g.fill(rect)
-      g.setColor(new Color(0.5f,0.5f,0.5f,0.7f))
-      g.draw(rect)
+    for ((bb, bbd) <- bboxDisplay) {
+      g.setColor(new Color(0.5f,0.5f,0.8f,0.2f))
+      g.fill(bbd.rect)
+
+      if (selectedBBoxes contains bb) {
+        g.setStroke(new BasicStroke(3))
+      } else {
+        g.setStroke(new BasicStroke(1))
+      }
+
+      val corner = bbd.corner
+
+      g.setColor(new Color(0.5f,0.5f,0.8f,1.0f))
+
+      if (drawBBoxConnections) {
+        for (v <- graph.contents(bb)) {
+          val vbounds = vertexDisplay(v).shape.getBounds
+          val connect = new Line2D.Double(
+            corner.getCenterX, corner.getCenterY,
+            vbounds.getCenterX, vbounds.getCenterY)
+          g.draw(connect)
+        }
+      }
+
+      g.draw(bbd.rect)
+      g.fill(corner)
+
+      graph.bboxParent.get(bb) match {
+        case Some(bbParent) =>
+          val parentCorner = bboxDisplay(bbParent).corner
+          g.draw(new Line2D.Double(
+            corner.getCenterX, corner.getCenterY,
+            parentCorner.getCenterX, parentCorner.getCenterY))
+        case None => // do nothing
+      }
+
+      g.setFont(VertexLabelFont)
+      g.drawString(bb.s, corner.getX.toFloat - 5.0f, bbd.corner.getY.toFloat - 5.0f)
+    }
+
+    // draw highlights under nodes/edges, but over bboxes
+    highlights.map { h =>
+      val c = new Color(h.color.getRed, h.color.getGreen, h.color.getBlue, 100)
+      g.setStroke(new BasicStroke(10))
+      g.setColor(c)
+      h.vertices.foreach { v =>
+        vertexDisplay.get(v).map { d =>
+          g.draw(d.shape)
+        }
+      }
     }
 
     for ((e, ed) <- edgeDisplay) {
@@ -183,11 +278,28 @@ class GraphView(val theory: Theory) extends Panel
     }
 
     g.setStroke(new BasicStroke(1))
-
+    var a = g.getColor
     for ((v, VDisplay(shape,color,label)) <- vertexDisplay) {
-      g.setColor(color)
-      g.fill(shape)
+      if (graph.vdata(v).isBoundary) g.setColor(Color.RED)
+      else g.setColor(color)
 
+      g.fill(shape)
+      
+      /// show the vname on the GUI
+      val sh = shape.getBounds.getLocation
+      val px = sh.getX.toInt
+      val py = sh.getY.toInt
+      
+      //println(sh)
+      if (showNames || graph.vdata(v).isBoundary) {
+        a = g.getColor
+        g.setFont(EdgeLabelFont)
+        g.setColor(Color.RED)
+
+        g.drawString(v.toString, px, py - 5)
+        g.setColor(a)
+      }
+      
       if (selectedVerts contains v) {
         g.setColor(Color.BLUE)
         g.setStroke(new BasicStroke(2))
@@ -205,9 +317,25 @@ class GraphView(val theory: Theory) extends Panel
             ld.bounds.getMinX - 3.0, ld.bounds.getMinY - 3.0,
             ld.bounds.getWidth + 6.0, ld.bounds.getHeight + 6.0))
         }
-        g.setColor(ld.foregroundColor)
-        g.setFont(VertexLabelFont)
-        g.drawString(ld.text, ld.bounds.getMinX.toFloat, ld.baseline.toFloat)
+
+        if (ld.text.length > 0) {
+          val textLayout = new TextLayout(ld.text, VertexLabelFont, g.getFontRenderContext)
+
+//          val tr = new AffineTransform
+//          tr.translate(ld.bounds.getMinX, ld.baseline)
+//          val outline = textLayout.getOutline(tr)
+//          g.setColor(Color.WHITE)
+//          g.setStroke(new BasicStroke(3))
+//          g.draw(outline)
+
+          g.setStroke(new BasicStroke(1))
+          g.setColor(ld.foregroundColor)
+          textLayout.draw(g, ld.bounds.getMinX.toFloat, ld.baseline.toFloat)
+        }
+
+//
+//        g.setFont(VertexLabelFont)
+//        g.drawString(ld.text, ld.bounds.getMinX.toFloat, ld.baseline.toFloat)
       }
     }
 
@@ -249,6 +377,44 @@ class GraphView(val theory: Theory) extends Panel
 
       if (Some(startV) != endVOpt)
         g.draw(new Line2D.Double(startPt._1, startPt._2, endPt._1, endPt._2))
+    }
+
+    bboxOverlay.map { case BBoxOverlay(pt, bb, endVOpt, endBBOpt) =>
+      val corner = bboxDisplay(bb).corner
+
+      g.setStroke(new BasicStroke(2))
+      g.setColor(new Color(0.5f,0.5f,0.8f,1.0f))
+
+      val startPt = (corner.getCenterX, corner.getCenterY)
+      val endPt = endVOpt match {
+        case Some(endV) =>
+          if (graph.contents(bb).contains(endV)) g.setColor(Color.RED)
+          g.draw(vertexDisplay(endV).shape)
+
+          val tgtCenter = (
+            vertexDisplay(endV).shape.getBounds.getCenterX,
+            vertexDisplay(endV).shape.getBounds.getCenterY)
+          val (dx, dy) = (tgtCenter._1 - startPt._1, tgtCenter._2 - startPt._2)
+          val angle = atan2(-dy,dx)
+
+
+          trans toScreen vertexContactPoint(endV, angle + Pi)
+        case None =>
+          endBBOpt match {
+            case Some(endBB) =>
+              val corner1 = bboxDisplay(endBB).corner
+
+              if (graph.bboxParent.get(endBB) == Some(bb)) g.setColor(Color.RED)
+              else if (graph.bboxParents(bb).contains(endBB)) g.setColor(Color.GRAY)
+              g.draw(corner1)
+
+              (corner1.getCenterX, corner1.getCenterY)
+            case None =>
+              (pt.getX, pt.getY)
+          }
+      }
+
+      g.draw(new Line2D.Double(startPt._1, startPt._2, endPt._1, endPt._2))
     }
   }
 

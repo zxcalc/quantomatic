@@ -9,7 +9,7 @@ import ExecutionContext.Implicits.global
 
 class ParCoreSpec extends FlatSpec {
   val sys = ActorSystem("Quanto-Test")
-  val core = sys.actorOf(Props { new CoreState("../core/bin/quanto-core") }, "core_state")
+  val core = sys.actorOf(Props { new Core }, "core")
   implicit val timeout = new akka.util.Timeout(5 seconds)
 
   def testReq(rid: Int) = new SimpleRequest(

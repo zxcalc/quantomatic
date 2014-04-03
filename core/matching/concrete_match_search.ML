@@ -1,32 +1,39 @@
 (* A wrapper for matching concrete graphs against concrete graphs *)
 (* see docs/matching_algo for details *)
 (* This wrapper is very simple, as the InnerMatchSearch does all the work *)
-functor ConcreteMatchSearch(
-    structure InnerMatchSearch : INNER_MATCH_SEARCH
-) : MATCH_SEARCH =
+functor ConcreteMatchSearch(Graph : OGRAPH) : MATCH_SEARCH =
 struct
 
-  structure Log : LOG = Log(val init_level = 0);
+  structure Log : LOG = Log(val init_level = 0)
 
-  structure MatchState = InnerMatchSearch.MatchState
-  structure G = InnerMatchSearch.G
-  
-  (* We can't provide any information that the inner match search
-   * does not already know *)
-  fun concrete_doomedf _ _ = false
+
+  structure Graph = Graph
+  structure MatchState = OGraphMatchState(Graph)
+  structure InnerMatchSearch = ProgressiveMatchSearch(PermissiveHooks(MatchState))
+  structure Match = OGraphMatch(Graph)
+
+  fun matches_from_ms ms = let
+    val (pat,tgt,vmap,emap) = (MatchState.get_pat ms,
+                               MatchState.get_tgt ms,
+                               MatchState.get_vmap ms,
+                               MatchState.get_emap ms)
+  in Seq.map (Match.mk pat tgt vmap emap)
+             (Graph.solve_psubst (MatchState.get_match_psubst ms))
+  end
 
   (* We just put everything in the match state, and for each match
    * provided by the inner loop, we match the bare wires, and discard any
    * incomplete matches (as we have nothing left to add to the pattern) *)
-  fun do_match ms = 
-    Seq.filter MatchState.is_total
-       (Seq.maps InnerMatchSearch.match_bare_wires
-        (InnerMatchSearch.match_pending concrete_doomedf ms))
+  fun do_match ms =
+    Seq.maps matches_from_ms
+      (Seq.filter MatchState.is_total
+       (Seq.maps (InnerMatchSearch.match_bare_wires ())
+        (InnerMatchSearch.match_pending () ms)))
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
         (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
-  val log_graph = log_p G.pretty
+  val log_graph = log_p Graph.pretty
   val log_v_nset = log_p V.NSet.pretty
   
   fun match_normalised pat tgt = let
@@ -37,26 +44,26 @@ struct
     do_match ms
   end
   fun match pat tgt = let
-    val pat' = G.normalise pat
-    val tgt' = G.normalise tgt
+    val pat' = Graph.normalise pat
+    val tgt' = Graph.normalise tgt
   in match_normalised pat' tgt' end
   
   fun match_subgraph pat tgt tgt_verts = let
     val _ = log_graph 3 "ConcreteMatchSearch: normalised pattern" pat
     val _ = log_graph 3 "ConcreteMatchSearch: normalised target" tgt
     val _ = log_v_nset 4 "ConcreteMatchSearch: target vertices" tgt_verts
-    val ms = MatchState.init_subgraph_and_schedule_all pat tgt tgt_verts
+    val ms = MatchState.init_and_schedule_for_subgraph pat tgt tgt_verts
   in
     do_match ms
   end
   fun match_subgraph_normalised pat tgt = let
-    val pat = G.normalise pat
-    val tgt = G.normalise tgt
+    val pat = Graph.normalise pat
+    val tgt = Graph.normalise tgt
   in match_subgraph_normalised pat tgt end
   
   structure Sharing =
   struct
-    structure G = G.SharingOGraph
-    structure MatchState = MatchState.Sharing
+    structure Graph = Graph.Sharing
+    structure Match = Match.Sharing
   end
 end

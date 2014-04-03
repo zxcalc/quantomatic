@@ -1,35 +1,32 @@
-structure Str_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
+structure Substrings_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
 = struct
-  type vdata = PrefixStringVertexData.data;
-  type edata = unit;
+  type nvdata = Substrings_Data.nvdata
+  type edata = Substrings_Data.edata
 
   structure IVDataInputJSON : INPUT_JSON =
   struct
-    open JsonInputUtils;
-    type data = PrefixStringVertexData.data;
-    fun input (Json.String str) = str
-      | input _ = raise bad_input_exp ("Expected string","type");
-  end;
+    open JsonInputUtils
+    type data = nvdata
+    fun input (Json.Object obj) = get_string_easy "" obj "value"
+      | input (Json.String str) = str
+      | input _ = raise bad_input_exp ("Expected string","type")
+  end
   structure IVDataOutputJSON : OUTPUT_JSON =
   struct
-    open JsonOutputUtils;
-    type data = PrefixStringVertexData.data;
-    val output = Json.String;
-  end;
-  structure EDataInputJSON = InputUnitJSON;
-  structure EDataOutputJSON = OutputUnitJSON;
+    open JsonOutputUtils
+    type data = nvdata
+    fun output s = Json.mk_record [("type", "string"), ("label",s), ("value", s)]
+  end
+  structure EDataInputJSON = InputUnitJSON
+  structure EDataOutputJSON = OutputUnitJSON
 
   structure DotStyle : DOT_STYLE =
   struct
-    type vdata = vdata;
+    type nvdata = nvdata
     fun style_for_ivertex_data _ =
-          "[style=filled,fillcolor=white,fontcolor=black,shape=circle]";
-  end;
-end;
+          "[style=filled,fillcolor=white,fontcolor=black,shape=circle]"
+  end
+end
 
-(* Use this for convenience if you don't need annotations *)
-structure Str_GraphicalTheoryIO = GraphicalTheoryIO(
-  structure Theory = Str_Theory
-  structure GraphComponentDataIO = Str_ComponentDataIO
-);
+
 

@@ -6,20 +6,29 @@ import swing.event._
 import Key.Modifier
 import quanto.data._
 import Names._
+import quanto.layout.ForceLayout
+import quanto.util.json._
+import quanto.layout.constraint._
+import java.awt.event.{ActionEvent, ActionListener}
 
 class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   private var _mouseState: MouseState = SelectTool()
   def mouseState = _mouseState
 
+  def graphRef = view.graphRef
+
   def mouseState_=(s: MouseState) {
     if (readOnly) s match {
-      case AddVertexTool() | AddEdgeTool() | AddBangBoxTool() | DragEdge(_) | BangSelectionBox(_,_) =>
+      case AddVertexTool() | AddBoundaryTool() | AddEdgeTool() | AddBangBoxTool() | DragEdge(_) | BangSelectionBox(_,_) =>
         throw new InvalidMouseStateException("readOnly == true", s)
       case _ =>
     }
 
     _mouseState = s
   }
+
+  // a second controller that needs to by synchronised
+  var pairedController : Option[GraphEditController] = None
 
   // GUI component connections
   var vertexTypeLabel : Option[Label] = None
@@ -28,6 +37,25 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   var edgeTypeSelect : ComboBox[String] = _
   var edgeDirectedCheckBox : CheckBox = _
   var dataField : TextField = _
+
+  val qLayout = new ForceLayout with Clusters
+  qLayout.alpha0 = 0.005
+  qLayout.alphaAdjust = 1.0
+  qLayout.keepCentered = false
+
+  val layoutTimer = new javax.swing.Timer(10, new ActionListener {
+    def actionPerformed(e: ActionEvent) {
+      if (qLayout.graph != null) {
+        qLayout.step()
+        qLayout.updateGraph()
+        graph = qLayout.graph
+        graphRef.publish(GraphReplaced(graphRef, clearSelection = false))
+      } else {
+        println("null graph")
+      }
+    }
+  })
+
 
   // listen to undo stack
   private var _undoStack: UndoStack = new UndoStack
@@ -40,13 +68,17 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   }
 
   view.reactions += {
-    case UndoPerformed(_) => view.repaint()
-    case RedoPerformed(_) => view.repaint()
+    case UndoPerformed(_) =>
+      view.resizeViewToFit()
+      view.repaint()
+    case RedoPerformed(_) =>
+      view.resizeViewToFit()
+      view.repaint()
   }
 
   // wire up the view's internal state
-  def graph = view.graph
-  def graph_=(g: Graph) { view.graph = g }
+  def graph = graphRef.graph
+  def graph_=(g: Graph) { graphRef.graph = g }
   def selectedVerts = view.selectedVerts
   def selectedVerts_=(s: Set[VName]) { view.selectedVerts = s }
   def selectedEdges = view.selectedEdges
@@ -62,7 +94,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
     val (dx,dy) = (view.trans scaleFromScreen (p2.getX - p1.getX), view.trans scaleFromScreen (p2.getY - p1.getY))
     graph = vs.foldLeft(graph) { (g,v) =>
       view.invalidateVertex(v)
-      graph.adjacentEdges(v) foreach (view.invalidateEdge(_))
+      graph.adjacentEdges(v).foreach { view.invalidateEdge }
       g.updateVData(v) { d => d.withCoord (d.coord._1 + dx, d.coord._2 - dy) }
     }
   }
@@ -75,7 +107,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
   private def addEdge(e: EName, d: EData, vs: (VName, VName)) {
     graph = graph.addEdge(e, d, vs)
-    graph.edgesBetween(vs._1, vs._2).foreach { view.invalidateEdge(_) }
+    graph.edgesBetween(vs._1, vs._2).foreach { view.invalidateEdge }
     undoStack.register("Add Edge") { deleteEdge(e) }
   }
 
@@ -86,7 +118,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
       selectedEdges -= e; true
     } else false
 
-    graph.edgesBetween(vs._1, vs._2).foreach(view.invalidateEdge(_))
+    graph.edgesBetween(vs._1, vs._2).foreach { view.invalidateEdge }
     graph = graph.deleteEdge(e)
 
     undoStack.register("Delete Edge") {
@@ -103,12 +135,8 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
   private def deleteVertex(v: VName) {
     undoStack.start("Delete Vertex")
-    graph.adjacentEdges(v).foreach { deleteEdge(_) }
-    val BBoxCover = graph.inBBox.domf(v)
-    /* update bang boxes containing the vertex */
-    graph.inBBox.domf(v).foreach { bbname =>
-      if (graph.inBBox.codf(bbname).size == 1) deleteBBox(bbname)
-    }
+    graph.adjacentEdges(v).foreach { deleteEdge }
+    graph.inBBox.domf(v).foreach { removeVertexFromBBox(_, v) }
 
     val d = graph.vdata(v)
     view.invalidateVertex(v)
@@ -121,11 +149,8 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
     undoStack += {
       addVertex(v, d)
       if (selected) selectedVerts += v
-      /* put it back in bboxes if it was before */
-      BBoxCover.foreach { bbname =>
-        graph = graph.updateBBoxContents(bbname, graph.inBBox.codf(bbname) + v)
-      }
     }
+
     undoStack.commit()
   }
 
@@ -146,24 +171,58 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
     }
   }
 
+  private def addVertexToBBox(bb: BBName, v: VName) {
+    graph = graph.updateBBoxContents(bb, graph.contents(bb) + v)
+    undoStack.register("Add Vertex to Bang Box") {
+      removeVertexFromBBox(bb, v)
+    }
+  }
+
+  private def removeVertexFromBBox(bb: BBName, v: VName) {
+    graph = graph.updateBBoxContents(bb, graph.contents(bb) - v)
+    undoStack.register("Remove Vertex from Bang Box") {
+      addVertexToBBox(bb, v)
+    }
+  }
+
+  private def setBBoxParent(bb: BBName, bbParentOpt : Option[BBName]) {
+    val oldParentOpt = graph.bboxParent.get(bb)
+    graph = graph.setBBoxParent(bb, bbParentOpt)
+    undoStack.register("Set Bang Box Parent") {
+      setBBoxParent(bb, oldParentOpt)
+    }
+  }
+
   private def setEdgeValue(e: EName, str: String) {
     val data = graph.edata(e)
-    val oldVal = data.value
+    val oldVal = data.label
     graph = graph.updateEData(e) { _ => data.withValue(str) }
-    graph.edgesBetween(graph.source(e), graph.target(e)).foreach { view.invalidateEdge(_) }
+    graph.edgesBetween(graph.source(e), graph.target(e)).foreach { view.invalidateEdge }
     undoStack.register("Set Edge Data") { setEdgeValue(e, oldVal) }
   }
 
   private def setVertexValue(v: VName, str: String) {
     graph.vdata(v) match {
       case data: NodeV =>
-        val oldVal = data.value
+        val oldVal = data.label
         graph = graph.updateVData(v) { _ => data.withValue(str) }
         view.invalidateVertex(v)
-        graph.adjacentEdges(v).foreach { view.invalidateEdge(_) }
+        graph.adjacentEdges(v).foreach { view.invalidateEdge }
         undoStack.register("Set Vertex Data") { setVertexValue(v, oldVal) }
       case _ =>
     }
+  }
+
+  private def replaceGraph(gr : Graph, desc: String) {
+    val oldGraph = graph
+    graph = gr
+    graphRef.publish(GraphReplaced(graphRef, clearSelection = false))
+    undoStack.register(desc) { replaceGraph(oldGraph, desc) }
+  }
+
+  def layoutGraph() {
+    val lo = new ForceLayout with Clusters
+    replaceGraph(lo.layout(graph), "Layout Graph")
   }
 
   view.listenTo(view.mouse.clicks, view.mouse.moves)
@@ -183,7 +242,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
                   Dialog.showInput(
                     title = "Set RTechn",
                     message = "RTechn: ",
-                    initial = data.value).map { newVal => setVertexValue(v, newVal) }
+                    initial = data.label).map { newVal => setVertexValue(v, newVal) }
                 case _ =>
                   val edgeHit = view.edgeDisplay find { _._2.pointHit(pt) } map { _._1 }
                   edgeHit.map { e =>
@@ -191,14 +250,14 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
                     Dialog.showInput(
                       title = "Set Goal Type",
                       message = "Goal Type: ",
-                      initial = data.value).map { newVal => setEdgeValue(e, newVal) }
+                      initial = data.label).map { newVal => setEdgeValue(e, newVal) }
                     view.repaint()
                   }
               }
             }
           } else {
             val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
-            val mouseDownOnSelectedVert = vertexHit exists (view.selectedVerts.contains(_))
+            val mouseDownOnSelectedVert = vertexHit.exists(view.selectedVerts.contains)
 
             // clear the selection if the shift key isn't pressed and the vertex clicked isn't already selected
             if (!mouseDownOnSelectedVert &&
@@ -222,6 +281,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
             view.repaint()
           }
         case AddVertexTool() => // do nothing
+        case AddBoundaryTool() => // do nothing
         case AddEdgeTool() =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           vertexHit map { startV =>
@@ -229,11 +289,18 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
             view.edgeOverlay = Some(EdgeOverlay(pt, src = startV, tgt = Some(startV)))
             view.repaint()
           }
-        case AddBangBoxTool() => 
-          val box = BangSelectionBox(pt, pt)
-          mouseState = box
-          view.selectionBox = Some(box.rect)
-          
+        case AddBangBoxTool() =>
+          val cornerHit = view.bboxDisplay find { _._2.cornerHit(pt) } map { _._1 }
+
+          cornerHit match {
+            case Some(bb) =>
+              mouseState = DragBangBoxNesting(bb)
+            case None =>
+              val box = BangSelectionBox(pt, pt)
+              mouseState = box
+              view.selectionBox = Some(box.rect)
+          }
+
         case state => throw new InvalidMouseStateException("MousePressed", state)
       }
 
@@ -241,6 +308,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
       mouseState match {
         case SelectTool() =>      // do nothing
         case AddVertexTool() =>   // do nothing
+        case AddBoundaryTool() =>   // do nothing
         case AddEdgeTool() =>     // do nothing
         case AddBangBoxTool() =>  // do nothing
         case SelectionBox(start,_) =>
@@ -260,6 +328,12 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
         case DragEdge(startV) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           view.edgeOverlay = Some(EdgeOverlay(pt, startV, vertexHit))
+          view.repaint()
+        case DragBangBoxNesting(startBB) =>
+          val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
+          val bboxHit = if (vertexHit == None) view.bboxDisplay find { _._2.cornerHit(pt) } map { _._1 }
+                        else None
+          view.bboxOverlay = Some(BBoxOverlay(pt, startBB, vertexHit, bboxHit))
           view.repaint()
       }
 
@@ -281,7 +355,6 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
             if (!selectionUpdated)
               view.bboxDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedBBoxes += x._1 }
 
-            // TODO: bbox selection
           } else {
             // box selection only affects vertices
             val r = mouseState.asInstanceOf[SelectionBox].rect
@@ -322,6 +395,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
           if (start.getX != end.getX || start.getY != end.getY) {
             // we don't call shiftVerts directly, because the vertices have already moved
             val verts = selectedVerts
+            view.resizeViewToFit()
             undoStack.register("Move Vertices") { shiftVerts(verts, end, start) }
           }
 
@@ -332,11 +406,18 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
           val vertexData = vertexTypeSelect.selection.item match {
             case "<wire>" => WireV(theory = theory)
-            case typ      => NodeV.fromJson(theory.vertexTypes(typ).defaultData, theory).withCoord(coord)
+            case typ      =>
+//              println("adding: " + theory.vertexTypes(typ).defaultData)
+              NodeV(data = theory.vertexTypes(typ).defaultData, theory = theory).withCoord(coord)
           }
 
-          addVertex(graph.verts.fresh, vertexData.withCoord(coord))
-          view.repaint()
+          addVertex(graph.verts.freshWithSuggestion(VName("v0")), vertexData.withCoord(coord))
+
+        case AddBoundaryTool() =>
+          val coord = view.trans fromScreen (pt.getX, pt.getY)
+          val vertexData = WireV(theory = theory, annotation = JsonObject("boundary" -> JsonBool(true)))
+          addVertex(graph.verts.freshWithSuggestion(VName("b0")), vertexData.withCoord(coord))
+
         case DragEdge(startV) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           vertexHit map { endV =>
@@ -347,21 +428,69 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
           mouseState = AddEdgeTool()
           view.edgeOverlay = None
           view.repaint()
-        //case state => throw new InvalidMouseStateException("MouseReleased", state)
+
+        case DragBangBoxNesting(startBB) =>
+          val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
+          val bboxHit = if (vertexHit == None) view.bboxDisplay find { _._2.cornerHit(pt) } map { _._1 }
+          else None
+
+          vertexHit.map { v =>
+            if (graph.contents(startBB).contains(v)) removeVertexFromBBox(startBB, v)
+            else addVertexToBBox(startBB, v)
+          }
+
+          bboxHit.map { bbChild =>
+            // only consider adding this bbox as a child if it is not already a parent
+            if (!graph.bboxParents(startBB).contains(bbChild)) {
+              if (graph.bboxParent.get(bbChild) == Some(startBB)) setBBoxParent(bbChild, None)
+              else setBBoxParent(bbChild, Some(startBB))
+            }
+          }
+
+          mouseState = AddBangBoxTool()
+          view.bboxOverlay = None
+          view.repaint()
+
+        case state => throw new InvalidMouseStateException("MouseReleased", state)
       }
 
   }
   
   view.listenTo(view.keys)
+  var rDown = false
+
+  val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
+
   view.reactions += {
     case KeyPressed(_, (Key.Delete | Key.BackSpace), _, _) =>
       if (!readOnly && (!selectedVerts.isEmpty || !selectedEdges.isEmpty || !selectedBBoxes.isEmpty)) {
         undoStack.start("Delete Vertices/Edges/BBoxes")
-        selectedVerts.foreach { deleteVertex(_) }
-        selectedEdges.foreach { deleteEdge(_) }
-        selectedBBoxes.foreach { deleteBBox(_)}
+        selectedVerts.foreach { deleteVertex }
+        selectedEdges.foreach { deleteEdge }
+        selectedBBoxes.foreach { deleteBBox }
         undoStack.commit()
         view.repaint()
       }
+    case KeyPressed(_, Key.R, _, _) =>
+      if (!rDown) {
+        rDown = true
+        qLayout.initialize(graph, randomCoords = false)
+        qLayout.lockedVertices.clear()
+        if (!selectedVerts.isEmpty) {
+          graph.verts.foreach { v => if (!selectedVerts.contains(v)) qLayout.lockedVertices += v }
+        }
+
+        undoStack.start("Relax layout")
+        replaceGraph(graph, "")
+        layoutTimer.start()
+      }
+    case KeyReleased(_, Key.R, _, _) =>
+      rDown = false
+      layoutTimer.stop()
+
+      replaceGraph(graph, "")
+      undoStack.commit()
+    case KeyPressed(_, Key.Minus, _, _)  => view.zoom *= 0.6
+    case KeyPressed(_, Key.Equals, _, _) => view.zoom *= 1.6
   }
 }

@@ -4,21 +4,49 @@ package quanto.gui
 import swing._
 import event.Key
 import quanto.data._
-import javax.swing.{JToolBar, KeyStroke}
+import javax.swing.{UIManager, JToolBar, KeyStroke}
 import java.awt.event.KeyEvent
 import quanto.util.json.Json
-import quanto.layout.ForceLayout
+import javax.swing.plaf.metal.MetalLookAndFeel
 
 
 object GraphEditor extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
+  UIManager.setLookAndFeel(new MetalLookAndFeel)
 
-  println("loading theory " + GraphEditor.getClass.getResource("strategy_graph.qtheory"))
-  val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("strategy_graph.qtheory"))
-  val StringVETheory = Theory.fromJson(Json.parse(thyFile))
+  // println("loading theory " + GraphEditor.getClass.getResource("strategy_graph.qtheory"))
+  // val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("strategy_graph.qtheory"))
+  // val StringVETheory = Theory.fromJson(Json.parse(thyFile))
+  //val StringVETheory = Theory.DefaultTheory
+  println("loading theory " + Theory.getClass.getResource("strategy_graph.qtheory"))
+  val thyFile = new Json.Input(Theory.getClass.getResourceAsStream("strategy_graph.qtheory"))
+  val thy = Theory.fromJson(Json.parse(thyFile))
 
-  val graphEditPanel = new GraphEditPanel(StringVETheory, readOnly = false)
-  val graphDocument = graphEditPanel.graphDocument
+  val graphEditPanel = new GraphEditPanel(thy, readOnly = false)
+  val graphEditController = graphEditPanel.graphEditController
+  val graphDocument = graphEditPanel.document
+
+//  graphEditPanel.graphView.graph = (Graph(thy)
+//    addVertex ("b0", WireV())
+//    addVertex ("b1", WireV())
+//    addVertex ("b2", WireV())
+//    addVertex ("b3", WireV())
+//    addVertex ("v0", NodeV())
+//    addVertex ("v1", NodeV())
+//    addVertex ("v2", NodeV())
+//    addVertex ("v3", NodeV())
+//    addEdge   ("e0", DirEdge(), "v0" -> "v2")
+//    addEdge   ("e1", DirEdge(), "v0" -> "v3")
+//    addEdge   ("e2", DirEdge(), "v1" -> "v2")
+//    addEdge   ("e3", DirEdge(), "v1" -> "v3")
+//    addEdge   ("e4", DirEdge(), "b0" -> "v0")
+//    addEdge   ("e5", DirEdge(), "b1" -> "v1")
+//    addEdge   ("e6", DirEdge(), "v2" -> "b2")
+//    addEdge   ("e7", DirEdge(), "v3" -> "b3")
+//    //    addBBox   ("bb1", BBData(), Set("b0","v3"))
+//    //    addBBox   ("bb2", BBData(), Set("b0","v1"))
+//    //    addBBox   ("bb3", BBData(), Set("v0","v3"))
+//    )
 
   // Main menu
 
@@ -29,7 +57,7 @@ object GraphEditor extends SimpleSwingApplication {
       menu.contents += new MenuItem(this) { mnemonic = Key.N }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask))
       def apply() {
-        if (graphDocument.promptUnsaved()) graphDocument.newGraph()
+        if (graphDocument.promptUnsaved()) graphDocument.clear()
       }
     }
 
@@ -44,13 +72,13 @@ object GraphEditor extends SimpleSwingApplication {
         enabled = false
         def apply() {
           graphDocument.file match {
-            case Some(_) => graphDocument.saveGraph()
+            case Some(_) => graphDocument.save()
             case None    => graphDocument.showSaveAsDialog()
           }
         }
 
         listenTo(graphDocument)
-        reactions += { case GraphChanged(_) | GraphSaved(_) =>
+        reactions += { case DocumentChanged(_) | DocumentSaved(_) =>
           enabled = graphDocument.unsavedChanges
         }
       }
@@ -98,12 +126,18 @@ object GraphEditor extends SimpleSwingApplication {
       }
     }
 
+    val LayoutAction = new Action("Layout Graph") with Reactor {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
+      def apply() { graphEditController.layoutGraph() }
+    }
+
     contents += new MenuItem(UndoAction) { mnemonic = Key.U }
     contents += new MenuItem(RedoAction) { mnemonic = Key.R }
+    contents += new MenuItem(LayoutAction) { mnemonic = Key.L }
   }
 
   def top = new MainFrame {
-    title = "PSGraph Editor - " + graphDocument.titleDescription
+    title = "Tinker Editor - " + graphDocument.titleDescription
     contents = graphEditPanel
 
     size = new Dimension(800,800)
@@ -114,8 +148,8 @@ object GraphEditor extends SimpleSwingApplication {
 
     listenTo(graphDocument)
     reactions += {
-      case GraphChanged(_)|GraphSaved(_) =>
-        title = "PSGraph Editor - " + graphDocument.titleDescription
+      case DocumentChanged(_)|DocumentSaved(_) =>
+        title = "Tinker Editor - " + graphDocument.titleDescription
     }
   }
 }

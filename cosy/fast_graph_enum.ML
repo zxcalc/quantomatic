@@ -5,13 +5,13 @@ sig
   structure EqClassTab : EQ_CLASS_TAB
   
   type data
-  type generator = (Theory.Graph.VData.data * int * int)
+  type generator = (Theory.Graph.vdata * int * int)
   
   val default_data : data
   type size_param = int * int * int * int
   
-  sharing Theory.Graph.SharingOGraph =
-          Metric.Graph.SharingOGraph
+  sharing Theory.Graph.Sharing =
+          Metric.Graph.Sharing
   sharing Theory.Ruleset.Sharing =
           EqClassTab.Theory.Ruleset.Sharing
   
@@ -24,9 +24,9 @@ functor FastGraphEnum(
   structure Theory : GRAPHICAL_THEORY
   structure Metric : GRAPH_METRIC
   structure Equiv : GRAPH_EQUIV
-  sharing Theory.Graph.SharingOGraph =
-          Metric.Graph.SharingOGraph =
-          Equiv.Graph.SharingOGraph
+  sharing Theory.Graph.Sharing =
+          Metric.Graph.Sharing =
+          Equiv.Graph.Sharing
 ) : GRAPH_ENUM =
 struct
   structure Theory = Theory
@@ -34,7 +34,7 @@ struct
   structure Graph = Theory.Graph
 
   type size_param = int * int * int * int
-  type generator = (Theory.Graph.VData.data * int * int) (* generators (data + arities) *)
+  type generator = (Theory.Graph.vdata * int * int) (* generators (data + arities) *)
   (* Ordered Vertices, free inputs, free outputs, list of lists of
      edges, one vertex at a time *)
   type adjmat = generator list * int list * int list * (int list) list 
@@ -43,7 +43,7 @@ struct
   val default_data = empty_graph_rep
   
   fun generator_eq ((data1,i1,o1), (data2,i2,o2)) =
-    Theory.Graph.VData.data_eq (data1, data2) andalso
+    Theory.Graph.vdata_eq (data1, data2) andalso
     (i1,o1) = (i2,o2)
   
   structure EqClassTab = EqClassTab(
@@ -64,6 +64,7 @@ struct
   fun keep_drop 0 0 ts = ts
     | keep_drop 0 j (t::ts) = keep_drop 0 (j-1) ts
     | keep_drop i j (t::ts) = t::(keep_drop (i-1) j ts)
+    | keep_drop _ _ _ = raise Match
 
   fun filter_max m zs = let
     fun filter_max' m (x, (n,ys)) = 
@@ -102,6 +103,7 @@ struct
     | split_edge xs = let 
       fun split_edge' xs ys 0 = (xs,ys)
         | split_edge' (x::xs) ys n = split_edge' xs (x::ys) (n-1) 
+        | split_edge' _ _ _ = raise Match
     in split_edge' xs [] ((length xs - 1) div 2)
     end
 
@@ -152,10 +154,11 @@ struct
   fun num_same_vert xss = let 
     fun num_same_vert' i (v::[]) = i
       | num_same_vert' i (v1::v2::vs) = 
-      case (compare_vert v1 v2) of 
-        LESS => 0
-      | GREATER => num_same_vert' 1 (v2::vs)
-      | EQUAL => num_same_vert' (i+1) (v1::vs)
+          (case (compare_vert v1 v2)
+             of LESS => 0
+              | GREATER => num_same_vert' 1 (v2::vs)
+              | EQUAL => num_same_vert' (i+1) (v1::vs))
+      | num_same_vert' _ [] = 0
   in num_same_vert' 1 xss
   end
   
@@ -177,6 +180,7 @@ struct
     | last_vert_canonical (vs, _, _, ess) = let 
       fun last_vert (x::y::xs) (es1::ess) ls = if (x=y) then last_vert (x::xs) ess (es1::ls) else es1::ls
         | last_vert (x::_) (es1::_) ls = es1::ls
+        | last_vert _ _ _ = raise Match
     in edges_canonical (last_vert vs ess [])
     end
 
@@ -191,19 +195,20 @@ struct
     val (vertices, g0) = to_graph_vert vs g0
     fun into_edges [] (_, []) = []
       | into_edges (vin::vins) (vout, (n::ns)) = List.tabulate (n, K (vout,vin)) @ (into_edges vins (vout, ns))
+      | into_edges _ _ = raise Match
     fun list_int_edges vs ess = maps (into_edges vs) (ListPair.zip (vs, ess))
     val edge_list = list_int_edges vertices (to_block_matr ess)
-    val g0 = List.foldr (fn ((x,y), g) => snd (g |> Graph.add_edge (Graph.Directed, Theory.EData.default_data) x y)) g0 edge_list
+    val g0 = List.foldr (fn ((x,y), g) => snd (g |> Graph.add_edge (Directed, Theory.Graph.default_edata) x y)) g0 edge_list
     val edge_in_list = maps (fn (n,y) => List.tabulate (n, K y)) (ListPair.zip (is, vertices))
     val edge_out_list = maps (fn (n,y) => List.tabulate (n, K y)) (ListPair.zip (os, vertices))
     fun add_in_edge (v, g) = let
-      val (bound, g') = g |> Graph.add_vertex (Theory.OVData.WVert);
-      val (_,g'') = g' |> Graph.add_edge (Graph.Directed, Theory.EData.default_data) bound v
+      val (bound, g') = g |> Graph.add_vertex (Theory.Graph.WVert);
+      val (_,g'') = g' |> Graph.add_edge (Directed, Theory.Graph.default_edata) bound v
     in g''
     end
     fun add_out_edge (v, g) = let
-      val (bound, g') = g |> Graph.add_vertex (Theory.OVData.WVert);
-      val (_,g'') = g' |> Graph.add_edge (Graph.Directed, Theory.EData.default_data) v bound
+      val (bound, g') = g |> Graph.add_vertex (Theory.Graph.WVert);
+      val (_,g'') = g' |> Graph.add_edge (Directed, Theory.Graph.default_edata) v bound
     in g''
     end  
     val g0 = List.foldr add_in_edge g0 edge_in_list
@@ -212,9 +217,9 @@ struct
   end
 
   fun add_ident_wire g = let 
-      val (x, g) = g |> Graph.add_vertex (Theory.OVData.WVert);
-      val (y, g) = g |> Graph.add_vertex (Theory.OVData.WVert);
-      val (_, g) = g |> Graph.add_edge (Graph.Directed, Theory.EData.default_data) x y
+      val (x, g) = g |> Graph.add_vertex (Theory.Graph.WVert);
+      val (y, g) = g |> Graph.add_vertex (Theory.Graph.WVert);
+      val (_, g) = g |> Graph.add_edge (Directed, Theory.Graph.default_edata) x y
   in g
   end
 
@@ -248,14 +253,17 @@ struct
   (* adds any possible edge *)
   (* add_edge : adjmat -> adjmat list *)
   fun add_edge ([], _, _, _) = []
+    | add_edge (_, _, _, []) = raise Match
     | add_edge (verts, inps, outs, edge::edges) = let 
       fun new_edge_here (i2::is2) (o2::os2) (e2::es2) = if ((i2<>0) andalso (o2<>0)) 
                                                         then [(i2-1::is2, o2-1::os2, e2+1::es2)] else []
+        | new_edge_here _ _ _ = raise Match
       fun add_edge' [i1] [o1] es = new_edge_here [i1] [o1] es
         | add_edge' (i1::[]) (o1::os) (e1::es) = new_edge_here (i1::[]) (o1::os) (e1::es) @ 
                                                 map (fn (x,y,z) => (x,o1::y,0::z)) (if (e1=0) then add_edge' [i1] os es else [] )
         | add_edge' (i1::is) (o1::os) (e1::es) = new_edge_here (i1::is) (o1::os) (e1::es) @ 
                                                 map (fn (x,y,z) => (i1::x,y,0::z)) (if (e1=0) then add_edge' is (o1::os) es else [] )
+        | add_edge' _ _ _ = raise Match
   in map (fn (x,y,z) => (verts,rev x,y,z::edges)) (add_edge' (rev inps) outs edge)
   end
 

@@ -4,6 +4,7 @@ core/heaps
 /gui/dist/
 .polysave
 *.heap
+*.polyml-heap
 *.o
 *.log
 .*.swp
@@ -19,3 +20,5 @@ core/heaps
 /gui/bin/
 *~
 *#
+.ensime
+.ensime_lucene

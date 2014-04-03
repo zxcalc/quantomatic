@@ -5,6 +5,8 @@ import java.awt.Color;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.*;
+import java.util.EventListener;
+import java.util.EventObject;
 
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -18,6 +20,29 @@ import quanto.core.data.GraphElementData;
 
 @SuppressWarnings("serial")
 public class Labeler extends JPanel implements MouseListener, KeyListener, FocusListener {
+    
+	public class LabelChangeEvent extends EventObject {
+		private String oldText;
+		private String newText;
+
+		public LabelChangeEvent(Object source, String oldText, String newText) {
+			super(source);
+			this.oldText = oldText;
+			this.newText = newText;
+		}
+
+		public String getOldText() {
+			return oldText;
+		}
+
+		public String getNewText() {
+			return newText;
+		}
+	}
+
+	public interface LabelChangeListener extends EventListener {
+		boolean aboutToChangeLabel(LabelChangeEvent evt);
+	}
 
 	JLabel label;
 	JTextField textField;
@@ -98,14 +123,18 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	}
 
 	private void updateLabel() {
-		String old = getText();
-		setText(textField.getText());
+		String oldText = getText();
+		String newText = textField.getText();
+		if (oldText.equals(newText))
+			return;
+		if (fireAboutToChangeLabel(oldText, newText)) {
+			setText(newText);
+		} else {
+			textField.setText(oldText);
+		}
 		remove(textField);
 		active = label;
 		add(active, BorderLayout.CENTER);
-		if (!old.equals(getText())) {
-			fireStateChanged();
-		}
 	}
 
 	private void refresh() {
@@ -129,16 +158,19 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		update();
 	}
 
-	public void addChangeListener(ChangeListener l) {
-		listenerList.add(ChangeListener.class, l);
+	public void addLabelChangeListener(LabelChangeListener l) {
+		listenerList.add(LabelChangeListener.class, l);
 	}
 
-	public void fireStateChanged() {
-		ChangeListener[] listeners =
-				listenerList.<ChangeListener>getListeners(ChangeListener.class);
-		for (ChangeListener l : listeners) {
-			l.stateChanged(evt);
+	public boolean fireAboutToChangeLabel(String oldValue, String newValue) {
+		LabelChangeListener[] listeners =
+				listenerList.<LabelChangeListener>getListeners(LabelChangeListener.class);
+		LabelChangeEvent evt = new LabelChangeEvent(this, oldValue, newValue);
+		for (LabelChangeListener l : listeners) {
+			if (!l.aboutToChangeLabel(evt))
+				return false;
 		}
+		return true;
 	}
 
 	// stubs

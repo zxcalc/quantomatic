@@ -13,13 +13,12 @@ val cosyRootDir = OS.FileSys.getDir();
 
 PolyML.Project.make "default_gens.ML";
 PolyML.Project.make "metric.ML";
+
 PolyML.Project.make "graph_equiv.ML";
 PolyML.Project.make "eq_class_tab.ML";
-PolyML.Project.make "semiring.ML";
-PolyML.Project.make "tensor.ML";
-PolyML.Project.make "tensor_equiv.ML";
 PolyML.Project.make "default_rws.ML";
 PolyML.Project.make "fast_graph_enum.ML";
+PolyML.Project.make "tensor_equiv.ML";
 
 PolyML.Project.make "theories.ML";
 

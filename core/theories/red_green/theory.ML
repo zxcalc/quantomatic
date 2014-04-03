@@ -1,17 +1,18 @@
 
-(* *)
 
-(* The RG theory, all in once place. *)
-structure DB_RG_Theory = GraphicalTheory(
-structure OParam = RG_OGraphParam
-structure VComponentData = RG_OVertexComponentData
-structure EComponentData = EmptyElementComponentData
-);
-structure RG_Theory : GRAPHICAL_THEORY = DB_RG_Theory;
+structure RG_Theory = GraphicalTheory(
+  structure Data = RG_Data
+  structure DataIO = RG_ComponentDataIO)
+
+(* Use this for convenience if you don't need annotations *)
+(*structure RG_GraphicalTheoryIO = GraphicalTheoryIO(
+  structure Theory = RG_Theory
+  structure GraphComponentDataIO = RG_ComponentDataIO
+)*)
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* terms used within the RG theory. *)
-structure RGHilbTerm = TensorTermFun(
+(*structure RGHilbTerm = TensorTermFun(
 
 structure Graph = RG_Theory.Graph
 fun pretty_vertex fmt graph vert = let
@@ -35,4 +36,4 @@ in Pretty.block
 end
 
 )
-
+*)

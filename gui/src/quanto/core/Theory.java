@@ -184,26 +184,18 @@ public class Theory {
 			throw new ParseException("Vertex description for \"" + name + "\" was not an object");
 		VertexType vt = new VertexType(name);
 
-		JsonNode labelPathNode = node.get("labelPath");
-		if (labelPathNode != null && !labelPathNode.isNull()) {
-			if (!labelPathNode.isTextual()) {
-				throw new ParseException("'labelPath' was not a string");
+		JsonNode labelTypeNode = node.get("labelDataType");
+		if (labelTypeNode != null && !labelTypeNode.isNull()) {
+			if (!labelTypeNode.isTextual()) {
+				throw new ParseException("'labelDataType' was not a string");
 			}
-			JsonNode labelTypeNode = node.get("labelDataType");
-			if (labelTypeNode != null && !labelTypeNode.isNull()) {
-				if (!labelTypeNode.isTextual()) {
-					throw new ParseException("'labelDataType' was not a string");
-				}
-				String labelDataType = labelTypeNode.asText();
-				if (labelDataType.equals("MathExpression")) {
-					vt.setDataType(new GraphElementDataType.MathsData(labelPathNode.asText()));
-				} else if (labelDataType.equals("String")) {
-					vt.setDataType(new GraphElementDataType.StringData(labelPathNode.asText()));
-				} else if (!labelDataType.equals("Null")) {
-					throw new ParseException("Unknown label data type \"" + labelDataType + "\"");
-				}
-			} else {
-				vt.setDataType(new GraphElementDataType.StringData(labelPathNode.asText()));
+			String labelDataType = labelTypeNode.asText();
+			if (labelDataType.equals("MathExpression")) {
+				vt.setDataType(new GraphElementDataType.MathsData());
+			} else if (labelDataType.equals("String")) {
+				vt.setDataType(new GraphElementDataType.StringData());
+			} else if (!labelDataType.equals("Null")) {
+				throw new ParseException("Unknown label data type \"" + labelDataType + "\"");
 			}
 		}
 
@@ -360,7 +352,6 @@ public class Theory {
 				jg.writeStartObject();
 				GraphElementDataType dt = vt.getDataType();
 				if (dt != null) {
-					jg.writeObjectField("labelPath", dt.getDataPath());
 					jg.writeObjectField("labelDataType", dt.getTypeName());
 				}
 				if (vt.getMnemonic() != null) {

@@ -7,40 +7,25 @@
  * graphs (FIXME: why?).
  *)
 
-signature RULE_SHARING =
+signature OGRAPH_RULE_SHARING =
 sig
   structure Graph : OGRAPH_SHARING
   type T
 end
 
-signature RULE
-= sig
+signature OGRAPH_RULE =
+sig
+  type T
   structure Graph : OGRAPH
-  
-  type T (* rule *)
 
-  structure Sharing : RULE_SHARING
-  sharing Sharing.Graph = Graph.SharingOGraph
+  structure Sharing : OGRAPH_RULE_SHARING
+  sharing Sharing.Graph = Graph.Sharing
   sharing type Sharing.T = T
 
-  exception bad_rule_exp of string * Graph.T * Graph.T;
-  val mk : (Graph.T * Graph.T) -> T;
+  exception bad_rule_exp of string * Graph.T * Graph.T
+  val mk : (Graph.T * Graph.T) -> T
   (* returns the renamings applied to the RHS *)
-  val mk_with_renamings : (Graph.T * Graph.T) -> T * (V.Rnm.T * E.Rnm.T);
-  
-  val try_rename1_ename : E.name -> E.name -> T -> T option
-  val try_rename1_vname : V.name -> V.name -> T -> T option
-  val try_rename1_xname : X.name -> X.name -> T -> T option
-  
-  structure XCRnm : COMPOUND_RENAMING
-  where type obj = T and type renaming = X.Rnm.T
-  structure VertexCRnm : COMPOUND_RENAMING
-  where type obj = T and type renaming = V.Rnm.T
-  structure EdgeCRnm : COMPOUND_RENAMING
-  where type obj = T and type renaming = E.Rnm.T
-
-  val rename : (X.Rnm.T * V.Rnm.T * E.Rnm.T) -> T
-            -> (X.Rnm.T * V.Rnm.T * E.Rnm.T) * T
+  (*val mk_with_renamings : (Graph.T * Graph.T) -> T * (VSub.T * ESub.T)*)
 
   (* generate a boundary graph, including bboxes? *)
   val get_boundary_vertices : T -> V.NSet.T
@@ -48,9 +33,9 @@ signature RULE
   val get_lhs : T -> Graph.T
   val get_rhs : T -> Graph.T
   
-  val get_xnames : T -> X.NSet.T
-  val get_vnames : T -> V.NSet.T
-  val get_enames : T -> E.NSet.T
+  val get_vertices : T -> V.NSet.T
+  val get_edges : T -> E.NSet.T
+  val get_bboxes : T -> B.NSet.T
 
   (* swaps lhs and rhs *)
   val symmetric : T -> T
@@ -58,107 +43,141 @@ signature RULE
   (* for pretty printing *)
   val pretty : T -> Pretty.T
   val print : T -> unit
-end;
 
-signature BANG_GRAPH_RULE
-= sig
-  include RULE;
+  val rename_ograph_rule : (VSub.T * ESub.T) -> T -> (VSub.T * ESub.T) * T
 
-  structure BangGraph : BANG_GRAPH
-  sharing BangGraph.SharingOGraph = Graph.SharingOGraph
+  val get_rule_annotation : T -> Json.jobj
+  val set_rule_annotation : Json.jobj -> T -> T
+end
 
-  structure BBoxCRnm : COMPOUND_RENAMING
-  where type obj = T and type renaming = B.Rnm.T
+signature BANG_GRAPH_RULE =
+sig
+  (* extends OGRAPH_RULE *)
+  type T
+  structure Graph : BANG_GRAPH
 
-  (* FIXME: better name? *)
-  val rename4 : (X.Rnm.T * V.Rnm.T * E.Rnm.T * B.Rnm.T)
-             -> T
-             -> (X.Rnm.T * V.Rnm.T * E.Rnm.T * B.Rnm.T) * T
+  structure Sharing : OGRAPH_RULE_SHARING
+  sharing Sharing.Graph = Graph.Sharing
+  sharing type Sharing.T = T
 
-  val try_rename1_bbox : B.name -> B.name -> T -> T option
-  val get_bnames : T -> B.NSet.T
-end;
+  exception bad_rule_exp of string * Graph.T * Graph.T
+  val mk : (Graph.T * Graph.T) -> T
+  (* returns the renamings applied to the RHS *)
+  (*val mk_with_renamings : (Graph.T * Graph.T) -> T * (VSub.T * ESub.T)*)
+
+  (* generate a boundary graph, including bboxes? *)
+  val get_boundary_vertices : T -> V.NSet.T
+
+  val get_lhs : T -> Graph.T
+  val get_rhs : T -> Graph.T
+  
+  val get_vertices : T -> V.NSet.T
+  val get_edges : T -> E.NSet.T
+  val get_bboxes : T -> B.NSet.T
+
+  (* swaps lhs and rhs *)
+  val symmetric : T -> T
+
+  (* expand a bbox on both sides *)
+  val expand_bbox : B.name -> T -> T
+
+  (* kill a bbox on both sides *)
+  val kill_bbox : B.name -> T -> T
+  
+  (* for pretty printing *)
+  val pretty : T -> Pretty.T
+  val print : T -> unit
+
+  val rename_ograph_rule : (VSub.T * ESub.T) -> T -> (VSub.T * ESub.T) * T
+
+  val rename_bang_graph_rule : (VSub.T * ESub.T * BSub.T) -> T ->
+                               (VSub.T * ESub.T * BSub.T) * T
+  
+  val get_rule_annotation : T -> Json.jobj
+  val set_rule_annotation : Json.jobj -> T -> T
+end
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *)
-functor BangGraphRule(Graph : BANG_GRAPH) : BANG_GRAPH_RULE
-= struct
+functor BangGraphRule(Graph : BANG_GRAPH) : BANG_GRAPH_RULE =
+struct
 
-structure Graph = Graph;
-structure BangGraph = Graph;
+structure Graph = Graph
 
 datatype T = Rule of { lhs : Graph.T,
                        rhs : Graph.T,
-                       boundary_vertices : V.NSet.T
-                     };
+                       boundary_vertices : V.NSet.T,
+                       rule_annotation : Json.jobj }
 
-exception bad_rule_exp of string * Graph.T * Graph.T;
+fun update_lhs f (Rule r) = Rule {lhs=f(#lhs r),rhs= #rhs r,boundary_vertices= #boundary_vertices r,rule_annotation= #rule_annotation r}
+fun update_rhs f (Rule r) = Rule {lhs= #lhs r,rhs=f(#rhs r),boundary_vertices= #boundary_vertices r,rule_annotation= #rule_annotation r}
+fun update_boundary_vertices f (Rule r) = Rule {lhs= #lhs r,rhs= #rhs r,boundary_vertices=f(#boundary_vertices r),rule_annotation= #rule_annotation r}
+fun update_rule_annotation f (Rule r) = Rule {lhs= #lhs r,rhs= #rhs r,boundary_vertices= #boundary_vertices r,rule_annotation=f(#rule_annotation r)}
 
-  structure G = Graph;
+fun get_lhs               (Rule r) = #lhs r
+fun get_rhs               (Rule r) = #rhs r
+fun get_boundary_vertices (Rule r) = #boundary_vertices r
+fun get_rule_annotation   (Rule r) = #rule_annotation r
 
-  type boundary = {
-    inputs : G.EData.data V.NTab.T,
-    outputs : G.EData.data V.NTab.T,
-    undir_bounds : G.EData.data V.NTab.T,
-    isolated : V.NSet.T
-  };
+fun set_lhs               x  = update_lhs               (fn _ => x)
+fun set_rhs               x  = update_rhs               (fn _ => x)
+fun set_boundary_vertices x  = update_boundary_vertices (fn _ => x)
+fun set_rule_annotation   x  = update_rule_annotation   (fn _ => x)
 
-  fun find_graph_boundary g =
-  let
-    fun build_boundary (_,((G.OVData.NVert _),_)) recd = recd
-      | build_boundary (vn,(G.OVData.WVert,(ins,outs)))
-                       (recd as { inputs = inp,
-                                  outputs = outp,
-                                  undir_bounds = undir,
-                                  isolated = isol}) =
-          if E.NSet.is_empty ins
-          then
-            case E.NSet.tryget_singleton outs
-              of SOME e =>
-                  (case G.get_edge g e
-                     of ((G.Directed,ed),_) =>
-                          { inputs = V.NTab.ins (vn,ed) inp,
-                            outputs = outp,
-                            undir_bounds = undir,
-                            isolated = isol }
-                      | ((G.UnDirected,ed),_) =>
-                          { inputs = inp,
-                            outputs = outp,
-                            undir_bounds = V.NTab.ins (vn,ed) undir,
-                            isolated = isol })
-               | NONE =>
-                   if E.NSet.is_empty outs then
-                    { inputs = inp, outputs = outp,
-                      undir_bounds = undir, isolated = V.NSet.add vn isol }
-                   else
-                     recd
-          else
-            if E.NSet.is_empty outs
-            then
-              case E.NSet.tryget_singleton ins
-                of SOME e =>
-                  (case G.get_edge g e
-                     of ((G.Directed,ed),_) =>
-                          { inputs = inp,
-                            outputs = V.NTab.ins (vn,ed) outp,
-                            undir_bounds = undir,
-                            isolated = isol }
-                      | ((G.UnDirected,ed),_) =>
-                          { inputs = inp,
-                            outputs = outp,
-                            undir_bounds = V.NTab.ins (vn,ed) undir,
-                            isolated = isol })
-                 | NONE => recd
-            else recd;
-  in
-    V.NTab.fold build_boundary (G.get_vertices g)
-      {
-        inputs = V.NTab.empty,
-        outputs = V.NTab.empty,
-        undir_bounds = V.NTab.empty,
-        isolated = V.NSet.empty
-      }
-  end;
+
+exception bad_rule_exp of string * Graph.T * Graph.T
+
+type boundary = {
+  input_tab : Graph.edata VTab.T,
+  output_tab : Graph.edata VTab.T,
+  undir_bound_tab : Graph.edata VTab.T,
+  isolated : V.NSet.T
+}
+
+fun update_input_tab f (r : boundary) = {input_tab=f(#input_tab r),output_tab= #output_tab r,undir_bound_tab= #undir_bound_tab r,isolated= #isolated r}
+fun update_output_tab f (r : boundary) = {input_tab= #input_tab r,output_tab=f(#output_tab r),undir_bound_tab= #undir_bound_tab r,isolated= #isolated r}
+fun update_undir_bound_tab f (r : boundary) = {input_tab= #input_tab r,output_tab= #output_tab r,undir_bound_tab=f(#undir_bound_tab r),isolated= #isolated r}
+fun update_isolated f (r : boundary) = {input_tab= #input_tab r,output_tab= #output_tab r,undir_bound_tab= #undir_bound_tab r,isolated=f(#isolated r)}
+
+fun get_input_tab       (r : boundary) = #input_tab r
+fun get_output_tab      (r : boundary) = #output_tab r
+fun get_undir_bound_tab (r : boundary) = #undir_bound_tab r
+fun get_isolated        (r : boundary) = #isolated r
+
+val get_inputs = VTab.get_dom_set o get_input_tab
+val get_outputs = VTab.get_dom_set o get_output_tab
+val get_undir_bounds = VTab.get_dom_set o get_undir_bound_tab
+
+fun get_full_boundary (bnd : boundary) =
+  get_inputs bnd |> V.NSet.union_merge (get_outputs bnd)
+                 |> V.NSet.union_merge (get_undir_bounds bnd)
+                 |> V.NSet.union_merge (get_isolated bnd)
+
+val empty_boundary : boundary = {
+  input_tab = VTab.empty, output_tab = VTab.empty,
+  undir_bound_tab = VTab.empty, isolated = V.NSet.empty
+}
+
+fun find_graph_boundary g =
+let
+  fun build_boundary v (bnd : boundary) =
+    if Graph.is_node_vertex g v then bnd
+    else
+      case (E.NSet.tryget_singleton (Graph.get_in_edges g v),
+            E.NSet.tryget_singleton (Graph.get_out_edges g v))
+        of (SOME _, SOME _) => bnd
+         | (SOME e, NONE) =>
+             (case Graph.get_edge_dir_and_data g e
+                of (Directed,ed) => bnd |> update_output_tab (VTab.add (v,ed))
+                 | (Undirected,ed) => bnd |> update_undir_bound_tab (VTab.add (v,ed)))
+         | (NONE, SOME e) =>
+             (case Graph.get_edge_dir_and_data g e
+                of (Directed,ed) => bnd |> update_input_tab (VTab.add (v,ed))
+                 | (Undirected,ed) => bnd |> update_undir_bound_tab (VTab.add (v,ed)))
+         | (NONE,NONE) => bnd |> update_isolated (V.NSet.add v)
+in
+  V.NSet.fold build_boundary (Graph.get_vertices g) empty_boundary
+end
 
 (* Internal function that makes sure that:
  *   - boundary names are the same
@@ -170,80 +189,58 @@ fun get_rule_bounds lhs rhs =
     let
       val lhs_bnd = find_graph_boundary lhs
       val rhs_bnd = find_graph_boundary rhs
+      val boundary_vs = get_full_boundary lhs_bnd
 
-      (* ideally, a more efficient version of this would be in NAME_TAB *)
-      fun vtab_eq data_eq tab1 tab2 =
-        let
-          fun cmp_tab2 (nm,d) sofar =
-            sofar andalso data_eq (d,(V.NTab.get tab2 nm))
-        in
-          V.NSet.eq (V.NTab.get_nameset tab1) (V.NTab.get_nameset tab2)
-          andalso
-          V.NTab.fold cmp_tab2 tab1 true
-        end;
-
-      fun test_all test_fn =
-        (test_fn (V.NTab.get_nameset (#inputs lhs_bnd))
-                 (V.NTab.get_nameset (#inputs rhs_bnd))) andalso
-        (test_fn (V.NTab.get_nameset (#outputs lhs_bnd))
-                 (V.NTab.get_nameset (#outputs rhs_bnd))) andalso
-        (test_fn (V.NTab.get_nameset (#undir_bounds lhs_bnd))
-                 (V.NTab.get_nameset (#undir_bounds rhs_bnd))) andalso
-        (test_fn (#isolated lhs_bnd) (#isolated rhs_bnd));
-      fun has_same_bangbox vn sofar = sofar andalso
-           B.NSet.eq (Graph.get_bboxes_of lhs vn) (Graph.get_bboxes_of rhs vn)
-      fun compare_bboxes lvs _ =
-        (V.NSet.fold (has_same_bangbox) lvs true)
-      fun check_bb_parent bbox sofar = sofar andalso
-        case (Graph.lookup_bbox_parent lhs bbox,Graph.lookup_bbox_parent rhs bbox)
-          of (NONE,NONE) => true
-           | (SOME bl,SOME br) => B.name_eq (bl,br)
-           | _ => false
+      fun has_same_bboxes v sofar = sofar andalso
+           B.NSet.eq (Graph.get_bboxes_containing_vertex lhs v)
+                     (Graph.get_bboxes_containing_vertex rhs v)
+      
+      fun has_same_bbox_children bbox sofar = sofar andalso
+        B.NSet.eq (Graph.get_bbox_children lhs bbox)
+                  (Graph.get_bbox_children rhs bbox)
     in
-      if (V.NSet.is_empty (#isolated lhs_bnd)) andalso
-         (V.NSet.is_empty (#isolated rhs_bnd)) andalso
-         (vtab_eq G.EData.data_eq (#inputs lhs_bnd) (#inputs rhs_bnd)) andalso
-         (vtab_eq G.EData.data_eq (#outputs lhs_bnd) (#outputs rhs_bnd)) andalso
-         (vtab_eq G.EData.data_eq (#undir_bounds lhs_bnd) (#undir_bounds rhs_bnd)) andalso
-         (B.NSet.eq (Graph.get_bboxes lhs) (Graph.get_bboxes rhs)) andalso
-         (B.NSet.fold check_bb_parent (Graph.get_bboxes lhs) true) andalso
-         test_all compare_bboxes
-      then
-        (V.NTab.get_nameset (#inputs lhs_bnd))
-          |> V.NSet.union_merge (V.NTab.get_nameset (#outputs lhs_bnd))
-          |> V.NSet.union_merge (V.NTab.get_nameset (#undir_bounds lhs_bnd))
+      if V.NSet.is_empty (get_isolated lhs_bnd) andalso
+         V.NSet.is_empty (get_isolated rhs_bnd) andalso
+         VTab.tab_eq Graph.edata_eq (get_input_tab lhs_bnd, get_input_tab rhs_bnd) andalso
+         VTab.tab_eq Graph.edata_eq (get_output_tab lhs_bnd, get_output_tab rhs_bnd) andalso
+         VTab.tab_eq Graph.edata_eq (get_undir_bound_tab lhs_bnd, get_undir_bound_tab rhs_bnd) andalso
+         B.NSet.eq (Graph.get_bboxes lhs) (Graph.get_bboxes rhs) andalso
+         B.NSet.fold has_same_bbox_children (Graph.get_bboxes lhs) true andalso
+         V.NSet.fold has_same_bboxes boundary_vs true
+      then boundary_vs
       else
-        raise bad_rule_exp ("mk: Left and right hand side boundaries are different", lhs, rhs)
-   end;
+        raise bad_rule_exp ("get_rule_bounds: Left and right hand side boundaries are different", lhs, rhs)
+   end
 
-fun mk_with_renamings (lhs,rhs) =
+(*fun mk_with_renamings (lhs,rhs) =
     let
-      val lhsbndry : V.NSet.T = get_rule_bounds lhs rhs
+      val bnd = get_rule_bounds lhs rhs
+      val lhs_int = V.NSet.subtract (Graph.get_vertices lhs) bnd
+      val rhs_int = V.NSet.subtract (Graph.get_vertices rhs) bnd
       (* rename rhs; sharing bvertex names with lhs,
          all else must be distinct, but do minimal amount of renaming *)
-      val ignorevnames = (* ignore boundary and also fresh rhs vnames *)
-          V.NSet.union_merge
-            lhsbndry
-            (V.NSet.subtract (Graph.get_vnames rhs)
-                                  (Graph.get_vnames lhs));
-      (* ignore enames that are already fresh w.r.t. lhs *)
-      val ignoreenames = E.NSet.subtract (Graph.get_enames rhs)
-                          (Graph.get_enames lhs);
-      val vrn = V.mk_renaming ignorevnames
-                  (V.NSet.union_merge ignorevnames
-                    (Graph.get_vnames lhs))
-                  V.NTab.empty
-      val ern = E.mk_renaming ignoreenames
-                  (E.NSet.union_merge ignoreenames (Graph.get_enames lhs))
-                  E.NTab.empty
-      val xrn = X.Rnm.empty;
-      val ((_,vrn,ern), rhs') = Graph.rename (xrn,vrn,ern) rhs
-    in (Rule { lhs = lhs, rhs = rhs', boundary_vertices = lhsbndry },
+      val vrn = VSub.empty |> VSub.extend_fixed bnd
+                           |> VSub.avoid_set_in_cod lhs_int
+                           |> VSub.extend_fresh rhs_int
+      val ern = ESub.empty |> ESub.avoid_set_in_cod (Graph.get_edges lhs)
+                           |> ESub.extend_fresh (Graph.get_edges rhs)
+      val brn = BSub.empty |> BSub.extend_fixed (Graph.get_bboxes lhs)
+      
+      val ((vrn,ern,_), rhs') = Graph.rename_bang_graph (vrn,ern,brn) rhs
+    in (Rule { lhs = lhs, rhs = rhs', boundary_vertices = bnd },
         (vrn,ern))
     end;
 val mk = fst o mk_with_renamings
+*)
 
-fun get_lhs (Rule rep) = #lhs rep;
+fun mk (lhs,rhs) =
+  let
+    val bnd = get_rule_bounds lhs rhs
+  in (Rule { lhs = lhs, rhs = rhs, boundary_vertices = bnd,
+             rule_annotation = Json.empty_obj })
+  end
+
+(*fun get_lhs (Rule rep) = #lhs rep;
 fun get_rhs (Rule rep) = #rhs rep;
 fun get_boundary_vertices (Rule rep) = #boundary_vertices rep;
 
@@ -252,112 +249,84 @@ fun update_lhs f (Rule rep) =
 fun update_rhs f (Rule rep) =
     Rule { lhs = #lhs rep, rhs = f (#rhs rep), boundary_vertices = #boundary_vertices rep };
 fun update_boundary_vertices f (Rule rep) =
-    Rule { lhs = #lhs rep, rhs = #rhs rep, boundary_vertices = f (#boundary_vertices rep) };
+    Rule { lhs = #lhs rep, rhs = #rhs rep, boundary_vertices = f (#boundary_vertices rep) };*)
 
 (* swap lhs and rhs of a rule *)
-fun symmetric r = mk (get_lhs r, get_rhs r);
+fun symmetric r = mk (get_rhs r, get_lhs r)
 
-fun get_xnames rule =
-    X.NSet.union_merge
-      (Graph.get_xnames (get_lhs rule))
-      (Graph.get_xnames (get_rhs rule));
-fun get_vnames rule =
+fun expand_bbox b rule =
+let
+  val (exp, lhs') = Graph.expand_bbox_op b (get_lhs rule)
+  val rhs' = Graph.replay_bbox_ops [exp] (get_rhs rule)
+in mk (lhs', rhs')
+end
+
+fun kill_bbox b rule =
+let
+  val (kill, lhs') = Graph.kill_bbox_op b (get_lhs rule)
+  val rhs' = Graph.replay_bbox_ops [kill] (get_rhs rule)
+in mk (lhs', rhs')
+end
+
+fun get_vertices rule =
     V.NSet.union_merge
-      (Graph.get_vnames (get_lhs rule))
-      (Graph.get_vnames (get_rhs rule));
-fun get_enames rule =
+      (Graph.get_vertices (get_lhs rule))
+      (Graph.get_vertices (get_rhs rule))
+fun get_edges rule =
     E.NSet.union_merge
-      (Graph.get_enames (get_lhs rule))
-      (Graph.get_enames (get_rhs rule));
-fun get_bnames rule =
+      (Graph.get_edges (get_lhs rule))
+      (Graph.get_edges (get_rhs rule))
+fun get_bboxes rule =
     B.NSet.union_merge
       (Graph.get_bboxes (get_lhs rule))
-      (Graph.get_bboxes (get_rhs rule));
+      (Graph.get_bboxes (get_rhs rule))
 
-(* *)
-fun try_rename1_xname n1 n2 rule =
-    (SOME
-      (rule |> (update_lhs (untryify (Graph.try_rename1_xname n1 n2)))
-            |> (update_rhs (untryify (Graph.try_rename1_xname n1 n2)))))
-    handle tryify_failed () => NONE;
-(* FIXME: make sure disjoint names property is preserved *)
+(*
 fun try_rename1_vname n1 n2 rule =
     (SOME
       (rule |> (update_lhs (untryify (Graph.try_rename1_vname n1 n2)))
             |> (update_rhs (untryify (Graph.try_rename1_vname n1 n2)))
             |> (update_boundary_vertices (untryify (V.NSet.try_rename1 n1 n2)))))
-    handle tryify_failed () => NONE;
+    handle tryify_failed () => NONE
 (* FIXME: make sure disjoint names property is preserved *)
 fun try_rename1_ename n1 n2 rule =
     (SOME
       (rule |> (update_lhs (untryify (Graph.try_rename1_ename n1 n2)))
             |> (update_rhs (untryify (Graph.try_rename1_ename n1 n2)))))
-    handle tryify_failed () => NONE;
+    handle tryify_failed () => NONE
 fun try_rename1_bbox n1 n2 rule =
     (SOME
       (rule |> (update_lhs (untryify (Graph.try_rename1_bbox n1 n2)))
             |> (update_rhs (untryify (Graph.try_rename1_bbox n1 n2)))))
-    handle tryify_failed () => NONE;
+    handle tryify_failed () => NONE*)
 
-(* *)
-structure XCRnm = CompoundRenamingFun(
-  struct
-    structure Nm = X;
-    type obj = T
-    val try_rename1 = try_rename1_xname;
-    val get_nameset = get_xnames
-  end);
-structure VertexCRnm = CompoundRenamingFun(
-  struct
-    structure Nm = V;
-    type obj = T
-    val try_rename1 = try_rename1_vname;
-    val get_nameset = get_vnames
-  end);
-structure EdgeCRnm = CompoundRenamingFun(
-  struct
-    structure Nm = E;
-    type obj = T
-    val try_rename1 = try_rename1_ename;
-    val get_nameset = get_enames
-  end);
-structure BBoxCRnm = CompoundRenamingFun(
-  struct
-    structure Nm = B;
-    type obj = T
-    val try_rename1 = try_rename1_bbox;
-    val get_nameset = get_bnames
-  end);
+fun rename_bang_graph_rule (vsub,esub,bsub) rule = let
+  val vrnm = vsub |> VSub.extend_fixed (get_vertices rule)
+  val ernm = esub |> ESub.extend_fixed (get_edges rule)
+  val brnm = bsub |> BSub.extend_fixed (get_bboxes rule)
+in ((vrnm,ernm,brnm),
+    rule |> update_lhs (Graph.rename_bang_graph_anon (vrnm,ernm,brnm))
+         |> update_rhs (Graph.rename_bang_graph_anon (vrnm,ernm,brnm))
+         |> update_boundary_vertices (VSub.img_of_set vrnm))
+end
 
-(* rename *)
-fun rename (xrn,vrn,ern) rule =
-    let
-      val (xrn,rule) = XCRnm.rename xrn rule
-      val (vrn,rule) = VertexCRnm.rename vrn rule
-      val (ern,rule) = EdgeCRnm.rename ern rule
-    in
-      ((xrn,vrn,ern), rule)
-    end;
-fun rename4 (xrn,vrn,ern,brn) rule =
-    let
-      val ((xrn,vrn,ern),rule) = rename (xrn,vrn,ern) rule
-      val (brn,rule) = BBoxCRnm.rename brn rule
-    in
-      ((xrn,vrn,ern,brn), rule)
-    end;
+fun rename_ograph_rule (vsub,esub) rule = let
+  val ((vrnm,ernm,_),rule') = rename_bang_graph_rule (vsub,esub,BSub.empty) rule
+in ((vrnm,ernm),rule')
+end
 
 fun pretty (Rule rep) =
     Pretty.chunks
     [Pretty.block [Pretty.str "Rule: "],
      Pretty.block [Pretty.str "LHS: ", Graph.pretty (#lhs rep)],
-     Pretty.block [Pretty.str "RHS: ", Graph.pretty (#rhs rep)]];
+     Pretty.block [Pretty.str "RHS: ", Graph.pretty (#rhs rep)]]
 
-val print = Pretty.writeln o pretty;
+val print = Pretty.writeln o pretty
 
 
 structure Sharing = struct
-  structure Graph = Graph.SharingOGraph;
-  type T = T;
-end;
+  structure Graph = Graph.Sharing
+  type T = T
+end
 
-end;
+end

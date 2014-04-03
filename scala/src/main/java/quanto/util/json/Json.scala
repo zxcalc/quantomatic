@@ -54,51 +54,52 @@ sealed abstract class Json {
   def asObject: JsonObject = this match {
     case obj: JsonObject => obj
     case JsonArray(x)    => x.foldLeft(JsonObject()) { (o,k) => o + (k.stringValue -> JsonObject()) }
-    case JsonNull()      => JsonObject()
+    case JsonNull        => JsonObject()
     case other           => throw new JsonAccessException("Expected: JsonObject, JsonArray, or JsonNull", other)
   }
 
   // treat objects like string lists of their keys and null like []
   def asArray: JsonArray = this match {
     case arr: JsonArray  => arr
-    case JsonObject(x)   => JsonArray(Vector() ++ x.keys.map(JsonString(_)))
-    case JsonNull()      => JsonArray()
+    case JsonObject(x)   => JsonArray(x.keys.toVector.sorted.map(JsonString(_)))
+    case JsonNull        => JsonArray()
     case other           => throw new JsonAccessException("Expected: JsonObject, JsonArray, or JsonNull", other)
   }
 
   // Convenience accessors for collections. These are overridden to not throw exceptions, where appropriate.
-  def apply(index: Int): Json = get(index) match {
-    case Some(x) => x
-    case None    => throw new JsonAccessException("Index: " + index + " out of bounds", this)
-  }
-
-  def apply(key: String) = get(key) match {
-    case Some(x) => x
-    case None    => throw new JsonAccessException("Key not found: " + key, this)
-  }
-
   def get(index: Int): Option[Json] =
     throw new JsonAccessException("Expected: JsonArray, got: " + this.getClass, this)
 
   def get(key: String): Option[Json] =
     throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
 
+
   def getOrElse(key: String, default: => Json): Json =
+    get(key) match { case Some(v) => v; case None => default }
+
+  def getOrElse(key: Int, default: => Json): Json =
     get(key) match { case Some(v) => v; case None => default }
 
 
   // 'slash' notation for required children
-  def /(key: String)    = this(key)
-  def /#(key: String)   = this(key).asObject
-  def /@(key: String)   = this(key).asArray
+  def /(key: String)    = get(key) match {
+    case Some(x) => x
+    case None    => throw new JsonAccessException("Key not found: " + key, this)
+  }
+
+  def /(index: Int)    = get(index) match {
+    case Some(x) => x
+    case None    => throw new JsonAccessException("Index: " + index + " out of bounds", this)
+  }
 
   // optional child notation
-  def ?(key: String)    = getOrElse(key, JsonNull())
+  def ?(key: String)    = getOrElse(key, JsonNull)
+  def ?(index: Int)     = getOrElse(index, JsonNull)
 
   // shorthand coercions for optional arrays and objects. The will return an empty collection of the appropriate
   // type if the given field is missing.
-  def ?@(key: String)   = (this ? key).asArray
-  def ?#(key: String)   = (this ? key).asObject
+//  def ?@(key: String)   = (this ? key).asArray
+//  def ?#(key: String)   = (this ? key).asObject
 
   // JsonPath methods
   def getPath(path: JsonPath): Json = path.get(this)
@@ -187,12 +188,18 @@ object JsonArray {
   def apply[T <% Json](c: TraversableOnce[T]): JsonArray = c.foldLeft(JsonArray()){ (a, v) => a :+ v }
 }
 
-case class JsonNull() extends Json {
+case object JsonNull extends Json {
   val v = null
   def writeTo(out: Json.Output) { out.g.writeNull() }
   override def get(key: String): Option[Json] = None
+  override def get(index: Int): Option[Json] = None
   override def asObject = JsonObject()
   override def asArray = JsonArray()
+  override def vectorValue = Vector()
+  override def mapValue = Map()
+  override def stringValue = ""
+  override def intValue = 0
+  override def boolValue = false
   def isEmpty = true
 }
 
@@ -212,7 +219,7 @@ case class JsonInt(v: Int) extends Json {
 
 case class JsonDouble(v: Double) extends Json {
   override def doubleValue = v
-  def writeTo(out: Json.Output) { out.g.writeNumber(v) }
+  def writeTo(out: Json.Output) { out.g.writeNumber(v.toString) }
   def isEmpty = false
 }
 
@@ -310,7 +317,7 @@ object Json {
           case JsonToken.END_OBJECT => Some(stack.pop()._1)
           case JsonToken.VALUE_FALSE => Some(JsonBool(false))
           case JsonToken.VALUE_TRUE => Some(JsonBool(true))
-          case JsonToken.VALUE_NULL => Some(JsonNull())
+          case JsonToken.VALUE_NULL => Some(JsonNull)
           case JsonToken.VALUE_NUMBER_FLOAT => Some(JsonDouble(p.getValueAsDouble))
           case JsonToken.VALUE_NUMBER_INT => Some(JsonInt(p.getValueAsInt))
           case JsonToken.VALUE_STRING => Some(JsonString(p.getText))
@@ -343,6 +350,7 @@ object Json {
   // tuple implicit conversions, useful for JsonObject(k -> v, ...) construction
   implicit def stringXToStringJson[T <% Json](t: (String,T)): (String,Json) = (t._1, t._2:Json)
   implicit def traversableOnceToJson[T <% Json](c: TraversableOnce[T]): JsonArray = JsonArray(c)
+  implicit def optionToJson[T <% Json](jo: Option[T]): Json = jo match { case Some (j) => j; case None => JsonNull }
 }
 
 // these are not active by default, as they are not type-safe

@@ -84,25 +84,22 @@ object Theory {
   type EdgeLabelPosition = EdgeLabelPosition.Value
 
   case class ValueDesc(
-    path: JsonPath = JsonPath("$"),
     typ: ValueType = ValueType.Empty,
-    enumOptions: List[String] = List[String](),
+    enumOptions: Vector[String] = Vector[String](),
     latexConstants: Boolean = false,
     validateWithCore: Boolean = false
   )
   object ValueDesc {
     implicit def fromJson(json: Json): ValueDesc =
       ValueDesc(
-        path = JsonPath(json / "path"),
         typ  = json / "type",
-        enumOptions = (json ?@ "enum_options").toList.map(_.stringValue),
+        enumOptions = (json ? "enum_options").vectorValue.map(_.stringValue),
         latexConstants = json.getOrElse("latex_constants", false),
         validateWithCore = json.getOrElse("validate_with_core", false)
       )
 
     implicit def toJson(v: ValueDesc) =
       JsonObject(
-        "path" -> v.path.toString,
         "type" -> v.typ,
         "enum_options" -> v.enumOptions,
         "latex_constants" -> v.latexConstants,
@@ -126,21 +123,21 @@ object Theory {
       customShape = None,
       strokeColor = json.getOrElse("stroke_color", Color.BLACK),
       fillColor = json.getOrElse("fill_color", Color.WHITE),
-      labelPosition = (json ?# "label").getOrElse("position", VertexLabelPosition.Center),
-      labelForegroundColor = (json ?# "label").getOrElse("fg_color", Color.BLACK),
-      labelBackgroundColor = (json ?# "label").get("bg_color")
+      labelPosition = (json ? "label").getOrElse("position", VertexLabelPosition.Center),
+      labelForegroundColor = (json ? "label").getOrElse("fg_color", Color.BLACK),
+      labelBackgroundColor = (json ? "label").get("bg_color")
     )
 
     implicit def toJson(v: VertexStyleDesc) =
       JsonObject(
         "shape" -> v.shape,
-        "custom_shape" -> JsonNull(),
+        "custom_shape" -> JsonNull,
         "stroke_color" -> v.strokeColor,
         "fill_color" -> v.fillColor,
         "label" -> JsonObject(
           "position" -> v.labelPosition,
           "fg_color" -> v.labelForegroundColor,
-          "bg_color" -> v.labelBackgroundColor.map(x=>x:Json).getOrElse(JsonNull())
+          "bg_color" -> v.labelBackgroundColor.map(x=>x:Json).getOrElse(JsonNull)
         ).noEmpty
       ).noEmpty
   }
@@ -157,9 +154,9 @@ object Theory {
     implicit def fromJson(json: Json) = EdgeStyleDesc(
       strokeColor = json.getOrElse("stroke_color", Color.BLACK),
       strokeWidth = json.getOrElse("stroke_width", 1),
-      labelPosition = (json ?# "label").getOrElse("position", EdgeLabelPosition.Auto),
-      labelForegroundColor = (json ?# "label").getOrElse("fg_color", Color.BLACK),
-      labelBackgroundColor = (json ?# "label").get("bg_color")
+      labelPosition = (json ? "label").getOrElse("position", EdgeLabelPosition.Auto),
+      labelForegroundColor = (json ? "label").getOrElse("fg_color", Color.BLACK),
+      labelBackgroundColor = (json ? "label").get("bg_color")
     )
 
     implicit def toJson(v: EdgeStyleDesc) =
@@ -169,7 +166,7 @@ object Theory {
         "label" -> JsonObject(
           "position" -> v.labelPosition,
           "fg_color" -> v.labelForegroundColor,
-          "bg_color" -> v.labelBackgroundColor.map(x=>x:Json).getOrElse(JsonNull())
+          "bg_color" -> v.labelBackgroundColor.map(x=>x:Json).getOrElse(JsonNull)
         ).noEmpty
       ).noEmpty
   }
@@ -183,7 +180,7 @@ object Theory {
     implicit def fromJson(json: Json) = VertexDesc(
       value = json / "value",
       style = json / "style",
-      defaultData = json /# "default_data"
+      defaultData = (json / "default_data").asObject
     )
     implicit def toJson(v: VertexDesc) = JsonObject(
       "value" -> v.value,
@@ -201,7 +198,7 @@ object Theory {
     implicit def fromJson(json: Json) = EdgeDesc(
       value = (json / "value"),
       style = (json / "style"),
-      defaultData = (json /# "default_data")
+      defaultData = (json / "default_data").asObject
     )
     implicit def toJson(v: EdgeDesc) = JsonObject(
       "value" -> v.value,
@@ -226,7 +223,7 @@ object Theory {
     try {
       val name = (json / "name").stringValue
       val coreName = (json / "core_name").stringValue
-      val vertexTypes = (json /# "vertex_types").mapValues(x => x:VertexDesc)
+      val vertexTypes = (json / "vertex_types").asObject.mapValues(x => x:VertexDesc)
       val defaultVertexType = (json / "default_vertex_type")
       if (!vertexTypes.contains(defaultVertexType))
         throw new TheoryLoadException("Default vertex type: " + defaultVertexType + " not in list.")
@@ -275,7 +272,6 @@ object Theory {
     vertexTypes = Map(
       "string" -> VertexDesc(
         value = ValueDesc(
-          path = JsonPath("$.value"),
           typ = ValueType.String
         ),
         style = VertexStyleDesc(

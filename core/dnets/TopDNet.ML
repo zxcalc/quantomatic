@@ -4,7 +4,7 @@ sig
   type tree
   structure G : BANG_GRAPH
   structure CL : CONTOUR_LIST
-  sharing G.SharingOGraph = CL.G.SharingOGraph
+  sharing G.Sharing = CL.G.Sharing
   
   (* CONSTRUCTORS *)
   val empty : T

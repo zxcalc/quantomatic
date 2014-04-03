@@ -2,7 +2,7 @@ signature GRAPH_ENTRY =
 sig
   structure Graph : BANG_GRAPH
   structure Equiv : GRAPH_EQUIV
-  sharing Equiv.Graph.SharingOGraph = Graph.SharingOGraph
+  sharing Equiv.Graph.Sharing = Graph.Sharing
   
   type T
   type data
@@ -44,9 +44,9 @@ sig
   structure EqClass : EQ_CLASS
   structure GraphEntry : GRAPH_ENTRY
   structure DNet : TOP_DNET
-  sharing GraphEntry.Graph.SharingOGraph
-    = Theory.Graph.SharingOGraph
-    = DNet.G.SharingOGraph
+  sharing GraphEntry.Graph.Sharing
+    = Theory.Graph.Sharing
+    = DNet.G.Sharing
   
   
   val update_initial_rs : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
@@ -139,9 +139,9 @@ functor EqClassTab(
   structure Theory : GRAPHICAL_THEORY
   structure Metric : GRAPH_METRIC
   structure Equiv : GRAPH_EQUIV
-  sharing Theory.Graph.SharingOGraph =
-          Metric.Graph.SharingOGraph =
-          Equiv.Graph.SharingOGraph
+  sharing Theory.Graph.Sharing =
+          Metric.Graph.Sharing =
+          Equiv.Graph.Sharing
   type data
   val default_data : data
 ) : EQ_CLASS_TAB =
@@ -253,7 +253,7 @@ struct
     let
       val lhs = GE.get_graph (GraphName.NTab.get (get_graph_tab eqt) lhs_n)
       val r = Theory.Rule.mk (lhs, rhs)
-      val (rname, rs) = Theory.Ruleset.add_fresh_rule (R.mk nm, r) rs
+      val (rname, rs) = rs |> Theory.Ruleset.add_fresh_rule r
     in rs |> Theory.Ruleset.tag_rule rname (TagName.mk tag)
     end
     
@@ -315,8 +315,8 @@ struct
   fun has_match_in_dnet eqt tgt = let
     fun has_match pat_n = let
       val pat = get_graph_entry eqt pat_n
-    in is_some (Seq.pull (Theory.MatchSearch.match
-         (GE.get_graph pat) (GE.get_graph tgt)
+    in is_some (Seq.pull (
+         Theory.MatchSearch.match (GE.get_graph pat) (GE.get_graph tgt)
        ))
     end
   in GraphName.NSet.exists has_match

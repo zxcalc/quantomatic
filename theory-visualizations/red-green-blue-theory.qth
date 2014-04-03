@@ -1,7 +1,7 @@
 {
 	"name": "Red/Green/Blue",
 	"coreName": "red_green_blue",
-	"vertexTypePath": "",
+	"vertexTypePath": "type",
 	"vertexTypes": {
 		"Red": {
 			"mnemonic": "r",
