@@ -32,17 +32,9 @@ trait Constraints extends GraphLayout {
     }
     
     val length = projectLength((v1v2x,v1v2y),dir)
-    if (c.order == 0){
-    	return projectLength((v1v2x,v1v2y),dir) == c.length
-    }
-    
-    else if(c.order > 0){
-    	return projectLength((v1v2x,v1v2y),dir) >= c.length
-    }
-    
-    else {
-    	return projectLength((v1v2x,v1v2y),dir) <= c.length
-    }
+    if (c.order == 0) projectLength((v1v2x,v1v2y),dir) == c.length
+    else if(c.order > 0) projectLength((v1v2x,v1v2y),dir) >= c.length
+    else projectLength((v1v2x,v1v2y),dir) <= c.length
     
   }
   // project v1 on v2 // direction is unit vector
@@ -57,7 +49,7 @@ trait Constraints extends GraphLayout {
   }
 
   def vectorProduct (v1 : (Double,Double), v2 : (Double, Double)) : Double = {
-    	(v1._1*v2._1+v1._2*v2._2)
+    v1._1*v2._1+v1._2*v2._2
   }
   
   

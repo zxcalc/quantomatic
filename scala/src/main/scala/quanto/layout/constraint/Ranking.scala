@@ -15,8 +15,12 @@ trait Ranking extends Constraints {
     constraints.nextLayer()
 
     val dag = g.dagCopy
-    for (e <- dag.edges)
-      constraints += {(distance from dag.source(e) to dag.target(e) along (0,1)) ~>= rankSep}
+    for (e <- dag.edges) {
+      if (dag.edata(e).isDirected)
+        constraints += {
+          (distance from dag.source(e) to dag.target(e) along(0, 1)) ~>= rankSep
+        }
+    }
   }
 }
 

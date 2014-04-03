@@ -221,8 +221,14 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   }
 
   def layoutGraph() {
-    val lo = new ForceLayout with Clusters
-    replaceGraph(lo.layout(graph), "Layout Graph")
+    val lo = new ForceLayout with Ranking with Clusters
+    val t0 = System.currentTimeMillis()
+    val newGraph = lo.layout(graph)
+    val t1 = System.currentTimeMillis()
+    println("time: " + (t1 - t0))
+    println("final alpha: " + lo.alpha)
+    println("final iteration: " + lo.iteration)
+    replaceGraph(newGraph, "Layout Graph")
   }
 
   view.listenTo(view.mouse.clicks, view.mouse.moves)
