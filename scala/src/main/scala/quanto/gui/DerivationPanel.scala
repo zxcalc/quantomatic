@@ -24,16 +24,13 @@ class DerivationPanel(val theory: Theory)
     focusable = true
   }
 
-  LhsView.trans.scale = 20.0f
-  LhsView.trans.origin = (100.0f, 100.0f)
-
   val RhsView = new GraphView(theory, DummyRef) {
     drawGrid = true
     focusable = true
   }
 
-  RhsView.trans.scale = 20.0f
-  RhsView.trans.origin = (100.0f, 100.0f)
+  LhsView.zoom = 0.6
+  RhsView.zoom = 0.6
 
   val controls = new GraphEditControls(theory)
 
@@ -75,12 +72,45 @@ class DerivationPanel(val theory: Theory)
 
   val LhsGraphPane = new ScrollPane(LhsView)
   val RhsGraphPane = new ScrollPane(RhsView)
-  val RhsRewritePane = new BorderPanel
+
+  val RewriteList = new ListView
+  RewriteList.preferredSize = new Dimension(400,200)
+
+  val RewritePreview = new GraphView(theory, DummyRef) {
+    drawGrid = true
+    focusable = true
+  }
+
+  RewritePreview.zoom = 0.5
+
+  val PreviewGraphPane = new ScrollPane(RewritePreview)
+
+  val ManualRewritePane = new BorderPanel {
+    val AddRuleButton = new Button {
+      icon = new ImageIcon(GraphEditor.getClass.getResource("list-add.png"), "Add Rule")
+      preferredSize = RewindButton.preferredSize
+    }
+    val RemoveRuleButton = new Button {
+      icon = new ImageIcon(GraphEditor.getClass.getResource("list-remove.png"), "Remove Rule")
+      preferredSize = RewindButton.preferredSize
+    }
+    add(new BorderPanel {
+      add(RewriteList, BorderPanel.Position.Center)
+      add(new FlowPanel(FlowPanel.Alignment.Left)(AddRuleButton, RemoveRuleButton),
+        BorderPanel.Position.South)
+    }, BorderPanel.Position.North)
+    add(PreviewGraphPane, BorderPanel.Position.Center)
+  }
+
+  val RhsRewritePane = new TabbedPane
+  RhsRewritePane.pages += new TabbedPane.Page("Rewrite", ManualRewritePane)
+  RhsRewritePane.pages += new TabbedPane.Page("Simplify", new BorderPanel)
 
   val LhsLabel = new Label("(root)")
   val RhsLabel = new Label("(head)")
 
   val Lhs = new BorderPanel {
+    add(DeriveToolbar, BorderPanel.Position.North)
     add(LhsGraphPane, BorderPanel.Position.Center)
     add(LhsLabel, BorderPanel.Position.South)
   }
@@ -109,7 +139,7 @@ class DerivationPanel(val theory: Theory)
 
   val histView = new HistView(derivation)
 
-  add(DeriveToolbar, BorderPanel.Position.North)
+
   add(GraphViewPanel, BorderPanel.Position.Center)
 
   reactions += {

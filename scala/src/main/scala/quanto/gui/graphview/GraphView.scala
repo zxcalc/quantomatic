@@ -30,7 +30,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   var drawBBoxConnections = false
   var snapToGrid = false
   var gridMajor = 1.0
-  var gridSubs = 2
+  //var gridSubs = 4
   var showNames = true
   val highlights = collection.mutable.Set[Highlight]()
 
@@ -105,6 +105,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
   private def drawGridLines(g: Graphics2D) {
     val origin = trans toScreen (0,0)
+    val gridSubs = if (zoom <= 0.15) 1 else if (zoom <= 0.6) 2 else 4
     val minor = (trans scaleToScreen gridMajor) / gridSubs.toDouble
 
     val iterations = List(
