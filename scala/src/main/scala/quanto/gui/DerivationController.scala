@@ -138,7 +138,7 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
           derivation.parent.get(s).map { p => state = StepState(p) }
       }
     case ButtonClicked(panel.ManualRewritePane.AddRuleButton) =>
-      val d = new AddRuleDialog
+      val d = new AddRuleDialog(panel.project)
       d.centerOnScreen()
       d.open()
       d.result.map { s =>

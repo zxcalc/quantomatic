@@ -1,7 +1,7 @@
 package quanto.gui
 
 import scala.swing._
-import quanto.data.Theory
+import quanto.data._
 
 abstract class DocumentPage(component0: Component with HasDocument)
 extends ClosablePage(
@@ -35,7 +35,7 @@ extends DocumentPage(new MLEditPanel) {
   val documentType = "ML Code"
 }
 
-class DerivationDocumentPage(val theory: Theory)
-extends DocumentPage(new DerivationPanel(theory)) {
+class DerivationDocumentPage(val project: Project)
+extends DocumentPage(new DerivationPanel(project)) {
   val documentType = "Derivation"
 }

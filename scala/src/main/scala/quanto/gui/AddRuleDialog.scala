@@ -2,31 +2,38 @@ package quanto.gui
 
 import scala.swing._
 import scala.swing.event.ButtonClicked
+import quanto.data._
 
-case class RuleDesc(name: String, inverse: Boolean)
 
-class AddRuleDialog extends Dialog {
+class AddRuleDialog(project: Project) extends Dialog {
   modal = true
-  var result: Option[String] = None
+
+  def result: Seq[RuleDesc] =
+    MainPanel.RuleList.selection.items.map { s =>
+      RuleDesc(s, inverse = MainPanel.InverseCheckbox.selected)
+    }
 
   val AddButton = new Button("Add")
   val CancelButton = new Button("Cancel")
   defaultButton = Some(AddButton)
 
+//  val dir = Files.newDirectoryStream(Paths.get(rootDir), "**/*.qrule")
+//  for (p <- dir.asScala) println(p)
 
-
-  val mainPanel = new BoxPanel(Orientation.Vertical) {
+  val MainPanel = new BoxPanel(Orientation.Vertical) {
     val Search = new TextField
-    val RuleList = new ListView
+    val RuleList = new ListView[String](project.rules)
+
     val RulePane = new ScrollPane(RuleList)
     val InverseCheckbox = new CheckBox("Inverse")
     RulePane.preferredSize = new Dimension(400,200)
 
     contents += Swing.VStrut(10)
-    contents += new BoxPanel(Orientation.Horizontal) {
-      contents += (Swing.HStrut(10), new Label("Search:"), Swing.HStrut(5), Search, Swing.HStrut(10))
-    }
-    contents += Swing.VStrut(5)
+//    TODO: add filtering
+//    contents += new BoxPanel(Orientation.Horizontal) {
+//      contents += (Swing.HStrut(10), new Label("Filter:"), Swing.HStrut(5), Search, Swing.HStrut(10))
+//    }
+//    contents += Swing.VStrut(5)
     contents += new BoxPanel(Orientation.Horizontal) {
       contents += (Swing.HStrut(10), RulePane, Swing.HStrut(10))
     }
@@ -41,15 +48,15 @@ class AddRuleDialog extends Dialog {
     contents += Swing.VStrut(10)
   }
 
-  contents = mainPanel
+  contents = MainPanel
 
   listenTo(AddButton, CancelButton)
 
   reactions += {
     case ButtonClicked(AddButton) =>
-      result = Some("foo")
       close()
     case ButtonClicked(CancelButton) =>
+      MainPanel.RuleList.selection.indices.clear()
       close()
   }
 }

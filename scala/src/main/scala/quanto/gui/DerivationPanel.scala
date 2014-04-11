@@ -9,10 +9,11 @@ import javax.swing.ImageIcon
 import quanto.gui.histview.HistView
 
 
-class DerivationPanel(val theory: Theory)
+class DerivationPanel(val project: Project)
   extends BorderPanel
   with HasDocument
 {
+  def theory = project.theory
   val document = new DerivationDocument(this)
   def derivation = document.derivation
 

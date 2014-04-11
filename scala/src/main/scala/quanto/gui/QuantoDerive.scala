@@ -337,7 +337,7 @@ object QuantoDerive extends SimpleSwingApplication {
           case (Some(project), Some(doc: HasDocument)) =>
             doc.document match {
               case (graphDoc: GraphDocument) =>
-                val page = new DerivationDocumentPage(project.theory)
+                val page = new DerivationDocumentPage(project)
                 page.document.asInstanceOf[DerivationDocument].root = graphDoc.graph
                 MainTabbedPane += page
                 MainTabbedPane.selection.index = page.index
@@ -412,7 +412,7 @@ object QuantoDerive extends SimpleSwingApplication {
               val pageOpt = extn match {
                 case "qgraph"  => Some(new GraphDocumentPage(project.theory))
                 case "qrule"   => Some(new RuleDocumentPage(project.theory))
-                case "qderive" => Some(new DerivationDocumentPage(project.theory))
+                case "qderive" => Some(new DerivationDocumentPage(project))
                 case "ML"      => Some(new MLDocumentPage)
                 case _         => None
               }

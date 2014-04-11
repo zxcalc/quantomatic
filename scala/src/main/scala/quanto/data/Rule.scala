@@ -8,6 +8,7 @@ case class RuleLoadException(message: String, cause: Throwable = null)
   with RuleException
 
 case class Rule(lhs: Graph, rhs:Graph, derivation: Option[String] = None)
+case class RuleDesc(name: String, inverse: Boolean)
 
 object Rule {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory) = try {
