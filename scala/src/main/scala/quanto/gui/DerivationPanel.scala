@@ -74,7 +74,7 @@ class DerivationPanel(val project: Project)
   val LhsGraphPane = new ScrollPane(LhsView)
   val RhsGraphPane = new ScrollPane(RhsView)
 
-  val RewriteList = new ListView
+  val RewriteList = new ListView[ResultLine]
   RewriteList.preferredSize = new Dimension(400,200)
 
   val RewritePreview = new GraphView(theory, DummyRef) {
@@ -154,4 +154,7 @@ class DerivationPanel(val project: Project)
 
   // construct the controller last, as it depends on the panel elements already being initialised
   val controller = new DerivationController(this)
+
+  val rewriteController = new RewriteController(this)
+  rewriteController.rules = Vector(RuleDesc("axioms/test1", inverse = false), RuleDesc("axioms/test2", inverse = true))
 }
