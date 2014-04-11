@@ -36,6 +36,7 @@ case class AddConsoleOutput(out: OutputStream) extends PolyConsoleMessage
 case class RemoveConsoleOutput(out: OutputStream) extends PolyConsoleMessage
 case class CompileML(fileName: Option[String], code: String)(val onComplete : StreamMessage => Any) extends PolyConsoleMessage
 case object InterruptML extends PolyConsoleMessage
+case class SetMLWorkingDir(dir: String) extends PolyConsoleMessage
 
 
 abstract class CallResponse
@@ -60,13 +61,14 @@ class Core extends Actor with ActorLogging {
   val activeRequests = collection.mutable.Set[Int]()
   private var requestId = 10
   private var mlCompileId = 10
+  private var workingDir = "."
 
   coreProcess.startCore()
   reader = context.actorOf(Props { new CoreReader(coreProcess) }, name = "core_reader")
   writer = context.actorOf(Props { new CoreWriter(coreProcess) }, name = "core_writer")
 
   val codeWrapper =
-    """PolyML.exception_trace (fn () => (use "%1$s"; TextIO.print ("\n<Success>\n")))"""
+    """PolyML.exception_trace (fn () => (OS.FileSys.chDir "%1s"; use "%2$s"; TextIO.print ("\n<Success>\n")))"""
 
 //  +
 //    """  handle SML90.Interrupt => TextIO.print ("\n<Interrupted>\n")"""+
@@ -100,7 +102,7 @@ class Core extends Actor with ActorLogging {
       fw.write(msg.code)
       fw.write("\n")
       fw.close()
-      val code = codeWrapper.format(file.getAbsolutePath, mlCompileId)
+      val code = codeWrapper.format(workingDir, file.getAbsolutePath, mlCompileId)
 
       activeRequests.synchronized(activeRequests += mlCompileId)
       coreProcess.consoleOutput.addListener(mlCompileId)(msg.onComplete)
@@ -121,6 +123,8 @@ class Core extends Actor with ActorLogging {
         val sm = StreamMessage(CodePart('K'), IntPart(rid), CodePart('k'))
         sm.writeTo(coreProcess.consoleInput)
       }}
+    case SetMLWorkingDir(dir) =>
+      workingDir = dir
       //coreProcess.polyPid.map { p => Runtime.getRuntime.exec("kill -SIGINT " + p) }
 
     case x => log.warning("Unexpected message: " + x)

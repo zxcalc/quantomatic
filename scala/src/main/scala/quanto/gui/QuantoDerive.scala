@@ -56,6 +56,8 @@ object QuantoDerive extends SimpleSwingApplication {
     case _ => None
   }
 
+  CurrentProject.map { pr => core ! SetMLWorkingDir(pr.rootFolder) }
+
   val ProjectFileTree = new FileTree
   ProjectFileTree.preferredSize = new Dimension(250,360)
   ProjectFileTree.filenameFilter = Some(new FilenameFilter {
@@ -195,11 +197,13 @@ object QuantoDerive extends SimpleSwingApplication {
               Files.createDirectory(folder.resolve("theorems"))
               Files.createDirectory(folder.resolve("derivations"))
               Files.createDirectory(folder.resolve("code"))
-              val proj = Project(theoryFile = thy, rootFolder = folder.toString)
+              val rootFolder = folder.toString
+              val proj = Project(theoryFile = thy, rootFolder = rootFolder)
               Project.toJson(proj).writeTo(new File(folder.resolve("main.qproject").toString))
               CurrentProject = Some(proj)
-              ProjectFileTree.root = Some(folder.toString)
-              prefs.put("lastProjectFolder", folder.toString)
+              ProjectFileTree.root = Some(rootFolder)
+              prefs.put("lastProjectFolder", rootFolder)
+              core ! SetMLWorkingDir(rootFolder)
             }
         }
       }
@@ -212,14 +216,15 @@ object QuantoDerive extends SimpleSwingApplication {
         chooser.fileSelectionMode = FileChooser.SelectionMode.DirectoriesOnly
         chooser.showOpenDialog(Split) match {
           case FileChooser.Result.Approve =>
-            val folder = chooser.selectedFile.toString
-            val projectFile = new File(folder + "/main.qproject")
+            val rootFolder = chooser.selectedFile.toString
+            val projectFile = new File(rootFolder + "/main.qproject")
             if (projectFile.exists) {
               try {
-                val proj = Project.fromJson(Json.parse(projectFile), folder)
+                val proj = Project.fromJson(Json.parse(projectFile), rootFolder)
                 CurrentProject = Some(proj)
-                ProjectFileTree.root = Some(folder)
-                prefs.put("lastProjectFolder", folder.toString)
+                ProjectFileTree.root = Some(rootFolder)
+                prefs.put("lastProjectFolder", rootFolder.toString)
+                core ! SetMLWorkingDir(rootFolder)
               } catch {
                 case _: ProjectLoadException =>
                   error("Error loading project file")

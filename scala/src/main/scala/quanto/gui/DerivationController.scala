@@ -111,6 +111,7 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
 
   panel.navigationButtons.foreach { listenTo(_) }
   listenTo(panel.document, panel.histView.selection)
+  listenTo(panel.ManualRewritePane.AddRuleButton)
 
   reactions += {
     case DocumentReplaced(_) =>
@@ -135,6 +136,13 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
         case HeadState(sOpt) => sOpt.map { s => state = StepState(s) }
         case StepState(s) =>
           derivation.parent.get(s).map { p => state = StepState(p) }
+      }
+    case ButtonClicked(panel.ManualRewritePane.AddRuleButton) =>
+      val d = new AddRuleDialog
+      d.centerOnScreen()
+      d.open()
+      d.result.map { s =>
+        println("got: " + s)
       }
     case ButtonClicked(panel.NextButton) =>
       state match {
