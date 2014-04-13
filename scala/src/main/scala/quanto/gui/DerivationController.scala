@@ -28,9 +28,13 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
   private var _state : DeriveState = HeadState(None)
   def state = _state
   def state_=(s: DeriveState) {
+    _state match {
+      case HeadState(_) => panel.rewriteController.deafTo(panel.LhsView)
+      case _ =>
+    }
+
     _state = s
     panel.histView.selectedNode = Some(s)
-    publish(DeriveStateChanged(s))
 
     s match {
       case HeadState(headOpt) =>
@@ -57,6 +61,8 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
 
         panel.LhsView.clearHighlights()
         panel.RhsView.clearHighlights()
+
+        panel.rewriteController.listenTo(panel.LhsView)
 
 
       case StepState(step) =>
@@ -90,6 +96,8 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
         panel.NextButton.enabled = true
         panel.FastForwardButton.enabled = true
     }
+
+    publish(DeriveStateChanged(s))
   }
 
   def replaceDerivation(d: Derivation, desc: String) {
@@ -111,7 +119,6 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
 
   panel.navigationButtons.foreach { listenTo(_) }
   listenTo(panel.document, panel.histView.selection)
-  listenTo(panel.ManualRewritePane.AddRuleButton)
 
   reactions += {
     case DocumentReplaced(_) =>
@@ -136,13 +143,6 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
         case HeadState(sOpt) => sOpt.map { s => state = StepState(s) }
         case StepState(s) =>
           derivation.parent.get(s).map { p => state = StepState(p) }
-      }
-    case ButtonClicked(panel.ManualRewritePane.AddRuleButton) =>
-      val d = new AddRuleDialog(panel.project)
-      d.centerOnScreen()
-      d.open()
-      d.result.map { s =>
-        println("got: " + s)
       }
     case ButtonClicked(panel.NextButton) =>
       state match {

@@ -11,6 +11,8 @@ import quanto.util.json._
 import quanto.layout.constraint._
 import java.awt.event.{ActionEvent, ActionListener}
 
+case class VertexSelectionChanged(graph: Graph, selectedVerts: Set[VName]) extends GraphEvent
+
 class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   private var _mouseState: MouseState = SelectTool()
   def mouseState = _mouseState
@@ -265,15 +267,6 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
             val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
             val mouseDownOnSelectedVert = vertexHit.exists(view.selectedVerts.contains)
 
-            // clear the selection if the shift key isn't pressed and the vertex clicked isn't already selected
-            if (!mouseDownOnSelectedVert &&
-              (modifiers & Modifier.Shift) != Modifier.Shift)
-            {
-              selectedVerts = Set()
-              selectedEdges = Set()
-              selectedBBoxes = Set()
-            }
-
             vertexHit match {
               case Some(v) =>
                 selectedVerts += v // make sure v is selected, if it wasn't before
@@ -349,6 +342,16 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
         case AddEdgeTool() =>     // do nothing
         case AddBangBoxTool () => // do nothing
         case SelectionBox(start,_) =>
+          val oldSelectedVerts = selectedVerts
+
+          // clear the selection if the shift key isn't pressed
+          if ((modifiers & Modifier.Shift) != Modifier.Shift)
+          {
+            selectedVerts = Set()
+            selectedEdges = Set()
+            selectedBBoxes = Set()
+          }
+
           view.computeDisplayData()
 
           if (pt.getX == start.getX && pt.getY == start.getY) {
@@ -366,6 +369,11 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
             val r = mouseState.asInstanceOf[SelectionBox].rect
             view.vertexDisplay filter (_._2.rectHit(r)) foreach { selectedVerts += _._1 }
           }
+
+          if (oldSelectedVerts != selectedVerts) {
+            view.publish(VertexSelectionChanged(graph, selectedVerts))
+          }
+
 
           mouseState = SelectTool()
           view.selectionBox = None

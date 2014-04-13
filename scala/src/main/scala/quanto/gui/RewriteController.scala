@@ -2,12 +2,12 @@ package quanto.gui
 
 import quanto.data._
 import scala.concurrent.Lock
-import scala.swing.Swing
-import java.awt.event.{ActionEvent, ActionListener}
+import scala.swing._
 import scala.util.Random
+import scala.swing.event.ButtonClicked
 
 
-class RewriteController(panel: DerivationPanel) {
+class RewriteController(panel: DerivationPanel) extends Publisher {
   var queryId = 0
   val resultLock = new Lock
   var resultSet = ResultSet(Vector())
@@ -42,9 +42,22 @@ class RewriteController(panel: DerivationPanel) {
     }
   }
 
+  listenTo(panel.ManualRewritePane.AddRuleButton)
+
+  reactions += {
+    case ButtonClicked(panel.ManualRewritePane.AddRuleButton) =>
+      val d = new AddRuleDialog(panel.project)
+      d.centerOnScreen()
+      d.open()
+
+      if (!d.result.isEmpty) rules ++= d.result
+    case VertexSelectionChanged(_,_) =>
+      restartSearch()
+  }
+
   class DummyRuleSeach(i : Int, qid: Int) extends Thread {
     override def run() {
-      Thread.sleep(math.abs(new Random().nextInt()) % 5000)
+      Thread.sleep(math.abs(new Random().nextInt()) % 200)
       Swing.onEDT {
         if (queryId == qid) {
           resultLock.acquire()

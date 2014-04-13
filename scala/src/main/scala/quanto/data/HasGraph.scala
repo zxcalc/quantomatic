@@ -3,7 +3,7 @@ package quanto.data
 import scala.swing.Publisher
 import scala.swing.event.Event
 
-sealed abstract class GraphEvent extends Event
+abstract class GraphEvent extends Event
 case class GraphChanged(sender: HasGraph) extends GraphEvent
 
 // will cause any graph views to invalidate and repaint the graph

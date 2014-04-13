@@ -156,5 +156,5 @@ class DerivationPanel(val project: Project)
   val controller = new DerivationController(this)
 
   val rewriteController = new RewriteController(this)
-  rewriteController.rules = Vector(RuleDesc("axioms/test1", inverse = false), RuleDesc("axioms/test2", inverse = true))
+//  rewriteController.rules = Vector(RuleDesc("axioms/test1", inverse = false), RuleDesc("axioms/test2", inverse = true))
 }
