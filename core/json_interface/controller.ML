@@ -19,9 +19,7 @@ structure CModTest = CModTest(
   structure Theory = Theory
   structure GraphComponentDataIO = GraphComponentDataIO)
 
-structure CModRewrite = CModRewrite(
-	structure Theory = Theory
-	structure GraphComponentDataIO = GraphComponentDataIO)
+structure CModRewrite = CModRewrite(structure Theory = Theory)
 
 val mtab = Symtab.make [
   ("test", (CModTest.ftab, "Test functions")),
