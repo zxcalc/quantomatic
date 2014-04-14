@@ -5,12 +5,19 @@ import scala.concurrent.Lock
 import scala.swing._
 import scala.util.Random
 import scala.swing.event.ButtonClicked
+import quanto.core.{Success, Call}
+import quanto.util.json._
+import akka.pattern.ask
+import scala.concurrent.ExecutionContext.Implicits.global
+import java.io.File
 
 
 class RewriteController(panel: DerivationPanel) extends Publisher {
+  implicit val timeout = QuantoDerive.timeout
   var queryId = 0
   val resultLock = new Lock
   var resultSet = ResultSet(Vector())
+  def theory = panel.project.theory
 
   def rules = resultSet.rules
   def rules_=(rules: Vector[RuleDesc]) {
@@ -18,13 +25,53 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
     resultSet = ResultSet(rules)
     queryId += 1
 
-    for (i <- 0 to rules.length - 1) new DummyRuleSeach(i, queryId).start()
+    //for (i <- 0 to rules.length - 1) new DummyRuleSeach(i, queryId).start()
+    val sel = if (!panel.LhsView.selectedVerts.isEmpty) panel.LhsView.selectedVerts
+              else panel.LhsView.graph.verts
+
+    for (rd <- rules) {
+      val rule = Rule.fromJson(Json.parse(new File(panel.project.rootFolder + "/" + rd.name + ".qrule")), theory)
+      val resp = QuantoDerive.core ? Call(theory.coreName, "rewrite", "find_rewrites",
+        JsonObject(
+          "rule" -> Rule.toJson(if (rd.inverse) rule.inverse else rule, theory),
+          "graph" -> Graph.toJson(panel.LhsView.graph, theory),
+          "vertices" -> JsonArray(sel.toVector.map(v => JsonString(v.toString)))
+        ))
+      resp.map { case Success(JsonString(stack)) => pullRewrite(rd, stack); case _ => }
+    }
+
     resultLock.release()
     
     refreshRewriteDisplay()
   }
 
   def restartSearch() { rules = rules }
+
+  private def pullRewrite(rd: RuleDesc, stack: String) {
+    val resp = QuantoDerive.core ? Call(panel.project.theory.coreName, "rewrite", "pull_rewrite",
+      JsonObject("stack" -> JsonString(stack)))
+    resp.map {
+      case Success(obj : JsonObject) =>
+        resultLock.acquire()
+        resultSet +=
+          rd -> DStep(
+            name = DSName("s"),
+            ruleName = rd.name,
+            rule = Rule.fromJson(obj / "rule", theory),
+            variant = if (rd.inverse) RuleInverse else RuleNormal,
+            graph = Graph.fromJson(obj / "graph", theory))
+        resultLock.release()
+
+        Swing.onEDT { refreshRewriteDisplay() }
+
+        if (resultSet.numResults(rd) < 20) pullRewrite(rd, stack)
+        else QuantoDerive.core ! Call(theory.coreName, "rewrite", "delete_rewrite_stack",
+                                      JsonObject("stack" -> JsonString(stack)))
+      case Success(JsonNull) => println("no more rewrites for stack " + stack)
+      case _ =>
+    }
+  }
+
 
   def refreshRewriteDisplay() {
     Swing.onEDT {

@@ -7,7 +7,10 @@ case class RuleLoadException(message: String, cause: Throwable = null)
   extends Exception(message, cause)
   with RuleException
 
-case class Rule(lhs: Graph, rhs:Graph, derivation: Option[String] = None)
+case class Rule(lhs: Graph, rhs:Graph, derivation: Option[String] = None) {
+  def inverse = Rule(rhs, lhs, derivation)
+}
+
 case class RuleDesc(name: String, inverse: Boolean)
 
 object Rule {

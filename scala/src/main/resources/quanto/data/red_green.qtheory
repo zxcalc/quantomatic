@@ -1,6 +1,6 @@
 {
   "name" : "Red/green theory",
-  "core_name" : "redgreen",
+  "core_name" : "red_green",
   "vertex_types" : {
     "X" : {
       "value" : {
