@@ -35,14 +35,14 @@ class DerivationPanel(val project: Project)
 
   val controls = new GraphEditControls(theory)
 
-  val lhsController = new GraphEditController(LhsView, true) {
+  val lhsController = new GraphEditController(LhsView, readOnly = true) {
     undoStack            = document.undoStack
     vertexTypeSelect     = controls.VertexTypeSelect
     edgeTypeSelect       = controls.EdgeTypeSelect
     edgeDirectedCheckBox = controls.EdgeDirected
   }
 
-  val rhsController = new GraphEditController(RhsView, true) {
+  val rhsController = new GraphEditController(RhsView, readOnly = true) {
     undoStack            = document.undoStack
     vertexTypeSelect     = controls.VertexTypeSelect
     edgeTypeSelect       = controls.EdgeTypeSelect
@@ -75,32 +75,58 @@ class DerivationPanel(val project: Project)
   val RhsGraphPane = new ScrollPane(RhsView)
 
   val RewriteList = new ListView[ResultLine]
-  RewriteList.preferredSize = new Dimension(400,200)
+  val RewritePane = new ScrollPane(RewriteList)
+  RewritePane.preferredSize = new Dimension(400,200)
 
   val RewritePreview = new GraphView(theory, DummyRef) {
     drawGrid = true
     focusable = true
   }
 
-  RewritePreview.zoom = 0.5
+  RewritePreview.zoom = 0.6
 
   val PreviewGraphPane = new ScrollPane(RewritePreview)
+
+  val previewController = new GraphEditController(RewritePreview, readOnly = true) {
+    undoStack            = document.undoStack
+    vertexTypeSelect     = controls.VertexTypeSelect
+    edgeTypeSelect       = controls.EdgeTypeSelect
+    edgeDirectedCheckBox = controls.EdgeDirected
+  }
+
+  val toolbarDim = RewindButton.preferredSize
 
   val ManualRewritePane = new BorderPanel {
     val AddRuleButton = new Button {
       icon = new ImageIcon(GraphEditor.getClass.getResource("list-add.png"), "Add Rule")
-      preferredSize = RewindButton.preferredSize
+      preferredSize = toolbarDim
     }
     val RemoveRuleButton = new Button {
       icon = new ImageIcon(GraphEditor.getClass.getResource("list-remove.png"), "Remove Rule")
-      preferredSize = RewindButton.preferredSize
+      preferredSize = toolbarDim
     }
-    add(new BorderPanel {
-      add(RewriteList, BorderPanel.Position.Center)
-      add(new FlowPanel(FlowPanel.Alignment.Left)(AddRuleButton, RemoveRuleButton),
-        BorderPanel.Position.South)
-    }, BorderPanel.Position.North)
-    add(PreviewGraphPane, BorderPanel.Position.Center)
+
+    val PreviousResultButton = new Button() {
+      icon = new ImageIcon(GraphEditor.getClass.getResource("go-previous.png"), "Previous result")
+      preferredSize = toolbarDim
+    }
+
+    val NextResultButton = new Button() {
+      icon = new ImageIcon(GraphEditor.getClass.getResource("go-next.png"), "Next result")
+      preferredSize = toolbarDim
+    }
+
+    val ApplyButton = new Button("Apply")
+    ApplyButton.preferredSize = new Dimension(ApplyButton.preferredSize.width, toolbarDim.height)
+
+    val topPane = new BorderPanel {
+      add(RewritePane, BorderPanel.Position.Center)
+      add(new FlowPanel(FlowPanel.Alignment.Left)(
+        AddRuleButton, RemoveRuleButton, PreviousResultButton, NextResultButton, ApplyButton
+      ), BorderPanel.Position.South)
+    }
+
+    add(new SplitPane(Orientation.Horizontal, topPane, PreviewGraphPane), BorderPanel.Position.Center)
   }
 
   val RhsRewritePane = new TabbedPane
@@ -142,6 +168,7 @@ class DerivationPanel(val project: Project)
 
 
   add(GraphViewPanel, BorderPanel.Position.Center)
+  listenTo(LhsGraphPane, RhsGraphPane, PreviewGraphPane)
 
   reactions += {
     case UIElementResized(LhsGraphPane) =>
@@ -150,6 +177,9 @@ class DerivationPanel(val project: Project)
     case UIElementResized(RhsGraphPane) =>
       RhsView.resizeViewToFit()
       RhsView.repaint()
+    case UIElementResized(PreviewGraphPane) =>
+      RewritePreview.resizeViewToFit()
+      RewritePreview.repaint()
   }
 
   // construct the controller last, as it depends on the panel elements already being initialised

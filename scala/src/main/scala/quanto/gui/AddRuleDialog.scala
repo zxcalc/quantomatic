@@ -1,8 +1,9 @@
 package quanto.gui
 
 import scala.swing._
-import scala.swing.event.ButtonClicked
+import scala.swing.event.{Key, KeyPressed, ButtonClicked}
 import quanto.data._
+import quanto.util.Globals
 
 
 class AddRuleDialog(project: Project) extends Dialog {

@@ -265,11 +265,17 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
             }
           } else {
             val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
-            val mouseDownOnSelectedVert = vertexHit.exists(view.selectedVerts.contains)
+            //val mouseDownOnSelectedVert = vertexHit.exists(view.selectedVerts.contains)
+            //println(vertexHit)
 
             vertexHit match {
               case Some(v) =>
-                selectedVerts += v // make sure v is selected, if it wasn't before
+                // if 'v' was not previously selected, it should now be the *only* vertex selected
+                if (!selectedVerts.contains(v)) {
+                  selectedVerts = Set(v)
+                  view.publish(VertexSelectionChanged(graph, selectedVerts))
+                }
+
                 mouseState = DragVertex(pt,pt)
               case None =>
                 val box = SelectionBox(pt, pt)

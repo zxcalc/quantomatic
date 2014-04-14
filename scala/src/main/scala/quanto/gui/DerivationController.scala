@@ -8,15 +8,17 @@ import java.awt.Color
 import quanto.gui.graphview.Highlight
 import quanto.layout.DeriveLayout
 
-sealed abstract class DeriveState extends HistNode
+sealed abstract class DeriveState extends HistNode { def step: Option[DSName] }
 case class StepState(s: DSName) extends DeriveState {
   def color = new Color(180,255,180)
   def label = s.toString
+  def step = Some(s)
 }
 
 case class HeadState(hOpt: Option[DSName]) extends DeriveState {
   def color = Color.WHITE
   def label = if (hOpt.isEmpty) "(root)" else "(head)"
+  def step = hOpt
 }
 
 case class DeriveStateChanged(state: DeriveState) extends Event
@@ -63,6 +65,7 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
         panel.RhsView.clearHighlights()
 
         panel.rewriteController.listenTo(panel.LhsView)
+        panel.rewriteController.restartSearch()
 
 
       case StepState(step) =>
@@ -121,6 +124,10 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
   listenTo(panel.document, panel.histView.selection)
 
   reactions += {
+    case DocumentChanged(_) =>
+      panel.histView.treeData = derivation
+      panel.histView.selectedNode = Some(state)
+      panel.histView.ensureIndexIsVisible(panel.histView.selection.leadIndex)
     case DocumentReplaced(_) =>
       state = HeadState(derivation.firstHead)
       panel.histView.treeData = derivation

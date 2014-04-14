@@ -82,10 +82,17 @@ extends TreeSeq[DeriveState]
 
   def graphsTo(head : DSName) = root +: stepsTo(head).map(s => steps(s).graph)
 
-  def addStep(parent: DSName, step: DStep) = copy (
-    steps = steps + (step.name -> step),
-    heads = (if (heads.contains(parent)) heads - parent else heads) + step.name
-  )
+  def addStep(parentOpt: Option[DSName], step: DStep) = parentOpt match {
+    case Some(p) =>
+      copy (
+        steps = steps + (step.name -> step),
+        heads = (if (heads.contains(p)) heads - p else heads) + step.name,
+        parent = parent + (step.name -> p))
+    case None =>
+      copy (
+        steps = steps + (step.name -> step),
+        heads = heads + step.name)
+  }
 
   def updateGraphInStep(s: DSName, g: Graph) = {
     val s1 = steps(s).copy(graph = g)

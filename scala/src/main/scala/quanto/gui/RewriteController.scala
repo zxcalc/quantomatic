@@ -1,9 +1,10 @@
 package quanto.gui
 
 import quanto.data._
+import quanto.data.Names._
 import scala.concurrent.Lock
 import scala.swing._
-import scala.util.Random
+import scala.swing.event._
 import scala.swing.event.ButtonClicked
 import quanto.core.{Success, Call}
 import quanto.util.json._
@@ -18,6 +19,16 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
   val resultLock = new Lock
   var resultSet = ResultSet(Vector())
   def theory = panel.project.theory
+
+  class ResultGraphRef(rule: RuleDesc, i: Int) extends HasGraph {
+    protected def gr_=(g: Graph) {
+      resultLock.acquire()
+      resultSet = resultSet.replaceGraph(rule, i, g)
+      resultLock.release()
+    }
+
+    protected def gr = resultSet.graph(rule, i)
+  }
 
   def rules = resultSet.rules
   def rules_=(rules: Vector[RuleDesc]) {
@@ -42,7 +53,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 
     resultLock.release()
     
-    refreshRewriteDisplay()
+    refreshRewriteDisplay(clearSelection = true)
   }
 
   def restartSearch() { rules = rules }
@@ -53,43 +64,66 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
     resp.map {
       case Success(obj : JsonObject) =>
         resultLock.acquire()
-        resultSet +=
-          rd -> DStep(
+
+        if (resultSet.rules.contains(rd)) {
+          val step = DStep(
             name = DSName("s"),
             ruleName = rd.name,
             rule = Rule.fromJson(obj / "rule", theory),
             variant = if (rd.inverse) RuleInverse else RuleNormal,
             graph = Graph.fromJson(obj / "graph", theory))
+
+          resultSet += rd -> step
+
+          if (resultSet.numResults(rd) < 20) pullRewrite(rd, stack)
+          else QuantoDerive.core ! Call(theory.coreName, "rewrite", "delete_rewrite_stack",
+            JsonObject("stack" -> JsonString(stack)))
+        } else {
+          // clean up if this rule has been removed from the result list
+          QuantoDerive.core ! Call(theory.coreName, "rewrite", "delete_rewrite_stack",
+            JsonObject("stack" -> JsonString(stack)))
+        }
+
         resultLock.release()
+        refreshRewriteDisplay()
 
-        Swing.onEDT { refreshRewriteDisplay() }
-
-        if (resultSet.numResults(rd) < 20) pullRewrite(rd, stack)
-        else QuantoDerive.core ! Call(theory.coreName, "rewrite", "delete_rewrite_stack",
-                                      JsonObject("stack" -> JsonString(stack)))
-      case Success(JsonNull) => println("no more rewrites for stack " + stack)
+      case Success(JsonNull) =>
       case _ =>
     }
   }
 
 
-  def refreshRewriteDisplay() {
+  def refreshRewriteDisplay(clearSelection: Boolean = false) {
     Swing.onEDT {
       resultLock.acquire()
-      
-      val sel = panel.RewriteList.selection.items.seq.map(res => res.rule).toSet
 
-      panel.RewriteList.listData = resultSet.resultLines
-      for (i <- 0 to panel.RewriteList.listData.length - 1) {
-        if (sel.contains(panel.RewriteList.listData(i).rule))
-          panel.RewriteList.selection.indices += i
+      if (clearSelection) {
+        panel.ManualRewritePane.PreviousResultButton.enabled = false
+        panel.ManualRewritePane.NextResultButton.enabled = false
+        panel.ManualRewritePane.ApplyButton.enabled = false
+        panel.RewriteList.selection.indices.clear()
+        panel.RewriteList.listData = resultSet.resultLines
+      } else {
+        val sel = panel.RewriteList.selection.items.seq.map(res => res.rule).toSet
+        panel.RewriteList.listData = resultSet.resultLines
+        for (i <- 0 to panel.RewriteList.listData.length - 1) {
+          if (sel.contains(panel.RewriteList.listData(i).rule))
+            panel.RewriteList.selection.indices += i
+        }
       }
-      
+
       resultLock.release()
     }
   }
 
-  listenTo(panel.ManualRewritePane.AddRuleButton)
+  def selectedRule =
+    if (panel.RewriteList.selection.items.length == 1) Some(panel.RewriteList.selection.items(0).asInstanceOf[ResultLine].rule)
+    else None
+
+  listenTo(panel.ManualRewritePane.AddRuleButton, panel.ManualRewritePane.RemoveRuleButton)
+  listenTo(panel.ManualRewritePane.PreviousResultButton, panel.ManualRewritePane.NextResultButton)
+  listenTo(panel.ManualRewritePane.ApplyButton)
+  listenTo(panel.RewriteList.selection)
 
   reactions += {
     case ButtonClicked(panel.ManualRewritePane.AddRuleButton) =>
@@ -97,33 +131,87 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       d.centerOnScreen()
       d.open()
 
-      if (!d.result.isEmpty) rules ++= d.result
+      val currentRules = rules.toSet
+      val newRules = d.result.filter(!currentRules.contains(_))
+
+      if (!newRules.isEmpty) rules ++= newRules
+    case ButtonClicked(panel.ManualRewritePane.RemoveRuleButton) =>
+      resultLock.acquire()
+      panel.RewriteList.selection.items.foreach { line => resultSet -= line.rule }
+      resultLock.release()
+      refreshRewriteDisplay()
+    case ButtonClicked(panel.ManualRewritePane.PreviousResultButton) =>
+      resultLock.acquire()
+      selectedRule match {
+        case Some(rd) =>
+          resultSet = resultSet.previousResult(rd)
+          panel.RewritePreview.graphRef = resultSet.resultIndex(rd) match
+            { case 0 => panel.DummyRef ; case i => new ResultGraphRef(rd, i) }
+        case None =>
+      }
+      resultLock.release()
+      refreshRewriteDisplay()
+    case ButtonClicked(panel.ManualRewritePane.NextResultButton) =>
+      resultLock.acquire()
+      selectedRule match {
+        case Some(rd) =>
+          resultSet = resultSet.nextResult(rd)
+          panel.RewritePreview.graphRef = resultSet.resultIndex(rd) match
+            { case 0 => panel.DummyRef ; case i => new ResultGraphRef(rd, i) }
+        case None =>
+      }
+      resultLock.release()
+      refreshRewriteDisplay()
+    case ButtonClicked(panel.ManualRewritePane.ApplyButton) =>
+      selectedRule.map { rd => resultSet.currentResult(rd).map { step =>
+        val parentOpt = panel.controller.state.step
+
+        val stepFr = step.copy(name = panel.derivation.steps.freshWithSuggestion(DSName(rd.name.replaceFirst("^.*\\/", "") + "-0")))
+        panel.RewritePreview.graphRef = panel.DummyRef
+        panel.document.derivation = panel.document.derivation.addStep(parentOpt, stepFr)
+        panel.controller.state = HeadState(Some(stepFr.name))
+      }}
+
     case VertexSelectionChanged(_,_) =>
       restartSearch()
-  }
-
-  class DummyRuleSeach(i : Int, qid: Int) extends Thread {
-    override def run() {
-      Thread.sleep(math.abs(new Random().nextInt()) % 200)
-      Swing.onEDT {
-        if (queryId == qid) {
-          resultLock.acquire()
-          val r = resultSet.rules(i)
-          if (resultSet.numResults(r) < 20) {
-            resultSet +=
-              r -> DStep(
-                name = DSName("s"),
-                ruleName = r.name,
-                rule = Rule(lhs = Graph(), rhs = Graph()),
-                variant = RuleNormal,
-                graph = Graph())
-
-            refreshRewriteDisplay()
-            new DummyRuleSeach(i, qid).start()
-          }
-          resultLock.release()
-        }
+    case SelectionChanged(_) =>
+      selectedRule match {
+        case Some(rd) =>
+          panel.RewritePreview.graphRef = resultSet.resultIndex(rd) match
+            { case 0 => panel.DummyRef ; case i => new ResultGraphRef(rd, i) }
+          panel.ManualRewritePane.PreviousResultButton.enabled = true
+          panel.ManualRewritePane.NextResultButton.enabled = true
+          panel.ManualRewritePane.ApplyButton.enabled = true
+        case None =>
+          panel.RewritePreview.graphRef = panel.DummyRef
+          panel.ManualRewritePane.PreviousResultButton.enabled = false
+          panel.ManualRewritePane.NextResultButton.enabled = false
+          panel.ManualRewritePane.ApplyButton.enabled = false
       }
-    }
   }
+
+//  class DummyRuleSeach(i : Int, qid: Int) extends Thread {
+//    override def run() {
+//      Thread.sleep(math.abs(new Random().nextInt()) % 200)
+//      Swing.onEDT {
+//        if (queryId == qid) {
+//          resultLock.acquire()
+//          val r = resultSet.rules(i)
+//          if (resultSet.numResults(r) < 20) {
+//            resultSet +=
+//              r -> DStep(
+//                name = DSName("s"),
+//                ruleName = r.name,
+//                rule = Rule(lhs = Graph(), rhs = Graph()),
+//                variant = RuleNormal,
+//                graph = Graph())
+//
+//            refreshRewriteDisplay()
+//            new DummyRuleSeach(i, qid).start()
+//          }
+//          resultLock.release()
+//        }
+//      }
+//    }
+//  }
 }
