@@ -30,4 +30,6 @@ in
      | NONE => 0
 end
 
+val register_simproc = JsonControllerRegistry.RG_Controller.register_simproc
+
 end

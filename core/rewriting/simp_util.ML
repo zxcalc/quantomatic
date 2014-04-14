@@ -30,6 +30,7 @@ sig
   val json_of_derivation : simproc -> Theory.Graph.T -> Json.json
   val save_derivation : string -> simproc -> Theory.Graph.T -> unit
   val load_rule : string -> (R.name * Theory.Rule.T)
+  val load_ruleset : string list -> Theory.Ruleset.T
   val load_graph : string -> Theory.Graph.T
   val save_graph : string -> Theory.Graph.T -> unit
 end
@@ -52,6 +53,8 @@ fun ruleset rule_list = fold (fn r => fn rs => (
     rs |> Theory.Ruleset.update_rule r
        |> Theory.Ruleset.activate_rule (fst r)
   )) rule_list Theory.Ruleset.empty
+
+fun load_ruleset rule_list = ruleset (map load_rule rule_list)
 
 fun REDUCE_ALL ruleset graph =
   Seq.make (fn () => (
