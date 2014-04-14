@@ -123,12 +123,8 @@ with HasDocument
   // alias for graph_=, used in java code
 //  def setGraph(g: Graph) { graph_=(g) }
 
-  val graphEditController = new GraphEditController(graphView, readOnly) {
-    undoStack            = document.undoStack
-    vertexTypeSelect     = controls.VertexTypeSelect
-    edgeTypeSelect       = controls.EdgeTypeSelect
-    edgeDirectedCheckBox = controls.EdgeDirected
-  }
+  val graphEditController = new GraphEditController(graphView, document.undoStack, readOnly)
+  graphEditController.controlsOpt = Some(controls)
 
   val GraphViewScrollPane = new ScrollPane(graphView)
 

@@ -17,19 +17,11 @@ with HasDocument
 
   val controls = new GraphEditControls(theory)
 
-  val lhsController = new GraphEditController(lhsView, readOnly) {
-    undoStack            = document.undoStack
-    vertexTypeSelect     = controls.VertexTypeSelect
-    edgeTypeSelect       = controls.EdgeTypeSelect
-    edgeDirectedCheckBox = controls.EdgeDirected
-  }
+  val lhsController = new GraphEditController(lhsView, document.undoStack, readOnly)
+  lhsController.controlsOpt = Some(controls)
 
-  val rhsController = new GraphEditController(rhsView, readOnly) {
-    undoStack            = document.undoStack
-    vertexTypeSelect     = controls.VertexTypeSelect
-    edgeTypeSelect       = controls.EdgeTypeSelect
-    edgeDirectedCheckBox = controls.EdgeDirected
-  }
+  val rhsController = new GraphEditController(rhsView, document.undoStack, readOnly)
+  rhsController.controlsOpt = Some(controls)
 
   val LhsScrollPane = new ScrollPane(lhsView)
   val RhsScrollPane = new ScrollPane(rhsView)

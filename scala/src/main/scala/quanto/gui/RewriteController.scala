@@ -101,14 +101,14 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
         panel.ManualRewritePane.PreviousResultButton.enabled = false
         panel.ManualRewritePane.NextResultButton.enabled = false
         panel.ManualRewritePane.ApplyButton.enabled = false
-        panel.RewriteList.selection.indices.clear()
-        panel.RewriteList.listData = resultSet.resultLines
+        panel.ManualRewritePane.Rewrites.selection.indices.clear()
+        panel.ManualRewritePane.Rewrites.listData = resultSet.resultLines
       } else {
-        val sel = panel.RewriteList.selection.items.seq.map(res => res.rule).toSet
-        panel.RewriteList.listData = resultSet.resultLines
-        for (i <- 0 to panel.RewriteList.listData.length - 1) {
-          if (sel.contains(panel.RewriteList.listData(i).rule))
-            panel.RewriteList.selection.indices += i
+        val sel = panel.ManualRewritePane.Rewrites.selection.items.seq.map(res => res.rule).toSet
+        panel.ManualRewritePane.Rewrites.listData = resultSet.resultLines
+        for (i <- 0 to panel.ManualRewritePane.Rewrites.listData.length - 1) {
+          if (sel.contains(panel.ManualRewritePane.Rewrites.listData(i).rule))
+            panel.ManualRewritePane.Rewrites.selection.indices += i
         }
       }
 
@@ -117,13 +117,14 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
   }
 
   def selectedRule =
-    if (panel.RewriteList.selection.items.length == 1) Some(panel.RewriteList.selection.items(0).asInstanceOf[ResultLine].rule)
+    if (panel.ManualRewritePane.Rewrites.selection.items.length == 1)
+      Some(panel.ManualRewritePane.Rewrites.selection.items(0).asInstanceOf[ResultLine].rule)
     else None
 
   listenTo(panel.ManualRewritePane.AddRuleButton, panel.ManualRewritePane.RemoveRuleButton)
   listenTo(panel.ManualRewritePane.PreviousResultButton, panel.ManualRewritePane.NextResultButton)
   listenTo(panel.ManualRewritePane.ApplyButton)
-  listenTo(panel.RewriteList.selection)
+  listenTo(panel.ManualRewritePane.Rewrites.selection)
 
   reactions += {
     case ButtonClicked(panel.ManualRewritePane.AddRuleButton) =>
@@ -137,7 +138,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       if (!newRules.isEmpty) rules ++= newRules
     case ButtonClicked(panel.ManualRewritePane.RemoveRuleButton) =>
       resultLock.acquire()
-      panel.RewriteList.selection.items.foreach { line => resultSet -= line.rule }
+      panel.ManualRewritePane.Rewrites.selection.items.foreach { line => resultSet -= line.rule }
       resultLock.release()
       refreshRewriteDisplay()
     case ButtonClicked(panel.ManualRewritePane.PreviousResultButton) =>
@@ -145,7 +146,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       selectedRule match {
         case Some(rd) =>
           resultSet = resultSet.previousResult(rd)
-          panel.RewritePreview.graphRef = resultSet.resultIndex(rd) match
+          panel.ManualRewritePane.Preview.graphRef = resultSet.resultIndex(rd) match
             { case 0 => panel.DummyRef ; case i => new ResultGraphRef(rd, i) }
         case None =>
       }
@@ -156,7 +157,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       selectedRule match {
         case Some(rd) =>
           resultSet = resultSet.nextResult(rd)
-          panel.RewritePreview.graphRef = resultSet.resultIndex(rd) match
+          panel.ManualRewritePane.Preview.graphRef = resultSet.resultIndex(rd) match
             { case 0 => panel.DummyRef ; case i => new ResultGraphRef(rd, i) }
         case None =>
       }
@@ -167,7 +168,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
         val parentOpt = panel.controller.state.step
 
         val stepFr = step.copy(name = panel.derivation.steps.freshWithSuggestion(DSName(rd.name.replaceFirst("^.*\\/", "") + "-0")))
-        panel.RewritePreview.graphRef = panel.DummyRef
+        panel.ManualRewritePane.Preview.graphRef = panel.DummyRef
         panel.document.derivation = panel.document.derivation.addStep(parentOpt, stepFr)
         panel.controller.state = HeadState(Some(stepFr.name))
       }}
@@ -177,13 +178,13 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
     case SelectionChanged(_) =>
       selectedRule match {
         case Some(rd) =>
-          panel.RewritePreview.graphRef = resultSet.resultIndex(rd) match
+          panel.ManualRewritePane.Preview.graphRef = resultSet.resultIndex(rd) match
             { case 0 => panel.DummyRef ; case i => new ResultGraphRef(rd, i) }
           panel.ManualRewritePane.PreviousResultButton.enabled = true
           panel.ManualRewritePane.NextResultButton.enabled = true
           panel.ManualRewritePane.ApplyButton.enabled = true
         case None =>
-          panel.RewritePreview.graphRef = panel.DummyRef
+          panel.ManualRewritePane.Preview.graphRef = panel.DummyRef
           panel.ManualRewritePane.PreviousResultButton.enabled = false
           panel.ManualRewritePane.NextResultButton.enabled = false
           panel.ManualRewritePane.ApplyButton.enabled = false

@@ -13,7 +13,7 @@ import java.awt.event.{ActionEvent, ActionListener}
 
 case class VertexSelectionChanged(graph: Graph, selectedVerts: Set[VName]) extends GraphEvent
 
-class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
+class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: Boolean = false) {
   private var _mouseState: MouseState = SelectTool()
   def mouseState = _mouseState
 
@@ -34,11 +34,13 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
   // GUI component connections
   var vertexTypeLabel : Option[Label] = None
-  var vertexTypeSelect : ComboBox[String] = _
-  var edgeTypeLabel: Option[Label] = None
-  var edgeTypeSelect : ComboBox[String] = _
-  var edgeDirectedCheckBox : CheckBox = _
-  var dataField : TextField = _
+  var controlsOpt : Option[GraphEditControls] = None
+
+//  var vertexTypeSelect : ComboBox[String] = _
+//  var edgeTypeLabel: Option[Label] = None
+//  var edgeTypeSelect : ComboBox[String] = _
+//  var edgeDirectedCheckBox : CheckBox = _
+//  var dataField : TextField = _
 
   val qLayout = new ForceLayout with Clusters
   qLayout.alpha0 = 0.005
@@ -60,14 +62,16 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
 
   // listen to undo stack
-  private var _undoStack: UndoStack = new UndoStack
-  view.listenTo(_undoStack)
-  def undoStack = _undoStack
-  def undoStack_=(s: UndoStack) {
-    view.deafTo(_undoStack)
-    _undoStack = s
-    view.listenTo(_undoStack)
-  }
+  view.listenTo(undoStack)
+
+  //private var _undoStack: UndoStack = new UndoStack
+
+//  def undoStack = _undoStack
+//  def undoStack_=(s: UndoStack) {
+//    view.deafTo(_undoStack)
+//    _undoStack = s
+//    view.listenTo(_undoStack)
+//  }
 
   view.reactions += {
     case UndoPerformed(_) =>
@@ -422,16 +426,19 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
           mouseState = SelectTool()
 
         case AddVertexTool() =>
-          val coord = view.trans fromScreen (pt.getX, pt.getY)
+          controlsOpt.map { c =>
+            val coord = view.trans fromScreen (pt.getX, pt.getY)
 
-          val vertexData = vertexTypeSelect.selection.item match {
-            case "<wire>" => WireV(theory = theory)
-            case typ      =>
-//              println("adding: " + theory.vertexTypes(typ).defaultData)
-              NodeV(data = theory.vertexTypes(typ).defaultData, theory = theory).withCoord(coord)
+            val vertexData = c.VertexTypeSelect.selection.item match {
+              case "<wire>" => WireV(theory = theory)
+              case typ      =>
+                //              println("adding: " + theory.vertexTypes(typ).defaultData)
+                NodeV(data = theory.vertexTypes(typ).defaultData, theory = theory).withCoord(coord)
+            }
+
+            addVertex(graph.verts.freshWithSuggestion(VName("v0")), vertexData.withCoord(coord))
           }
 
-          addVertex(graph.verts.freshWithSuggestion(VName("v0")), vertexData.withCoord(coord))
 
         case AddBoundaryTool() =>
           val coord = view.trans fromScreen (pt.getX, pt.getY)
@@ -440,10 +447,12 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
         case DragEdge(startV) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
-          vertexHit map { endV =>
-            val defaultData = if (edgeDirectedCheckBox.selected) DirEdge.fromJson(theory.defaultEdgeData, theory)
-                              else UndirEdge.fromJson(theory.defaultEdgeData, theory)
-            addEdge(graph.edges.fresh, defaultData, (startV, endV))
+          vertexHit.map { endV =>
+            controlsOpt.map { c =>
+              val defaultData = if (c.EdgeDirected.selected) DirEdge.fromJson(theory.defaultEdgeData, theory)
+              else UndirEdge.fromJson(theory.defaultEdgeData, theory)
+              addEdge(graph.edges.fresh, defaultData, (startV, endV))
+            }
           }
           mouseState = AddEdgeTool()
           view.edgeOverlay = None
