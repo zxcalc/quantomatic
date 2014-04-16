@@ -37,6 +37,7 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
 
     _state = s
     panel.histView.selectedNode = Some(s)
+    panel.document.undoStack.clear() // weird things can happen if we keep the old undo stack around
 
     s match {
       case HeadState(headOpt) =>
