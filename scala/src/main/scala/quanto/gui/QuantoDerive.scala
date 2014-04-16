@@ -246,7 +246,7 @@ object QuantoDerive extends SimpleSwingApplication {
       menu.contents += new MenuItem(this) { mnemonic = Key.Q }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Q, CommandMask))
       def apply() {
-        //if (ruleDocument.promptUnsaved())
+        // TODO: hook *any* quit action (not just File > Quit) to prompt unsaved and shutdown the core
         core ! StopCore
         scala.sys.exit(0)
       }
@@ -338,9 +338,10 @@ object QuantoDerive extends SimpleSwingApplication {
             doc.document match {
               case (graphDoc: GraphDocument) =>
                 val page = new DerivationDocumentPage(project)
-                page.document.asInstanceOf[DerivationDocument].root = graphDoc.graph
                 MainTabbedPane += page
                 MainTabbedPane.selection.index = page.index
+                page.document.asInstanceOf[DerivationDocument].root = graphDoc.graph
+
               case _ =>
                 System.err.println("WARNING: Start derivation called with no graph active")
             }
@@ -375,7 +376,7 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
-  val CoreStatus = new Label("???")
+  val CoreStatus = new Label("Cannot connect (is QuantoDerive already running?)")
   CoreStatus.foreground = Color.BLUE
   val ConsoleProgress = new ProgressBar
 

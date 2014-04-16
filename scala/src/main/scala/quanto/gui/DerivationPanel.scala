@@ -109,28 +109,36 @@ class DerivationPanel(val project: Project)
     add(new SplitPane(Orientation.Horizontal, topPane, PreviewScrollPane), BorderPanel.Position.Center)
   }
 
-//  val SimplifyPane = new BorderPanel {
-//    val RefreshButton = new Button {
-//      icon = new ImageIcon(GraphEditor.getClass.getResource("view-refresh.png"), "Refresh")
-//      preferredSize = toolbarDim
-//    }
-//
-//    val SimplifyButton = new Button("Simplify")
-//    SimplifyButton.preferredSize = new Dimension(SimplifyButton.preferredSize.width, toolbarDim.height)
-//
-//    val topPane = new BorderPanel {
-//      add(RewritePane, BorderPanel.Position.Center)
-//      add(new FlowPanel(FlowPanel.Alignment.Left)(
-//        RefreshButton, SimplifyButton
-//      ), BorderPanel.Position.South)
-//    }
-//
-//    add(new SplitPane(Orientation.Horizontal, topPane, RewritePane.RewritePreviewPane), BorderPanel.Position.Center)
-//  }
+  val SimplifyPane = new BorderPanel {
+    val Simprocs = new ListView[ResultLine]
+    val SimprocsScrollPane = new ScrollPane(Simprocs)
+    SimprocsScrollPane.preferredSize = new Dimension(400,200)
+
+    val Preview = new GraphView(theory, DummyRef)
+    val PreviewScrollPane = new ScrollPane(Preview)
+    Preview.zoom = 0.6
+
+    val RefreshButton = new Button {
+      icon = new ImageIcon(GraphEditor.getClass.getResource("view-refresh.png"), "Refresh")
+      preferredSize = toolbarDim
+    }
+
+    val SimplifyButton = new Button("Simplify")
+    SimplifyButton.preferredSize = new Dimension(SimplifyButton.preferredSize.width, toolbarDim.height)
+
+    val topPane = new BorderPanel {
+      add(SimprocsScrollPane, BorderPanel.Position.Center)
+      add(new FlowPanel(FlowPanel.Alignment.Left)(
+        RefreshButton, SimplifyButton
+      ), BorderPanel.Position.South)
+    }
+
+    add(new SplitPane(Orientation.Horizontal, topPane, PreviewScrollPane), BorderPanel.Position.Center)
+  }
 
   val RhsRewritePane = new TabbedPane
   RhsRewritePane.pages += new TabbedPane.Page("Rewrite", ManualRewritePane)
-  RhsRewritePane.pages += new TabbedPane.Page("Simplify", new BorderPanel)
+  RhsRewritePane.pages += new TabbedPane.Page("Simplify", SimplifyPane)
 
   val LhsLabel = new Label("(root)")
   val RhsLabel = new Label("(head)")

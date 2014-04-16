@@ -7,7 +7,7 @@ import quanto.layout._
 
 class DerivationDocument(panel: DerivationPanel) extends Document {
   val description = "Derivation"
-  val fileExtension = "qrule"
+  val fileExtension = "qderive"
 
   protected def parent = panel
   private var storedDerivation: Derivation = Derivation(panel.theory, Graph(panel.theory))
@@ -54,6 +54,9 @@ class DerivationDocument(panel: DerivationPanel) extends Document {
 
   def root_=(g: Graph) {
     rootRef.graph = g
+    // if the root is set manually, move to root (which causes a state refresh of the panel)
+    panel.controller.state = HeadState(None)
+    publish(DocumentChanged(this))
   }
 
   def root = rootRef.graph

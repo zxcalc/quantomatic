@@ -75,7 +75,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 
           resultSet += rd -> step
 
-          if (resultSet.numResults(rd) < 20) pullRewrite(rd, stack)
+          if (resultSet.numResults(rd) < 50) pullRewrite(rd, stack)
           else QuantoDerive.core ! Call(theory.coreName, "rewrite", "delete_rewrite_stack",
             JsonObject("stack" -> JsonString(stack)))
         } else {
