@@ -30,7 +30,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
 
   refreshSimprocs()
 
-  private def pullSimp(sid: Int, stack: String) {
+  private def pullSimp(simproc: String, sid: Int, stack: String, parentOpt: Option[DSName]) {
     if (simpId == sid) {
       val res = QuantoDerive.core ? Call(theory.coreName, "simplify", "pull_next_step",
         JsonObject("stack" -> JsonString(stack)))
@@ -41,15 +41,15 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
           simpId += 1
         case Success(json) =>
           if (simpId == sid) {
-            val sname = panel.derivation.steps.freshWithSuggestion(DSName((json / "rule_name").stringValue))
+            val suggest = simproc + "-" + (json / "rule_name").stringValue.replaceFirst("^.*\\/", "") + "-0"
+            val sname = panel.derivation.steps.freshWithSuggestion(DSName(suggest))
             val step = DStep.fromJson(sname, json, theory).layout
 
             Swing.onEDT {
-              panel.document.derivation = panel.document.derivation.addStep(panel.controller.state.step, step)
+              panel.document.derivation = panel.document.derivation.addStep(parentOpt, step)
               panel.controller.state = HeadState(Some(step.name))
+              pullSimp(simproc, sid, stack, Some(sname))
             }
-            
-            pullSimp(sid, stack)
 
           } else {
             Swing.onEDT { QuantoDerive.ConsoleProgress.indeterminate = false }
@@ -77,8 +77,11 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
         ))
         res.map {
           case Success(JsonString(stack)) =>
-            Swing.onEDT { QuantoDerive.ConsoleProgress.indeterminate = true }
-            pullSimp(simpId, stack)
+            Swing.onEDT {
+              QuantoDerive.ConsoleProgress.indeterminate = true
+              pullSimp(simproc, simpId, stack, panel.controller.state.step)
+            }
+
           case _ => println("ERROR: Unexpected result from core: " + res) // TODO: errror dialogs
         }
       }
