@@ -1,0 +1,90 @@
+package quanto.gui
+
+import scala.swing._
+import quanto.core._
+import quanto.data._
+import quanto.data.Names._
+import quanto.util.json._
+import akka.pattern.ask
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.swing.event.ButtonClicked
+
+
+class SimplifyController(panel: DerivationPanel) extends Publisher {
+  implicit val timeout = QuantoDerive.timeout
+  private var simpId = 0 // incrementing the simpId will (lazily) cancel any pending simplification jobs
+
+  listenTo(panel.SimplifyPane.RefreshButton, panel.SimplifyPane.SimplifyButton, panel.SimplifyPane.StopButton)
+
+  def theory = panel.theory
+
+  def refreshSimprocs() {
+    simpId += 1
+    val res = QuantoDerive.core ? Call(theory.coreName, "simplify", "list")
+    res.map {
+      case Success(JsonArray(procs)) =>
+        Swing.onEDT { panel.SimplifyPane.Simprocs.listData = procs.map(_.stringValue) }
+      case _ => println("ERROR: Unexpected result from core: " + res) // TODO: errror dialogs
+    }
+  }
+
+  refreshSimprocs()
+
+  private def pullSimp(sid: Int, stack: String) {
+    if (simpId == sid) {
+      val res = QuantoDerive.core ? Call(theory.coreName, "simplify", "pull_next_step",
+        JsonObject("stack" -> JsonString(stack)))
+
+      res.map {
+        case Success(JsonNull) => // out of steps
+          Swing.onEDT { QuantoDerive.ConsoleProgress.indeterminate = false }
+          simpId += 1
+        case Success(json) =>
+          if (simpId == sid) {
+            val sname = panel.derivation.steps.freshWithSuggestion(DSName((json / "rule_name").stringValue))
+            val step = DStep.fromJson(sname, json, theory).layout
+
+            Swing.onEDT {
+              panel.document.derivation = panel.document.derivation.addStep(panel.controller.state.step, step)
+              panel.controller.state = HeadState(Some(step.name))
+            }
+            
+            pullSimp(sid, stack)
+
+          } else {
+            Swing.onEDT { QuantoDerive.ConsoleProgress.indeterminate = false }
+            QuantoDerive.core ! Call(theory.coreName, "simplify", "delete_stack",
+              JsonObject("stack" -> JsonString(stack)))
+          }
+        case _ => println("ERROR: Unexpected result from core: " + res) // TODO: errror dialogs
+      }
+    } else {
+      Swing.onEDT { QuantoDerive.ConsoleProgress.indeterminate = false }
+      QuantoDerive.core ! Call(theory.coreName, "simplify", "delete_stack",
+        JsonObject("stack" -> JsonString(stack)))
+    }
+  }
+
+  reactions += {
+    case ButtonClicked(panel.SimplifyPane.RefreshButton) => refreshSimprocs()
+    case ButtonClicked(panel.SimplifyPane.SimplifyButton) =>
+      if (!panel.SimplifyPane.Simprocs.selection.indices.isEmpty) {
+        simpId += 1
+        val simproc = panel.SimplifyPane.Simprocs.selection.items(0).asInstanceOf[String]
+        val res = QuantoDerive.core ? Call(theory.coreName, "simplify", "simplify", JsonObject(
+          "simproc" -> JsonString(simproc),
+          "graph"   -> Graph.toJson(panel.LhsView.graph, theory)
+        ))
+        res.map {
+          case Success(JsonString(stack)) =>
+            Swing.onEDT { QuantoDerive.ConsoleProgress.indeterminate = true }
+            pullSimp(simpId, stack)
+          case _ => println("ERROR: Unexpected result from core: " + res) // TODO: errror dialogs
+        }
+      }
+    case ButtonClicked(panel.SimplifyPane.StopButton) =>
+      Swing.onEDT { QuantoDerive.ConsoleProgress.indeterminate = false }
+      simpId += 1
+  }
+
+}

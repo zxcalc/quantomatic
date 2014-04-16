@@ -5,6 +5,7 @@ import javax.management.remote.rmi._RMIConnectionImpl_Tie
 import scala.collection.SortedSet
 import quanto.gui.{StepState, HeadState, DeriveState}
 import quanto.util.TreeSeq
+import quanto.layout.ForceLayout
 
 trait DerivationException
 case class DerivationLoadException(message: String, cause: Throwable = null)
@@ -26,6 +27,20 @@ case class DStep(name: DSName,
            variant: RuleVariant = variant,
            graph: Graph = graph)
   = DStep(name,ruleName,rule,variant,graph)
+
+  def layout: DStep = {
+    val layoutProc = new ForceLayout
+    layoutProc.maxIterations = 50
+    layoutProc.keepCentered = false
+
+    graph.verts.foreach { v =>
+      if (graph.isBoundary(v) || !rule.rhs.verts.contains(v)) layoutProc.lockVertex(v)
+    }
+
+    // layout the graph before acquiring the lock, so many can be done in parallel
+    val graph1 = layoutProc.layout(graph, randomCoords = false)
+    copy(graph = graph1)
+  }
 }
 
 object DStep {

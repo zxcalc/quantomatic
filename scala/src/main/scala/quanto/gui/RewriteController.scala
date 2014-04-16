@@ -64,33 +64,19 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       JsonObject("stack" -> JsonString(stack)))
     resp.map {
       case Success(obj : JsonObject) =>
-        val graph = Graph.fromJson(obj / "graph", theory)
-        val rule = Rule.fromJson(obj / "rule", theory)
-        val layoutProc = new ForceLayout
-        layoutProc.maxIterations = 50
-//        layoutProc.alpha0 = 0.01
-//        layoutProc.alphaAdjust = 1.0
-        layoutProc.keepCentered = false
-
-        graph.verts.foreach { v =>
-          if (graph.isBoundary(v) || !rule.rhs.verts.contains(v)) layoutProc.lockVertex(v)
-        }
-
         // layout the graph before acquiring the lock, so many can be done in parallel
-        val graph1 = layoutProc.layout(graph, randomCoords = false)
+        val step = DStep(
+          name = DSName("s"),
+          ruleName = rd.name,
+          rule = Rule.fromJson(obj / "rule", theory),
+          variant = if (rd.inverse) RuleInverse else RuleNormal,
+          graph = Graph.fromJson(obj / "graph", theory)).layout
 
         //println("found nodes: " + (rule.rhs.verts intersect graph.verts))
 
         resultLock.acquire()
 
         if (resultSet.rules.contains(rd)) {
-          val step = DStep(
-            name = DSName("s"),
-            ruleName = rd.name,
-            rule = rule,
-            variant = if (rd.inverse) RuleInverse else RuleNormal,
-            graph = graph1)
-
           resultSet += rd -> step
 
           if (resultSet.numResults(rd) < 50) pullRewrite(rd, stack)

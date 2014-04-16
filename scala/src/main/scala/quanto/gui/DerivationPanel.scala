@@ -110,7 +110,7 @@ class DerivationPanel(val project: Project)
   }
 
   val SimplifyPane = new BorderPanel {
-    val Simprocs = new ListView[ResultLine]
+    val Simprocs = new ListView[String]
     val SimprocsScrollPane = new ScrollPane(Simprocs)
     SimprocsScrollPane.preferredSize = new Dimension(400,200)
 
@@ -123,13 +123,20 @@ class DerivationPanel(val project: Project)
       preferredSize = toolbarDim
     }
 
-    val SimplifyButton = new Button("Simplify")
-    SimplifyButton.preferredSize = new Dimension(SimplifyButton.preferredSize.width, toolbarDim.height)
+    val SimplifyButton = new Button {
+      icon = new ImageIcon(GraphEditor.getClass.getResource("start.png"))
+      preferredSize = toolbarDim
+    }
+
+    val StopButton = new Button {
+      icon = new ImageIcon(GraphEditor.getClass.getResource("stop.png"))
+      preferredSize = toolbarDim
+    }
 
     val topPane = new BorderPanel {
       add(SimprocsScrollPane, BorderPanel.Position.Center)
       add(new FlowPanel(FlowPanel.Alignment.Left)(
-        RefreshButton, SimplifyButton
+        RefreshButton, SimplifyButton, StopButton
       ), BorderPanel.Position.South)
     }
 
@@ -175,7 +182,8 @@ class DerivationPanel(val project: Project)
 
 
   add(GraphViewPanel, BorderPanel.Position.Center)
-  listenTo(LhsGraphPane, RhsGraphPane, ManualRewritePane.PreviewScrollPane)
+  listenTo(LhsGraphPane, RhsGraphPane)
+  listenTo(ManualRewritePane.PreviewScrollPane, SimplifyPane.PreviewScrollPane)
 
   reactions += {
     case UIElementResized(LhsGraphPane) =>
@@ -187,11 +195,15 @@ class DerivationPanel(val project: Project)
     case UIElementResized(ManualRewritePane.PreviewScrollPane) =>
       ManualRewritePane.Preview.resizeViewToFit()
       ManualRewritePane.Preview.repaint()
+    case UIElementResized(SimplifyPane.PreviewScrollPane) =>
+      SimplifyPane.Preview.resizeViewToFit()
+      SimplifyPane.Preview.repaint()
   }
 
   // construct the controller last, as it depends on the panel elements already being initialised
   val controller = new DerivationController(this)
 
   val rewriteController = new RewriteController(this)
+  val simplifyController = new SimplifyController(this)
 //  rewriteController.rules = Vector(RuleDesc("axioms/test1", inverse = false), RuleDesc("axioms/test2", inverse = true))
 }
