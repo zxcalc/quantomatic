@@ -110,7 +110,6 @@ abstract class Document extends Publisher {
     val dir = if (f.isDirectory) f.getPath
               else f.getParent
     if (dir != null) {
-//      println("Setting previous dir to: " + dir)
       val prefs = Preferences.userRoot().node(this.getClass.getName)
       prefs.put("previousDir", dir)
     }
@@ -130,7 +129,9 @@ abstract class Document extends Publisher {
     chooser.fileFilter = new FileNameExtensionFilter("Quantomatic " + description + " File (*." + fileExtension + ")", fileExtension)
     chooser.showSaveDialog(parent) match {
       case FileChooser.Result.Approve =>
-        if (promptExists(chooser.selectedFile)) save(Some(chooser.selectedFile))
+        val p = chooser.selectedFile.getAbsolutePath
+        val file = new File(if (p.endsWith("." + fileExtension)) p else p + "." + fileExtension)
+        if (promptExists(file)) save(Some(file))
       case _ =>
     }
   }
