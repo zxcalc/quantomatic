@@ -504,9 +504,9 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
       if (!rDown) {
         rDown = true
         qLayout.initialize(graph, randomCoords = false)
-        qLayout.lockedVertices.clear()
+        qLayout.clearLockedVertices()
         if (!selectedVerts.isEmpty) {
-          graph.verts.foreach { v => if (!selectedVerts.contains(v)) qLayout.lockedVertices += v }
+          graph.verts.foreach { v => if (!selectedVerts.contains(v)) qLayout.lockVertex(v) }
         }
 
         undoStack.start("Relax layout")

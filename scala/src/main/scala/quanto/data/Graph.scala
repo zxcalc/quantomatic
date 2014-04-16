@@ -92,6 +92,10 @@ case class Graph(
   def predVerts(vn: VName) = inEdges(vn).map(source(_))
   def succVerts(vn: VName) = outEdges(vn).map(target(_))
   def contents(bbn: BBName) = inBBox.codf(bbn)
+  def isBoundary(vn: VName) = vdata(vn) match {
+    case _: WireV => (inEdges(vn).size + outEdges(vn).size) <= 1
+    case _ => false
+  }
 
   def adjacentEdges(vn: VName) = source.codf(vn) union target.codf(vn)
 

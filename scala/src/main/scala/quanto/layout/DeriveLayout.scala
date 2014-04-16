@@ -21,14 +21,14 @@ class DeriveLayout {
 
       parentOpt.map { parent: Graph =>
         var g = step.graph
-        layoutProc.lockedVertices.clear()
+        layoutProc.clearLockedVertices()
 
         // transport and lock all the coords from parent (NOTE: this assumes that vertices added with rule application
         //  are fresh for parent)
         for (v <- parent.verts) {
           if (g.verts.contains(v)) {
             g = g.updateVData(v) { _.withCoord(parent.vdata(v).coord) }
-            layoutProc.lockedVertices += v
+            layoutProc.lockVertex(v)
           }
         }
 
