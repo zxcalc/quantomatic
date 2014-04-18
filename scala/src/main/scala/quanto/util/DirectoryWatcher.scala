@@ -1,148 +1,36 @@
 package quanto.util
 
-/**
- * DirectoryWatcher.scala
- *
- * Uses the Java 7 WatchEvent filesystem API from within Scala.
- * Adapted from:
- *  http://download.oracle.com/javase/tutorial/essential/io/examples/WatchDir.java
- *
- * @author Chris Eberle <eberle1080@gmail.com>
- * @version 0.1
- */
+import java.io._
 
-import scala.collection.JavaConverters._
-import util.control.Breaks._
-import java.nio.file.attribute._
-import java.io.IOException
-import java.nio.file._
+sealed abstract class FileTree
+case class DirNode(name: String, files: Set[FileTree]) extends FileTree
+case class FileNode(name: String) extends FileTree
 
-class DirectoryWatcher(val path:Path, val recursive:Boolean, callback: WatchEvent[_] => Unit) extends Runnable {
-
-  val watchService = path.getFileSystem.newWatchService()
-  val keys = collection.mutable.HashMap[WatchKey,Path]()
-  var trace = false
-
-  /**
-   * Print an event
-   */
-  def printEvent(event:WatchEvent[_]) : Unit = {
-    val kind = event.kind
-    val event_path = event.context().asInstanceOf[Path]
-    if(kind.equals(StandardWatchEventKinds.ENTRY_CREATE)) {
-      println("Entry created: " + event_path)
-    }
-    else if(kind.equals(StandardWatchEventKinds.ENTRY_DELETE)) {
-      println("Entry deleted: " + event_path)
-    }
-    else if(kind.equals(StandardWatchEventKinds.ENTRY_MODIFY)) {
-      println("Entry modified: " + event_path)
-    }
+class DirectoryWatcher(val dir: String, onChange: FileTree => Any) extends Thread {
+  var fileTree: FileTree = FileNode("")
+  var poll = true
+  private def buildFileTree(f: File): FileTree = {
+    if (f.isDirectory) DirNode(f.getName, f.listFiles.toSet.map(buildFileTree))
+    else FileNode(f.getName)
   }
 
-  /**
-   * Register a particular file or directory to be watched
-   */
-  def register(dir:Path): Unit = {
-    val key = dir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE,
-      StandardWatchEventKinds.ENTRY_MODIFY,
-      StandardWatchEventKinds.ENTRY_DELETE)
+  override def run() {
+    while(poll) {
+      val ft = buildFileTree(new File(dir))
+      if (ft != fileTree) {
+        fileTree = ft
 
-    if (trace) {
-      val prev = keys.getOrElse(key, null)
-      if (prev == null) {
-        println("register: " + dir)
-      } else {
-        if (!dir.equals(prev)) {
-          println("update: " + prev + " -> " + dir)
-        }
+        // re-check "poll", in case I get stopped while rebuilding file tree
+        if (poll) onChange(ft)
       }
-    }
-
-    keys(key) = dir
-  }
-
-  /**
-   * Makes it easier to walk a file tree
-   */
-  implicit def makeDirVisitor(f: (Path) => Unit) = new SimpleFileVisitor[Path] {
-    override def preVisitDirectory(p: Path, attrs: BasicFileAttributes) = {
-      f(p)
-      FileVisitResult.CONTINUE
+      Thread.sleep(500)
     }
   }
 
-  /**
-   *  Recursively register directories
-   */
-  def registerAll(start:Path): Unit = {
-    Files.walkFileTree(start, (f: Path) => {
-      register(f)
-    })
-  }
-
-  /**
-   * The main directory watching thread
-   */
-  override def run(): Unit = {
-    try {
-      if(recursive) {
-        if (trace) println("Scanning " + path + "...")
-        registerAll(path)
-        if (trace) println("Done.")
-      } else {
-        register(path)
-      }
-
-      //trace = true
-
-      breakable {
-        while (true) {
-          val key = watchService.take()
-          val dir = keys.getOrElse(key, null)
-          if(dir != null) {
-            key.pollEvents().asScala.foreach( event => {
-              val kind = event.kind
-
-              if(kind != StandardWatchEventKinds.OVERFLOW) {
-                val name = event.context().asInstanceOf[Path]
-                var child = dir.resolve(name)
-
-                callback(event)
-
-                if (recursive && (kind == StandardWatchEventKinds.ENTRY_CREATE)) {
-                  try {
-                    if (Files.isDirectory(child, LinkOption.NOFOLLOW_LINKS)) {
-                      registerAll(child)
-                    }
-                  } catch {
-                    case ioe: IOException => println("IOException: " + ioe)
-                    case e: Exception => println("Exception: " + e)
-                      break()
-                  }
-                }
-              }
-            })
-          } else {
-            println("WatchKey not recognized!!")
-          }
-
-          if (!key.reset()) {
-            keys.remove(key)
-            if (keys.isEmpty) {
-              break()
-            }
-          }
-        }
-      }
-    } catch {
-      case ie: InterruptedException => //println("InterruptedException: " + ie)
-      case e: Exception => e.printStackTrace()
-    }
-  }
+  def stopPolling() { poll = false }
 }
 
 object DirectoryWatcher {
-  def apply(path:Path, recursive:Boolean)(callback: WatchEvent[_] => Unit) =
-    new DirectoryWatcher(path, recursive, callback)
+  def apply(dir: String)(onChange: FileTree => Any) = new DirectoryWatcher(dir, onChange)
 }
+

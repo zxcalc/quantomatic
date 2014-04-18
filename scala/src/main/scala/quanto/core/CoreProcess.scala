@@ -6,7 +6,6 @@ import quanto.util.json.Json
 
 import quanto.util.{StreamMessage, SignallingStreamRedirector, StreamRedirector}
 import java.net.{InetAddress, Socket}
-import java.nio.file.Paths
 
 class CoreProcess {
   private var backend: Process = _
@@ -76,14 +75,14 @@ class CoreProcess {
 //      new StreamRedirector(backend.getErrorStream, System.err).start()
 //      new StreamRedirector(backend.getInputStream, System.out).start()
     } catch {
-      case e : IOException => {
+      case e : IOException =>
         CoreProcess.logger.log(Level.SEVERE,
           "Could not execute \"" + CoreProcess.polyExe + "\": "
             + e.getMessage, e)
         throw new CoreProtocolException(String.format(
                     "Could not execute \"%s\": %s", CoreProcess.polyExe,
                     e.getMessage), e)
-      }
+
     }
   }
   

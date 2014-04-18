@@ -126,7 +126,7 @@ case class WireV(
   theory: Theory = Theory.DefaultTheory) extends VData
 {
   def isWireVertex = true
-  def isBoundary = annotation.get("boundary") match { case Some(JsonBool(b)) => b; case None => false }
+  def isBoundary = annotation.get("boundary") match { case Some(JsonBool(b)) => b; case _ => false }
   def withCoord(c: (Double,Double)) =
     copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
 }

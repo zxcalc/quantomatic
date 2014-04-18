@@ -8,7 +8,6 @@ import java.awt.event.KeyEvent
 import quanto.util.json.{JsonString, Json}
 import quanto.data._
 import java.io.{FilenameFilter, IOException, File}
-import java.nio.file.{Files, Paths}
 import javax.swing.plaf.metal.MetalLookAndFeel
 import java.util.prefs.Preferences
 import quanto.gui.histview.HistView
@@ -44,9 +43,9 @@ object QuantoDerive extends SimpleSwingApplication {
   var CurrentProject : Option[Project] = prefs.get("lastProjectFolder", null) match {
     case path : String =>
       try {
-        val folder = Paths.get(path)
-        val projectFile = new File(folder.resolve("main.qproject").toString)
-        if (projectFile.exists) Some(Project.fromJson(Json.parse(projectFile), folder.toString))
+        println("project path: " + path)
+        val projectFile = new File(path + "/main.qproject")
+        if (projectFile.exists) Some(Project.fromJson(Json.parse(projectFile), path))
         else None
       } catch {
         case e: Exception =>
@@ -184,22 +183,22 @@ object QuantoDerive extends SimpleSwingApplication {
         d.result.map {
           case (thy,name,path) =>
             println("got: " + (thy, name, path))
-            val folder = Paths.get(path, name)
-            if (new File(folder.toString).exists()) {
+            val folder = new File(path + "/" + name)
+            if (folder.exists()) {
               Dialog.showMessage(
                 title = "Error",
                 message = "A file or folder already exists with that name.",
                 messageType = Dialog.Message.Error)
             } else {
-              Files.createDirectories(folder)
-              Files.createDirectory(folder.resolve("graphs"))
-              Files.createDirectory(folder.resolve("axioms"))
-              Files.createDirectory(folder.resolve("theorems"))
-              Files.createDirectory(folder.resolve("derivations"))
-              Files.createDirectory(folder.resolve("code"))
-              val rootFolder = folder.toString
+              folder.mkdirs()
+              new File(folder.getPath + "/graphs").mkdir()
+              new File(folder.getPath + "/axioms").mkdir()
+              new File(folder.getPath + "/theorems").mkdir()
+              new File(folder.getPath + "/derivations").mkdir()
+              new File(folder.getPath + "/simprocs").mkdir()
+              val rootFolder = folder.getAbsolutePath
               val proj = Project(theoryFile = thy, rootFolder = rootFolder)
-              Project.toJson(proj).writeTo(new File(folder.resolve("main.qproject").toString))
+              Project.toJson(proj).writeTo(new File(folder.getPath + "/main.qproject"))
               CurrentProject = Some(proj)
               ProjectFileTree.root = Some(rootFolder)
               prefs.put("lastProjectFolder", rootFolder)
