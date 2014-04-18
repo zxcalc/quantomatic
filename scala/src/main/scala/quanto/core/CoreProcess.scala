@@ -6,6 +6,7 @@ import quanto.util.json.Json
 
 import quanto.util.{StreamMessage, SignallingStreamRedirector, StreamRedirector}
 import java.net.{InetAddress, Socket}
+import quanto.gui.QuantoDerive
 
 class CoreProcess {
   private var backend: Process = _
@@ -22,24 +23,40 @@ class CoreProcess {
     try {
 //      val pb = new ProcessBuilder(
 //        CoreProcess.polyExe, "--use", "run_protocol.ML")
-      val pb = new ProcessBuilder(CoreProcess.polyExe, "--ideprotocol")
-      pb.directory(new File(quantoHome + "/core"))
+      val osxDist = new File("./osx-dist")
+      val pb = if (!osxDist.exists()) {
+        //QuantoDerive.CoreStatus.text = "didnt find osx-dist in " + new File(".").getAbsolutePath
+        val pb1 = new ProcessBuilder(CoreProcess.polyExe, "--ideprotocol")
+        pb1.directory(new File(quantoHome + "/core"))
+
+        pb1
+      } else {
+        //QuantoDerive.CoreStatus.text = "found osx-dist"
+        val pb1 = new ProcessBuilder(osxDist.getAbsolutePath + "/poly", "--ideprotocol")
+        QuantoDerive.CoreStatus.text = osxDist.getAbsolutePath + "/poly"
+        pb1.directory(osxDist)
+
+        pb1
+      }
+
       pb.redirectErrorStream(true)
       CoreProcess.logger.log(Level.FINEST, "Starting {0}...", CoreProcess.polyExe)
       backend = pb.start()
 
       // get a PID for sending interrupt to poly process. Will return None unless system is UNIX-like
-      polyPid = try {
-        val pidField = backend.getClass.getDeclaredField("pid")
-        pidField.setAccessible(true)
-        val p = pidField.getInt(backend)
-        pidField.setAccessible(false)
-        Some(p)
-      } catch {
-        case e: Throwable =>
-          e.printStackTrace()
-          None
-      }
+      polyPid = None
+
+//      try {
+//        val pidField = backend.getClass.getDeclaredField("pid")
+//        pidField.setAccessible(true)
+//        val p = pidField.getInt(backend)
+//        pidField.setAccessible(false)
+//        Some(p)
+//      } catch {
+//        case e: Throwable =>
+//          e.printStackTrace()
+//          None
+//      }
 
       // wire up console I/O
       consoleInput = backend.getOutputStream
