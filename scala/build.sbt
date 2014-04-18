@@ -26,5 +26,24 @@ EclipseKeys.withSource := true
 
 //exportJars := true
 
+mainClass := Some("quanto.gui.QuantoDerive")
+
+seq(appbundle.settings: _*)
+
+appbundle.javaVersion := "1.6+"
+
+appbundle.screenMenu := false
+
+appbundle.name := "QuantoDerive"
+
+appbundle.normalizedName := "quantoderiveapp"
+
+appbundle.organization := "org.quantomatic"
+
+appbundle.version := "0.2.0"
+
+appbundle.icon := Some(file("../docs/graphics/quantoderive.icns"))
+
+
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
