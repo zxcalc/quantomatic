@@ -23,8 +23,7 @@ class CoreProcess {
     try {
 //      val pb = new ProcessBuilder(
 //        CoreProcess.polyExe, "--use", "run_protocol.ML")
-      val osxDist = new File("./osx-dist")
-      val pb = if (!osxDist.exists()) {
+      val pb = if (!new File("../Resources").exists()) { // check if running inside OS X app bundle
         //QuantoDerive.CoreStatus.text = "didnt find osx-dist in " + new File(".").getAbsolutePath
         val pb1 = new ProcessBuilder(CoreProcess.polyExe, "--ideprotocol")
         pb1.directory(new File(quantoHome + "/core"))
@@ -32,9 +31,8 @@ class CoreProcess {
         pb1
       } else {
         //QuantoDerive.CoreStatus.text = "found osx-dist"
-        val pb1 = new ProcessBuilder(osxDist.getAbsolutePath + "/poly", "--ideprotocol")
-        QuantoDerive.CoreStatus.text = osxDist.getAbsolutePath + "/poly"
-        pb1.directory(osxDist)
+        val pb1 = new ProcessBuilder("bin/poly", "--ideprotocol")
+        QuantoDerive.CoreStatus.text = new File(".").getAbsolutePath + "bin/poly"
 
         pb1
       }

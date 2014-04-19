@@ -10,28 +10,36 @@ import quanto.util.swing.ToolBar
 import quanto.core._
 import scala.swing.event.ButtonClicked
 import quanto.util._
-import java.io.PrintStream
+import java.io.{File, PrintStream}
+import java.awt.Font
 
 class MLEditPanel extends BorderPanel with HasDocument {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
   val sml = new Mode("StandardML")
-  sml.setProperty("file", getClass.getResource("ml.xml").getPath)
+
+  val mlModeXml = if (Globals.isMacApp) new File("ml.xml").getAbsolutePath
+                  else getClass.getResource("ml.xml").getPath
+  sml.setProperty("file", mlModeXml)
   println(sml.getProperty("file"))
   val mlCode = StandaloneTextArea.createTextArea()
-  mlCode.setBuffer(new JEditBuffer1())
-  mlCode.getBuffer.setMode(sml)
+  //mlCode.setFont(new Font("Menlo", Font.PLAIN, 14))
 
-  mlCode.addKeyListener(new KeyAdapter {
-    override def keyPressed(e: KeyEvent) {
-      if (e.getModifiers == CommandMask) e.getKeyChar match {
-        case 'x' => Registers.cut(mlCode, '$')
-        case 'c' => Registers.copy(mlCode, '$')
-        case 'v' => Registers.paste(mlCode, '$')
-        case _ =>
-      }
-    }
-  })
+  val buf = new JEditBuffer1
+  buf.setMode(sml)
+
+  mlCode.setBuffer(buf)
+
+//  mlCode.addKeyListener(new KeyAdapter {
+//    override def keyPressed(e: KeyEvent) {
+//      if (e.getModifiers == CommandMask) e.getKeyChar match {
+//        case 'x' => Registers.cut(mlCode, '$')
+//        case 'c' => Registers.copy(mlCode, '$')
+//        case 'v' => Registers.paste(mlCode, '$')
+//        case _ =>
+//      }
+//    }
+//  })
 
   val document = new MLDocument(this, mlCode)
 

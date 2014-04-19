@@ -422,7 +422,7 @@ object QuantoDerive extends SimpleSwingApplication {
                 MainTabbedPane.selection.index = page.index
 
                 if (!page.document.load(file)) {
-                  // TODO: clear up, because file load failed
+                  MainTabbedPane.pages -= page
                 }
               }
           }

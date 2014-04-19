@@ -44,8 +44,6 @@ appbundle.version := "0.2.0"
 
 appbundle.icon := Some(file("../docs/graphics/quantoderive.icns"))
 
-appbundle.resources := Seq(file("dist/osx-dist"))
-
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
