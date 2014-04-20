@@ -99,6 +99,13 @@ trait BinRel[A,B] extends IterableLike[(A,B), BinRel[A,B]] {
     case that: BinRel[_,_] => (that canEqual this) && (this.domf == that.domf)
     case _ => false
   }
+
+  override def toString() = {
+    getClass.getSimpleName + "(" + seq.map{ case (k,v) => k.toString + " -> " + v.toString }.mkString(", ") + ")"
+  }
+
+  // TODO: get ++ implemented correctly (i.e. using builders etc) for PFun/BinRel
+  def ++(r:BinRel[A,B]) = r.foldLeft(this) { case (mp, kv) => mp + kv }
 }
 
 /**

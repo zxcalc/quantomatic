@@ -10,10 +10,41 @@ import quanto.layout.ForceLayout
 import quanto.util.json._
 import quanto.layout.constraint._
 import java.awt.event.{ActionEvent, ActionListener}
+import java.awt.datatransfer._
+import java.awt.Toolkit
+import quanto.gui.graphview.EdgeOverlay
+import quanto.gui.SelectTool
+import quanto.gui.VertexSelectionChanged
+import quanto.data.BBName
+import scala.swing.event.KeyReleased
+import quanto.gui.DragEdge
+import scala.Some
+import quanto.gui.SelectionBox
+import quanto.gui.AddEdgeTool
+import quanto.gui.BangSelectionBox
+import quanto.gui.DragVertex
+import quanto.data.BBData
+import quanto.data.VName
+import scala.swing.event.KeyPressed
+import quanto.gui.AddVertexTool
+import quanto.util.json.JsonBool
+import quanto.gui.UndoPerformed
+import scala.swing.event.MousePressed
+import quanto.data.EName
+import quanto.gui.DragBangBoxNesting
+import scala.swing.event.MouseReleased
+import quanto.gui.RedoPerformed
+import quanto.data.GraphReplaced
+import quanto.gui.graphview.BBoxOverlay
+import quanto.gui.AddBoundaryTool
+import scala.swing.event.MouseDragged
+import quanto.gui.AddBangBoxTool
 
 case class VertexSelectionChanged(graph: Graph, selectedVerts: Set[VName]) extends GraphEvent
 
-class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: Boolean = false) {
+class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: Boolean = false)
+  extends ClipboardOwner {
+
   private var _mouseState: MouseState = SelectTool()
   def mouseState = _mouseState
 
@@ -28,6 +59,9 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
     _mouseState = s
   }
+
+
+  def lostOwnership(p1: Clipboard, p2: Transferable) {}
 
   // a second controller that needs to by synchronised
   var pairedController : Option[GraphEditController] = None
@@ -224,6 +258,38 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     graph = gr
     graphRef.publish(GraphReplaced(graphRef, clearSelection = false))
     undoStack.register(desc) { replaceGraph(oldGraph, desc) }
+  }
+
+  def copySubgraph() {
+    println("copying")
+    if (!view.selectedVerts.isEmpty) {
+      val jsonString = Graph.toJson(graph.fullSubgraph(view.selectedVerts), theory).toString
+      Toolkit.getDefaultToolkit.getSystemClipboard.setContents(new StringSelection(jsonString), this)
+    }
+  }
+
+  def cutSubgraph() {
+    copySubgraph()
+    undoStack.start("Cut graph")
+    view.selectedVerts.foreach(deleteVertex)
+    undoStack.commit()
+    view.repaint()
+  }
+
+  def pasteSubgraph() {
+    println("pasting")
+    val data = Toolkit.getDefaultToolkit.getSystemClipboard.getContents(this)
+    if (data.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+      try {
+        val jsonString = data.getTransferData(DataFlavor.stringFlavor).asInstanceOf[String]
+        val g = Graph.fromJson(Json.parse(jsonString), theory).renameAvoiding(graph)
+        replaceGraph(graph.appendGraph(g), "Paste from clipboard")
+        view.selectedVerts = g.verts
+        view.repaint()
+      } catch {
+        case e: Exception => println("Error reading clipboard data."); e.printStackTrace()
+      }
+    }
   }
 
   def layoutGraph() {

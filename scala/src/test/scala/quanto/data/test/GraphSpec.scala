@@ -114,8 +114,8 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       |    "e2": {"src": "n0", "tgt": "n1"}
       |  },
       |  "bang_boxes": {
-      |    "bx0": {"contains": ["n0", "n1", "w0"]},
-      |    "bx1": {"contains": ["n0", "n1"], "parent": "bx0"},
+      |    "bx0": {"contents": ["n0", "n1", "w0"]},
+      |    "bx1": {"contents": ["n0", "n1"], "parent": "bx0"},
       |    "bx2": {}
       |  }
       |}
@@ -222,4 +222,8 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 
     for ((v,_) <- graph.vdata) traverseFrom(dag, v, Set[VName]())
   }
+
+//  it should "support Graph.Flavor clipboard flavor" in {
+//    assert(Graph().isDataFlavorSupported(Graph.Flavor))
+//  }
 }

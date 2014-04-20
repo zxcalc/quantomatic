@@ -6,6 +6,7 @@ import math.sqrt
 import JsonValues._
 import collection.mutable.ArrayBuffer
 import quanto.util._
+import java.awt.datatransfer.{DataFlavor, Transferable}
 
 trait GraphException extends Exception
 
@@ -255,23 +256,23 @@ case class Graph(
 
   def rename(vrn: Map[VName,VName], ern: Map[EName, EName], brn: Map[BBName,BBName]) = {
     // compute inverses
-    val vrni = vrn.foldLeft(Map[VName,VName]()) { case (mp, (k,v)) => mp + (v -> k) }
-    val erni = ern.foldLeft(Map[EName,EName]()) { case (mp, (k,v)) => mp + (v -> k) }
-    val brni = brn.foldLeft(Map[BBName,BBName]()) { case (mp, (k,v)) => mp + (v -> k) }
+//    val vrni = vrn.foldLeft(Map[VName,VName]()) { case (mp, (k,v)) => mp + (v -> k) }
+//    val erni = ern.foldLeft(Map[EName,EName]()) { case (mp, (k,v)) => mp + (v -> k) }
+//    val brni = brn.foldLeft(Map[BBName,BBName]()) { case (mp, (k,v)) => mp + (v -> k) }
 
-    val vdata1 = vdata.foldLeft(Map[VName,VData]()) { case (mp, (k,v)) => mp + (vrni(k) -> v)}
-    val edata1 = edata.foldLeft(Map[EName,EData]()) { case (mp, (k,v)) => mp + (erni(k) -> v)}
-    val bbdata1 = bbdata.foldLeft(Map[BBName,BBData]()) { case (mp, (k,v)) => mp + (brni(k) -> v)}
-    val source1 = source.foldLeft(PFun[EName,VName]()) { case (mp, (k,v)) => mp + (erni(k) -> vrn(v))}
-    val target1 = target.foldLeft(PFun[EName,VName]()) { case (mp, (k,v)) => mp + (erni(k) -> vrn(v))}
-    val inBBox1 = inBBox.foldLeft(PFun[VName,BBName]()) { case (mp, (k,v)) => mp + (vrni(k) -> brn(v))}
-    val bboxParent1 = bboxParent.foldLeft(PFun[BBName,BBName]()) { case (mp, (k,v)) => mp + (brni(k) -> brn(v))}
+    val vdata1 = vdata.foldLeft(Map[VName,VData]()) { case (mp, (k,v)) => mp + (vrn(k) -> v)}
+    val edata1 = edata.foldLeft(Map[EName,EData]()) { case (mp, (k,v)) => mp + (ern(k) -> v)}
+    val bbdata1 = bbdata.foldLeft(Map[BBName,BBData]()) { case (mp, (k,v)) => mp + (brn(k) -> v)}
+    val source1 = source.foldLeft(PFun[EName,VName]()) { case (mp, (k,v)) => mp + (ern(k) -> vrn(v))}
+    val target1 = target.foldLeft(PFun[EName,VName]()) { case (mp, (k,v)) => mp + (ern(k) -> vrn(v))}
+    val inBBox1 = inBBox.foldLeft(PFun[VName,BBName]()) { case (mp, (k,v)) => mp + (vrn(k) -> brn(v))}
+    val bboxParent1 = bboxParent.foldLeft(PFun[BBName,BBName]()) { case (mp, (k,v)) => mp + (brn(k) -> brn(v))}
 
     copy(vdata=vdata1,edata=edata1,source=source1,target=target1,
       bbdata=bbdata1,inBBox=inBBox1,bboxParent=bboxParent1)
   }
 
-  def fullSubgraph(vs: Set[VName]) {
+  def fullSubgraph(vs: Set[VName]) = {
     val vdata1 = vdata.filter { case (v,_) => vs.contains(v) }
     val source1 = source.filter { case (_,v) => vs.contains(v) }
     val target1 = target.filter { case (_,v) => vs.contains(v) }
@@ -303,9 +304,12 @@ case class Graph(
       (mp + (x -> x1), avoid + x1)
     }._1
 
+    println(vrn)
+
     rename(vrn,ern,brn)
   }
 
+  // append the given graph. note that its names should already be fresh
   def appendGraph(g: Graph) = {
     val coords = verts.map(vdata(_).coord)
 
@@ -314,12 +318,22 @@ case class Graph(
     var offset = 0.0
     g.verts.headOption.map { v1 =>
       val (x,y) = g.vdata(v1).coord
-      while (coords.contains((x + offset, y - offset))) offset += 1.0
+      while (coords.contains((x + offset, y))) offset += 1.0
     }
 
-    g.verts.foldLeft(g) { (g1,v) =>
-      g1.updateVData(v) { d => d.withCoord (d.coord._1 + offset, d.coord._2 - offset) }
-    }.renameAvoiding(this)
+    val g1 = g.verts.foldLeft(g) { (g1,v) =>
+      g1.updateVData(v) { d => d.withCoord (d.coord._1 + offset, d.coord._2) }
+    }
+
+    copy(
+      vdata = vdata ++ g1.vdata,
+      source = source ++ g1.source,
+      target = target ++ g1.target,
+      inBBox = inBBox ++ g1.inBBox,
+      edata = edata ++ g1.edata,
+      bbdata = bbdata ++ g1.bbdata,
+      bboxParent = bboxParent ++ g1.bboxParent
+    )
   }
 
   override def toString = {
@@ -332,7 +346,7 @@ case class Graph(
         data, vdata,
         edata.map(kv => kv._1 -> "(%s => %s)::%s".format(source(kv._1), target(kv._1), kv._2)),
         bbdata.map(kv => kv._1 -> "%s::%s".format(inBBox.codf(kv._1), kv._2)),
-        bboxParent.map(kv => "%s < %s".format(kv._1, kv._2))
+        bboxParent.toString
       )
   }
 
@@ -465,10 +479,16 @@ case class Graph(
 
     g
   }
-
 }
 
 object Graph {
+//  val Flavor = new DataFlavor(Graph.getClass, "X-quantoderive/qgraph; class=<quanto.data.Graph>;")
+//  class GraphPacket(graph: Graph, val theory: Theory) extends Transferable {
+//    def getTransferData(f: DataFlavor) = this
+//    def isDataFlavorSupported(f: DataFlavor) = { f == Graph.Flavor }
+//    def getTransferDataFlavors = Array(Graph.Flavor)
+//  }
+
   implicit def qGraphAndNameToQGraph[N <: Name[N]](t: (Graph, Name[N])) : Graph = t._1
 
   def apply(theory: Theory): Graph = Graph(data = GData(theory = theory))
@@ -615,9 +635,7 @@ object Graph {
         val y = rand.nextInt(varray.size - 1)
         val s = varray(x)
         val t = varray(if (y >= x) y+1 else y)
-        randomGraph = randomGraph.newEdge(DirEdge(),
-          if (s <= t) (s,t) else (t,s)
-        )
+        randomGraph = randomGraph.newEdge(DirEdge(), if (s <= t) (s,t) else (t,s))
       }
 
     randomGraph
