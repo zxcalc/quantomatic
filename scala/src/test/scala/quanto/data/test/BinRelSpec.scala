@@ -55,8 +55,7 @@ class BinRelSpec extends FlatSpec {
   }
 
   it should "iterate in the correct order (lexicographic [dom,cod])" in {
-    val pairs = for((x,y) <- rel) yield (x,y)
-    assert(pairs === List(("a", 2), ("a", 4), ("b", 3), ("c", 2)))
+    assert(rel.toSeq === Seq(("a", 2), ("a", 4), ("b", 3), ("c", 2)))
   }
 
   it can "remove elements" in {
@@ -69,6 +68,12 @@ class BinRelSpec extends FlatSpec {
     val rel3 = rel unmap ("a", 7)
     assert(rel2 === rel)
     assert(rel3 === rel)
+  }
+
+  it should "filter correctly" in {
+    val r1 = BinRel("a" -> 2, "a" -> 3, "b" -> 1, "b" -> 3, "c" -> 2, "d" -> 1)
+    val r2 = r1.filter { case(k,v) => k == "b" || v == 2 }
+    assert(r2 === BinRel("a" -> 2, "b" -> 1, "b" -> 3, "c" -> 2))
   }
 
   behavior of "A partial function"
@@ -111,6 +116,12 @@ class BinRelSpec extends FlatSpec {
     val rel3 = rel2 + ("a" -> 3)  // adds 3 to the image of a
 
     assert(f3 != rel3)
+  }
+
+  it should "filter correctly" in {
+    val f1 = PFun("a" -> 2, "b" -> 1, "c" -> 2)
+    val f2 = f1.filter { case(_,v) => v == 2 }
+    assert(f2 === PFun("a" -> 2, "c" -> 2))
   }
   
 }

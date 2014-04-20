@@ -2,6 +2,7 @@
 package quanto.data
 
 import collection.immutable.TreeSet
+import scala.collection.{mutable, IterableLike}
 
 /**
  * A trait which contains useful methods for binary relations
@@ -12,7 +13,7 @@ import collection.immutable.TreeSet
  * @author Aleks Kissinger 
  * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/BinRel.scala Source code]]
  */
-trait BinRel[A,B] extends Iterable[(A,B)] {
+trait BinRel[A,B] extends IterableLike[(A,B), BinRel[A,B]] {
   /** Domain function - assigns a set to each element of the domain */
   def domf : Map[A,Set[B]]
 
@@ -156,6 +157,15 @@ class MapPairBinRel[A,B](domMap: Map[A,TreeSet[B]], codMap: Map[B,TreeSet[A]])
   def iterator = domMap.foldLeft(Iterator[(A,B)]()) { case (iter, (domElement, codSet)) =>
     iter ++ (Iterator.continually(domElement) zip codSet.iterator)
   }
+
+  protected[this] def newBuilder = new mutable.Builder[(A,B),BinRel[A,B]] {
+    val s = collection.mutable.Buffer[(A,B)]()
+    def result() = BinRel(s: _*)
+    def clear() = s.clear()
+    def +=(elem: (A,B)) = { s += elem; this }
+  }
+
+  def seq = iterator.toSeq
 }
 
 /**

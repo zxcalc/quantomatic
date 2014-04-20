@@ -1,6 +1,7 @@
 package quanto.data
 
 import collection.immutable.TreeSet
+import scala.collection.{mutable, IterableLike}
 
 /**
  * Basically a map, but with cached inverse images
@@ -20,7 +21,7 @@ import collection.immutable.TreeSet
 class PFun[A,B]
 (f : Map[A,B], finv: Map[B,TreeSet[A]])
 (implicit keyOrd: Ordering[A])
-  extends BinRel[A,B] {
+  extends BinRel[A,B] with IterableLike[(A,B), PFun[A,B]] {
 
   def domf = f.mapValues(Set(_))
 
@@ -111,6 +112,15 @@ class PFun[A,B]
     case Some(v) => v
     case None => default(k)
   }
+
+  protected[this] def newBuilder = new mutable.Builder[(A,B),PFun[A,B]] {
+    val s = collection.mutable.Buffer[(A,B)]()
+    def result() = PFun(s: _*)
+    def clear() = s.clear()
+    def +=(elem: (A,B)) = { s += elem; this }
+  }
+
+  def seq = iterator.toSeq
 
   // PFun inherits equality from its member "f"
   //  override def hashCode = f.hashCode()

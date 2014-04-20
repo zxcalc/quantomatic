@@ -253,6 +253,75 @@ case class Graph(
   def updateEData(en: EName)(f: EData => EData)      = copy(edata = edata + (en -> f(edata(en))))
   def updateBBData(bbn: BBName)(f: BBData => BBData) = copy(bbdata = bbdata + (bbn -> f(bbdata(bbn))))
 
+  def rename(vrn: Map[VName,VName], ern: Map[EName, EName], brn: Map[BBName,BBName]) = {
+    // compute inverses
+    val vrni = vrn.foldLeft(Map[VName,VName]()) { case (mp, (k,v)) => mp + (v -> k) }
+    val erni = ern.foldLeft(Map[EName,EName]()) { case (mp, (k,v)) => mp + (v -> k) }
+    val brni = brn.foldLeft(Map[BBName,BBName]()) { case (mp, (k,v)) => mp + (v -> k) }
+
+    val vdata1 = vdata.foldLeft(Map[VName,VData]()) { case (mp, (k,v)) => mp + (vrni(k) -> v)}
+    val edata1 = edata.foldLeft(Map[EName,EData]()) { case (mp, (k,v)) => mp + (erni(k) -> v)}
+    val bbdata1 = bbdata.foldLeft(Map[BBName,BBData]()) { case (mp, (k,v)) => mp + (brni(k) -> v)}
+    val source1 = source.foldLeft(PFun[EName,VName]()) { case (mp, (k,v)) => mp + (erni(k) -> vrn(v))}
+    val target1 = target.foldLeft(PFun[EName,VName]()) { case (mp, (k,v)) => mp + (erni(k) -> vrn(v))}
+    val inBBox1 = inBBox.foldLeft(PFun[VName,BBName]()) { case (mp, (k,v)) => mp + (vrni(k) -> brn(v))}
+    val bboxParent1 = bboxParent.foldLeft(PFun[BBName,BBName]()) { case (mp, (k,v)) => mp + (brni(k) -> brn(v))}
+
+    copy(vdata=vdata1,edata=edata1,source=source1,target=target1,
+      bbdata=bbdata1,inBBox=inBBox1,bboxParent=bboxParent1)
+  }
+
+  def fullSubgraph(vs: Set[VName]) {
+    val vdata1 = vdata.filter { case (v,_) => vs.contains(v) }
+    val source1 = source.filter { case (_,v) => vs.contains(v) }
+    val target1 = target.filter { case (_,v) => vs.contains(v) }
+    val inBBox1 = inBBox.filter{ case (v,_) => vs.contains(v) }
+
+    val es = source1.domSet
+    val bs = inBBox1.codSet
+    val edata1 = edata.filter { case (e,_) => es.contains(e) }
+    val bbdata1 = bbdata.filter { case (b,_) => bs.contains(b) }
+    val bboxParent1 = bboxParent.filter { case (b1,b2) => bs.contains(b1) && bs.contains(b2) }
+
+    copy(data=GData(),vdata=vdata1,edata=edata1,source=source1,target=target1,
+      bbdata=bbdata1,inBBox=inBBox1,bboxParent=bboxParent1)
+  }
+
+  def renameAvoiding(g: Graph): Graph = {
+    val vrn = verts.foldLeft((Map[VName,VName](), g.verts)) { case ((mp,avoid), x) =>
+      val x1 = avoid.freshWithSuggestion(x)
+      (mp + (x -> x1), avoid + x1)
+    }._1
+
+    val ern = edges.foldLeft((Map[EName,EName](), g.edges)) { case ((mp,avoid), x) =>
+      val x1 = avoid.freshWithSuggestion(x)
+      (mp + (x -> x1), avoid + x1)
+    }._1
+
+    val brn = bboxes.foldLeft((Map[BBName,BBName](), g.bboxes)) { case ((mp,avoid), x) =>
+      val x1 = avoid.freshWithSuggestion(x)
+      (mp + (x -> x1), avoid + x1)
+    }._1
+
+    rename(vrn,ern,brn)
+  }
+
+  def appendGraph(g: Graph) = {
+    val coords = verts.map(vdata(_).coord)
+
+    // Pick any vertex in g and offset until that vertex is not sitting exactly
+    // on top of another.
+    var offset = 0.0
+    g.verts.headOption.map { v1 =>
+      val (x,y) = g.vdata(v1).coord
+      while (coords.contains((x + offset, y - offset))) offset += 1.0
+    }
+
+    g.verts.foldLeft(g) { (g1,v) =>
+      g1.updateVData(v) { d => d.withCoord (d.coord._1 + offset, d.coord._2 - offset) }
+    }.renameAvoiding(this)
+  }
+
   override def toString = {
     """%s {
       |  verts: %s,
