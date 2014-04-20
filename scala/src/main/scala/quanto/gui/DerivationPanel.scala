@@ -33,31 +33,39 @@ class DerivationPanel(val project: Project)
   LhsView.zoom = 0.6
   RhsView.zoom = 0.6
 
-  val controls = new GraphEditControls(theory)
+  //val controls = new GraphEditControls(theory)
 
   val lhsController = new GraphEditController(LhsView, document.undoStack, readOnly = true)
   val rhsController = new GraphEditController(RhsView, document.undoStack, readOnly = true)
 
   val RewindButton = new Button() {
-    icon = new ImageIcon(GraphEditor.getClass.getResource("go-first.png"), "First step")
+    icon = new ImageIcon(getClass.getResource("go-first.png"), "First step")
   }
 
   val PreviousButton = new Button() {
-    icon = new ImageIcon(GraphEditor.getClass.getResource("go-previous.png"), "Previous step")
+    icon = new ImageIcon(getClass.getResource("go-previous.png"), "Previous step")
   }
 
   val NextButton = new Button() {
-    icon = new ImageIcon(GraphEditor.getClass.getResource("go-next.png"), "Next step")
+    icon = new ImageIcon(getClass.getResource("go-next.png"), "Next step")
   }
 
   val FastForwardButton = new Button() {
-    icon = new ImageIcon(GraphEditor.getClass.getResource("go-last.png"), "Last step")
+    icon = new ImageIcon(getClass.getResource("go-last.png"), "Last step")
+  }
+
+  val NewHeadButton = new Button() {
+    icon = new ImageIcon(getClass.getResource("edit-copy.png"), "New proof head")
+  }
+
+  val DeleteStepButton = new Button() {
+    icon = new ImageIcon(getClass.getResource("edit-delete.png"), "Delete proof step(s)")
   }
 
   val navigationButtons = List(RewindButton, PreviousButton, NextButton, FastForwardButton)
 
   val DeriveToolbar = new ToolBar {
-    contents += (RewindButton, PreviousButton, NextButton, FastForwardButton)
+    contents += (RewindButton, PreviousButton, NextButton, FastForwardButton, NewHeadButton, DeleteStepButton)
   }
 
   val LhsGraphPane = new ScrollPane(LhsView)
