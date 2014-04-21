@@ -84,8 +84,10 @@ class DerivationPanel(val project: Project)
     val PreviewScrollPane = new ScrollPane(Preview)
     Preview.zoom = 0.6
 
+    // Note that the preview panel doesn't register to the derivation's undo stack. Things
+    // could go weird if we allow undo's in previews, the graphRef changes so much.
     val rewritePreviewController =
-      new GraphEditController(Preview, document.undoStack, readOnly = true)
+      new GraphEditController(Preview, new UndoStack(), readOnly = true)
     
     val AddRuleButton = new Button {
       icon = new ImageIcon(GraphEditor.getClass.getResource("list-add.png"), "Add Rule")

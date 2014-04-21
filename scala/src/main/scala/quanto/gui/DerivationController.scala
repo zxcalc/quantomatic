@@ -30,6 +30,11 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
   private var _state : DeriveState = HeadState(None)
   def state = _state
   def state_=(s: DeriveState) {
+    if (_state != s) {
+      val oldState = _state
+      panel.document.undoStack.register("Change proof step") { state = oldState }
+    }
+
     _state match {
       case HeadState(_) => panel.rewriteController.deafTo(panel.LhsView)
       case _ =>
@@ -37,7 +42,7 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
 
     _state = s
     panel.histView.selectedNode = Some(s)
-    panel.document.undoStack.clear() // weird things can happen if we keep the old undo stack around
+    //panel.document.undoStack.clear() // weird things can happen if we keep the old undo stack around
 
     panel.PreviousButton.enabled = false
     panel.NextButton.enabled = false
@@ -134,7 +139,8 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
       panel.histView.selectedNode = Some(state)
       panel.histView.ensureIndexIsVisible(panel.histView.selection.leadIndex)
     case DocumentReplaced(_) =>
-      state = HeadState(derivation.firstHead)
+      _state = HeadState(derivation.firstHead)
+      state = state
       panel.histView.treeData = derivation
       panel.histView.selectedNode = Some(state)
 //      println(derivation)

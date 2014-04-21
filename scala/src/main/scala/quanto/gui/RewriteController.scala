@@ -173,8 +173,11 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 
         val stepFr = step.copy(name = panel.derivation.steps.freshWithSuggestion(DSName(rd.name.replaceFirst("^.*\\/", "") + "-0")))
         panel.ManualRewritePane.Preview.graphRef = panel.DummyRef
-        panel.document.derivation = panel.document.derivation.addStep(parentOpt, stepFr)
+
+        panel.document.undoStack.start("Apply rewrite")
+        panel.controller.replaceDerivation(panel.derivation.addStep(parentOpt, stepFr), "")
         panel.controller.state = HeadState(Some(stepFr.name))
+        panel.document.undoStack.commit()
       }}
 
     case VertexSelectionChanged(_,_) =>
