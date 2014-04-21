@@ -261,7 +261,6 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   }
 
   def copySubgraph() {
-    println("copying")
     if (!view.selectedVerts.isEmpty) {
       val jsonString = Graph.toJson(graph.fullSubgraph(view.selectedVerts), theory).toString
       Toolkit.getDefaultToolkit.getSystemClipboard.setContents(new StringSelection(jsonString), this)
@@ -270,24 +269,29 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
   def cutSubgraph() {
     copySubgraph()
-    undoStack.start("Cut graph")
-    view.selectedVerts.foreach(deleteVertex)
-    undoStack.commit()
-    view.repaint()
+
+    if (!readOnly) {
+      undoStack.start("Cut graph")
+      view.selectedVerts.foreach(deleteVertex)
+      undoStack.commit()
+      view.repaint()
+    }
   }
 
   def pasteSubgraph() {
-    println("pasting")
-    val data = Toolkit.getDefaultToolkit.getSystemClipboard.getContents(this)
-    if (data.isDataFlavorSupported(DataFlavor.stringFlavor)) {
-      try {
-        val jsonString = data.getTransferData(DataFlavor.stringFlavor).asInstanceOf[String]
-        val g = Graph.fromJson(Json.parse(jsonString), theory).renameAvoiding(graph)
-        replaceGraph(graph.appendGraph(g), "Paste from clipboard")
-        view.selectedVerts = g.verts
+    if (!readOnly) {
+      val data = Toolkit.getDefaultToolkit.getSystemClipboard.getContents(this)
+      if (data.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+        try {
+          val jsonString = data.getTransferData(DataFlavor.stringFlavor).asInstanceOf[String]
+          val g = Graph.fromJson(Json.parse(jsonString), theory).renameAvoiding(graph)
+          replaceGraph(graph.appendGraph(g), "Paste from clipboard")
+          view.selectedVerts = g.verts
+        } catch {
+          case _: Exception => // silently fail if clipboard data doesn't parse
+        }
+
         view.repaint()
-      } catch {
-        case e: Exception => println("Error reading clipboard data."); e.printStackTrace()
       }
     }
   }
@@ -527,7 +531,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         case DragBangBoxNesting(startBB) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           val bboxHit = if (vertexHit == None) view.bboxDisplay find { _._2.cornerHit(pt) } map { _._1 }
-          else None
+                        else None
 
           vertexHit.map { v =>
             if (graph.contents(startBB).contains(v)) removeVertexFromBBox(startBB, v)
@@ -535,8 +539,8 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
           }
 
           bboxHit.map { bbChild =>
-            // only consider adding this bbox as a child if it is not already a parent
-            if (!graph.bboxParents(startBB).contains(bbChild)) {
+            // only consider adding this bbox as a child if it is not already a parent (or itself)
+            if (!graph.bboxParents(startBB).contains(bbChild) && startBB != bbChild) {
               if (graph.bboxParent.get(bbChild) == Some(startBB)) setBBoxParent(bbChild, None)
               else setBBoxParent(bbChild, Some(startBB))
             }

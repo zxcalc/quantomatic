@@ -79,6 +79,13 @@ object QuantoDerive extends SimpleSwingApplication {
       case _ => None
     }
 
+  def currentGraphController: Option[GraphEditController] =
+    MainTabbedPane.currentContent match {
+      case Some(p: GraphEditPanel) => Some(p.graphEditController)
+      case Some(p: RuleEditPanel) => Some(p.focusedController)
+      case _ => None
+    }
+
   object HistViewSlot extends BorderPanel {
     def setHistView(hv: HistView[DeriveState]) {
       add(new ScrollPane(hv), BorderPanel.Position.Center)
@@ -314,6 +321,26 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
+    contents += new Separator
+
+    val CutAction = new Action("Cut") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.U }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_X, CommandMask))
+      def apply() { currentGraphController.map(_.cutSubgraph()) }
+    }
+
+    val CopyAction = new Action("Copy") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.C }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_C, CommandMask))
+      def apply() { currentGraphController.map(_.copySubgraph()) }
+    }
+
+    val PasteAction = new Action("Paste") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.P }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_V, CommandMask))
+      def apply() { currentGraphController.map(_.pasteSubgraph()) }
+    }
+
 //    val LayoutAction = new Action("Layout Graph") with Reactor {
 //      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
 //      def apply() {
@@ -430,39 +457,43 @@ object QuantoDerive extends SimpleSwingApplication {
       }
 
     case SelectionChanged(_) =>
-      // set GUI for general document-based panels
+      FileMenu.SaveAction.enabled = false
+      FileMenu.SaveAsAction.enabled = false
+      EditMenu.CutAction.enabled = false
+      EditMenu.CopyAction.enabled = false
+      EditMenu.PasteAction.enabled = false
+      DeriveMenu.StartDerivation.enabled = false
+      DeriveMenu.LayoutDerivation.enabled = false
+      WindowMenu.CloseAction.enabled = false
+
+      histView = None
+      FileMenu.SaveAction.title = "Save"
+      FileMenu.SaveAsAction.title = "Save As..."
+
       MainTabbedPane.currentContent match {
-        case Some(doc: HasDocument) =>
+        case Some(content: HasDocument) =>
           WindowMenu.CloseAction.enabled = true
           FileMenu.SaveAction.enabled = true
-          FileMenu.SaveAction.title = "Save " + doc.document.description
           FileMenu.SaveAsAction.enabled = true
-          FileMenu.SaveAsAction.title = "Save " + doc.document.description + " As..."
+          FileMenu.SaveAction.title = "Save " + content.document.description
+          FileMenu.SaveAsAction.title = "Save " + content.document.description + " As..."
 
-        case _ =>
-          DeriveMenu.StartDerivation.enabled = false
-          WindowMenu.CloseAction.enabled = false
-          FileMenu.SaveAction.enabled = false
-          FileMenu.SaveAction.title = "Save"
-          FileMenu.SaveAsAction.enabled = false
-          FileMenu.SaveAsAction.title = "Save As..."
+          content match {
+            case panel: GraphEditPanel =>
+              EditMenu.CutAction.enabled = true
+              EditMenu.CopyAction.enabled = true
+              EditMenu.PasteAction.enabled = true
+              DeriveMenu.StartDerivation.enabled = true
+            case panel: RuleEditPanel =>
+              EditMenu.CutAction.enabled = true
+              EditMenu.CopyAction.enabled = true
+              EditMenu.PasteAction.enabled = true
+            case panel: DerivationPanel =>
+              DeriveMenu.LayoutDerivation.enabled = true
+              histView = Some(panel.histView)
+          }
 
-      }
-
-      // document-specific settings
-      MainTabbedPane.currentContent match {
-        case Some(panel: GraphEditPanel) =>
-          DeriveMenu.StartDerivation.enabled = true
-          DeriveMenu.LayoutDerivation.enabled = false
-          histView = None
-        case Some(panel: DerivationPanel) =>
-          DeriveMenu.StartDerivation.enabled = false
-          DeriveMenu.LayoutDerivation.enabled = true
-          histView = Some(panel.histView)
-        case _ =>
-          DeriveMenu.StartDerivation.enabled = false
-          DeriveMenu.LayoutDerivation.enabled = false
-          histView = None
+        case _ => // leave everything disabled
       }
   }
 

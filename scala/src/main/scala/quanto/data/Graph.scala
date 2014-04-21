@@ -273,14 +273,15 @@ case class Graph(
   }
 
   def fullSubgraph(vs: Set[VName]) = {
+    val es = edges.filter { e => vs.contains(source(e)) && vs.contains(target(e)) }
+
     val vdata1 = vdata.filter { case (v,_) => vs.contains(v) }
-    val source1 = source.filter { case (_,v) => vs.contains(v) }
-    val target1 = target.filter { case (_,v) => vs.contains(v) }
+    val edata1 = edata.filter { case (e,_) => es.contains(e) }
+    val source1 = source.filter { case (e,_) => es.contains(e) }
+    val target1 = target.filter { case (e,_) => es.contains(e) }
     val inBBox1 = inBBox.filter{ case (v,_) => vs.contains(v) }
 
-    val es = source1.domSet
     val bs = inBBox1.codSet
-    val edata1 = edata.filter { case (e,_) => es.contains(e) }
     val bbdata1 = bbdata.filter { case (b,_) => bs.contains(b) }
     val bboxParent1 = bboxParent.filter { case (b1,b2) => bs.contains(b1) && bs.contains(b2) }
 
@@ -303,8 +304,6 @@ case class Graph(
       val x1 = avoid.freshWithSuggestion(x)
       (mp + (x -> x1), avoid + x1)
     }._1
-
-    println(vrn)
 
     rename(vrn,ern,brn)
   }

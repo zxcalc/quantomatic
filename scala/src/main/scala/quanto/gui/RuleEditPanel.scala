@@ -23,6 +23,8 @@ with HasDocument
   val rhsController = new GraphEditController(rhsView, document.undoStack, readOnly)
   rhsController.controlsOpt = Some(controls)
 
+  def focusedController = if (rhsView.hasFocus) rhsController else lhsController
+
   val LhsScrollPane = new ScrollPane(lhsView)
   val RhsScrollPane = new ScrollPane(rhsView)
 
