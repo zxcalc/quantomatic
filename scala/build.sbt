@@ -32,7 +32,7 @@ appbundle.mainClass := Some("quanto.gui.QuantoDerive")
 
 appbundle.javaVersion := "1.6+"
 
-appbundle.screenMenu := false
+appbundle.screenMenu := true
 
 appbundle.name := "QuantoDerive"
 

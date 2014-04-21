@@ -19,6 +19,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
 import java.awt.Color
+import quanto.util.Globals
 
 
 object QuantoDerive extends SimpleSwingApplication {
@@ -119,6 +120,40 @@ object QuantoDerive extends SimpleSwingApplication {
   object Split extends SplitPane {
     orientation = Orientation.Vertical
     contents_=(LeftSplit, MainTabbedPane)
+  }
+
+  def hasUnsaved =
+    MainTabbedPane.pages.exists { p => p.content match {
+      case c : HasDocument => c.document.unsavedChanges
+      case _ => false
+    }}
+
+  def quitQuanto() = {
+    // TODO: hook *any* quit action (not just File > Quit) to prompt unsaved and shutdown the core
+    if (!hasUnsaved || Dialog.showConfirmation(
+      title = "Confirm quit",
+      message = "Some documents have unsaved changes. Do you wish to continue?")
+      == Dialog.Result.Yes) {
+      core ! StopCore
+      true
+    } else {
+      false
+    }
+  }
+
+  if (Globals.isMacApp) {
+    import com.apple.eawt.Application
+    import com.apple.eawt.QuitHandler
+    import com.apple.eawt.AppEvent
+    import com.apple.eawt.QuitResponse
+
+    Application.getApplication.setQuitHandler(
+      new QuitHandler {
+        def handleQuitRequestWith(e: AppEvent.QuitEvent, response: QuitResponse) {
+          if (quitQuanto()) response.performQuit()
+          else response.cancelQuit()
+        }
+      })
   }
 
 
@@ -251,11 +286,7 @@ object QuantoDerive extends SimpleSwingApplication {
     val QuitAction = new Action("Quit") {
       menu.contents += new MenuItem(this) { mnemonic = Key.Q }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Q, CommandMask))
-      def apply() {
-        // TODO: hook *any* quit action (not just File > Quit) to prompt unsaved and shutdown the core
-        core ! StopCore
-        scala.sys.exit(0)
-      }
+      def apply() { if (quitQuanto()) scala.sys.exit(0) }
     }
   }
 
@@ -491,6 +522,7 @@ object QuantoDerive extends SimpleSwingApplication {
             case panel: DerivationPanel =>
               DeriveMenu.LayoutDerivation.enabled = true
               histView = Some(panel.histView)
+            case _ => // nothing else enabled for ML
           }
 
         case _ => // leave everything disabled
