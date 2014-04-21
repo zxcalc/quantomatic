@@ -26,6 +26,7 @@ class CoreProcess {
       val pb = if (!new File("../Resources").exists()) { // check if running inside OS X app bundle
         //QuantoDerive.CoreStatus.text = "didnt find osx-dist in " + new File(".").getAbsolutePath
         val pb1 = new ProcessBuilder(CoreProcess.polyExe, "--ideprotocol")
+        //val pb1 = new ProcessBuilder(quantoHome + "/scala/dist/linux-dist/poly", "--ideprotocol")
         pb1.directory(new File(quantoHome + "/core"))
 
         pb1
