@@ -129,7 +129,6 @@ object QuantoDerive extends SimpleSwingApplication {
     }}
 
   def quitQuanto() = {
-    // TODO: hook *any* quit action (not just File > Quit) to prompt unsaved and shutdown the core
     if (!hasUnsaved || Dialog.showConfirmation(
       title = "Confirm quit",
       message = "Some documents have unsaved changes. Do you wish to continue?")
@@ -141,20 +140,16 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
-  if (Globals.isMacApp) {
-    import com.apple.eawt.Application
-    import com.apple.eawt.QuitHandler
-    import com.apple.eawt.AppEvent
-    import com.apple.eawt.QuitResponse
-
-    Application.getApplication.setQuitHandler(
-      new QuitHandler {
-        def handleQuitRequestWith(e: AppEvent.QuitEvent, response: QuitResponse) {
-          if (quitQuanto()) response.performQuit()
-          else response.cancelQuit()
-        }
-      })
-  }
+// TODO: get this code compiling cross-platform
+//  if (Globals.isMacApp) {
+//    Application.getApplication.setQuitHandler(
+//      new QuitHandler {
+//        def handleQuitRequestWith(e: AppEvent.QuitEvent, response: QuitResponse) {
+//          if (quitQuanto()) response.performQuit()
+//          else response.cancelQuit()
+//        }
+//      })
+//  }
 
 
   val FileMenu = new Menu("File") { menu =>
