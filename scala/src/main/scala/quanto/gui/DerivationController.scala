@@ -116,8 +116,6 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
   def replaceDerivation(d: Derivation, desc: String) {
     val currentDerivation = panel.document.derivation
     panel.document.derivation = d
-    // force state refresh
-    state_=(state)
 
     panel.document.undoStack.register(desc) {
       replaceDerivation(currentDerivation, desc)
@@ -128,6 +126,8 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
     val layoutProc = new DeriveLayout
     val d = layoutProc.layout(panel.document.derivation)
     replaceDerivation(d, "Layout Derivation")
+    // force state refresh
+    state = state
   }
 
   panel.derivationButtons.foreach { listenTo(_) }
@@ -174,27 +174,34 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
     case ButtonClicked(panel.NewHeadButton) =>
       state match {
         case StepState(s) =>
-          panel.document.derivation = derivation.addHead(s)
+          panel.document.undoStack.start("Add proof head")
+          replaceDerivation(derivation.addHead(s), "")
           state = HeadState(Some(s))
+          panel.document.undoStack.commit()
         case _ => // do nothing
       }
 
     case ButtonClicked(panel.DeleteStepButton) =>
       state match {
         case HeadState(Some(s)) =>
-          panel.document.derivation = derivation.deleteHead(s)
+          panel.document.undoStack.start("Delete proof head")
           state = StepState(s)
+          replaceDerivation(derivation.deleteHead(s), "")
+          panel.document.undoStack.commit()
         case StepState(s) =>
           // TODO: make deletion undo-able?
           if (Dialog.showConfirmation(
                 title = "Confirm deletion",
                 message = "This will delete " + derivation.allChildren(s).size +
-                  " proof steps, and cannot be\nundone. Do you wish to continue?")
+                  " proof steps. Do you wish to continue?")
               == Dialog.Result.Yes)
           {
             val parentOpt = derivation.parentMap.get(s)
-            panel.document.derivation = derivation.deleteStep(s)
+
+            panel.document.undoStack.start("Delete proof step")
             state = HeadState(parentOpt)
+            replaceDerivation(derivation.deleteStep(s), "")
+            panel.document.undoStack.commit()
           }
         case _ => // do nothing on root
       }
