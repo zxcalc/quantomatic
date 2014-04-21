@@ -14,7 +14,7 @@ class DeriveLayout {
 
     while (steps.size < derivation.steps.size) derivation.steps.foreach { case (sname, step) =>
       // try to pull a parent that has already been processed, or root if step has no parent
-      val parentOpt = derivation.parent.get(sname) match {
+      val parentOpt = derivation.parentMap.get(sname) match {
         case Some(p) => steps.get(p).map(_.graph)
         case None => Some(derivation.root)
       }

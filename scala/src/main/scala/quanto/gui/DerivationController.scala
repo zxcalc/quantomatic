@@ -39,6 +39,13 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
     panel.histView.selectedNode = Some(s)
     panel.document.undoStack.clear() // weird things can happen if we keep the old undo stack around
 
+    panel.PreviousButton.enabled = false
+    panel.NextButton.enabled = false
+    panel.RewindButton.enabled = false
+    panel.FastForwardButton.enabled = false
+    panel.NewHeadButton.enabled = false
+    panel.DeleteStepButton.enabled = false
+
     s match {
       case HeadState(headOpt) =>
         panel.Rhs.setHeadMode()
@@ -48,15 +55,12 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
         headOpt match {
           case Some(head) => // at a named head
             panel.PreviousButton.enabled = true
-            panel.NextButton.enabled = false
             panel.RewindButton.enabled = true
-            panel.FastForwardButton.enabled = false
+            panel.DeleteStepButton.enabled = derivation.hasChildren(head)
             panel.LhsLabel.text = head.toString
             panel.LhsView.graphRef = panel.document.stepRef(head)
           case None => // at the root
-            panel.PreviousButton.enabled = false
             panel.NextButton.enabled = !derivation.firstSteps.isEmpty
-            panel.RewindButton.enabled = false
             panel.FastForwardButton.enabled = !derivation.heads.isEmpty
             panel.LhsLabel.text = "(root)"
             panel.LhsView.graphRef = panel.document.rootRef
@@ -70,19 +74,19 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
 
 
       case StepState(step) =>
+        panel.NewHeadButton.enabled = !derivation.isHead(step)
+        panel.DeleteStepButton.enabled = true
         panel.Rhs.setStepMode()
         panel.RhsLabel.text = step.toString
         panel.RhsView.graphRef = panel.document.stepRef(step)
 
-        derivation.parent.get(step) match {
+        derivation.parentMap.get(step) match {
           case Some(parent) => // at a step with parent
             panel.RewindButton.enabled = true
             panel.PreviousButton.enabled = true
             panel.LhsLabel.text = parent.toString
             panel.LhsView.graphRef = panel.document.stepRef(parent)
           case None => // at a step with no parent (i.e. parent is root)
-            panel.RewindButton.enabled = false
-            panel.PreviousButton.enabled = false
             panel.LhsLabel.text = "(root)"
             panel.LhsView.graphRef = panel.document.rootRef
         }
@@ -121,7 +125,7 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
     replaceDerivation(d, "Layout Derivation")
   }
 
-  panel.navigationButtons.foreach { listenTo(_) }
+  panel.derivationButtons.foreach { listenTo(_) }
   listenTo(panel.document, panel.histView.selection)
 
   reactions += {
@@ -150,7 +154,7 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
       state match {
         case HeadState(sOpt) => sOpt.map { s => state = StepState(s) }
         case StepState(s) =>
-          derivation.parent.get(s).map { p => state = StepState(p) }
+          derivation.parentMap.get(s).map { p => state = StepState(p) }
       }
     case ButtonClicked(panel.NextButton) =>
       state match {
@@ -160,6 +164,33 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
         case HeadState(None) =>
           derivation.firstSteps.headOption.map { ch => state = StepState(ch) }
         case HeadState(Some(_)) => // do nothing
+      }
+    case ButtonClicked(panel.NewHeadButton) =>
+      state match {
+        case StepState(s) =>
+          panel.document.derivation = derivation.addHead(s)
+          state = HeadState(Some(s))
+        case _ => // do nothing
+      }
+
+    case ButtonClicked(panel.DeleteStepButton) =>
+      state match {
+        case HeadState(Some(s)) =>
+          panel.document.derivation = derivation.deleteHead(s)
+          state = StepState(s)
+        case StepState(s) =>
+          // TODO: make deletion undo-able?
+          if (Dialog.showConfirmation(
+                title = "Confirm deletion",
+                message = "This will delete " + derivation.allChildren(s).size +
+                  " proof steps, and cannot be\nundone. Do you wish to continue?")
+              == Dialog.Result.Yes)
+          {
+            val parentOpt = derivation.parentMap.get(s)
+            panel.document.derivation = derivation.deleteStep(s)
+            state = HeadState(parentOpt)
+          }
+        case _ => // do nothing on root
       }
     case SelectionChanged(_) =>
       if (panel.histView.selectedNode != Some(state))

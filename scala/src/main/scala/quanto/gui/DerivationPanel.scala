@@ -62,7 +62,9 @@ class DerivationPanel(val project: Project)
     icon = new ImageIcon(getClass.getResource("edit-delete.png"), "Delete proof step(s)")
   }
 
-  val navigationButtons = List(RewindButton, PreviousButton, NextButton, FastForwardButton)
+  val derivationButtons = List(
+    RewindButton, PreviousButton, NextButton, FastForwardButton,
+    NewHeadButton, DeleteStepButton)
 
   val DeriveToolbar = new ToolBar {
     contents += (RewindButton, PreviousButton, NextButton, FastForwardButton, NewHeadButton, DeleteStepButton)
