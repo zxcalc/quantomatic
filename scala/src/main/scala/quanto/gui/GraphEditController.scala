@@ -12,33 +12,7 @@ import quanto.layout.constraint._
 import java.awt.event.{ActionEvent, ActionListener}
 import java.awt.datatransfer._
 import java.awt.Toolkit
-import quanto.gui.graphview.EdgeOverlay
-import quanto.gui.SelectTool
-import quanto.gui.VertexSelectionChanged
-import quanto.data.BBName
-import scala.swing.event.KeyReleased
-import quanto.gui.DragEdge
-import scala.Some
-import quanto.gui.SelectionBox
-import quanto.gui.AddEdgeTool
-import quanto.gui.BangSelectionBox
-import quanto.gui.DragVertex
-import quanto.data.BBData
-import quanto.data.VName
-import scala.swing.event.KeyPressed
-import quanto.gui.AddVertexTool
-import quanto.util.json.JsonBool
-import quanto.gui.UndoPerformed
-import scala.swing.event.MousePressed
-import quanto.data.EName
-import quanto.gui.DragBangBoxNesting
-import scala.swing.event.MouseReleased
-import quanto.gui.RedoPerformed
-import quanto.data.GraphReplaced
-import quanto.gui.graphview.BBoxOverlay
-import quanto.gui.AddBoundaryTool
-import scala.swing.event.MouseDragged
-import quanto.gui.AddBangBoxTool
+import quanto.gui.graphview.{EdgeOverlay,BBoxOverlay}
 
 case class VertexSelectionChanged(graph: Graph, selectedVerts: Set[VName]) extends GraphEvent
 
