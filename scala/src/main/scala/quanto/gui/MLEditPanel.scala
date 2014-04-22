@@ -18,7 +18,7 @@ class MLEditPanel extends BorderPanel with HasDocument {
 
   val sml = new Mode("StandardML")
 
-  val mlModeXml = if (Globals.isMacApp) new File("ml.xml").getAbsolutePath
+  val mlModeXml = if (Globals.isMacBundle) new File("ml.xml").getAbsolutePath
                   else getClass.getResource("ml.xml").getPath
   sml.setProperty("file", mlModeXml)
   println(sml.getProperty("file"))

@@ -4,7 +4,7 @@ import java.io._
 import java.util.logging._
 import quanto.util.json.Json
 
-import quanto.util.{StreamMessage, SignallingStreamRedirector, StreamRedirector}
+import quanto.util.{Globals, StreamMessage, SignallingStreamRedirector, StreamRedirector}
 import java.net.{InetAddress, Socket}
 import quanto.gui.QuantoDerive
 
@@ -23,17 +23,16 @@ class CoreProcess {
     try {
 //      val pb = new ProcessBuilder(
 //        CoreProcess.polyExe, "--use", "run_protocol.ML")
-      val pb = if (!new File("../Resources").exists()) { // check if running inside OS X app bundle
+      val pb = if (Globals.isMacBundle || Globals.isLinuxBundle) {
+        val pb1 = new ProcessBuilder("bin/poly", "--ideprotocol")
+        QuantoDerive.CoreStatus.text = new File(".").getAbsolutePath + "bin/poly"
+
+        pb1
+      } else {
         //QuantoDerive.CoreStatus.text = "didnt find osx-dist in " + new File(".").getAbsolutePath
         val pb1 = new ProcessBuilder(CoreProcess.polyExe, "--ideprotocol")
         //val pb1 = new ProcessBuilder(quantoHome + "/scala/dist/linux-dist/poly", "--ideprotocol")
         pb1.directory(new File(quantoHome + "/core"))
-
-        pb1
-      } else {
-        //QuantoDerive.CoreStatus.text = "found osx-dist"
-        val pb1 = new ProcessBuilder("bin/poly", "--ideprotocol")
-        QuantoDerive.CoreStatus.text = new File(".").getAbsolutePath + "bin/poly"
 
         pb1
       }

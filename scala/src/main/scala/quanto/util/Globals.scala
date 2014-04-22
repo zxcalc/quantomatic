@@ -4,5 +4,6 @@ import java.io.File
 
 object Globals {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
-  def isMacApp: Boolean = new File("../Resources").exists
+  def isMacBundle: Boolean = new File("mac-bundle").exists
+  def isLinuxBundle: Boolean = new File("linux-bundle").exists
 }
