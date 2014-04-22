@@ -10,6 +10,10 @@ cp -f dist/osx-dist/Info.plist $BUNDLE/
 cp -f ../core/run_protocol.ML $BUNDLE/Resources/
 cp -f dist/ml.xml $BUNDLE/Resources/
 
+# This dummy file lets the frontend know it is running inside
+# an OS X application bundle.
+touch $BUNDLE/Resource/osx-bundle
+
 mkdir -p $BUNDLE/Resources/bin
 cp -f dist/osx-dist/poly $BUNDLE/Resources/bin/
 
