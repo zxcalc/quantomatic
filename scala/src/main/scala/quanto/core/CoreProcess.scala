@@ -131,7 +131,9 @@ class CoreProcess {
     val logger = Logger.getLogger("quanto.core")
     var quantoHome = new File("../").getCanonicalPath
     println("quanto home is " + quantoHome)
-    var polyExe = "/usr/local/bin/poly"
+    var polyExe = if (new File("/usr/local/bin/poly").exists) "/usr/local/bin/poly"
+                  else if (new File("/usr/bin/poly").exists) "/usr/bin/poly"
+                  else throw new IOException("Cannot find PolyML executable. Checked /usr/local/bin/poly and /usr/bin/poly, but it's not there!")
   }
   
   // def inputStream : InputStream =
