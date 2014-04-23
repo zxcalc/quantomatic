@@ -161,6 +161,9 @@ case class Graph(
       case None => List()
     }
 
+  def bboxChildren(bb: BBName) : Set[BBName] =
+    bboxParent.codf(bb)
+
 
   /** Replace the contents of a bang box with new ones
     * NOTE: this affects parents as well. */
