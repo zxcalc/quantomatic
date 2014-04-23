@@ -281,7 +281,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
     g.setStroke(new BasicStroke(1))
     var a = g.getColor
     for ((v, VDisplay(shape,color,label)) <- vertexDisplay) {
-      if (graph.vdata(v).isBoundary) g.setColor(Color.RED)
+      if (graph.vdata(v).isBoundary) g.setColor(Color.MAGENTA)
       else g.setColor(color)
 
       g.fill(shape)
@@ -295,7 +295,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
       if (showNames || graph.vdata(v).isBoundary) {
         a = g.getColor
         g.setFont(EdgeLabelFont)
-        g.setColor(Color.RED)
+        g.setColor(Color.BLACK)
 
         g.drawString(v.toString, px, py - 5)
         g.setColor(a)
