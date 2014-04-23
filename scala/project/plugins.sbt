@@ -4,7 +4,7 @@ resolvers += "iBlio Maven Repository" at "http://mirrors.ibiblio.org/maven2/"
 
 addSbtPlugin("de.sciss" % "sbt-appbundle" % "1.0.1")
 
-addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.4.0")
+//addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.4.0")
 
 addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.6.0")
 

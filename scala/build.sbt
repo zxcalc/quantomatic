@@ -2,7 +2,7 @@ name := "quanto"
 
 version := "1.0"
 
-scalaVersion := "2.10.0"
+scalaVersion := "2.10.4"
 
 scalacOptions ++= Seq("-feature", "-language:implicitConversions")
 
@@ -20,9 +20,9 @@ libraryDependencies += "com.fasterxml.jackson.module" % "jackson-module-scala" %
 
 libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.0.M5b" % "test"
 
-libraryDependencies += "org.scala-lang" % "scala-swing" % "2.10.0"
+libraryDependencies += "org.scala-lang" % "scala-swing" % scalaVersion.value
 
-EclipseKeys.withSource := true
+//EclipseKeys.withSource := true
 
 //exportJars := true
 
