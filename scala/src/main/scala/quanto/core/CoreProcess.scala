@@ -23,18 +23,10 @@ class CoreProcess {
     try {
 //      val pb = new ProcessBuilder(
 //        CoreProcess.polyExe, "--use", "run_protocol.ML")
-      val pb = if (Globals.isMacBundle || Globals.isLinuxBundle) {
-        val pb1 = new ProcessBuilder("bin/poly", "--ideprotocol")
-        QuantoDerive.CoreStatus.text = new File(".").getAbsolutePath + "bin/poly"
+      val pb = new ProcessBuilder(CoreProcess.polyExe, "--ideprotocol")
 
-        pb1
-      } else {
-        //QuantoDerive.CoreStatus.text = "didnt find osx-dist in " + new File(".").getAbsolutePath
-        val pb1 = new ProcessBuilder(CoreProcess.polyExe, "--ideprotocol")
-        //val pb1 = new ProcessBuilder(quantoHome + "/scala/dist/linux-dist/poly", "--ideprotocol")
-        pb1.directory(new File(quantoHome + "/core"))
-
-        pb1
+      if (!Globals.isMacBundle && !Globals.isLinuxBundle) {
+        pb.directory(new File(quantoHome + "/core"))
       }
 
       pb.redirectErrorStream(true)
@@ -129,11 +121,14 @@ class CoreProcess {
 
   object CoreProcess {
     val logger = Logger.getLogger("quanto.core")
-    var quantoHome = new File("../").getCanonicalPath
-    println("quanto home is " + quantoHome)
-    var polyExe = if (new File("/usr/local/bin/poly").exists) "/usr/local/bin/poly"
-                  else if (new File("/usr/bin/poly").exists) "/usr/bin/poly"
-                  else throw new IOException("Cannot find PolyML executable. Checked /usr/local/bin/poly and /usr/bin/poly, but it's not there!")
+    val quantoHome = new File("../").getCanonicalPath
+    //println("quanto home is " + quantoHome)
+
+    // try to find poly in common locations. If all else fails, just run 'poly' and hope we get lucky
+    val polyExe = if (new File("bin/poly").exists) "bin/poly"  // for mac/linux bundles
+                  else if (new File("/usr/local/bin/poly").exists) "/usr/local/bin/poly" // installed from source
+                  else if (new File("/usr/bin/poly").exists) "/usr/bin/poly" // installed by e.g. package manager
+                  else "poly"
   }
   
   // def inputStream : InputStream =

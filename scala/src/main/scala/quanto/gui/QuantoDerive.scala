@@ -141,7 +141,8 @@ object QuantoDerive extends SimpleSwingApplication {
   }
 
 // TODO: get this code compiling cross-platform
-//  if (Globals.isMacApp) {
+//  if (Globals.isMacBundle) {
+//    import com.apple.eawt._
 //    Application.getApplication.setQuitHandler(
 //      new QuitHandler {
 //        def handleQuitRequestWith(e: AppEvent.QuitEvent, response: QuitResponse) {
