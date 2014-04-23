@@ -33,27 +33,32 @@ class GraphEditControls(theory: Theory) extends Publisher {
   val SelectButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("select-rectangular.png"), "Select")
     tool = SelectTool()
+    tooltip = "Select"
     selected = true
   }
 
   val AddVertexButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-ellipse.png"), "Add Vertex")
     tool = AddVertexTool()
+    tooltip = "Add Vertex"
   }
 
   val AddBoundaryButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-ellipse-b.png"), "Add Boundary")
     tool = AddBoundaryTool()
+    tooltip = "Add Boundary"
   }
 
   val AddEdgeButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Add Edge")
     tool = AddEdgeTool()
+    tooltip = "Add Edge"
   }
 
   val AddBangBoxButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-bbox.png"), "Add Bang Box")
     tool = AddBangBoxTool()
+    tooltip = "Add Bang Box"
   }
 
   val GraphToolGroup = new ButtonGroup(SelectButton,

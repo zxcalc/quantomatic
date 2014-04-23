@@ -40,26 +40,32 @@ class DerivationPanel(val project: Project)
 
   val RewindButton = new Button() {
     icon = new ImageIcon(getClass.getResource("go-first.png"), "First step")
+    tooltip = "First Step"
   }
 
   val PreviousButton = new Button() {
     icon = new ImageIcon(getClass.getResource("go-previous.png"), "Previous step")
+    tooltip = "Previous Step"
   }
 
   val NextButton = new Button() {
     icon = new ImageIcon(getClass.getResource("go-next.png"), "Next step")
+    tooltip = "Next step"
   }
 
   val FastForwardButton = new Button() {
     icon = new ImageIcon(getClass.getResource("go-last.png"), "Last step")
+    tooltip = "Last step"
   }
 
   val NewHeadButton = new Button() {
     icon = new ImageIcon(getClass.getResource("edit-copy.png"), "New proof head")
+    tooltip = "New proof head"
   }
 
   val DeleteStepButton = new Button() {
     icon = new ImageIcon(getClass.getResource("edit-delete.png"), "Delete proof step(s)")
+    tooltip = "Delete proof step(s)"
   }
 
   val derivationButtons = List(
@@ -92,20 +98,24 @@ class DerivationPanel(val project: Project)
     val AddRuleButton = new Button {
       icon = new ImageIcon(GraphEditor.getClass.getResource("list-add.png"), "Add Rule")
       preferredSize = toolbarDim
+      tooltip = "Add Rule"
     }
     val RemoveRuleButton = new Button {
       icon = new ImageIcon(GraphEditor.getClass.getResource("list-remove.png"), "Remove Rule")
       preferredSize = toolbarDim
+      tooltip = "Remove Rule"
     }
 
     val PreviousResultButton = new Button() {
       icon = new ImageIcon(GraphEditor.getClass.getResource("go-previous.png"), "Previous result")
       preferredSize = toolbarDim
+      tooltip = "Previous result"
     }
 
     val NextResultButton = new Button() {
       icon = new ImageIcon(GraphEditor.getClass.getResource("go-next.png"), "Next result")
       preferredSize = toolbarDim
+      tooltip = "Next result"
     }
 
     val ApplyButton = new Button("Apply")
@@ -133,16 +143,19 @@ class DerivationPanel(val project: Project)
     val RefreshButton = new Button {
       icon = new ImageIcon(GraphEditor.getClass.getResource("view-refresh.png"), "Refresh")
       preferredSize = toolbarDim
+      tooltip = "Refresh"
     }
 
     val SimplifyButton = new Button {
       icon = new ImageIcon(GraphEditor.getClass.getResource("start.png"))
       preferredSize = toolbarDim
+      tooltip = "Start"
     }
 
     val StopButton = new Button {
       icon = new ImageIcon(GraphEditor.getClass.getResource("stop.png"))
       preferredSize = toolbarDim
+      tooltip = "Stop"
     }
 
     val topPane = new BorderPanel {

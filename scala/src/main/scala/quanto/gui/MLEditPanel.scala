@@ -49,10 +49,12 @@ class MLEditPanel extends BorderPanel with HasDocument {
 
   val RunButton = new Button() {
     icon = new ImageIcon(GraphEditor.getClass.getResource("start.png"), "Run buffer in Poly/ML")
+    tooltip = "Run buffer in Poly/ML"
   }
 
   val InterruptButton = new Button() {
     icon = new ImageIcon(GraphEditor.getClass.getResource("stop.png"), "Interrupt execution")
+    tooltip = "Interrupt execution"
   }
 
   val MLToolbar = new ToolBar {
