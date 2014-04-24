@@ -223,7 +223,7 @@ case class Graph(
     copy(
       bbdata = bbdata - bb,
       inBBox = inBBox.unmapCod(bb),
-      bboxParent = bboxParent.unmapCod(bb)
+      bboxParent = bboxParent.unmapCod(bb).unmapDom(bb)
     )
   }
 
