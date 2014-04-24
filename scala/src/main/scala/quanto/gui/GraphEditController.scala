@@ -175,7 +175,9 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
   private def deleteBBox(bbname: BBName) {
     val data = graph.bbdata(bbname)
-    val contents = graph.contents(bbname)
+    val vertices = graph.contents(bbname)
+    val parent_bbox = graph.bboxParent.get(bbname)
+    val child_bboxes = graph.bboxChildren(bbname)
     val selected = if (selectedBBoxes.contains(bbname)) {
       selectedBBoxes -= bbname; true
     } else false
@@ -184,7 +186,9 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     graph = graph.deleteBBox(bbname)
 
     undoStack.register("Delete Bang Box") {
-      addBBox(bbname, data, contents)
+      addBBox(bbname, data, vertices)
+      graph = graph.setBBoxParent(bbname, parent_bbox)
+      child_bboxes.foreach {child => graph = graph.setBBoxParent(child, Some(bbname))}
       if (selected) selectedBBoxes += bbname
     }
   }
