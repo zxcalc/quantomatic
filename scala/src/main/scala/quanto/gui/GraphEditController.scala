@@ -176,12 +176,16 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   private def deleteBBox(bbname: BBName) {
     val data = graph.bbdata(bbname)
     val contents = graph.contents(bbname)
+    val selected = if (selectedBBoxes.contains(bbname)) {
+      selectedBBoxes -= bbname; true
+    } else false
 
     view.invalidateBBox(bbname)
     graph = graph.deleteBBox(bbname)
 
     undoStack.register("Delete Bang Box") {
       addBBox(bbname, data, contents)
+      if (selected) selectedBBoxes += bbname
     }
   }
 
