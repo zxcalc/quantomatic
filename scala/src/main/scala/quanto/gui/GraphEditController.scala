@@ -222,7 +222,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
   def layoutGraph() {
     //val lo = new ForceLayout with Clusters
-    val layout = new ForceLayout with IRanking with VerticalBoundary with Clusters
+    val lo = new ForceLayout with IRanking with VerticalBoundary with Clusters
     replaceGraph(lo.layout(graph), "Layout Graph")
   }
 
