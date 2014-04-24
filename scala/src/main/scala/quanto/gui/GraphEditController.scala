@@ -26,7 +26,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
   def mouseState_=(s: MouseState) {
     if (readOnly) s match {
-      case AddVertexTool() | AddBoundaryTool() | AddEdgeTool() | AddBangBoxTool() | DragEdge(_) | BangSelectionBox(_,_) =>
+      case _: AddVertexTool | _: AddBoundaryTool | _: AddEdgeTool | _: AddBangBoxTool | _: DragEdge | _: BangSelectionBox =>
         throw new InvalidMouseStateException("readOnly == true", s)
       case _ =>
     }

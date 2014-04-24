@@ -79,9 +79,15 @@ class Core extends Actor with ActorLogging {
   def receive = {
     case req : CoreRequest =>
       //log.info("Request: " + req)
-      val json = req.json.setPath("$.request_id", JsonInt(requestId))
-      listeners += requestId -> (sender, req)
-      writer ! json
+      try {
+        val json = req.json.setPath("$.request_id", JsonInt(requestId))
+        listeners += requestId -> (sender, req)
+        writer ! json
+      } catch {
+        case e: JsonAccessException =>
+          log.error(e, "JsonAccessException in Core request: " + req.json.toString)
+      }
+
       requestId += 1
     case CoreResponse(rid, resp) =>
       //log.info("Response: " + resp)
