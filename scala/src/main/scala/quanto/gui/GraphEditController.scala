@@ -427,9 +427,10 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
               view.bboxDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedBBoxes += x._1 }
 
           } else {
-            // box selection only affects vertices
+            // box selection does not affect edges
             val r = mouseState.asInstanceOf[SelectionBox].rect
             view.vertexDisplay filter (_._2.rectHit(r)) foreach { selectedVerts += _._1 }
+            view.bboxDisplay filter (_._2.insideRect(r)) foreach { selectedBBoxes += _._1 }
           }
 
           if (oldSelectedVerts != selectedVerts) {
