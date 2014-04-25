@@ -96,24 +96,24 @@ class DerivationPanel(val project: Project)
       new GraphEditController(Preview, new UndoStack(), readOnly = true)
     
     val AddRuleButton = new Button {
-      icon = new ImageIcon(QuantoDerive.getClass.getResource("list-add.png"), "Add Rule")
+      icon = new ImageIcon(GraphEditor.getClass.getResource("list-add.png"), "Add Rule")
       preferredSize = toolbarDim
       tooltip = "Add Rule"
     }
     val RemoveRuleButton = new Button {
-      icon = new ImageIcon(QuantoDerive.getClass.getResource("list-remove.png"), "Remove Rule")
+      icon = new ImageIcon(GraphEditor.getClass.getResource("list-remove.png"), "Remove Rule")
       preferredSize = toolbarDim
       tooltip = "Remove Rule"
     }
 
     val PreviousResultButton = new Button() {
-      icon = new ImageIcon(QuantoDerive.getClass.getResource("go-previous.png"), "Previous result")
+      icon = new ImageIcon(GraphEditor.getClass.getResource("go-previous.png"), "Previous result")
       preferredSize = toolbarDim
       tooltip = "Previous result"
     }
 
     val NextResultButton = new Button() {
-      icon = new ImageIcon(QuantoDerive.getClass.getResource("go-next.png"), "Next result")
+      icon = new ImageIcon(GraphEditor.getClass.getResource("go-next.png"), "Next result")
       preferredSize = toolbarDim
       tooltip = "Next result"
     }
@@ -141,19 +141,19 @@ class DerivationPanel(val project: Project)
     Preview.zoom = 0.6
 
     val RefreshButton = new Button {
-      icon = new ImageIcon(QuantoDerive.getClass.getResource("view-refresh.png"), "Refresh")
+      icon = new ImageIcon(GraphEditor.getClass.getResource("view-refresh.png"), "Refresh")
       preferredSize = toolbarDim
       tooltip = "Refresh"
     }
 
     val SimplifyButton = new Button {
-      icon = new ImageIcon(QuantoDerive.getClass.getResource("start.png"))
+      icon = new ImageIcon(GraphEditor.getClass.getResource("start.png"))
       preferredSize = toolbarDim
       tooltip = "Start"
     }
 
     val StopButton = new Button {
-      icon = new ImageIcon(QuantoDerive.getClass.getResource("stop.png"))
+      icon = new ImageIcon(GraphEditor.getClass.getResource("stop.png"))
       preferredSize = toolbarDim
       tooltip = "Stop"
     }

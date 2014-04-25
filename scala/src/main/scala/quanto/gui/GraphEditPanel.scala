@@ -26,37 +26,37 @@ class GraphEditControls(theory: Theory) extends Publisher {
   trait ToolButton { var tool: MouseState = SelectTool() }
   def setMouseState(m : MouseState) { publish(MouseStateChanged(m)) }
 
-  val ge = QuantoDerive.getClass
+  val ge = GraphEditor.getClass
 
-//  val icon = new ImageIcon(QuantoDerive.getClass.getResource("select-rectangular.png"), "Select")
+//  val icon = new ImageIcon(GraphEditor.getClass.getResource("select-rectangular.png"), "Select")
 
   val SelectButton = new ToggleButton() with ToolButton {
-    icon = new ImageIcon(QuantoDerive.getClass.getResource("select-rectangular.png"), "Select")
+    icon = new ImageIcon(GraphEditor.getClass.getResource("select-rectangular.png"), "Select")
     tool = SelectTool()
     tooltip = "Select"
     selected = true
   }
 
   val AddVertexButton = new ToggleButton() with ToolButton {
-    icon = new ImageIcon(QuantoDerive.getClass.getResource("draw-ellipse.png"), "Add Vertex")
+    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-ellipse.png"), "Add Vertex")
     tool = AddVertexTool()
     tooltip = "Add Vertex"
   }
 
   val AddBoundaryButton = new ToggleButton() with ToolButton {
-    icon = new ImageIcon(QuantoDerive.getClass.getResource("draw-ellipse-b.png"), "Add Boundary")
+    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-ellipse-b.png"), "Add Boundary")
     tool = AddBoundaryTool()
     tooltip = "Add Boundary"
   }
 
   val AddEdgeButton = new ToggleButton() with ToolButton {
-    icon = new ImageIcon(QuantoDerive.getClass.getResource("draw-path.png"), "Add Edge")
+    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Add Edge")
     tool = AddEdgeTool()
     tooltip = "Add Edge"
   }
 
   val AddBangBoxButton = new ToggleButton() with ToolButton {
-    icon = new ImageIcon(QuantoDerive.getClass.getResource("draw-bbox.png"), "Add Bang Box")
+    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-bbox.png"), "Add Bang Box")
     tool = AddBangBoxTool()
     tooltip = "Add Bang Box"
   }
