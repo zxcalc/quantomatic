@@ -144,13 +144,13 @@ class MapPairBinRel[A,B](domMap: Map[A,TreeSet[B]], codMap: Map[B,TreeSet[A]])
   def unmap(kv: (A,B)) = {
     new MapPairBinRel[A,B](
       domMap.get(kv._1) match {
-        case Some(xs) if xs.size == 1 => domMap - kv._1
+        case Some(xs) if (xs.size == 1 && xs.contains(kv._2)) => domMap - kv._1
         case Some(xs) => domMap + (kv._1 -> (xs - kv._2))
         case None => domMap
       },
 
       codMap.get(kv._2) match {
-        case Some(xs) if xs.size == 1 => codMap - kv._2
+        case Some(xs) if (xs.size == 1 && xs.contains(kv._1)) => codMap - kv._2
         case Some(xs) => codMap + (kv._2 -> (xs - kv._1))
         case None => codMap
       }
