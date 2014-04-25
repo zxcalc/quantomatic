@@ -28,6 +28,7 @@ class BinRelSpec extends FlatSpec {
 
   it should "succeed when comparing two equal relations" in {
     assert(rel === rel1)
+    assert(rel.codf === rel1.codf)
   }
 
   it can "evaluate direct images of elements" in {
@@ -60,7 +61,9 @@ class BinRelSpec extends FlatSpec {
 
   it can "remove elements" in {
     val rel2 = rel unmap ("a", 2) unmap ("c", 2)
-    assert(rel2 === BinRel("a" -> 4, "b" -> 3))
+    val result = BinRel("a" -> 4, "b" -> 3)
+    assert(rel2 === result)
+    assert(rel2.codf === result.codf)
   }
 
   it should "remain unchanged when removing pairs not in relation" in {
@@ -68,12 +71,33 @@ class BinRelSpec extends FlatSpec {
     val rel3 = rel unmap ("a", 7)
     assert(rel2 === rel)
     assert(rel3 === rel)
+    assert(rel2.codf === rel.codf)
+    assert(rel3.codf === rel.codf)
+  }
+
+  it should "not change codomain function when removing pair not in relation" in {
+    val rel2 = rel unmap ("d", 4)
+    val rel3 = rel unmap ("f", 3)
+    assert(rel2.codf === rel.codf)
+    assert(rel3.codf === rel.codf)
+  }
+
+  it should "have equality between domain functions iff it has equality in codomain functions" in {
+    val rel2 = rel unmap ("f", 9)
+    assert( (rel2.domf == rel.domf) === (rel2.codf == rel.codf) )
+  }
+
+  it should "not change codomains when removing pairs not in relation" in {
+    val rel3 = rel unmap ("a", 7)
+    assert(rel3.codf == rel.codf)
   }
 
   it should "filter correctly" in {
     val r1 = BinRel("a" -> 2, "a" -> 3, "b" -> 1, "b" -> 3, "c" -> 2, "d" -> 1)
     val r2 = r1.filter { case(k,v) => k == "b" || v == 2 }
-    assert(r2 === BinRel("a" -> 2, "b" -> 1, "b" -> 3, "c" -> 2))
+    val result = BinRel("a" -> 2, "b" -> 1, "b" -> 3, "c" -> 2)
+    assert(r2 === result)
+    assert(r2.codf === result.codf)
   }
 
   behavior of "A partial function"
