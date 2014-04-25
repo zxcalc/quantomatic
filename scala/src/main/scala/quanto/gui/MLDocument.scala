@@ -27,7 +27,7 @@ class JEditBufferUndoStack(textArea: StandaloneTextArea) extends UndoStack {
   // none of these do anything
   override def register(aName: String)(f: => Any) {}
   override def cancel() {}
-  override def commit() {}
+  override def commit(clearStack : Boolean = true) {}
   override def +=(f: => Any) {}
   override def start(aName: String) {}
   override def clear() {
