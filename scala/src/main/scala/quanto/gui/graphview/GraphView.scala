@@ -281,7 +281,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
     g.setStroke(new BasicStroke(1))
     var a = g.getColor
     for ((v, VDisplay(shape,color,label)) <- vertexDisplay) {
-      if (graph.vdata(v).isBoundary) g.setColor(Color.MAGENTA)
+      if (graph.vdata(v).isBoundary) g.setColor(Color.BLACK)
       else g.setColor(color)
 
       g.fill(shape)
