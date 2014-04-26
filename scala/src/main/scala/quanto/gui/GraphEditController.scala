@@ -242,9 +242,17 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     undoStack.register(desc) { replaceGraph(oldGraph, desc) }
   }
 
+  private def replaceSelection(vs: Set[VName], es: Set[EName], bbs: Set[BBName], desc: String) {
+    val (oldVs, oldEs, oldBBs) = (selectedVerts, selectedEdges, selectedBBoxes)
+    selectedVerts = vs
+    selectedEdges = es
+    selectedBBoxes = bbs
+    undoStack.register(desc) { replaceSelection(oldVs, oldEs, oldBBs, desc) }
+  }
+
   def copySubgraph() {
     if (!view.selectedVerts.isEmpty) {
-      val jsonString = Graph.toJson(graph.fullSubgraph(view.selectedVerts), theory).toString
+      val jsonString = Graph.toJson(graph.fullSubgraph(view.selectedVerts, view.selectedBBoxes), theory).toString
       Toolkit.getDefaultToolkit.getSystemClipboard.setContents(new StringSelection(jsonString), this)
     }
   }
@@ -255,6 +263,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     if (!readOnly) {
       undoStack.start("Cut graph")
       view.selectedVerts.foreach(deleteVertex)
+      view.selectedBBoxes.foreach(deleteBBox)
       undoStack.commit()
       view.repaint()
     }
@@ -267,8 +276,10 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         try {
           val jsonString = data.getTransferData(DataFlavor.stringFlavor).asInstanceOf[String]
           val g = Graph.fromJson(Json.parse(jsonString), theory).renameAvoiding(graph)
-          replaceGraph(graph.appendGraph(g), "Paste from clipboard")
-          view.selectedVerts = g.verts
+          undoStack.start("Paste from clipboard")
+          replaceGraph(graph.appendGraph(g), "")
+          replaceSelection(vs = g.verts, es = Set(), bbs = g.bboxes, "")
+          undoStack.commit()
         } catch {
           case _: Exception => // silently fail if clipboard data doesn't parse
         }

@@ -96,6 +96,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   def invalidateGraph(clearSelection: Boolean) {
     invalidateAllVerts()
     invalidateAllEdges()
+    invalidateAllBBoxes()
     if (clearSelection) {
       selectedVerts = Set[VName]()
       selectedEdges = Set[EName]()

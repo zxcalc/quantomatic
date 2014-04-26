@@ -275,18 +275,17 @@ case class Graph(
       bbdata=bbdata1,inBBox=inBBox1,bboxParent=bboxParent1)
   }
 
-  def fullSubgraph(vs: Set[VName]) = {
+  // get a subgraph consisting of the given vertices and bboxes, with any edges/nesting between them
+  def fullSubgraph(vs: Set[VName], bbs: Set[BBName]) = {
     val es = edges.filter { e => vs.contains(source(e)) && vs.contains(target(e)) }
 
     val vdata1 = vdata.filter { case (v,_) => vs.contains(v) }
     val edata1 = edata.filter { case (e,_) => es.contains(e) }
     val source1 = source.filter { case (e,_) => es.contains(e) }
     val target1 = target.filter { case (e,_) => es.contains(e) }
-    val inBBox1 = inBBox.filter{ case (v,_) => vs.contains(v) }
-
-    val bs = inBBox1.codSet
-    val bbdata1 = bbdata.filter { case (b,_) => bs.contains(b) }
-    val bboxParent1 = bboxParent.filter { case (b1,b2) => bs.contains(b1) && bs.contains(b2) }
+    val inBBox1 = inBBox.filter{ case (v,b) => vs.contains(v) && bbs.contains(b) }
+    val bbdata1 = bbdata.filter { case (b,_) => bbs.contains(b) }
+    val bboxParent1 = bboxParent.filter { case (b1,b2) => bbs.contains(b1) && bbs.contains(b2) }
 
     copy(data=GData(),vdata=vdata1,edata=edata1,source=source1,target=target1,
       bbdata=bbdata1,inBBox=inBBox1,bboxParent=bboxParent1)
