@@ -74,7 +74,7 @@ extends Thread("Signalling Stream Redirector") {
       case (_ :: IntPart(id) :: _) =>
         val msg = StreamMessage(msgParts: _*)
         listeners.synchronized {
-          listeners.remove(id).map { _.foreach( f => f(msg)) }
+          listeners.remove(id).map { _.reverse.foreach( f => f(msg)) }
         }
       case _ =>
         println("Got bad message: " + msgParts)

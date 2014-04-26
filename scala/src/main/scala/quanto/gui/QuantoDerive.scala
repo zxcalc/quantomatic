@@ -429,7 +429,7 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
-  val CoreStatus = new Label("Cannot connect (is QuantoDerive already running?)")
+  val CoreStatus = new Label("Waiting for connection...")
   CoreStatus.foreground = Color.BLUE
   val ConsoleProgress = new ProgressBar
 

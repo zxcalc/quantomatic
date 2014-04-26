@@ -13,8 +13,16 @@ let
 in ()
 end
 
-val protocol_job = Future.fork (run_protocol 4321);
-(*OS.Process.sleep (Time.fromMilliseconds 200);
-case Future.peek protocol_job
-  of SOME (Exn.Exn e) => raise e
-   | NONE => ();*)
+fun poll_future f = (
+  OS.Process.sleep (Time.fromMilliseconds 100);
+  case Future.peek f
+    of SOME (Exn.Exn e) => raise e
+     | NONE => ();
+  OS.Process.sleep (Time.fromMilliseconds 100);
+  case Future.peek f
+    of SOME (Exn.Exn e) => raise e
+     | NONE => ())
+
+(*val protocol_job = Future.fork (run_protocol 4321);
+poll_future protocol_job;*)
+

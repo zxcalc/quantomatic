@@ -60,7 +60,7 @@ class Core extends Actor with ActorLogging {
   val listeners = collection.mutable.Map[Int, (ActorRef,CoreRequest)]()
   val activeRequests = collection.mutable.Set[Int]()
   private var requestId = 10
-  private var mlCompileId = 10
+  private var mlCompileId = 100
   private var workingDir = "."
 
   coreProcess.startCore()
