@@ -97,6 +97,8 @@ class Core extends Actor with ActorLogging {
       }
     case StopCore =>
       log.info("shutting down")
+      reader ! PoisonPill
+      writer ! PoisonPill
       coreProcess.killCore(waitForExit = false)
     case AddConsoleOutput(out) =>
       coreProcess.consoleOutput.addOutputStream(out)

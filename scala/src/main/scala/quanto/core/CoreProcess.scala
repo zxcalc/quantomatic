@@ -98,26 +98,29 @@ class CoreProcess {
   def killCore(waitForExit: Boolean = true) {
     if (backend != null) {
       CoreProcess.logger.log(Level.FINEST, "Shutting down the core process")
-        stdin.close()
-        stdout.close()
-        socket.close()
-        val killThread = new Thread() {
-          override def run() {
-            if (waitForExit) {
-              try {
-                CoreProcess.logger.log(Level.FINER, "Waiting for 5 seconds for the core to exit")
-                Thread.sleep(5000)
-              } catch {
-                case e: InterruptedException =>
-                  CoreProcess.logger.log(Level.FINER, "Thread interrupted")
-              }
-            }
-            CoreProcess.logger.log(Level.FINER, "Forcibly terminating the core process")
-            backend.destroy()
-          }
-        }
+      stdin.close()
+      stdout.close()
+      socket.close()
+      consoleOutput.interrupt()
+      consoleInput.close()
+      backend.destroy()
+        // val killThread = new Thread() {
+        //   override def run() {
+        //     if (waitForExit) {
+        //       try {
+        //         CoreProcess.logger.log(Level.FINER, "Waiting for 5 seconds for the core to exit")
+        //         Thread.sleep(5000)
+        //       } catch {
+        //         case e: InterruptedException =>
+        //           CoreProcess.logger.log(Level.FINER, "Thread interrupted")
+        //       }
+        //     }
+        //     CoreProcess.logger.log(Level.FINER, "Forcibly terminating the core process")
+        //     backend.destroy()
+        //   }
+        // }
         
-        killThread.start()
+        // killThread.start()
     }
   }
 
@@ -126,11 +129,16 @@ class CoreProcess {
     val quantoHome = new File("../").getCanonicalPath
     //println("quanto home is " + quantoHome)
 
-    // try to find poly in common locations. If all else fails, just run 'poly' and hope we get lucky
-    val polyExe = if (new File("bin/poly").exists) "bin/poly"  // for mac/linux bundles
-                  else if (new File("/usr/local/bin/poly").exists) "/usr/local/bin/poly" // installed from source
-                  else if (new File("/usr/bin/poly").exists) "/usr/bin/poly" // installed by e.g. package manager
-                  else "poly"
+    // try to find poly in common locations
+    val polyExe = if (new File("bin/poly").exists)
+                    "bin/poly"  // for mac/linux bundles
+                  else if (new File("/usr/local/bin/poly").exists)
+                    "/usr/local/bin/poly" // installed from source
+                  else if (new File("/usr/bin/poly").exists)
+                    "/usr/bin/poly" // installed by e.g. package manager
+                  else if (new File("C:/Program Files/PolyML/bin/poly.exe").exists)
+                    "C:/Program Files/PolyML/bin/poly.exe" // windows devel setup
+                  else "poly" // hope we get lucky
   }
   
   // def inputStream : InputStream =

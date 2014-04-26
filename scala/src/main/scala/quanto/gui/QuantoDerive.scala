@@ -15,6 +15,7 @@ import akka.actor.{Props, ActorSystem}
 import quanto.core._
 import akka.pattern.ask
 import akka.util.Timeout
+import akka.actor.PoisonPill
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
@@ -27,6 +28,7 @@ object QuantoDerive extends SimpleSwingApplication {
   val actorSystem = ActorSystem("QuantoDerive")
   val core = actorSystem.actorOf(Props { new Core }, "core")
   implicit val timeout = Timeout(1.day)
+
 
   println(new File(".").getAbsolutePath)
 
@@ -133,7 +135,12 @@ object QuantoDerive extends SimpleSwingApplication {
       title = "Confirm quit",
       message = "Some documents have unsaved changes. Do you wish to continue?")
       == Dialog.Result.Yes) {
-      core ! StopCore
+      try {
+        core ! StopCore
+        core ! PoisonPill
+      } catch {
+        case e : Exception => e.printStackTrace
+      }
       true
     } else {
       false

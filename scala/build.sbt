@@ -8,6 +8,8 @@ scalacOptions ++= Seq("-feature", "-language:implicitConversions")
 
 retrieveManaged := true
 
+fork := true
+
 //seq(com.github.retronym.SbtOneJar.oneJarSettings: _*)
 
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
