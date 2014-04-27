@@ -1,5 +1,6 @@
 @echo off
 set BUNDLE=target\QuantoDerive
+set SCALA_VERSION=2.10
 
 rmdir /S /Q %BUNDLE%
 
@@ -12,33 +13,37 @@ REM a generic linux bundle.
 type nul >> %BUNDLE%\windows-bundle
 
 echo Running SBT...
-sbt package
+call sbt package
 
-REM echo Including binaries...
-REM cp -f dist/linux-dist/quanto-derive.sh $BUNDLE/
-REM cp -f dist/linux-dist/polybin dist/linux-dist/poly $BUNDLE/bin
-REM cp -f dist/linux-dist/libpolyml.so.4 $BUNDLE/bin
-REM 
-REM echo Including heap...
-REM cp -f ../core/run_protocol.ML $BUNDLE/
-REM mkdir -p $BUNDLE/heaps
-REM cp -f ../core/heaps/quanto.heap $BUNDLE/heaps/
-REM 
-REM echo Including jars...
-REM # manually grabbing managed dependencies. maybe easier to let SBT do this?
-REM cp -f lib_managed/jars/*/*/akka-actor*.jar $BUNDLE/jars
-REM cp -f lib_managed/jars/*/*/scala-library*.jar $BUNDLE/jars
-REM cp -f lib_managed/jars/*/*/scala-swing*.jar $BUNDLE/jars
-REM cp -f lib_managed/jars/*/*/jackson-core*.jar $BUNDLE/jars
-REM cp -f lib_managed/bundles/*/*/config*.jar $BUNDLE/jars
-REM 
-REM # grab local dependences
-REM cp -f lib/*.jar $BUNDLE/jars
-REM 
-REM # include quanto jar file
-REM cp -f target/*/quanto*.jar $BUNDLE/jars
-REM 
+echo Including binaries...
+copy dist\windows-dist\poly.exe %BUNDLE%\bin
+copy dist\windows-dist\libpoly* %BUNDLE%\bin
+copy dist\windows-dist\cyg* %BUNDLE%\bin
+copy dist\windows-dist\QuantoDerive.exe %BUNDLE%
+
+
+echo Including heap...
+copy ..\core\run_protocol.ML %BUNDLE%
+mkdir %BUNDLE%\heaps
+copy ..\core\heaps\quanto.heap %BUNDLE%\heaps
+
+echo Including jars...
+
+REM manually grabbing managed dependencies. maybe easier to let SBT do this?
+copy lib_managed\jars\com.typesafe.akka\akka-actor_%SCALA_VERSION%\akka-actor*.jar %BUNDLE%\jars
+copy lib_managed\jars\org.scala-lang\scala-library\scala-library*.jar %BUNDLE%\jars
+copy lib_managed\jars\org.scala-lang\scala-swing\scala-swing*.jar %BUNDLE%\jars
+copy lib_managed\jars\com.fasterxml.jackson.core\jackson-core\jackson-core*.jar %BUNDLE%\jars
+copy lib_managed\bundles\com.typesafe\config\config*.jar %BUNDLE%\jars
+
+REM grab local dependences
+copy lib\*.jar %BUNDLE%\jars
+
+REM include quanto jar file
+copy target\scala-%SCALA_VERSION%\quanto*.jar %BUNDLE%\jars
+
+
 REM echo Creating archive...
 REM cd target
 REM tar czf QuantoDerive-linux.tar.gz QuantoDerive
-REM echo Done.
+echo Done.
