@@ -26,8 +26,9 @@ class CoreProcess {
   def startCore(quantoHome : String) {
     try {
       val pb = new ProcessBuilder(CoreProcess.polyExe, "--ideprotocol")
+      println("use poly: " + new File(CoreProcess.polyExe).getCanonicalPath)
 
-      if (!Globals.isMacBundle && !Globals.isLinuxBundle) {
+      if (!Globals.isMacBundle && !Globals.isLinuxBundle && !Globals.isWindowsBundle) {
         pb.directory(new File(quantoHome + "/core"))
       }
 
@@ -132,6 +133,8 @@ class CoreProcess {
     // try to find poly in common locations
     val polyExe = if (new File("bin/poly").exists)
                     "bin/poly"  // for mac/linux bundles
+                  else if (new File("bin/poly.exe").exists)
+                    "bin/poly.exe"  // for windows installation
                   else if (new File("/usr/local/bin/poly").exists)
                     "/usr/local/bin/poly" // installed from source
                   else if (new File("/usr/bin/poly").exists)

@@ -6,4 +6,5 @@ object Globals {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
   def isMacBundle: Boolean = new File("osx-bundle").exists
   def isLinuxBundle: Boolean = new File("linux-bundle").exists
+  def isWindowsBundle: Boolean = new File("windows-bundle").exists
 }
