@@ -9,8 +9,8 @@ class NewProjectDialog extends Dialog {
   val LocationField = new TextField(System.getProperty("user.home"))
   val BrowseButton = new Button("...")
   // TODO: make these not hard-coded
-  val theoryNames = Vector("Red/Green", "GHZ/W", "Proof Strategy Graph", "String Vertex/Edge")
-  val theoryFiles = Vector("red_green", "ghz_w", "strategy_graph", "string_ve")
+  val theoryNames = Vector("Red/Green", "GHZ/W")//, "Proof Strategy Graph", "String Vertex/Edge")
+  val theoryFiles = Vector("red_green", "ghz_w")//, "strategy_graph", "string_ve")
 
   val TheoryField = new ComboBox(theoryNames)
   val CreateButton = new Button("Create")
