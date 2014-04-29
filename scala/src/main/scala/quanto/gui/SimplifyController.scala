@@ -24,7 +24,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     res.map {
       case Success(JsonArray(procs)) =>
         Swing.onEDT { panel.SimplifyPane.Simprocs.listData = procs.map(_.stringValue) }
-      case _ => println("ERROR: Unexpected result from core: " + res) // TODO: errror dialogs
+      case r => println("ERROR: Unexpected result from core: " + r) // TODO: errror dialogs
     }
   }
 

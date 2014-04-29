@@ -15,7 +15,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
   val VertexTypeSelect = new ComboBox(theory.vertexTypes.keys.toSeq :+ "<wire>") { enabled = false }
   val EdgeTypeLabel    = new Label("Edge Type:  ") { xAlignment = Alignment.Right; enabled = false }
   val EdgeTypeSelect   = new ComboBox(theory.edgeTypes.keys.toSeq) { enabled = false }
-  val EdgeDirected     = new CheckBox("directed") { selected = true; enabled = false }
+  val EdgeDirected     = new CheckBox("directed") { selected = false; enabled = false }
 
   // Bottom panel
   object BottomPanel extends GridPanel(1,5) {
