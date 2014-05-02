@@ -10,10 +10,8 @@ ISAPLIB_SOURCES=../../isaplib
 ################################
 
 # polyml executable
-POLYML_HOME=$(shell ../tools/findpoly.sh)
-POLYML=$(POLYML_HOME)/bin/poly
+POLYML=$(shell ../tools/findpoly.sh)/bin/poly
 POLYFLAGS=-H 200 $(if $(FAST),--disable-tests) $(if $(V),--test-log-level=$(V))
-
 
 ################################
 # dynamic variables checked on call to make. 
@@ -39,6 +37,15 @@ default: all
 $(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAP_ML_SRC_FILES) $(COSY_ML_SRC_FILES)
 	@mkdir -p heaps
 	POLYFLAGS="$(POLYFLAGS)" ../tools/poly-build-heap -p -o $@ ROOT.ML
+
+heap-osx-dist:
+	echo 'use "build_heap.ML"' | ../scala/dist/osx-dist/poly
+
+heap-linux-dist:
+	echo 'use "build_heap.ML"' | ../scala/dist/linux-dist/poly
+
+heap-windows-dist:
+	echo 'use "build_heap.ML"' | ../scala/dist/windows-dist/poly.exe
 
 heap: $(QUANTO_HEAP)
 
