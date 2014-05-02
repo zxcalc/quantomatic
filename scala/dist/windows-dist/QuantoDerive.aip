@@ -62,8 +62,9 @@
     <ROW File="libpolyml.a" Component_="libpolymain.a" FileName="LIBPOL~2.A|libpolyml.a" Attributes="0" SourcePath="..\..\target\QuantoDerive\bin\libpolyml.a" SelfReg="false" NextFile="libpolyml.dll.a"/>
     <ROW File="libpolyml.dll.a" Component_="libpolymain.a" FileName="LIBPOL~3.A|libpolyml.dll.a" Attributes="0" SourcePath="..\..\target\QuantoDerive\bin\libpolyml.dll.a" SelfReg="false" NextFile="libpolyml.la"/>
     <ROW File="libpolyml.la" Component_="libpolymain.a" FileName="LIBPOL~2.LA|libpolyml.la" Attributes="0" SourcePath="..\..\target\QuantoDerive\bin\libpolyml.la" SelfReg="false" NextFile="poly.exe"/>
+    <ROW File="ml.xml" Component_="run_protocol.ML" FileName="ml.xml" Attributes="0" SourcePath="..\..\target\QuantoDerive\ml.xml" SelfReg="false"/>
     <ROW File="poly.exe" Component_="poly.exe" FileName="poly.exe" Attributes="0" SourcePath="..\..\target\QuantoDerive\bin\poly.exe" SelfReg="false" NextFile="akkaactor_2.102.1.1.jar" DigSign="true"/>
-    <ROW File="quanto.heap" Component_="quanto.heap" FileName="QUANTO~1.HEA|quanto.heap" Attributes="0" SourcePath="..\..\target\QuantoDerive\heaps\quanto.heap" SelfReg="false"/>
+    <ROW File="quanto.heap" Component_="quanto.heap" FileName="QUANTO~1.HEA|quanto.heap" Attributes="0" SourcePath="..\..\target\QuantoDerive\heaps\quanto.heap" SelfReg="false" NextFile="ml.xml"/>
     <ROW File="quanto_2.101.0.jar" Component_="akkaactor_2.102.1.1.jar" FileName="QUANTO~1.JAR|quanto_2.10-1.0.jar" Attributes="0" SourcePath="..\..\target\QuantoDerive\jars\quanto_2.10-1.0.jar" SelfReg="false" NextFile="scalalibrary2.10.4.jar"/>
     <ROW File="run_protocol.ML" Component_="run_protocol.ML" FileName="RUN_PR~1.ML|run_protocol.ML" Attributes="0" SourcePath="..\..\target\QuantoDerive\run_protocol.ML" SelfReg="false" NextFile="windowsbundle"/>
     <ROW File="scalalibrary2.10.4.jar" Component_="akkaactor_2.102.1.1.jar" FileName="SCALA-~1.JAR|scala-library-2.10.4.jar" Attributes="0" SourcePath="..\..\target\QuantoDerive\jars\scala-library-2.10.4.jar" SelfReg="false" NextFile="scalaswing2.10.4.jar"/>

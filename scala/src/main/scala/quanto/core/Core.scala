@@ -110,7 +110,7 @@ class Core extends Actor with ActorLogging {
       fw.write(msg.code)
       fw.write("\n")
       fw.close()
-      val code = codeWrapper.format(workingDir, file.getAbsolutePath, mlCompileId)
+      val code = codeWrapper.format(workingDir.replace("\\","\\\\"), file.getAbsolutePath.replace("\\","\\\\"), mlCompileId)
 
       activeRequests.synchronized(activeRequests += mlCompileId)
       coreProcess.consoleOutput.addListener(mlCompileId)(msg.onComplete)

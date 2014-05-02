@@ -18,7 +18,7 @@ class MLEditPanel extends BorderPanel with HasDocument {
 
   val sml = new Mode("StandardML")
 
-  val mlModeXml = if (Globals.isMacBundle) new File("ml.xml").getAbsolutePath
+  val mlModeXml = if (Globals.isBundle) new File("ml.xml").getAbsolutePath
                   else getClass.getResource("ml.xml").getPath
   sml.setProperty("file", mlModeXml)
   println(sml.getProperty("file"))
@@ -104,7 +104,8 @@ class MLEditPanel extends BorderPanel with HasDocument {
             QuantoDerive.CoreStatus.text = "Exception in ML"
             QuantoDerive.CoreStatus.foreground = Color.RED
             QuantoDerive.ConsoleProgress.indeterminate = false
-          case _ =>
+          case msg =>
+            println(msg)
             QuantoDerive.CoreStatus.text = "Unrecognised response from Poly/ML"
             QuantoDerive.CoreStatus.foreground = Color.BLUE
             QuantoDerive.ConsoleProgress.indeterminate = false

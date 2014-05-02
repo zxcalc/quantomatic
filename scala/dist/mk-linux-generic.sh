@@ -22,6 +22,7 @@ cp -f dist/linux-dist/libpolyml.so.4 $BUNDLE/bin
 
 echo Including heap...
 cp -f ../core/run_protocol.ML $BUNDLE/
+cp -f dist/ml.xml $BUNDLE/
 mkdir -p $BUNDLE/heaps
 cp -f ../core/heaps/quanto.heap $BUNDLE/heaps/
 

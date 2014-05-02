@@ -11,6 +11,7 @@ mkdir %BUNDLE%\bin
 REM This dummy file lets the frontend know it is running inside
 REM a generic linux bundle.
 type nul >> %BUNDLE%\windows-bundle
+copy dist\ml.xml %BUNDLE%
 
 echo Running SBT...
 call sbt package
