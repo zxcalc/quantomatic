@@ -4,21 +4,22 @@ Preparing a release for QuantoDerive
 
 Releases should be prepared on the target OS. First, ensure the heap is built
 for the version of poly that is going to be shipped with the bundle. This can be
-done by running the following in core:
+done on OS X or Linux by running:
 
     make clean
-    make heap-(osx|linux|windows)-dist
+    make heap-(osx|linux)-dist
 
-In Windows, this can be run inside of "git-bash", which ships with the Windows
-Git distribution. Next, from the scala directory, run the appropriate command
-to build the bundle.
+...and on Windows, run the following at a DOS prompt:
+
+    buildheap
+
+Next, from the scala directory, run the appropriate command to build the bundle.
 
     dist/mk-osx.sh
     dist/mk-linux.sh
     dist/mk-windows.bat
 
-Note the 'bat' file should be run from a DOS prompt, *NOT* git-bash. For
-Linux/OS X, you are done. For Windows, there is one more step. Open the AI
+For Linux/OS X, you are done. For Windows, there is one more step. Open the AIP
 file in dist/windows-dist in Advanced Installer, update the paths as necessary
 and build an MSI.
 
