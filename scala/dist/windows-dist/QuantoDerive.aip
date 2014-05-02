@@ -7,10 +7,10 @@
     <ROW Property="ARPPRODUCTICON" Value="quantoderive.exe" Type="8"/>
     <ROW Property="ARPURLINFOABOUT" Value="http://quantomatic.github.io/"/>
     <ROW Property="Manufacturer" Value="Quantomatic"/>
-    <ROW Property="ProductCode" Value="1033:{089E22EC-9E96-41F4-A6D7-4432C989E689} " Type="16"/>
+    <ROW Property="ProductCode" Value="1033:{95A16B60-32CD-4C6C-830C-BE040483AD0E} " Type="16"/>
     <ROW Property="ProductLanguage" Value="1033"/>
     <ROW Property="ProductName" Value="QuantoDerive"/>
-    <ROW Property="ProductVersion" Value="0.1.0" Type="32"/>
+    <ROW Property="ProductVersion" Value="0.2.0" Type="32"/>
     <ROW Property="SecureCustomProperties" Value="OLDPRODUCTS;AI_NEWERPRODUCTFOUND"/>
     <ROW Property="UpgradeCode" Value="{EEBC04E2-4BE2-42F4-B9EA-09453144B787}"/>
     <ROW Property="WindowsType9X" MultiBuildValue="DefaultBuild:Windows 9x/ME" ValueLocId="-"/>
