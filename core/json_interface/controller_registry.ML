@@ -19,8 +19,14 @@ structure RG_Controller = JsonController(
   structure GraphComponentDataIO = RG_ComponentDataIO
 )
 
+structure GHZW_Controller = JsonController(
+  structure Theory = GHZW_Theory
+  structure GraphComponentDataIO = GHZW_ComponentDataIO
+)
+
 val ctab = Symtab.make [
- (RG_Controller.Theory.theory_name, RG_Controller.mtab)
+ (RG_Controller.Theory.theory_name, RG_Controller.mtab),
+ (GHZW_Controller.Theory.theory_name, GHZW_Controller.mtab)
 ]
 
 fun dispatch ((controller, module, function), json_input) =

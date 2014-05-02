@@ -282,6 +282,31 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
     g.setStroke(new BasicStroke(1))
     var a = g.getColor
     for ((v, VDisplay(shape,color,label)) <- vertexDisplay) {
+
+      /* draw red line if vertex coordinates are within !-box rectangle
+       * but the vertex is not a member of the !-box and also write
+       * an explanatory text on the middle of the line
+       */
+      for ((b, bbd) <- bboxDisplay) {
+        if (!graph.contents(b).contains(v) && shape.intersects(bbd.rect)) {
+          val bbd_corner = bbd.corner
+          val shape_rec = shape.getBounds2D
+
+          val corner_x = bbd_corner.getMaxX
+          val corner_y = bbd_corner.getMaxY
+          val node_x = shape_rec.getCenterX
+          val node_y = shape_rec.getCenterY
+          g.setColor(Color.RED)
+          g.draw(new Line2D.Double(corner_x, corner_y, node_x, node_y))
+          val text_layout = new TextLayout("not in !-box",
+                                          VertexLabelFont,
+                                          g.getFontRenderContext)
+          val text_x = corner_x + (node_x - corner_x) / 2.0
+          val text_y = corner_y + (node_y - corner_y) / 2.0
+          text_layout.draw(g, text_x.toFloat, text_y.toFloat)
+        }
+      }
+
       if (graph.vdata(v).isBoundary) g.setColor(Color.BLACK)
       else g.setColor(color)
 
