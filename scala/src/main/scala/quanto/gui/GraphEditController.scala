@@ -456,24 +456,23 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         case BangSelectionBox(start, _) =>
           view.computeDisplayData()
 
-          if (pt.getX == start.getX && pt.getY == start.getY) {
-            var selectionUpdated = false
-            view.vertexDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedVerts += x._1 }
+          val r = mouseState.asInstanceOf[BangSelectionBox].rect
 
-            if (!selectionUpdated)
-              view.edgeDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedEdges += x._1 }
-          } else {
-            // box selection only affects vertices
-            val r = mouseState.asInstanceOf[BangSelectionBox].rect
-            view.vertexDisplay filter (_._2.rectHit(r)) foreach { selectedVerts += _._1 }
-          }
+//          if (pt.getX == start.getX && pt.getY == start.getY) {
+//            var selectionUpdated = false
+//            view.vertexDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedVerts += x._1 }
+//
+//            if (!selectionUpdated)
+//              view.edgeDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedEdges += x._1 }
+//          } else {
+//            // box selection only affects vertices
+//            val r = mouseState.asInstanceOf[BangSelectionBox].rect
+//            view.vertexDisplay filter (_._2.rectHit(r)) foreach { selectedVerts += _._1 }
+//          }
 
-          val bangBoxData = BBData(theory = theory) // fix this, first two parameters are left to default
-          addBBox(graph.bboxes.fresh, bangBoxData, selectedVerts)
-
-          selectedVerts = Set()
-          selectedEdges = Set()
-          selectedBBoxes = Set()
+          val bangVerts = graph.verts.filter(view.vertexDisplay(_).rectHit(r))
+          val bangBoxData = BBData(theory = theory) // no data/annotation for bboxes
+          addBBox(graph.bboxes.fresh, bangBoxData, bangVerts)
 
           mouseState = AddBangBoxTool()
           view.selectionBox = None
