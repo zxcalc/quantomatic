@@ -73,7 +73,7 @@ exception duplicate_vertex_exp of V.name * T
 exception no_such_edge_exp of string * E.name * T
 exception duplicate_edge_exp of E.name * T
 
-exception bad_graph_merge_exp of T * T
+exception bad_graph_merge_exp of string * T * T
 
 exception not_an_endpoint_exp of string * E.name * V.name * T
 

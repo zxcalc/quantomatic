@@ -61,7 +61,7 @@ exception no_such_vertex_exp of string * V.name * T
 (*exception no_such_vnames_exp of string * V.NSet.T * T*)
 exception duplicate_vertex_exp of V.name * T
 
-exception bad_graph_merge_exp of T * T
+exception bad_graph_merge_exp of string * T * T
 
 exception no_such_edge_exp of string * E.name * T
 exception duplicate_edge_exp of E.name * T
@@ -862,18 +862,22 @@ fun merge g1 g2 = let
    *)
   val shared_bbs = B.NSet.intersect (get_bboxes g1) (get_bboxes g2)
   val _ = if B.NSet.forall (fn b =>
-              B.NSet.eq (BBRel.inv_img (get_bbox_child_rel g1) b)
-                        (BBRel.inv_img (get_bbox_child_rel g2) b)
+              B.NSet.eq (get_bbox_parents g1 b)
+                        (get_bbox_parents g2 b)
               ) shared_bbs
           then ()
-          else raise bad_graph_merge_exp (g1,g2)
+          else raise bad_graph_merge_exp (
+                       "shared !-boxes must have identical parents",
+                       g1,g2)
   val shared_vs = V.NSet.intersect (get_vertices g1) (get_vertices g2)
   val _ = if V.NSet.forall (fn b =>
-              B.NSet.eq (BVRel.inv_img (get_bbox_rel g1) b)
-                        (BVRel.inv_img (get_bbox_rel g2) b)
+              B.NSet.eq (get_bboxes_containing_vertex g1 b)
+                        (get_bboxes_containing_vertex g2 b)
               ) shared_vs
           then ()
-          else raise bad_graph_merge_exp (g1,g2)
+          else raise bad_graph_merge_exp (
+                       "shared vertices must be in identical !-boxes",
+                       g1,g2)
 
   (* Now we check that the inclusions are boundary-coherent; this means
    * that anything that is an input of the intersection is an input of
@@ -929,7 +933,7 @@ fun merge g1 g2 = let
              | _ => true (* at least one is an isolated wv *)
         end
       ) shared_vs
-      then () else raise bad_graph_merge_exp (g1,g2)
+      then () else raise bad_graph_merge_exp ("not wire-coherent",g1,g2)
 
   (* Of course, we also need to check that the intersection is truly a
    * subgraph of both g1 and g2 (ie: that they agree on types, edge sources
@@ -940,7 +944,8 @@ fun merge g1 g2 = let
         VTab.fold (fn (v,d) => fn tab =>
           case VTab.get_opt tab v
             of SOME d' => if vdata_eq (d,d') then tab
-                          else raise bad_graph_merge_exp (g1,g2)
+                          else raise bad_graph_merge_exp (
+                            "shared vertices must have identical vdata",g1,g2)
              | NONE    => VTab.add (v,d) tab
           ) (get_vdata g2) (get_vdata g1)
   val edata =
@@ -948,7 +953,8 @@ fun merge g1 g2 = let
           case ETab.get_opt tab e
             of SOME (d' as (dir',dd')) =>
                   if dir = dir' andalso edata_eq (dd,dd') then tab
-                  else raise bad_graph_merge_exp (g1,g2)
+                  else raise bad_graph_merge_exp (
+                    "shared edges must have identical edata",g1,g2)
              | NONE    => ETab.add (e,d) tab
           ) (get_edata g2) (get_edata g1)
   val source =
@@ -962,7 +968,8 @@ fun merge g1 g2 = let
                                   andalso
                                   EVFn.is_mapped (get_target g2) (e,v')
                           then f
-                          else raise bad_graph_merge_exp (g1,g2)
+                          else raise bad_graph_merge_exp (
+                            "source function inconsistent",g1,g2)
              | NONE    => EVFn.add (e,v) f
           ) (get_source g2) (get_source g1)
   val target =
@@ -976,7 +983,8 @@ fun merge g1 g2 = let
                                   andalso
                                   EVFn.is_mapped (get_source g2) (e,v')
                           then f
-                          else raise bad_graph_merge_exp (g1,g2)
+                          else raise bad_graph_merge_exp (
+                            "target function inconsistent",g1,g2)
              | NONE    => EVFn.add (e,v) f
           ) (get_target g2) (get_target g1)
   val bboxes = B.NSet.union_merge (get_bboxes g2) (get_bboxes g1)
@@ -984,16 +992,21 @@ fun merge g1 g2 = let
   val bbox_child_rel = BBRel.fold BBRel.add (get_bbox_child_rel g2)
                                             (get_bbox_child_rel g1)
 
+  val nhd_vs1 = V.NSet.intersect (VTab.get_dom_set (get_nhd g1)) shared_vs
+  val nhd_vs2 = V.NSet.intersect (VTab.get_dom_set (get_nhd g2)) shared_vs
+
+  val _ = if V.NSet.eq nhd_vs1 nhd_vs2 then ()
+          else raise bad_graph_merge_exp (
+            "shared vertices must have nhds BOTH graphs, or NEITHER graph",g1,g2)
+
   val nhd = VTab.fold (fn (v,n) => fn nhd' => (
       case VTab.get_opt nhd' v
         of SOME n' =>
             if Nhd.eq (n,n')
             then nhd'
-            else raise bad_graph_merge_exp (g1,g2) (* v has different nhds in g1, g2 *)
-         | NONE =>
-            if V.NSet.contains shared_vs v
-            then raise bad_graph_merge_exp (g1,g2) (* v has nhd in g1, but not g2 *)
-            else VTab.add (v,n) nhd'
+            else raise bad_graph_merge_exp (
+              "shared vertices must have indentical nhds",g1,g2)
+         | NONE => VTab.add (v,n) nhd'
     )) (get_nhd g1) (get_nhd g2)
 
   (* annotations from g1 supercede g2 *)
