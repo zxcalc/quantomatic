@@ -136,7 +136,8 @@ struct
       |> VSub.avoid_set_in_cod (V.NSet.subtract (Graph.get_vertices g) shared_boundary_img)
       |> VSub.extend_fresh (Rule.get_vertices rule)
     val ern = ESub.mk_from_avoids (Graph.get_edges h) |> ESub.extend_fresh (Rule.get_edges rule)
-    val (_,rule') = rule |> Rule.rename_bang_graph_rule (vrn,ern,BSub.empty)
+    val brn = BSub.coerce (Match.get_bmap m)
+    val (_,rule') = rule |> Rule.rename_bang_graph_rule (vrn,ern,brn)
 
     val _ = log_graph 4 "OGraphSubst.rewrite: RHS (prepared)" (Rule.get_rhs rule')
     val _ = log_graph 4 "OGraphSubst.rewrite: LHS (prepared)" (Rule.get_lhs rule')
@@ -145,11 +146,14 @@ struct
     (rule', Graph.merge h (Rule.get_rhs rule'))
   end
 
+  (* TODO: this doesn't really make sense as a separate function anymore,
+   * since sg_rewrite_at does !-graph stuff too *)
   fun rewrite_at rule m = let
     val rhs = Rule.get_rhs rule
     val oper = Match.get_bbox_ops m
-    val sg_rhs = Graph.replay_bbox_ops oper rhs
-    val (final_rule,g') = sg_rewrite_at m sg_rhs
+    val rhs_inst = rhs |> Graph.replay_bbox_ops oper
+    
+    val (final_rule,g') = sg_rewrite_at m rhs_inst
   in
     (final_rule, Graph.minimise g')
   end

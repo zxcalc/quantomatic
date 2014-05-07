@@ -65,11 +65,11 @@ val _ = Testing.test "ruleset rewriting 2: ladder with red spider (rpt)" (fn () 
       else raise ERROR "No matches found"
     )) ()
 
-  (*val bb_rewrites = Rewriter.find_rewrites bb_rule bb_graph
+  val bb_rewrites = Rewriter.find_rewrites bb_rule bb_graph
   val _ = Testing.test "red-green !-graph rule should match its own LHS" (fn () => (
       if length (Seq.list_of bb_rewrites) >= 1 then ()
       else raise ERROR "No matches found"
-    )) ()*)
+    )) ()
 
 end
 
