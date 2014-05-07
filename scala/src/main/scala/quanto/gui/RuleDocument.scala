@@ -8,6 +8,7 @@ import scala.swing.Component
 class RuleDocument(val parent: Component, theory: Theory) extends Document {
   val description = "Rule"
   val fileExtension = "qrule"
+  var derivation: Option[String] = None
 
   object lhsRef extends HasGraph {
     protected var gr = Graph(theory)
@@ -15,6 +16,15 @@ class RuleDocument(val parent: Component, theory: Theory) extends Document {
 
   object rhsRef extends HasGraph {
     protected var gr = Graph(theory)
+  }
+
+  def rule = Rule(lhsRef.graph, rhsRef.graph, derivation)
+  def rule_=(r: Rule) {
+    lhsRef.graph = r.lhs
+    rhsRef.graph = r.rhs
+    derivation = r.derivation
+    lhsRef.publish(GraphReplaced(lhsRef, clearSelection = true))
+    rhsRef.publish(GraphReplaced(rhsRef, clearSelection = true))
   }
 
   private var storedRule: Rule = Rule(Graph(theory), Graph(theory))
@@ -27,13 +37,14 @@ class RuleDocument(val parent: Component, theory: Theory) extends Document {
     val r = Rule.fromJson(json, theory)
     lhsRef.graph = r.lhs
     rhsRef.graph = r.rhs
+    derivation = r.derivation
     lhsRef.publish(GraphReplaced(lhsRef, clearSelection = true))
     rhsRef.publish(GraphReplaced(rhsRef, clearSelection = true))
     storedRule = r
   }
 
   protected def saveDocument(f: File)  {
-    val r = Rule(lhsRef.graph, rhsRef.graph)
+    val r = Rule(lhsRef.graph, rhsRef.graph, derivation)
     val json = Rule.toJson(r, theory)
     json.writeTo(f)
     storedRule = r

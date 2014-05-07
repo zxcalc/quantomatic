@@ -1,6 +1,6 @@
 package quanto.gui
 
-import quanto.data.{Derivation, DSName}
+import quanto.data._
 import scala.swing._
 import scala.swing.event.{SelectionChanged, ButtonClicked, Event}
 import quanto.gui.histview._
@@ -50,6 +50,7 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
     panel.FastForwardButton.enabled = false
     panel.NewHeadButton.enabled = false
     panel.DeleteStepButton.enabled = false
+    panel.ExportTheoremButton.enabled = false
 
     s match {
       case HeadState(headOpt) =>
@@ -62,6 +63,7 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
             panel.PreviousButton.enabled = true
             panel.RewindButton.enabled = true
             panel.DeleteStepButton.enabled = derivation.hasChildren(head)
+            panel.ExportTheoremButton.enabled = true
             panel.LhsLabel.text = head.toString
             panel.LhsView.graphRef = panel.document.stepRef(head)
           case None => // at the root
@@ -205,6 +207,28 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
           }
         case _ => // do nothing on root
       }
+
+    case ButtonClicked(panel.ExportTheoremButton) =>
+      panel.document.file match {
+        case Some(f) =>
+          val rf = panel.project.rootFolder
+          var dname = f.getAbsolutePath
+          dname = if (dname.startsWith(rf) && dname.length > rf.length) dname.substring(rf.length + 1, dname.length) else dname
+          dname = if (dname.endsWith(".qderive")) dname.substring(0, dname.length - 8) else dname
+
+          state.step.map { s =>
+            val ruleDoc = new RuleDocument(panel, panel.theory)
+            ruleDoc.rule = new Rule(panel.document.root, derivation.steps(s).graph, Some(dname))
+            ruleDoc.showSaveAsDialog(Some(panel.project.rootFolder))
+          }
+
+        case None =>
+          Dialog.showMessage(
+            title = "Error",
+            message = "You must first save this derivation before exporting a theorem",
+            messageType = Dialog.Message.Error)
+      }
+
     case SelectionChanged(_) =>
       if (panel.histView.selectedNode != Some(state))
         panel.histView.selectedNode.map { st => state = st }
