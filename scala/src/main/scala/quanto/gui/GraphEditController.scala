@@ -304,6 +304,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   view.reactions += {
     case MousePressed(_, pt, modifiers, clicks, _) =>
       view.requestFocus()
+      view.computeDisplayData()
       mouseState match {
         case SelectTool() =>
           if (clicks == 2) {
@@ -337,9 +338,16 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
             vertexHit match {
               case Some(v) =>
-                // if 'v' was not previously selected, it should now be the *only* vertex selected
+
+                // if 'v' was not previously selected, it should now be the *only* vertex selected unless shift key
+                // is pressed
                 if (!selectedVerts.contains(v)) {
-                  selectedVerts = Set(v)
+                  if ((modifiers & Modifier.Shift) != Modifier.Shift) {
+                    selectedVerts = Set(v)
+                  } else {
+                    selectedVerts += v
+                  }
+
                   view.publish(VertexSelectionChanged(graph, selectedVerts))
                 }
 
