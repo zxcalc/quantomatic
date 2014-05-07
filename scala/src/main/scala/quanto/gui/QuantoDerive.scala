@@ -68,7 +68,10 @@ object QuantoDerive extends SimpleSwingApplication {
       val extn = name.lastIndexOf('.') match {
         case i if i > 0 => name.substring(i+1) ; case _ => ""}
       if (extns.contains(extn)) true
-      else new File(parent, name).isDirectory
+      else {
+        val f = new File(parent, name)
+        f.isDirectory && !f.getName.startsWith(".") // don't show hidden (dot) directories
+      }
     }
   })
 
@@ -130,16 +133,25 @@ object QuantoDerive extends SimpleSwingApplication {
       case _ => false
     }}
 
-  def quitQuanto() = {
+  def closeAllDocuments() = {
     if (!hasUnsaved || Dialog.showConfirmation(
       title = "Confirm quit",
       message = "Some documents have unsaved changes. Do you wish to continue?")
       == Dialog.Result.Yes) {
+      MainTabbedPane.pages.clear()
+      true
+    } else {
+      false
+    }
+  }
+
+  def quitQuanto() = {
+    if (closeAllDocuments()) {
       try {
         core ! StopCore
         core ! PoisonPill
       } catch {
-        case e : Exception => e.printStackTrace
+        case e : Exception => e.printStackTrace()
       }
       true
     } else {
@@ -160,10 +172,10 @@ object QuantoDerive extends SimpleSwingApplication {
 //  }
 
 
-  val FileMenu = new Menu("File") { menu =>
+  object FileMenu extends Menu("File") { menu =>
     mnemonic = Key.F
 
-    val NewGraphAction = new Action("New Graph...") {
+    val NewGraphAction = new Action("New Graph") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask))
       menu.contents += new MenuItem(this) { mnemonic = Key.G }
       def apply() {
@@ -175,7 +187,7 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
-    val NewAxiomAction = new Action("New Axiom...") {
+    val NewAxiomAction = new Action("New Axiom") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask | Key.Modifier.Shift))
       menu.contents += new MenuItem(this) { mnemonic = Key.X }
       def apply() {
@@ -186,6 +198,19 @@ object QuantoDerive extends SimpleSwingApplication {
         }
       }
     }
+
+    def updateNewEnabled() {
+      CurrentProject match {
+        case Some(_) =>
+          NewGraphAction.enabled = true
+          NewAxiomAction.enabled = true
+        case None =>
+          NewGraphAction.enabled = false
+          NewAxiomAction.enabled = false
+      }
+    }
+
+    updateNewEnabled()
 
     val SaveAction = new Action("Save") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_S, CommandMask))
@@ -222,33 +247,36 @@ object QuantoDerive extends SimpleSwingApplication {
       menu.contents += new MenuItem(this) { mnemonic = Key.N }
 
       def apply() {
-        val d = new NewProjectDialog()
-        d.centerOnScreen()
-        d.open()
-        d.result.map {
-          case (thy,name,path) =>
-            println("got: " + (thy, name, path))
-            val folder = new File(path + "/" + name)
-            if (folder.exists()) {
-              Dialog.showMessage(
-                title = "Error",
-                message = "A file or folder already exists with that name.",
-                messageType = Dialog.Message.Error)
-            } else {
-              folder.mkdirs()
-              new File(folder.getPath + "/graphs").mkdir()
-              new File(folder.getPath + "/axioms").mkdir()
-              new File(folder.getPath + "/theorems").mkdir()
-              new File(folder.getPath + "/derivations").mkdir()
-              new File(folder.getPath + "/simprocs").mkdir()
-              val rootFolder = folder.getAbsolutePath
-              val proj = Project(theoryFile = thy, rootFolder = rootFolder)
-              Project.toJson(proj).writeTo(new File(folder.getPath + "/main.qproject"))
-              CurrentProject = Some(proj)
-              ProjectFileTree.root = Some(rootFolder)
-              prefs.put("lastProjectFolder", rootFolder)
-              core ! SetMLWorkingDir(rootFolder)
-            }
+        if (closeAllDocuments()) {
+          val d = new NewProjectDialog()
+          d.centerOnScreen()
+          d.open()
+          d.result.map {
+            case (thy,name,path) =>
+              println("got: " + (thy, name, path))
+              val folder = new File(path + "/" + name)
+              if (folder.exists()) {
+                Dialog.showMessage(
+                  title = "Error",
+                  message = "A file or folder already exists with that name.",
+                  messageType = Dialog.Message.Error)
+              } else {
+                folder.mkdirs()
+                new File(folder.getPath + "/graphs").mkdir()
+                new File(folder.getPath + "/axioms").mkdir()
+                new File(folder.getPath + "/theorems").mkdir()
+                new File(folder.getPath + "/derivations").mkdir()
+                new File(folder.getPath + "/simprocs").mkdir()
+                val rootFolder = folder.getAbsolutePath
+                val proj = Project(theoryFile = thy, rootFolder = rootFolder)
+                Project.toJson(proj).writeTo(new File(folder.getPath + "/main.qproject"))
+                CurrentProject = Some(proj)
+                ProjectFileTree.root = Some(rootFolder)
+                prefs.put("lastProjectFolder", rootFolder)
+                core ! SetMLWorkingDir(rootFolder)
+                updateNewEnabled()
+              }
+          }
         }
       }
     }
@@ -256,30 +284,45 @@ object QuantoDerive extends SimpleSwingApplication {
     val OpenProjectAction = new Action("Open Project...") {
       menu.contents += new MenuItem(this) { mnemonic = Key.O }
       def apply() {
-        val chooser = new FileChooser()
-        chooser.fileSelectionMode = FileChooser.SelectionMode.DirectoriesOnly
-        chooser.showOpenDialog(Split) match {
-          case FileChooser.Result.Approve =>
-            val rootFolder = chooser.selectedFile.toString
-            val projectFile = new File(rootFolder + "/main.qproject")
-            if (projectFile.exists) {
-              try {
-                val proj = Project.fromJson(Json.parse(projectFile), rootFolder)
-                CurrentProject = Some(proj)
-                ProjectFileTree.root = Some(rootFolder)
-                prefs.put("lastProjectFolder", rootFolder.toString)
-                core ! SetMLWorkingDir(rootFolder)
-              } catch {
-                case _: ProjectLoadException =>
-                  error("Error loading project file")
-                case e : Exception =>
-                  error("Unexpected error when opening project")
-                  e.printStackTrace()
+        if (closeAllDocuments()) {
+          val chooser = new FileChooser()
+          chooser.fileSelectionMode = FileChooser.SelectionMode.DirectoriesOnly
+          chooser.showOpenDialog(Split) match {
+            case FileChooser.Result.Approve =>
+              val rootFolder = chooser.selectedFile.toString
+              val projectFile = new File(rootFolder + "/main.qproject")
+              if (projectFile.exists) {
+                try {
+                  val proj = Project.fromJson(Json.parse(projectFile), rootFolder)
+                  CurrentProject = Some(proj)
+                  ProjectFileTree.root = Some(rootFolder)
+                  prefs.put("lastProjectFolder", rootFolder.toString)
+                  core ! SetMLWorkingDir(rootFolder)
+                } catch {
+                  case _: ProjectLoadException =>
+                    error("Error loading project file")
+                  case e : Exception =>
+                    error("Unexpected error when opening project")
+                    e.printStackTrace()
+                } finally {
+                  updateNewEnabled()
+                }
+              } else {
+                error("Folder does not contain a QuantoDerive project")
               }
-            } else {
-              error("Folder does not contain a QuantoDerive project")
-            }
-          case _ =>
+            case _ =>
+          }
+        }
+      }
+    }
+
+    val CloseProjectAction = new Action("Close Project") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.C }
+      def apply() {
+        if (closeAllDocuments()) {
+          ProjectFileTree.root = None
+          CurrentProject = None
+          updateNewEnabled()
         }
       }
     }
