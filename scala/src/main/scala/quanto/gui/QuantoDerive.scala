@@ -359,19 +359,19 @@ object QuantoDerive extends SimpleSwingApplication {
 
     val CutAction = new Action("Cut") {
       menu.contents += new MenuItem(this) { mnemonic = Key.U }
-      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_X, CommandMask))
+      //accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_X, CommandMask))
       def apply() { currentGraphController.map(_.cutSubgraph()) }
     }
 
     val CopyAction = new Action("Copy") {
       menu.contents += new MenuItem(this) { mnemonic = Key.C }
-      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_C, CommandMask))
+      //accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_C, CommandMask))
       def apply() { currentGraphController.map(_.copySubgraph()) }
     }
 
     val PasteAction = new Action("Paste") {
       menu.contents += new MenuItem(this) { mnemonic = Key.P }
-      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_V, CommandMask))
+      //accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_V, CommandMask))
       def apply() { currentGraphController.map(_.pasteSubgraph()) }
     }
 

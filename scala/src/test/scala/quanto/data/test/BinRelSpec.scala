@@ -93,11 +93,19 @@ class BinRelSpec extends FlatSpec {
   }
 
   it should "filter correctly" in {
-    val r1 = BinRel("a" -> 2, "a" -> 3, "b" -> 1, "b" -> 3, "c" -> 2, "d" -> 1)
-    val r2 = r1.filter { case(k,v) => k == "b" || v == 2 }
-    val result = BinRel("a" -> 2, "b" -> 1, "b" -> 3, "c" -> 2)
+    val r1 = BinRel("a" -> 2, "a" -> 3, "a" -> 4, "b" -> 1, "b" -> 3, "c" -> 2, "d" -> 1)
+    val r2 = r1.filter { case(k,v) => k == "b" || v == 2 || v == 4 }
+    val result = BinRel("a" -> 2, "a" -> 4, "b" -> 1, "b" -> 3, "c" -> 2)
     assert(r2 === result)
     assert(r2.codf === result.codf)
+  }
+
+  it should "union correctly" in {
+    val r1 = BinRel("a" -> 2, "a" -> 3)
+    val r2 = BinRel("a" -> 3, "a" -> 4, "b" -> 1, "b" -> 3, "c" -> 2)
+    val r3 = r1 ++ r2
+    val result = BinRel("a" -> 2, "a" -> 3, "a" -> 4, "b" -> 1, "b" -> 3, "c" -> 2)
+    assert(r3 === result)
   }
 
   behavior of "A partial function"

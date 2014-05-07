@@ -4,7 +4,7 @@ import org.scalatest._
 import quanto.data._
 import quanto.data.Names._
 import quanto.util.json._
-
+import scala.collection.immutable.TreeSet
 
 
 class GraphSpec extends FlatSpec with GivenWhenThen {
@@ -211,6 +211,8 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     assert(dag.dagCopy === dag)
   }
 
+
+
   def traverseFrom(graph: Graph, v: VName, seen: Set[VName]) {
     if (seen contains v) fail("directed cycle detected")
     for (e <- graph.outEdges(v)) traverseFrom(graph, graph.target(e), seen + v)
@@ -221,6 +223,25 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     val dag = graph.dagCopy
 
     for ((v,_) <- graph.vdata) traverseFrom(dag, v, Set[VName]())
+  }
+
+  val twobb = (new Graph()
+    addVertex ("v0", NodeV())
+    addBBox   ("bx0", BBData(), Set("v0"))
+    addBBox   ("bx1", BBData(), Set("v0"))
+    )
+
+  "vertex in two bboxes" should "retain bbox membership for fullSubgraph" in {
+    val twobb1 = twobb.fullSubgraph(Set("v0"), Set("bx0", "bx1"))
+    assert(twobb1.inBBox.domf("v0") === Set[BBName]("bx0","bx1"))
+  }
+
+  it should "copy correctly" in {
+    val twobb1 = twobb.fullSubgraph(Set("v0"), Set("bx0", "bx1")).renameAvoiding(twobb)
+    val v1 = twobb1.verts.head
+    val bs = twobb1.bboxes
+    assert(bs.size === 2)
+    assert(twobb1.inBBox.domf(v1) === bs)
   }
 
 //  it should "support Graph.Flavor clipboard flavor" in {

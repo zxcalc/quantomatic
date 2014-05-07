@@ -268,7 +268,7 @@ case class Graph(
     val bbdata1 = bbdata.foldLeft(Map[BBName,BBData]()) { case (mp, (k,v)) => mp + (brn(k) -> v)}
     val source1 = source.foldLeft(PFun[EName,VName]()) { case (mp, (k,v)) => mp + (ern(k) -> vrn(v))}
     val target1 = target.foldLeft(PFun[EName,VName]()) { case (mp, (k,v)) => mp + (ern(k) -> vrn(v))}
-    val inBBox1 = inBBox.foldLeft(PFun[VName,BBName]()) { case (mp, (k,v)) => mp + (vrn(k) -> brn(v))}
+    val inBBox1 = inBBox.foldLeft(BinRel[VName,BBName]()) { case (mp, (k,v)) => mp + (vrn(k) -> brn(v))}
     val bboxParent1 = bboxParent.foldLeft(PFun[BBName,BBName]()) { case (mp, (k,v)) => mp + (brn(k) -> brn(v))}
 
     copy(vdata=vdata1,edata=edata1,source=source1,target=target1,

@@ -13,6 +13,7 @@ import java.awt.event.{ActionEvent, ActionListener}
 import java.awt.datatransfer._
 import java.awt.Toolkit
 import quanto.gui.graphview.{EdgeOverlay,BBoxOverlay}
+import quanto.util.Globals
 
 case class VertexSelectionChanged(graph: Graph, selectedVerts: Set[VName]) extends GraphEvent
 
@@ -592,5 +593,11 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
       undoStack.commit()
     case KeyPressed(_, Key.Minus, _, _)  => view.zoom *= 0.6
     case KeyPressed(_, Key.Equals, _, _) => view.zoom *= 1.6
+    case KeyPressed(_, Key.C, modifiers, _) =>
+      if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { copySubgraph() }
+    case KeyPressed(_, Key.X, modifiers, _) =>
+      if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { cutSubgraph() }
+    case KeyPressed(_, Key.V, modifiers, _) =>
+      if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { pasteSubgraph() }
   }
 }
