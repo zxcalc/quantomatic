@@ -37,7 +37,7 @@ let
                                              | _ => raise user_exn "expected vertex name") vs
                     | _ => raise user_exn "expected array of vertex names"
   val stack = Synchronized.change_result rewrite_table (RewriteTable.store (
-    Theory.Rewriter.find_rewrites rule graph (*(V.NSet.of_list vertices)*)
+    Theory.Rewriter.find_rewrites_in_subgraph rule graph (V.NSet.of_list vertices)
   ))
 in Json.String (SStrName.dest stack)
 end  

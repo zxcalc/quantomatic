@@ -424,7 +424,11 @@ struct
     val touched = Graph.get_adj_vertices_to_set pat complete
     fun kill_all_bboxes v bms = let
       val pat = InnerMatchState.get_pat (get_inner_state bms)
-      val bbs = Graph.get_bboxes_containing_vertex pat v
+      (* if two vertices border the same bbox, this vertex might have
+       * already been removed *)
+      val bbs = if Graph.has_vertex pat v
+                then Graph.get_bboxes_containing_vertex pat v
+                else B.NSet.empty
       val operable_bbs = B.NSet.union_merge (get_copyable_bbs bms)
                                             (get_expandable_bbs bms)
       val adj_operable_bbs = B.NSet.intersect bbs operable_bbs
