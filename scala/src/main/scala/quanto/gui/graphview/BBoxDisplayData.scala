@@ -28,13 +28,11 @@ trait BBoxDisplayData { self: VertexDisplayData =>
   val bboxDisplay = collection.mutable.Map[BBName,BBDisplay]()
 
   protected def computeBBoxDisplay() {
+    bboxDisplay.clear()
     var offset = Math.max(boundsForVertexSet(graph.verts).getMaxX, trans.origin._1)
 
     // used to compute relative padding sizes
     val em = trans.scaleToScreen(0.1)
-
-    val positions = collection.mutable.Set[(Double,Double)]()
-
 
     graph.bboxesChildrenFirst.foreach { bbox =>
       val vset = graph.contents(bbox)
@@ -46,30 +44,33 @@ trait BBoxDisplayData { self: VertexDisplayData =>
 
         /* bounds determined by vertices of bbox */
         var bounds = boundsForVertexSet(vset)
-        val bbox_children = graph.bboxChildren(bbox)
-        /* for each bbox child increase borders if child bbox rectangle
-         * is near the borders of the parent bbox
+        val computed_bbs = bboxDisplay.keySet
+        /* for each bbox increase borders if that bbox rectangle
+         * is near the borders of the current bbox
          */
-        bbox_children.foreach { bb_child =>
-          val child_rect = bboxDisplay(bb_child).rect
+        computed_bbs.foreach { bb =>
+          val bbd = bboxDisplay(bb)
+          val rect = bbd.rect
 
-          val ulx = min(child_rect.getMinX - 5.0, bounds.getMinX)
-          val uly = min(child_rect.getMinY - 5.0, bounds.getMinY)
-          val lrx = max(child_rect.getMaxX + 5.0, bounds.getMaxX)
-          val lry = max(child_rect.getMaxY + 5.0, bounds.getMaxY)
+          if(bounds.contains(rect)) {
+            val ulx = min(rect.getMinX - 5.0*em, bounds.getMinX)
+            val uly = min(rect.getMinY - 5.0*em, bounds.getMinY)
+            val lrx = max(rect.getMaxX + 5.0*em, bounds.getMaxX)
+            val lry = max(rect.getMaxY + 5.0*em, bounds.getMaxY)
 
-          bounds = new Rectangle2D.Double(ulx, uly, lrx - ulx, lry - uly)
+            bounds = new Rectangle2D.Double(ulx, uly, lrx - ulx, lry - uly)
+          }
+          else if(rect.contains(bounds)) {
+            val ulx = min(rect.getMinX, bounds.getMinX - 5.0*em)
+            val uly = min(rect.getMinY, bounds.getMinY - 5.0*em)
+            val lrx = max(rect.getMaxX, bounds.getMaxX + 5.0*em)
+            val lry = max(rect.getMaxY, bounds.getMaxY + 5.0*em)
+
+            val new_bounds = new Rectangle2D.Double(ulx, uly, lrx - ulx, lry - uly)
+            bboxDisplay += bb -> BBDisplay(new_bounds)
+          }
         }
-
-        var p = (bounds.getX - 3*em, bounds.getY - 3*em)
-        var q = (bounds.getWidth + 6*em, bounds.getHeight + 6*em)
-        while (positions.contains(p)) {
-          p = (p._1 - 6*em, p._2 - 6*em)
-          q = (q._1 + 8*em, q._2 + 8*em)
-        }
-        positions.add(p)
-
-        new Rectangle2D.Double(p._1, p._2, q._1, q._2)
+        bounds
       }
 
       bboxDisplay += bbox -> BBDisplay(rect)
