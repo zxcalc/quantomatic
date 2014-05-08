@@ -70,7 +70,7 @@ object QuantoDerive extends SimpleSwingApplication {
       if (extns.contains(extn)) true
       else {
         val f = new File(parent, name)
-        f.isDirectory && !f.getName.startsWith(".") // don't show hidden (dot) directories
+        f.isDirectory && !f.isHidden // don't show hidden (dot) directories
       }
     }
   })
