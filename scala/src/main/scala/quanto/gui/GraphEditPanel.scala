@@ -24,7 +24,6 @@ class GraphEditControls(theory: Theory) extends Publisher {
   }
 
   trait ToolButton { var tool: MouseState = SelectTool() }
-  def setMouseState(m : MouseState) { publish(MouseStateChanged(m)) }
 
   val ge = GraphEditor.getClass
 
@@ -67,43 +66,56 @@ class GraphEditControls(theory: Theory) extends Publisher {
     AddEdgeButton,
     AddBangBoxButton)
 
-  //GraphToolGroup.select(SelectButton)
-
-  val MainToolBar = new ToolBar {
-    contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton)
+  def setMouseState(m : MouseState) {
+    publish(MouseStateChanged(m))
+    m match {
+      case SelectTool() =>
+        VertexTypeLabel.enabled = false
+        VertexTypeSelect.enabled = false
+        EdgeTypeLabel.enabled = false
+        EdgeTypeSelect.enabled = false
+        EdgeDirected.enabled = false
+        GraphToolGroup.select(SelectButton)
+      case AddVertexTool() =>
+        VertexTypeLabel.enabled = true
+        VertexTypeSelect.enabled = true
+        EdgeTypeLabel.enabled = false
+        EdgeTypeSelect.enabled = false
+        EdgeDirected.enabled = false
+        GraphToolGroup.select(AddVertexButton)
+      case AddEdgeTool() =>
+        VertexTypeLabel.enabled = false
+        VertexTypeSelect.enabled = false
+        EdgeTypeLabel.enabled = true
+        EdgeTypeSelect.enabled = true
+        EdgeDirected.enabled = true
+        GraphToolGroup.select(AddEdgeButton)
+      case AddBangBoxTool() =>
+        VertexTypeLabel.enabled = false
+        VertexTypeSelect.enabled = false
+        EdgeTypeLabel.enabled = false
+        EdgeTypeSelect.enabled = false
+        EdgeDirected.enabled = false
+        GraphToolGroup.select(AddBangBoxButton)
+      case AddBoundaryTool() =>
+        VertexTypeLabel.enabled = true
+        VertexTypeSelect.enabled = true
+        EdgeTypeLabel.enabled = false
+        EdgeTypeSelect.enabled = false
+        EdgeDirected.enabled = false
+        GraphToolGroup.select(AddBoundaryButton)
+      case _ =>
+    }
   }
 
   GraphToolGroup.buttons.foreach(listenTo(_))
   reactions += {
     case ButtonClicked(t: ToolButton) =>
       setMouseState(t.tool)
-      t.tool match {
-        case SelectTool() =>
-          VertexTypeLabel.enabled = false
-          VertexTypeSelect.enabled = false
-          EdgeTypeLabel.enabled = false
-          EdgeTypeSelect.enabled = false
-          EdgeDirected.enabled = false
-        case AddVertexTool() =>
-          VertexTypeLabel.enabled = true
-          VertexTypeSelect.enabled = true
-          EdgeTypeLabel.enabled = false
-          EdgeTypeSelect.enabled = false
-          EdgeDirected.enabled = false
-        case AddEdgeTool() =>
-          VertexTypeLabel.enabled = false
-          VertexTypeSelect.enabled = false
-          EdgeTypeLabel.enabled = true
-          EdgeTypeSelect.enabled = true
-          EdgeDirected.enabled = true
-        case AddBangBoxTool() =>
-          VertexTypeLabel.enabled = false
-          VertexTypeSelect.enabled = false
-          EdgeTypeLabel.enabled = false
-          EdgeTypeSelect.enabled = false
-          EdgeDirected.enabled = false
-        case _ =>
-      }
+  }
+
+  val MainToolBar = new ToolBar {
+    contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton)
   }
 }
 
