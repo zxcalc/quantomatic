@@ -83,11 +83,32 @@ abstract class Document extends Publisher {
   def titleDescription =
     file.map(f => f.getName).getOrElse("untitled") + (if (unsavedChanges) "*" else "")
 
+  /**
+   * Show a dialog asking the user whether to save or discard
+   * any changes before closing the document, or to cancel closing
+   * the document
+   * @return true if the document can be closed, false otherwise
+   * (as per user decission)
+   */
   def promptUnsaved() = {
     if (unsavedChanges) {
-      Dialog.showConfirmation(
+      val choice = Dialog.showOptions(
         title = "Unsaved changes",
-        message = "There are unsaved changes, do you wish to continue?") == Dialog.Result.Yes
+        message = "Do you want to save your changes or discard them?",
+        entries = "Save" :: "Discard" :: "Cancel" :: Nil,
+        initial = 0
+      )
+
+      // scala swing dialogs implementation is dumb, here's what I found :
+      // Result(0) = Save, Result(1) = Discard, Result(2) = Cancel
+      if (choice == Dialog.Result(0)) {
+        file match {
+          case Some(_) => save()
+          case None => showSaveAsDialog()
+        }
+        true
+      }
+      else choice == Dialog.Result(1)
     } else true
   }
 
