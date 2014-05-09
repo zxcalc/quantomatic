@@ -17,11 +17,11 @@ fun poll_future f = (
   OS.Process.sleep (Time.fromMilliseconds 100);
   case Future.peek f
     of SOME (Exn.Exn e) => raise e
-     | NONE => ();
+     | _ => ();
   OS.Process.sleep (Time.fromMilliseconds 100);
   case Future.peek f
     of SOME (Exn.Exn e) => raise e
-     | NONE => ())
+     | _ => ())
 
 (*val protocol_job = Future.fork (run_protocol 4321);
 poll_future protocol_job;*)
