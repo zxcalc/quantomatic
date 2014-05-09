@@ -101,12 +101,19 @@ abstract class Document extends Publisher {
 
       // scala swing dialogs implementation is dumb, here's what I found :
       // Result(0) = Save, Result(1) = Discard, Result(2) = Cancel
+
+      /* try to save document */
       if (choice == Dialog.Result(0)) {
         file match {
           case Some(_) => save()
           case None => showSaveAsDialog()
         }
-        true
+
+        /* see if saving was successful */
+        file match {
+          case Some(_) => true
+          case None => false
+        }
       }
       else choice == Dialog.Result(1)
     } else true
