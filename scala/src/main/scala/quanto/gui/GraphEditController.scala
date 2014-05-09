@@ -598,6 +598,35 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     case KeyPressed(_, Key.X, modifiers, _) =>
       if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { cutSubgraph() }
     case KeyPressed(_, Key.V, modifiers, _) =>
-      if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { pasteSubgraph() }
+      if (modifiers == 0) {
+        mouseState = AddVertexTool()
+        controlsOpt.map { c => c.setMouseState(mouseState) }
+      }
+      else if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { pasteSubgraph() }
+    case KeyPressed(_, Key.S, modifiers, _)  =>
+      if (modifiers  == 0) {
+        mouseState = SelectTool()
+        controlsOpt.map { c => c.setMouseState(mouseState) }
+      }
+    case KeyPressed(_, Key.E, modifiers, _)  =>
+      if (modifiers  == 0) {
+        mouseState = AddEdgeTool()
+        controlsOpt.map { c => c.setMouseState(mouseState) }
+      }
+    case KeyPressed(_, Key.B, modifiers, _)  =>
+      if (modifiers  == 0) {
+        mouseState = AddBangBoxTool()
+        controlsOpt.map { c => c.setMouseState(mouseState) }
+      }
+    case KeyPressed(_, Key.I, modifiers, _)  =>
+      if (modifiers  == 0) {
+        mouseState = AddBoundaryTool()
+        controlsOpt.map { c => c.setMouseState(mouseState) }
+      }
+    case KeyPressed(_, Key.O, modifiers, _)  =>
+      if (modifiers  == 0) {
+        mouseState = AddBoundaryTool()
+        controlsOpt.map { c => c.setMouseState(mouseState) }
+      }
   }
 }
