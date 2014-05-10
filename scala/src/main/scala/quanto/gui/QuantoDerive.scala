@@ -133,15 +133,40 @@ object QuantoDerive extends SimpleSwingApplication {
       case _ => false
     }}
 
+  /**
+   * Show a dialog (when necessary) asking the user if the program should quit
+   * @return true if the program should quit, false otherwise
+   */
   def closeAllDocuments() = {
-    if (!hasUnsaved || Dialog.showConfirmation(
-      title = "Confirm quit",
-      message = "Some documents have unsaved changes. Do you wish to continue?")
-      == Dialog.Result.Yes) {
+    if (hasUnsaved) {
+      val choice = Dialog.showOptions(
+        title = "Confirm quit",
+        message = "Some documents have unsaved changes.\nDo you want to save your changes or discard them?",
+        entries = "Save" :: "Discard" :: "Cancel" :: Nil,
+        initial = 0
+      )
+      // scala swing dialogs implementation is dumb, here's what I found :
+      // Result(0) = Save, Result(1) = Discard, Result(2) = Cancel
+      if (choice == Dialog.Result(2)) false
+      else if (choice == Dialog.Result(1)) {
+        MainTabbedPane.pages.clear()
+        true
+      }
+      else {
+        val b = MainTabbedPane.pages.forall { p =>
+          MainTabbedPane.selection.index = p.index // focus a pane before saving
+          p.content match {
+            case c : HasDocument => c.document.trySave()
+            case _ => false
+          }
+        }
+        if (b) MainTabbedPane.pages.clear()
+        b
+      }
+    }
+    else {
       MainTabbedPane.pages.clear()
       true
-    } else {
-      false
     }
   }
 
