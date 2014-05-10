@@ -624,5 +624,12 @@ object QuantoDerive extends SimpleSwingApplication {
     menuBar = new MenuBar {
       contents += (FileMenu, EditMenu, DeriveMenu, WindowMenu)
     }
+
+    import javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE
+    peer.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE)
+
+    override def closeOperation() {
+      if (quitQuanto()) scala.sys.exit(0)
+    }
   }
 }
