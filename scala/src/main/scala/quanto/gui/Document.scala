@@ -84,6 +84,25 @@ abstract class Document extends Publisher {
     file.map(f => f.getName).getOrElse("untitled") + (if (unsavedChanges) "*" else "")
 
   /**
+   * Try to save a document in current file if it exists and prompt the
+   * SaveAs dialog if it doesn't
+   * @return true if the file was saved and false if it wasn't as per user
+   * interaction
+   */
+  def trySave() = {
+    file match {
+      case Some(_) => save()
+      case None => showSaveAsDialog()
+    }
+
+    /* see if saving was successful */
+    file match {
+      case Some(_) => true
+      case None => false
+    }
+  }
+
+  /**
    * Show a dialog asking the user whether to save or discard
    * any changes before closing the document, or to cancel closing
    * the document
@@ -102,19 +121,7 @@ abstract class Document extends Publisher {
       // scala swing dialogs implementation is dumb, here's what I found :
       // Result(0) = Save, Result(1) = Discard, Result(2) = Cancel
 
-      /* try to save document */
-      if (choice == Dialog.Result(0)) {
-        file match {
-          case Some(_) => save()
-          case None => showSaveAsDialog()
-        }
-
-        /* see if saving was successful */
-        file match {
-          case Some(_) => true
-          case None => false
-        }
-      }
+      if (choice == Dialog.Result(0)) trySave()
       else choice == Dialog.Result(1)
     } else true
   }
