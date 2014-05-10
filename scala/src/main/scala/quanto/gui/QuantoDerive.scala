@@ -134,6 +134,22 @@ object QuantoDerive extends SimpleSwingApplication {
     }}
 
   /**
+   * Try to save all documents in the project by calling their
+   * associated trySave() method.
+   * @return true if all documents were saved, false otherwise
+   * (depends on user choice)
+   */
+  def trySaveAll() = {
+    MainTabbedPane.pages.forall { p =>
+      MainTabbedPane.selection.index = p.index // focus a pane before saving
+      p.content match {
+        case c : HasDocument => c.document.trySave()
+        case _ => false
+      }
+    }
+  }
+
+  /**
    * Show a dialog (when necessary) asking the user if the program should quit
    * @return true if the program should quit, false otherwise
    */
@@ -153,13 +169,7 @@ object QuantoDerive extends SimpleSwingApplication {
         true
       }
       else {
-        val b = MainTabbedPane.pages.forall { p =>
-          MainTabbedPane.selection.index = p.index // focus a pane before saving
-          p.content match {
-            case c : HasDocument => c.document.trySave()
-            case _ => false
-          }
-        }
+        val b = trySaveAll()
         if (b) MainTabbedPane.pages.clear()
         b
       }
