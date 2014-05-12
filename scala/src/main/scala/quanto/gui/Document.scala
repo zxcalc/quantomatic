@@ -31,6 +31,12 @@ abstract class Document extends Publisher {
   protected def loadDocument(f: File)
   protected def parent : Component
 
+  /**
+   * Given a file, export the document to that
+   * file (or directory) as tikz diagram(s) where applicable
+   */
+  protected def exportDocument(f: File) = { }
+
   protected def resetDocumentInfo() {
     undoStack.clear()
     file = None
@@ -167,6 +173,27 @@ abstract class Document extends Publisher {
         val p = chooser.selectedFile.getAbsolutePath
         val file = new File(if (p.endsWith("." + fileExtension)) p else p + "." + fileExtension)
         if (promptExists(file)) save(Some(file))
+      case _ =>
+    }
+  }
+
+  /**
+   * Shows a dialog allowing the user to choose a file
+   * to which the document will be exported as a tikz
+   * diagram(s)
+   */
+  def export(rootDir: Option[String] = None) {
+    val chooser = new FileChooser()
+    chooser.peer.setCurrentDirectory(rootDir match {
+      case Some(d) => new File(d)
+      case None => previousDir
+    })
+    chooser.fileFilter = new FileNameExtensionFilter("Quantomatic " + description + " File (*.tikz)", "tikz")
+    chooser.showSaveDialog(parent) match {
+      case FileChooser.Result.Approve =>
+        val p = chooser.selectedFile.getAbsolutePath
+        val file = new File(if (p.endsWith(".tikz")) p else p + ".tikz")
+        if (promptExists(file)) exportDocument(file)
       case _ =>
     }
   }

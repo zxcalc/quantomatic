@@ -533,6 +533,21 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
+  val ExportMenu = new Menu("Export") { menu =>
+    val ExportAction = new Action("Export") {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_E, CommandMask))
+      enabled = false
+      menu.contents += new MenuItem(this) { mnemonic = Key.E }
+      def apply() {
+        MainTabbedPane.currentContent match {
+          case Some(doc: HasDocument) =>
+            if (doc.document.promptUnsaved()) doc.document.export()
+          case _ =>
+        }
+      }
+    }
+  }
+
   val CoreStatus = new Label("Waiting for connection...")
   CoreStatus.foreground = Color.BLUE
   val ConsoleProgress = new ProgressBar
@@ -597,6 +612,7 @@ object QuantoDerive extends SimpleSwingApplication {
       DeriveMenu.StartDerivation.enabled = false
       DeriveMenu.LayoutDerivation.enabled = false
       WindowMenu.CloseAction.enabled = false
+      ExportMenu.ExportAction.enabled = false
 
       histView = None
       FileMenu.SaveAction.title = "Save"
@@ -605,6 +621,7 @@ object QuantoDerive extends SimpleSwingApplication {
       MainTabbedPane.currentContent match {
         case Some(content: HasDocument) =>
           WindowMenu.CloseAction.enabled = true
+          ExportMenu.ExportAction.enabled = true
           FileMenu.SaveAction.enabled = true
           FileMenu.SaveAsAction.enabled = true
           FileMenu.SaveAllAction.enabled = true
@@ -643,7 +660,7 @@ object QuantoDerive extends SimpleSwingApplication {
     size = new Dimension(1280,720)
 
     menuBar = new MenuBar {
-      contents += (FileMenu, EditMenu, DeriveMenu, WindowMenu)
+      contents += (FileMenu, EditMenu, DeriveMenu, WindowMenu, ExportMenu)
     }
 
     import javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE
