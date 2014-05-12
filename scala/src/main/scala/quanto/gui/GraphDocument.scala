@@ -53,8 +53,14 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
       p.println("\t\\begin{pgfonlayer}{nodelayer}")
 
       for ((vn,vd) <- snap.vdata) {
-        val style = "kur"
-        val number = vn.suffix.toString
+        val style = vd match {
+          case vertexData : NodeV =>
+            if (vertexData.typ == "Z") "gn"
+            else if (vertexData.typ == "X") "rn"
+            else "unknown"
+          case _ : WireV => "wire"
+        }
+        val number = vn.toString
         val coord = "(" + vd.coord._1.toString + ", " + vd.coord._2.toString +")"
         p.println("\t\t\\node [style=" + style +"] (" + number + ") at " + coord + " {};")
       }
