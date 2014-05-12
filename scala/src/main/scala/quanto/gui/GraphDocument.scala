@@ -47,14 +47,21 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
       try { op(p) } finally { p.close() }
     }
 
-    graph = graph.snapToGrid() // this is bad, need to fix it later
-    val view = new graphview.GraphView(theory, this)
+    val view = parent match {
+      case component : GraphEditPanel => component.graphView
+    }
+
+    /* rescale from screen coordinates to normal and return string */
+    def coordToString(c1 : Double, c2 : Double) = {
+      val p = view.trans.fromScreen(c1, c2)
+      "(" + p._1.toString + ", " + p._2.toString +")"
+    }
 
     printToFile(f)(p => {
       p.println("\\begin{tikzpicture}")
       p.println("\t\\begin{pgfonlayer}{nodelayer}")
 
-      /* fill in all nodes */
+      /* fill in all vertices */
       for ((vn,vd) <- graph.vdata) {
         val style = vd match {
           case vertexData : NodeV =>
@@ -65,7 +72,8 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
         }
 
         val number = vn.toString
-        val coord = "(" + vd.coord._1.toString + ", " + vd.coord._2.toString +")"
+        val disp_rec = view.vertexDisplay(vn).shape.getBounds
+        val coord = coordToString(disp_rec.getCenterX, disp_rec.getCenterY)
 
         val data = vd match {
           case vertexData : NodeV => vertexData.label
@@ -73,6 +81,25 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
         }
 
         p.println("\t\t\\node [style=" + style +"] (" + number + ") at " + coord + " {" + data +"};")
+      }
+
+      /* fill in corners of !-boxes */
+      for ((bbn,bbd) <- view.bboxDisplay) {
+        val number_ul = bbn.toString + "ul"
+        val coord_ul = coordToString(bbd.rect.getMinX, bbd.rect.getMinY)
+        p.println("\t\t\\node [style=bbox] (" + number_ul + ") at " + coord_ul + " {};")
+
+        val number_ur = bbn.toString + "ur"
+        val coord_ur = coordToString(bbd.rect.getMaxX, bbd.rect.getMinY)
+        p.println("\t\t\\node [style=none] (" + number_ur + ") at " + coord_ur + " {};")
+
+        val number_ll = bbn.toString + "ll"
+        val coord_ll = coordToString(bbd.rect.getMinX, bbd.rect.getMaxY)
+        p.println("\t\t\\node [style=none] (" + number_ll + ") at " + coord_ll + " {};")
+
+        val number_lr = bbn.toString + "lr"
+        val coord_lr = coordToString(bbd.rect.getMaxX, bbd.rect.getMaxY)
+        p.println("\t\t\\node [style=none] (" + number_lr + ") at " + coord_lr + " {};")
       }
 
       p.println("\t\\end{pgfonlayer}")
@@ -83,6 +110,28 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
       for ((en, ed) <- graph.edata) {
         val style = if (ed.isDirected) "directed" else "simple"
         p.println("\t\t\\draw [style=" + style + "] (" + graph.source(en).toString + ") to (" + graph.target(en).toString + ");" )
+      }
+
+      for ((bbn, _) <- view.bboxDisplay) {
+
+        /* fill in edges connecting !-box corners */
+        val number_ul = bbn.toString + "ul.center"
+        val number_ur = bbn.toString + "ur.center"
+        val number_ll = bbn.toString + "ll.center"
+        val number_lr = bbn.toString + "lr.center"
+        p.println("\t\t\\draw [style=blue] (" + number_ul + ") to (" + number_ur + ");" )
+        p.println("\t\t\\draw [style=blue] (" + number_ul + ") to (" + number_ll + ");" )
+        p.println("\t\t\\draw [style=blue] (" + number_ll + ") to (" + number_lr + ");" )
+        p.println("\t\t\\draw [style=blue] (" + number_lr + ") to (" + number_ur + ");" )
+
+        /* draw edges indicating nested !-boxes */
+        graph.bboxParent.get(bbn) match {
+          case Some(bb_parent) => {
+            val parent_number_ul = bb_parent.toString + "ul.center"
+            p.println("\t\t\\draw [style=blue] (" + number_ul + ") to (" + parent_number_ul + ");" )
+          }
+          case None =>
+        }
       }
       p.println("\t\\end{pgfonlayer}")
       p.println("\\end{tikzpicture}")
