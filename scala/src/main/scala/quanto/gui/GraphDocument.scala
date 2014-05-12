@@ -47,13 +47,15 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
       try { op(p) } finally { p.close() }
     }
 
-    val snap = graph.snapToGrid()
+    graph = graph.snapToGrid() // this is bad, need to fix it later
+    val view = new graphview.GraphView(theory, this)
+
     printToFile(f)(p => {
       p.println("\\begin{tikzpicture}")
       p.println("\t\\begin{pgfonlayer}{nodelayer}")
 
       /* fill in all nodes */
-      for ((vn,vd) <- snap.vdata) {
+      for ((vn,vd) <- graph.vdata) {
         val style = vd match {
           case vertexData : NodeV =>
             if (vertexData.typ == "Z") "gn"
@@ -61,19 +63,26 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
             else "unknown"
           case _ : WireV => "wire"
         }
+
         val number = vn.toString
         val coord = "(" + vd.coord._1.toString + ", " + vd.coord._2.toString +")"
-        p.println("\t\t\\node [style=" + style +"] (" + number + ") at " + coord + " {};")
+
+        val data = vd match {
+          case vertexData : NodeV => vertexData.label
+          case _ => ""
+        }
+
+        p.println("\t\t\\node [style=" + style +"] (" + number + ") at " + coord + " {" + data +"};")
       }
 
       p.println("\t\\end{pgfonlayer}")
 
       p.println("\t\\begin{pgfonlayer}{edgelayer}")
 
-      /* fill in all edges */
-      for ((en, ed) <- snap.edata) {
+      /* fill in all edges, need to take care of parallel edges */
+      for ((en, ed) <- graph.edata) {
         val style = if (ed.isDirected) "directed" else "simple"
-        p.println("\t\t\\draw [style=" + style + "] (" + snap.source(en).toString + ") to (" + snap.target(en).toString + ");" )
+        p.println("\t\t\\draw [style=" + style + "] (" + graph.source(en).toString + ") to (" + graph.target(en).toString + ");" )
       }
       p.println("\t\\end{pgfonlayer}")
       p.println("\\end{tikzpicture}")
