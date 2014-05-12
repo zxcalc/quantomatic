@@ -276,6 +276,17 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
+    val SaveAllAction = new Action("Save All") {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_A, CommandMask | Key.Modifier.Shift))
+      enabled = false
+      menu.contents += new MenuItem(this) { mnemonic = Key.V }
+      def apply() {
+        val selection = MainTabbedPane.selection.index
+        trySaveAll()
+        MainTabbedPane.selection.index = selection
+      }
+    }
+
     menu.contents += new Separator()
 
     val NewProjectAction = new Action("New Project...") {
@@ -571,6 +582,7 @@ object QuantoDerive extends SimpleSwingApplication {
     case SelectionChanged(_) =>
       FileMenu.SaveAction.enabled = false
       FileMenu.SaveAsAction.enabled = false
+      FileMenu.SaveAllAction.enabled = false
       EditMenu.CutAction.enabled = false
       EditMenu.CopyAction.enabled = false
       EditMenu.PasteAction.enabled = false
@@ -587,6 +599,7 @@ object QuantoDerive extends SimpleSwingApplication {
           WindowMenu.CloseAction.enabled = true
           FileMenu.SaveAction.enabled = true
           FileMenu.SaveAsAction.enabled = true
+          FileMenu.SaveAllAction.enabled = true
           FileMenu.SaveAction.title = "Save " + content.document.description
           FileMenu.SaveAsAction.title = "Save " + content.document.description + " As..."
 
