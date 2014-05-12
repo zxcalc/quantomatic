@@ -52,6 +52,7 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
       p.println("\\begin{tikzpicture}")
       p.println("\t\\begin{pgfonlayer}{nodelayer}")
 
+      /* fill in all nodes */
       for ((vn,vd) <- snap.vdata) {
         val style = vd match {
           case vertexData : NodeV =>
@@ -68,6 +69,12 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
       p.println("\t\\end{pgfonlayer}")
 
       p.println("\t\\begin{pgfonlayer}{edgelayer}")
+
+      /* fill in all edges */
+      for ((en, ed) <- snap.edata) {
+        val style = if (ed.isDirected) "directed" else "simple"
+        p.println("\t\t\\draw [style=" + style + "] (" + snap.source(en).toString + ") to (" + snap.target(en).toString + ");" )
+      }
       p.println("\t\\end{pgfonlayer}")
       p.println("\\end{tikzpicture}")
     })
