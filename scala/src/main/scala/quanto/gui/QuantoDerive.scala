@@ -464,6 +464,14 @@ object QuantoDerive extends SimpleSwingApplication {
       def apply() { currentGraphController.map(_.pasteSubgraph()) }
     }
 
+    contents += new Separator
+
+    val SnapToGridAction = new Action("Snap to grid") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.S }
+      //accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_G, CommandMask))
+      def apply() { currentGraphController.map(_.snapToGrid()) }
+    }
+
 //    val LayoutAction = new Action("Layout Graph") with Reactor {
 //      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
 //      def apply() {

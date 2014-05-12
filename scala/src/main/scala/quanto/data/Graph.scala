@@ -115,6 +115,23 @@ case class Graph(
     copy(vdata = vdata + (vn -> data))
   }
 
+  /**
+   * @return A new graph where all vertices have coordinates which align to a
+   * grid
+   */
+  def snapToGrid() = {
+
+    def roundCoord(d : Double) = {
+      (math.rint(d * 4.0)) / 4.0 // rounds to .25
+    }
+
+    val snapped_vdata = vdata.mapValues {vd =>
+      val coord = vd.coord
+      vd.withCoord(roundCoord(coord._1), roundCoord(coord._2))
+    }
+    copy(vdata = snapped_vdata)
+  }
+
   def newVertex(data: VData) = {
     val vn = vdata.fresh
     (addVertex(vn, data), vn)

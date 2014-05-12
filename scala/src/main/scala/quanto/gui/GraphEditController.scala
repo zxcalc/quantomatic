@@ -290,6 +290,23 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     }
   }
 
+  /**
+   * Snaps the graph to a square grid with size 0.25
+   */
+  def snapToGrid() = {
+    if (!readOnly) {
+      val old_graph = graph
+      graph = graph.snapToGrid()
+      view.invalidateGraph(false)
+      undoStack.register("Snap to Grid") {
+        graph = old_graph
+        view.invalidateGraph(false)
+        view.repaint()
+      }
+      view.repaint()
+    }
+  }
+
   def layoutGraph() {
     val lo = new ForceLayout with Ranking with Clusters
     val t0 = System.currentTimeMillis()
@@ -627,6 +644,10 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
       if (modifiers  == 0) {
         mouseState = AddBoundaryTool()
         controlsOpt.map { c => c.setMouseState(mouseState) }
+      }
+    case KeyPressed(_, Key.G, modifiers, _)  =>
+      if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) {
+        snapToGrid()
       }
   }
 }
