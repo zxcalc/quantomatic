@@ -11,6 +11,7 @@ import java.awt.geom.{AffineTransform, Line2D, Rectangle2D}
 import java.awt.Font
 import java.awt.font.TextLayout
 import java.io.File
+import quanto.util.FileHelper.printToFile
 
 
 // a visual overlay for edge drawing
@@ -459,13 +460,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   /**
    * Export the current graph view into a tikzit-readable file
    */
-  def exportView(f: File) = {
-
-    /* Helper method to print to a file */
-    def printToFile(file_name: java.io.File)(op: java.io.PrintWriter => Unit) {
-      val p = new java.io.PrintWriter(file_name)
-      try { op(p) } finally { p.close() }
-    }
+  def exportView(f: File, append: Boolean) = {
 
     /* rescale from screen coordinates to normal and return string */
     def coordToString(c1 : Double, c2 : Double) = {
@@ -474,8 +469,8 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
     }
 
     /* Output view to a tikzit-readable file */
-    printToFile(f)(p => {
-      p.println("\\begin{tikzpicture}")
+    printToFile(f, append)(p => {
+      p.println("\\begin{tikzpicture}[baseline={([yshift=-.5ex]current bounding box.center)}]")
       p.println("\t\\begin{pgfonlayer}{nodelayer}")
 
       /* fill in all vertices */

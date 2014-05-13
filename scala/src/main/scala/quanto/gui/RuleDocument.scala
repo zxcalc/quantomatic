@@ -4,6 +4,7 @@ import java.io.File
 import quanto.data._
 import quanto.util.json.Json
 import scala.swing.Component
+import quanto.util.FileHelper.printToFile
 
 class RuleDocument(val parent: Component, theory: Theory) extends Document {
   val description = "Rule"
@@ -57,5 +58,24 @@ class RuleDocument(val parent: Component, theory: Theory) extends Document {
 
     lhsRef.publish(GraphReplaced(lhsRef, clearSelection = true))
     rhsRef.publish(GraphReplaced(rhsRef, clearSelection = true))
+  }
+
+  override protected def exportDocument(f: File) = {
+    val (lhsView, rhsView) = parent match {
+      case component : RuleEditPanel => (component.lhsView, component.rhsView)
+      case _ => throw new Exception(
+        "Exporting from this component is not supported. Please report bug"
+      )
+    }
+
+    lhsView.exportView(f, false)
+
+    printToFile(f, true)( p => {
+      p.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+      p.println("\\quad = \\quad")
+      p.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+    })
+
+    rhsView.exportView(f, true)
   }
 }

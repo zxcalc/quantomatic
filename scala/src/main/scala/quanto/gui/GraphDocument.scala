@@ -48,6 +48,6 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
         "Exporting from this component is not supported. Please report bug"
       )
     }
-    view.exportView(f)
+    view.exportView(f, false)
   }
 }
