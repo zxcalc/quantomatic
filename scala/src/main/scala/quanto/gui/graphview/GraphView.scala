@@ -462,10 +462,31 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
    */
   def exportView(f: File, append: Boolean) = {
 
-    /* rescale from screen coordinates to normal and return string */
-    def coordToString(c1 : Double, c2 : Double) = {
-      val p = trans.fromScreen(c1, c2)
+    /* Tikzit-compatible string representation of coordinate pair */
+    def coordToString(p : (Double, Double)) = {
       "(" + p._1.toString + ", " + p._2.toString +")"
+    }
+
+    var min_max_init : Boolean = false
+    var minX : Double = 0.0
+    var maxX : Double = 0.0
+    var minY : Double = 0.0
+    var maxY : Double = 0.0
+
+    def min_max(p : (Double, Double)) {
+      if (min_max_init) {
+        minX = min(minX, p._1)
+        maxX = max(maxX, p._1)
+        minY = min(minY, p._2)
+        maxY = max(maxY, p._2)
+      }
+      else {
+        minX = p._1
+        maxX = p._1
+        minY = p._2
+        maxY = p._2
+        min_max_init = true
+      }
     }
 
     /* Output view to a tikzit-readable file */
@@ -485,7 +506,9 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
         val number = vn.toString
         val disp_rec = vertexDisplay(vn).shape.getBounds
-        val coord = coordToString(disp_rec.getCenterX, disp_rec.getCenterY)
+        val trans_coord = trans.fromScreen(disp_rec.getCenterX, disp_rec.getCenterY)
+        min_max(trans_coord)
+        val coord = coordToString(trans_coord)
 
         val data = vd match {
           case vertexData : NodeV => vertexData.label
@@ -498,21 +521,41 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
       /* fill in corners of !-boxes */
       for ((bbn,bbd) <- bboxDisplay) {
         val number_ul = bbn.toString + "ul"
-        val coord_ul = coordToString(bbd.rect.getMinX, bbd.rect.getMinY)
+        val trans_coord_ul = trans.fromScreen(bbd.rect.getMinX, bbd.rect.getMinY)
+        min_max(trans_coord_ul)
+        val coord_ul = coordToString(trans_coord_ul)
         p.println("\t\t\\node [style=bbox] (" + number_ul + ") at " + coord_ul + " {};")
 
         val number_ur = bbn.toString + "ur"
-        val coord_ur = coordToString(bbd.rect.getMaxX, bbd.rect.getMinY)
+        val trans_coord_ur = trans.fromScreen(bbd.rect.getMaxX, bbd.rect.getMinY)
+        min_max(trans_coord_ur)
+        val coord_ur = coordToString(trans_coord_ur)
         p.println("\t\t\\node [style=none] (" + number_ur + ") at " + coord_ur + " {};")
 
         val number_ll = bbn.toString + "ll"
-        val coord_ll = coordToString(bbd.rect.getMinX, bbd.rect.getMaxY)
+        val trans_coord_ll = trans.fromScreen(bbd.rect.getMinX, bbd.rect.getMaxY)
+        min_max(trans_coord_ll)
+        val coord_ll = coordToString(trans_coord_ll)
         p.println("\t\t\\node [style=none] (" + number_ll + ") at " + coord_ll + " {};")
 
         val number_lr = bbn.toString + "lr"
-        val coord_lr = coordToString(bbd.rect.getMaxX, bbd.rect.getMaxY)
+        val trans_coord_lr = trans.fromScreen(bbd.rect.getMaxX, bbd.rect.getMaxY)
+        min_max(trans_coord_lr)
+        val coord_lr = coordToString(trans_coord_lr)
         p.println("\t\t\\node [style=none] (" + number_lr + ") at " + coord_lr + " {};")
       }
+
+      /* output 4 nodes used for padding*/
+      val pad_size = 1.0
+      minX -= pad_size
+      maxX += pad_size
+      minY -= pad_size
+      maxY += pad_size
+
+      p.println("\t\t\\node [style=none] (padl) at " + coordToString(minX, minY) + " {};")
+      p.println("\t\t\\node [style=none] (padr) at " + coordToString(maxX, maxY) + " {};")
+      p.println("\t\t\\node [style=none] (padu) at " + coordToString(minX, maxY) + " {};")
+      p.println("\t\t\\node [style=none] (padd) at " + coordToString(maxX, minY) + " {};")
 
       p.println("\t\\end{pgfonlayer}")
 

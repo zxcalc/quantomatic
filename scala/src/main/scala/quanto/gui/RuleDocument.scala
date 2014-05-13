@@ -72,7 +72,7 @@ class RuleDocument(val parent: Component, theory: Theory) extends Document {
 
     printToFile(f, true)( p => {
       p.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-      p.println("\\quad = \\quad")
+      p.println("=")
       p.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
     })
 
