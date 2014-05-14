@@ -561,12 +561,75 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
       p.println("\t\\begin{pgfonlayer}{edgelayer}")
 
-      /* fill in all edges, need to take care of parallel edges */
-      for ((en, ed) <- graph.edata) {
-        val style = if (ed.isDirected) "directed" else "simple"
-        p.println("\t\t\\draw [style=" + style + "] (" + graph.source(en).toString + ") to (" + graph.target(en).toString + ");" )
+      /* fill in all graph edges */
+      for (edge_set <- graph.edgePartition) {
+        val edge_arr : Array[EName] = edge_set.toArray
+        val size = edge_arr.size
+        val canonical_source = graph.source(edge_arr(0)).toString
+        val canonical_target = graph.target(edge_arr(0)).toString
+
+        if (canonical_source != canonical_target) {
+          /* edges are between different nodes */
+
+          var start : Int = 0
+
+          /* if there's an odd number of edges between two nodes, draw a single straight edge */
+          if ((size % 2) == 1) {
+            val en = edge_arr(0)
+            val ed = graph.edata(en)
+            val style = if (ed.isDirected) "directed" else "simple"
+            p.println("\t\t\\draw [style=" + style + "] (" + graph.source(en).toString + ") to (" + graph.target(en).toString + ");" )
+            start = 1
+          }
+
+          val angle_diff = 180.0 / (size - start)
+          var angle_it = angle_diff
+          var right_left = "left="
+
+          /* draw the rest of the edges as arcs by setting the bend angle */
+          for (i <- start to size-1) {
+            val en = edge_arr(i)
+            val ed = graph.edata(en)
+            val style = if (ed.isDirected) "directed" else "simple"
+            val angle = angle_it.toString
+            val source = graph.source(en).toString
+            val target = graph.target(en).toString
+
+            /* alternate bending left or right */
+            if ((i-start) % 2 == 0) {
+              if (source == canonical_source) right_left = "left="
+              else right_left = "right="
+            }
+            else {
+              if (source == canonical_source) right_left = "right="
+              else right_left = "left="
+              angle_it += angle_diff
+            }
+
+            p.println("\t\t\\draw [style=" + style + ", bend " + right_left
+              + angle + "] (" + source + ") to (" + target + ");"
+            )
+          }
+        }
+        else {
+          /* edges have same source and target, so we need to output loops */
+
+          var looseness = 4.5
+          for (i <- 0 to size-1) {
+            val en = edge_arr(i)
+            val ed = graph.edata(en)
+            val style = if (ed.isDirected) "directed" else "simple"
+
+            p.println("\t\t\\draw [style=" + style + ", in=135, out=45, loop, looseness="
+              + looseness + "] (" + canonical_source + ") to (" + canonical_target + ");"
+            )
+
+            looseness += 3.0
+          }
+        }
       }
 
+      /* fill in edges related to !-boxes */
       for ((bbn, _) <- bboxDisplay) {
 
         /* fill in edges connecting !-box corners */
