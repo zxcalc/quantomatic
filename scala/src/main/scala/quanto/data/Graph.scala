@@ -98,9 +98,31 @@ case class Graph(
     case _ => false
   }
 
+  /** Returns a set of edge names adjacent to vn */
   def adjacentEdges(vn: VName) = source.codf(vn) union target.codf(vn)
 
-  def edgesBetween(v1: VName, v2: VName) = adjacentEdges(v1) intersect adjacentEdges(v2)
+  /** Returns a set of edge names which connect v1 to v2 or vice versa */
+  def edgesBetween(v1: VName, v2: VName) = {
+    if (v1 == v2) {
+      source.codf(v1) intersect target.codf(v1)
+    }
+    else {
+      adjacentEdges(v1) intersect adjacentEdges(v2)
+    }
+  }
+
+  /**
+   * Partition of all edges into sets, s.t. they connect the same two vertices
+   * regardless of edge direction
+   */
+  def edgePartition() : List[Set[EName]] = {
+    var res : List[Set[EName]] = List()
+    for ((v1,_) <- vdata; (v2,_) <- vdata if v1 <= v2) {
+      val edgeSet = edgesBetween(v1,v2)
+      if (edgeSet.size > 0) res = edgeSet :: res
+    }
+    res
+  }
 
   def isBBoxed(v: VName) = !inBBox.domf(v).isEmpty
 
