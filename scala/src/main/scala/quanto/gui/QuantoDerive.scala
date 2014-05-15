@@ -534,7 +534,7 @@ object QuantoDerive extends SimpleSwingApplication {
   }
 
   val ExportMenu = new Menu("Export") { menu =>
-    val ExportAction = new Action("Export") {
+    val ExportAction = new Action("Export to LaTeX") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_E, CommandMask))
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.E }
@@ -615,6 +615,7 @@ object QuantoDerive extends SimpleSwingApplication {
       EditMenu.CutAction.enabled = false
       EditMenu.CopyAction.enabled = false
       EditMenu.PasteAction.enabled = false
+      EditMenu.SnapToGridAction.enabled = false
       DeriveMenu.StartDerivation.enabled = false
       DeriveMenu.LayoutDerivation.enabled = false
       WindowMenu.CloseAction.enabled = false
@@ -627,25 +628,31 @@ object QuantoDerive extends SimpleSwingApplication {
       MainTabbedPane.currentContent match {
         case Some(content: HasDocument) =>
           WindowMenu.CloseAction.enabled = true
-          ExportMenu.ExportAction.enabled = true
           FileMenu.SaveAction.enabled = true
           FileMenu.SaveAsAction.enabled = true
           FileMenu.SaveAllAction.enabled = true
           FileMenu.SaveAction.title = "Save " + content.document.description
           FileMenu.SaveAsAction.title = "Save " + content.document.description + " As..."
+          ExportMenu.ExportAction.title = "Export " + content.document.description + " to LaTeX"
+
 
           content match {
             case panel: GraphEditPanel =>
               EditMenu.CutAction.enabled = true
               EditMenu.CopyAction.enabled = true
               EditMenu.PasteAction.enabled = true
+              EditMenu.SnapToGridAction.enabled = true
               DeriveMenu.StartDerivation.enabled = true
+              ExportMenu.ExportAction.enabled = true
             case panel: RuleEditPanel =>
               EditMenu.CutAction.enabled = true
               EditMenu.CopyAction.enabled = true
               EditMenu.PasteAction.enabled = true
+              EditMenu.SnapToGridAction.enabled = true
+              ExportMenu.ExportAction.enabled = true
             case panel: DerivationPanel =>
               DeriveMenu.LayoutDerivation.enabled = true
+              ExportMenu.ExportAction.enabled = true
               histView = Some(panel.histView)
             case _ => // nothing else enabled for ML
           }
