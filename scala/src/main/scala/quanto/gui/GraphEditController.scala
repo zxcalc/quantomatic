@@ -610,16 +610,16 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
       undoStack.commit()
     case KeyPressed(_, Key.Minus, _, _)  => view.zoom *= 0.6
     case KeyPressed(_, Key.Equals, _, _) => view.zoom *= 1.6
-    case KeyPressed(_, Key.C, modifiers, _) =>
-      if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { copySubgraph() }
-    case KeyPressed(_, Key.X, modifiers, _) =>
-      if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { cutSubgraph() }
+//    case KeyPressed(_, Key.C, modifiers, _) =>
+//      if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { copySubgraph() }
+//    case KeyPressed(_, Key.X, modifiers, _) =>
+//      if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { cutSubgraph() }
     case KeyPressed(_, Key.V, modifiers, _) =>
       if (modifiers == 0) {
         mouseState = AddVertexTool()
         controlsOpt.map { c => c.setMouseState(mouseState) }
       }
-      else if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { pasteSubgraph() }
+//      else if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { pasteSubgraph() }
     case KeyPressed(_, Key.S, modifiers, _)  =>
       if (modifiers  == 0) {
         mouseState = SelectTool()
@@ -645,9 +645,9 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         mouseState = AddBoundaryTool()
         controlsOpt.map { c => c.setMouseState(mouseState) }
       }
-    case KeyPressed(_, Key.G, modifiers, _)  =>
-      if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) {
-        snapToGrid()
-      }
+//    case KeyPressed(_, Key.G, modifiers, _)  =>
+//      if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) {
+//        snapToGrid()
+//      }
   }
 }
