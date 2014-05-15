@@ -541,7 +541,13 @@ object QuantoDerive extends SimpleSwingApplication {
       def apply() {
         MainTabbedPane.currentContent match {
           case Some(doc: HasDocument) =>
-            if (doc.document.promptUnsaved()) doc.document.export()
+            if (doc.document.unsavedChanges) {
+              Dialog.showMessage(title = "Unsaved Changes",
+                message = "You need to save the document before exporting",
+                messageType = Dialog.Message.Info
+              )
+            }
+            else doc.document.export()
           case _ =>
         }
       }
