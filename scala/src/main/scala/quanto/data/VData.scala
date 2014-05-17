@@ -46,7 +46,7 @@ object VData {
 }
 
 /**
- * A class which represents node vertex data. 
+ * A class which represents node vertex data.
  * 
  * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/VData.scala Source code]]
  * @see [[https://github.com/Quantomatic/quantomatic/blob/integration/docs/json_formats.txt json_formats.txt]]
@@ -57,18 +57,24 @@ case class NodeV(
   theory: Theory = Theory.DefaultTheory) extends VData
 {
   /** Type of the vertex */
-  def typ = (data / "type").stringValue
+  val typ = (data / "type").stringValue
 
-  def label = data.getOrElse("label","").stringValue
-  def value = data ? "value"
+//  def label = data.getOrElse("label","").stringValue
   def typeInfo = theory.vertexTypes(typ)
+
+  // support input of old-style graphs, where data may be stored at value/pretty
+  val value: Json = data ? "value" match {
+    case str : JsonString => str
+    case obj : JsonObject => obj.getOrElse("pretty", JsonString(""))
+    case _ => JsonString("")
+  }
 
   def withCoord(c: (Double,Double)) =
     copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
   
   /** Create a copy of the current vertex with the new value */
   def withValue(s: String) =
-    copy(data = data.setPath("$.value", s).setPath("$.label", s).asObject)
+    copy(data = data.setPath("$.value", s).asObject)
 
   def isWireVertex = false
   def isBoundary = false
@@ -102,13 +108,8 @@ object NodeV {
     val annotation = (json ? "annotation").asObject
 
     val n = NodeV(data, annotation, thy)
-
-    // if any of these throw an exception, they should do it here
-    n.coord
-    n.value
-    n.label
-    val typ = n.typ
-    if (!thy.vertexTypes.keySet.contains(typ)) throw new GraphLoadException("Unrecognized vertex type: " + typ)
+    n.coord // make sure coord is accessible
+    if (!thy.vertexTypes.keySet.contains(n.typ)) throw new GraphLoadException("Unrecognized vertex type: " + n.typ)
 
     n
   }

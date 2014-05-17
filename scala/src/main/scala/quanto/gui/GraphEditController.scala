@@ -227,7 +227,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   private def setVertexValue(v: VName, str: String) {
     graph.vdata(v) match {
       case data: NodeV =>
-        val oldVal = data.label
+        val oldVal = data.value.stringValue
         graph = graph.updateVData(v) { _ => data.withValue(str) }
         view.invalidateVertex(v)
         graph.adjacentEdges(v).foreach { view.invalidateEdge }
@@ -336,7 +336,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
                   Dialog.showInput(
                     title = "Vertex data",
                     message = "Vertex data",
-                    initial = data.label).map { newVal => setVertexValue(v, newVal) }
+                    initial = data.value.stringValue).map { newVal => setVertexValue(v, newVal) }
                 case _ =>
                   val edgeHit = view.edgeDisplay find { _._2.pointHit(pt) } map { _._1 }
                   edgeHit.map { e =>
