@@ -12,6 +12,7 @@ import java.awt.Font
 import java.awt.font.TextLayout
 import java.io.File
 import quanto.util.FileHelper.printToFile
+import quanto.util.json.JsonString
 
 
 // a visual overlay for edge drawing
@@ -497,10 +498,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
       /* fill in all vertices */
       for ((vn,vd) <- graph.vdata) {
         val style = vd match {
-          case vertexData : NodeV =>
-            if (vertexData.typ == "Z") "gn"
-            else if (vertexData.typ == "X") "rn"
-            else "unknown"
+          case vertexData : NodeV => vertexData.typ
           case _ : WireV => "wire"
         }
 
@@ -512,10 +510,10 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
         val data = vd match {
           case vertexData : NodeV => vertexData.value
-          case _ => ""
+          case _ => JsonString("")
         }
 
-        p.println("\t\t\\node [style=" + style +"] (" + number + ") at " + coord + " {" + data +"};")
+        p.println("\t\t\\node [style=" + style +"] (" + number + ") at " + coord + " {" + data.stringValue +"};")
       }
 
       /* fill in corners of !-boxes */
