@@ -4,8 +4,8 @@ import java.io.File
 import java.awt.event.InputEvent
 
 object Globals {
-  val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
-  val CommandDownMask = if (CommandMask == InputEvent.META_MASK) InputEvent.META_DOWN_MASK
+  def CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
+  def CommandDownMask = if (CommandMask == InputEvent.META_MASK) InputEvent.META_DOWN_MASK
                         else InputEvent.CTRL_DOWN_MASK
   def isMacBundle: Boolean = new File("osx-bundle").exists
   def isLinuxBundle: Boolean = new File("linux-bundle").exists

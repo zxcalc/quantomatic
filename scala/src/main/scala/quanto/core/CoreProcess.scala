@@ -28,13 +28,16 @@ class CoreProcess {
       val pb = new ProcessBuilder(CoreProcess.polyExe, "--ideprotocol")
       println("use poly: " + new File(CoreProcess.polyExe).getCanonicalPath)
 
-      if (!Globals.isMacBundle && !Globals.isLinuxBundle && !Globals.isWindowsBundle) {
+      if (!Globals.isMacBundle){//} && !Globals.isLinuxBundle && !Globals.isWindowsBundle) {
         pb.directory(new File(quantoHome + "/core"))
       }
 
+
       pb.redirectErrorStream(true)
-      CoreProcess.logger.log(Level.FINEST, "Starting {0}...", CoreProcess.polyExe)
+      //CoreProcess.logger.log(Level.FINEST, "Starting {0}...", CoreProcess.polyExe)
       backend = pb.start()
+
+      println("core started")
 
       // wire up console I/O
       consoleInput = backend.getOutputStream

@@ -63,6 +63,8 @@ class Core extends Actor with ActorLogging {
   private var mlCompileId = 100
   private var workingDir = "."
 
+  log.info("running core process")
+
   coreProcess.startCore()
   reader = context.actorOf(Props { new CoreReader(coreProcess) }, name = "core_reader")
   writer = context.actorOf(Props { new CoreWriter(coreProcess) }, name = "core_writer")
