@@ -13,6 +13,9 @@ open JsonControllerUtil
 
 structure JobTable = NameTable(structure Dom = IntName)
 
+structure Log : LOG = Log(val init_level = 0)
+
+
 fun json_error rid code msg =
   Json.mk_object [
     ("request_id", Json.Int rid),
@@ -48,22 +51,28 @@ end
 fun version _ = Json.String "2.1"
 
 fun dispatch systemf rid json = let
+  val _ = Log.log 2 "(core) dispatch\n"
   val controller = arg_str json "controller"
   val module = arg_str json "module"
   val function = arg_str json "function"
+  val _ = Log.log 2 ("(core) got dispatch " ^ controller ^ "::" ^ module ^ "::" ^ function ^ "\n")
   val json_input = case optarg_json json "input" of SOME x => x | NONE => Json.mk_object []
-in
-  Json.mk_object [
-    ("request_id", Json.Int rid),
-    ("success",    Json.Bool true),
-    ("output",     if controller = "!!" then
-                     (case module of "system" => systemf function json_input
-                                   | _ => raise user_exn "Module for !! controller must be 'system'.")
-                   else JsonControllerRegistry.dispatch ((controller,module,function),json_input))
-  ]
-end
-handle user_exn msg => json_error rid 0 msg
+  val json_output =
+    Json.mk_object [
+      ("request_id", Json.Int rid),
+      ("success",    Json.Bool true),
+      ("output",     if controller = "!!" then
+                       (case module of "system" => systemf function json_input
+                                     | _ => raise user_exn "Module for !! controller must be 'system'.")
+                     else JsonControllerRegistry.dispatch ((controller,module,function),json_input))
+    ]
+    handle user_exn msg => json_error rid 0 msg
      | protocol_exn msg => json_error rid ~1 msg
+  val _ = Log.log 2 "(core) dispatch worker finished\n"
+in
+  json_output
+end
+
 
 
 fun run_in_textstreams (instream, outstream) =
@@ -120,40 +129,47 @@ let
     | system _ _ = raise user_exn ("Unrecognized system function. (options: help, kill, version)")
   
   fun push_output json = (
-    (*TextIO.output(outstream,"push_output: waiting for lock\n");*)
+    Log.log 2 "(core) push_output: waiting for lock\n";
     Mutex.lock output_lock;
-    (*TextIO.output(outstream,"push_output: obtained lock\n");*)
+    Log.log 2 "(core) push_output: obtained lock\n";
     output_buffer := (json :: !output_buffer);
     ConditionVar.broadcast has_output;
-    Mutex.unlock output_lock(*;
-    TextIO.output(outstream,"push_output: released lock\n")*)
+    Mutex.unlock output_lock;
+    Log.log 2 "(core) push_output: released lock\n"
   )
   fun flush_all buf = fold_rev (fn json => fn () => TextIO.output (outstream, Json.encode json)) buf ()
   fun output_loop () = (
-    (*TextIO.output(outstream,"output_loop: waiting for lock\n");*)
+    Log.log 2 "(core) waiting for lock on output loop\n";
     Mutex.lock output_lock;
-    (*TextIO.output(outstream,"output_loop: obtained lock\n");*)
+    Log.log 2 "(core) obtained lock on output loop\n";
     if List.null (!output_buffer) then ConditionVar.wait (has_output, output_lock) else ();
+    if List.null (!output_buffer) then () else Log.log 2 "writing output";
     flush_all (!output_buffer);
     output_buffer := [];
     Mutex.unlock output_lock;
-    (*TextIO.output(outstream,"output_loop: released lock\n");*)
+    Log.log 2 "(core) released lock on output loop\n";
     TextIO.flushOut outstream;
     output_loop ()
   )
 
   fun input_loop src =
   let
+    val _ = Log.log 2 "(core) waiting for request on input loop\n"
     val (json_list, src') = Source.get src
+    val _ = Log.log 2 "(core) got request\n"
     val json = case json_list of [x] => x | _ =>
       raise protocol_exn "Expected: exactly one JSON object"
     val rid = arg_int json "request_id"
-    val _ = Synchronized.change job_table (fn tab =>
+    val _ = Log.log 2 "(core) preparing to update job table\n"
+    val _ = Synchronized.change job_table (fn tab => (
+      Log.log 2 "(core) updating job table\n";
       if IntName.NSet.contains (JobTable.get_dom_set tab) rid
       then (push_output (json_error rid 0 "Duplicate request ID"); tab)
       else
-        let val worker = Future.fork (fn () => dispatch system rid json)
-        in Future.fork (fn () => (
+        let
+          val _ = Log.log 2 "(core) forking new worker\n"
+          val worker = Future.fork (fn () => (Log.log 2 "(core) worker forked\n"; dispatch system rid json))
+        in Thread.fork (fn () => (
               let
                 val json = PolyML.exception_trace (fn () => (
                              Future.join worker
@@ -163,13 +179,13 @@ let
                 push_output json; 
                 Synchronized.change job_table (JobTable.delete rid)
               end
-           ));
+           ),[]);
            JobTable.add (rid,worker) tab
-        end)
+        end))
   in input_loop src'
   end
 in (
-    Future.fork output_loop;
+    Log.log 2 "(core) forking output loop\n"; Thread.fork (output_loop,[]);
     input_loop (Json.json_source instream)
    )
 end

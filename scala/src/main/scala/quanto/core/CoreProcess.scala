@@ -41,7 +41,7 @@ class CoreProcess {
 
       // wire up console I/O
       consoleInput = backend.getOutputStream
-      consoleOutput = new SignallingStreamRedirector(backend.getInputStream)
+      consoleOutput = new SignallingStreamRedirector(backend.getInputStream,Some(System.out))
       consoleOutput.start()
 
       // synchronous ML compilation using a condition variable
@@ -86,7 +86,7 @@ class CoreProcess {
       stdin = new Json.Output(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream)))
       stdout = new Json.Input(new BufferedReader(new InputStreamReader(socket.getInputStream)))
       
-      CoreProcess.logger.log(Level.FINEST, "{0} started successfully", CoreProcess.polyExe)
+      println(CoreProcess.polyExe + " started successfully")
     } catch {
       case e : IOException =>
         CoreProcess.logger.log(Level.SEVERE,
