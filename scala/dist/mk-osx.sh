@@ -8,6 +8,9 @@ BUNDLE=$APP/Contents
 
 rm -rf $APP
 
+echo Rebuilding the core heap...
+(cd ../core; ../scala/dist/osx-dist/poly --use build_heap.ML)
+
 echo Running SBT...
 sbt appbundle
 

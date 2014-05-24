@@ -5,6 +5,11 @@
 
 BUNDLE=target/QuantoDerive
 
+# Rebuild the core heap
+echo Rebuilding the core heap...
+(cd ../core; ../scala/dist/linux-dist/poly --use build_heap.ML)
+
+
 mkdir -p $BUNDLE/jars
 mkdir -p $BUNDLE/bin
 

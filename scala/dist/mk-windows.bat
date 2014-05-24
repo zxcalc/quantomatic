@@ -13,6 +13,11 @@ REM a generic linux bundle.
 type nul >> %BUNDLE%\windows-bundle
 copy dist\ml.xml %BUNDLE%
 
+echo Rebuilding core heap...
+cd ..\core
+..\scala\dist\windows-dist\poly.exe --use build_heap.ML
+cd ..\scala
+
 echo Running SBT...
 call sbt package
 
