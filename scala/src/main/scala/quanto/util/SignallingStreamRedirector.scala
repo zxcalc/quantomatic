@@ -29,7 +29,7 @@ case class StreamMessage(parts: MessagePart*) {
   }
 
   def writeTo(out: OutputStream) {
-    writeTo(new OutputStreamWriter(out))
+    writeTo(new OutputStreamWriter(out, "ISO-8859-1"))
   }
 
   def stripCodes = parts.filter{ case _: CodePart => false ; case _ => true }

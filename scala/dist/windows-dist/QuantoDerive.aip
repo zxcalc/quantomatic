@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<DOCUMENT Type="Advanced Installer" CreateVersion="11.0" version="11.0" Modules="simple" RootPath="." Language="en" Id="{6220F12D-600C-49A6-84D3-25E6A6C175E6}">
+<DOCUMENT Type="Advanced Installer" CreateVersion="11.0" version="11.2" Modules="simple" RootPath="." Language="en" Id="{6220F12D-600C-49A6-84D3-25E6A6C175E6}">
   <COMPONENT cid="caphyon.advinst.msicomp.MsiPropsComponent">
     <ROW Property="AI_BITMAP_DISPLAY_MODE" Value="0"/>
     <ROW Property="ALLUSERS" Value="1"/>
@@ -7,10 +7,10 @@
     <ROW Property="ARPPRODUCTICON" Value="quantoderive.exe" Type="8"/>
     <ROW Property="ARPURLINFOABOUT" Value="http://quantomatic.github.io/"/>
     <ROW Property="Manufacturer" Value="Quantomatic"/>
-    <ROW Property="ProductCode" Value="1033:{95A16B60-32CD-4C6C-830C-BE040483AD0E} " Type="16"/>
+    <ROW Property="ProductCode" Value="1033:{4A02FD4E-EEBE-4E97-8EAA-846DBC55451A} " Type="16"/>
     <ROW Property="ProductLanguage" Value="1033"/>
     <ROW Property="ProductName" Value="QuantoDerive"/>
-    <ROW Property="ProductVersion" Value="0.2.0" Type="32"/>
+    <ROW Property="ProductVersion" Value="0.3.1" Type="32"/>
     <ROW Property="SecureCustomProperties" Value="OLDPRODUCTS;AI_NEWERPRODUCTFOUND"/>
     <ROW Property="UpgradeCode" Value="{EEBC04E2-4BE2-42F4-B9EA-09453144B787}"/>
     <ROW Property="WindowsType9X" MultiBuildValue="DefaultBuild:Windows 9x/ME" ValueLocId="-"/>
@@ -121,7 +121,7 @@
     <ROW Dialog_="VerifyReadyDlg" Control_="Back" Event="NewDialog" Argument="PatchWelcomeDlg" Condition="AI_PATCH" Ordering="203"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiCreateFolderComponent">
-    <ROW Directory_="SHORTCUTDIR" Component_="SHORTCUTDIR"/>
+    <ROW Directory_="SHORTCUTDIR" Component_="SHORTCUTDIR" ManualDelete="false"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiCustActComponent">
     <ROW Action="AI_DOWNGRADE" Type="19" Target="4010"/>
