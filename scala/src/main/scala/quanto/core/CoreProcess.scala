@@ -28,7 +28,7 @@ class CoreProcess {
       val pb = new ProcessBuilder(CoreProcess.polyExe, "--ideprotocol")
       println("use poly: " + new File(CoreProcess.polyExe).getCanonicalPath)
 
-      if (!Globals.isMacBundle){//} && !Globals.isLinuxBundle && !Globals.isWindowsBundle) {
+      if (!Globals.isMacBundle && !Globals.isLinuxBundle && !Globals.isWindowsBundle) {
         pb.directory(new File(quantoHome + "/core"))
       }
 
@@ -47,7 +47,7 @@ class CoreProcess {
       // synchronous ML compilation using a condition variable
       val compileLock = new ReentrantLock
       val compileDone = compileLock.newCondition()
-      def compileWait() { compileLock.lock(); compileDone.await(); compileLock.unlock() }
+      def compileWait() { compileLock.lock(); compileDone.await(); compileLock.unlock(); Thread.sleep(100) }
       def compileSignal() { compileLock.lock(); compileDone.signal(); compileLock.unlock() }
 
       val sm = StreamMessage.compileMessage(0, "init", "use \"run_protocol.ML\";\n")
