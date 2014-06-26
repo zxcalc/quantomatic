@@ -18,8 +18,8 @@ object GraphEditor extends SimpleSwingApplication {
   // val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("strategy_graph.qtheory"))
   // val StringVETheory = Theory.fromJson(Json.parse(thyFile))
   //val StringVETheory = Theory.DefaultTheory
-  println("loading theory " + Theory.getClass.getResource("strategy_graph.qtheory"))
-  val thyFile = new Json.Input(Theory.getClass.getResourceAsStream("strategy_graph.qtheory"))
+  println("loading theory " + Theory.getClass.getResource("red_green.qtheory"))
+  val thyFile = new Json.Input(Theory.getClass.getResourceAsStream("red_green.qtheory"))
   val thy = Theory.fromJson(Json.parse(thyFile))
 
   val graphEditPanel = new GraphEditPanel(thy, readOnly = false)
@@ -158,7 +158,7 @@ object GraphEditor extends SimpleSwingApplication {
   }
 
   def top = new MainFrame {
-    title = "Tinker Editor - " + graphDocument.titleDescription
+    title = "QGraph Editor - " + graphDocument.titleDescription
     contents = graphEditPanel
 
     size = new Dimension(800,800)
@@ -170,7 +170,7 @@ object GraphEditor extends SimpleSwingApplication {
     listenTo(graphDocument)
     reactions += {
       case DocumentChanged(_)|DocumentSaved(_) =>
-        title = "Tinker Editor - " + graphDocument.titleDescription
+        title = "QGraph Editor - " + graphDocument.titleDescription
     }
   }
 }

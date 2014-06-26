@@ -171,4 +171,3 @@ object JsonConsole extends SimpleSwingApplication {
     println("console fired up")
   }
 }
-
