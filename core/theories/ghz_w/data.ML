@@ -5,7 +5,7 @@ struct
   type psubst = unit
   type subst  = psubst
   
-  datatype nvdata = GHZ | W | TICK | ZERO
+  datatype nvdata = GHZ | W | TICK | ZERO | GHZ2
   val default_nvdata = GHZ
   fun nvdata_eq (a,b) = a = b
   
@@ -14,11 +14,13 @@ struct
   
   fun pretty_nvdata GHZ  = Pretty.str "GHZ"
     | pretty_nvdata W    = Pretty.str "W"
+    | pretty_nvdata GHZ2  = Pretty.str "GHZ2"
     | pretty_nvdata TICK = Pretty.str "TICK"
     | pretty_nvdata ZERO = Pretty.str "ZERO"
   
   fun default_nvdata_of_typestring "GHZ"  = GHZ
     | default_nvdata_of_typestring "W"    = W
+    | default_nvdata_of_typestring "GHZ2" = GHZ2
     | default_nvdata_of_typestring "TICK" = TICK
     | default_nvdata_of_typestring "ZERO" = ZERO
     | default_nvdata_of_typestring s = raise unknown_typestring_exp s

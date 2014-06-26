@@ -71,6 +71,7 @@ EXAMPLES:
  */
 
 object JsonConsole extends SimpleSwingApplication {
+  //val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
   val sys = ActorSystem("QuantoConsole")
   val core = sys.actorOf(Props { new Core }, "core")
   implicit val timeout = Timeout(1.day)
@@ -167,6 +168,7 @@ object JsonConsole extends SimpleSwingApplication {
       contents += new ScrollPane(JsonInput)
       contents += new ScrollPane(JsonOutput)
     }
+    println("console fired up")
   }
 }
 

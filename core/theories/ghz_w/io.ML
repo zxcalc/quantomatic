@@ -13,6 +13,7 @@ structure GHZW_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
           (case to_lower t
              of "ghz"  => GHZW_Data.GHZ
               | "w"    => GHZW_Data.W
+              | "ghz2" => GHZW_Data.GHZ2
               | "tick" => GHZW_Data.TICK
               | "zero" => GHZW_Data.ZERO
               | _      => raise bad_input_exp ("Unknown vertex type "^t,""))
@@ -29,6 +30,7 @@ structure GHZW_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
     type data = nvdata
     fun typestr GHZW_Data.GHZ  = "GHZ"
       | typestr GHZW_Data.W    = "W"
+      | typestr GHZW_Data.GHZ2 = "GHZ2"
       | typestr GHZW_Data.TICK = "TICK"
       | typestr GHZW_Data.ZERO = "ZERO"
     fun output d = Json.mk_record [("type",typestr d)]
@@ -43,6 +45,8 @@ structure GHZW_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
           "[style=filled,fillcolor=white,fontcolor=black,shape=circle]"
       | style_for_ivertex_data GHZW_Data.W =
           "[style=filled,fillcolor=black,fontcolor=white,shape=circle]"
+      | style_for_ivertex_data GHZW_Data.GHZ2 =
+          "[style=filled,fillcolor=red,fontcolor=white,shape=circle]"
       | style_for_ivertex_data GHZW_Data.TICK =
           "[style=filled,fillcolor=red,fontcolor=white,shape=diamond]"
       | style_for_ivertex_data GHZW_Data.ZERO =

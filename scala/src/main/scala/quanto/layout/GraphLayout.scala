@@ -9,7 +9,10 @@ abstract class GraphLayout {
   private var _graph: Graph = null
   def graph = _graph
 
-  val lockedVertices = collection.mutable.Set[VName]()
+  protected val lockedVertices = collection.mutable.Set[VName]()
+
+  def lockVertex(v: VName) { lockedVertices += v }
+  def clearLockedVertices() { lockedVertices.clear() }
 
   private val _coords = collection.mutable.Map[VName,(Double,Double)]()
   def setCoord(v: VName, p:(Double,Double)) {
@@ -33,8 +36,8 @@ abstract class GraphLayout {
     _graph = _coords.foldLeft(graph) { case(g,(v,c)) => g.updateVData(v) { _.withCoord(c) } }
   }
 
-  def layout(g: Graph): Graph = {
-    initialize(g)
+  def layout(g: Graph, randomCoords: Boolean = true): Graph = {
+    initialize(g, randomCoords)
     compute()
     updateGraph()
 

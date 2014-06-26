@@ -4,10 +4,12 @@ import java.io.File
 import quanto.data._
 import quanto.util.json.Json
 import scala.swing.Component
+import quanto.util.FileHelper.printToFile
 
 class RuleDocument(val parent: Component, theory: Theory) extends Document {
   val description = "Rule"
   val fileExtension = "qrule"
+  var derivation: Option[String] = None
 
   object lhsRef extends HasGraph {
     protected var gr = Graph(theory)
@@ -15,6 +17,15 @@ class RuleDocument(val parent: Component, theory: Theory) extends Document {
 
   object rhsRef extends HasGraph {
     protected var gr = Graph(theory)
+  }
+
+  def rule = Rule(lhsRef.graph, rhsRef.graph, derivation)
+  def rule_=(r: Rule) {
+    lhsRef.graph = r.lhs
+    rhsRef.graph = r.rhs
+    derivation = r.derivation
+    lhsRef.publish(GraphReplaced(lhsRef, clearSelection = true))
+    rhsRef.publish(GraphReplaced(rhsRef, clearSelection = true))
   }
 
   private var storedRule: Rule = Rule(Graph(theory), Graph(theory))
@@ -27,13 +38,14 @@ class RuleDocument(val parent: Component, theory: Theory) extends Document {
     val r = Rule.fromJson(json, theory)
     lhsRef.graph = r.lhs
     rhsRef.graph = r.rhs
+    derivation = r.derivation
     lhsRef.publish(GraphReplaced(lhsRef, clearSelection = true))
     rhsRef.publish(GraphReplaced(rhsRef, clearSelection = true))
     storedRule = r
   }
 
   protected def saveDocument(f: File)  {
-    val r = Rule(lhsRef.graph, rhsRef.graph)
+    val r = Rule(lhsRef.graph, rhsRef.graph, derivation)
     val json = Rule.toJson(r, theory)
     json.writeTo(f)
     storedRule = r
@@ -46,5 +58,24 @@ class RuleDocument(val parent: Component, theory: Theory) extends Document {
 
     lhsRef.publish(GraphReplaced(lhsRef, clearSelection = true))
     rhsRef.publish(GraphReplaced(rhsRef, clearSelection = true))
+  }
+
+  override protected def exportDocument(f: File) = {
+    val (lhsView, rhsView) = parent match {
+      case component : RuleEditPanel => (component.lhsView, component.rhsView)
+      case _ => throw new Exception(
+        "Exporting from this component is not supported. Please report bug"
+      )
+    }
+
+    lhsView.exportView(f, false)
+
+    printToFile(f, true)( p => {
+      p.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+      p.println("=")
+      p.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+    })
+
+    rhsView.exportView(f, true)
   }
 }

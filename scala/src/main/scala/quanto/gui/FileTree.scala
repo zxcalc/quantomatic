@@ -8,7 +8,6 @@ import java.io.{FilenameFilter, File}
 import javax.swing.event._
 import java.awt.BorderLayout
 import quanto.util._
-import java.nio.file.FileSystems
 import java.awt.event.{MouseEvent, MouseAdapter}
 import scala.swing.event.Event
 
@@ -55,31 +54,26 @@ class FileTree extends BorderPanel {
     }
   }
 
-  var pollThread: Option[Thread] = None
+  var pollThread: Option[DirectoryWatcher] = None
 
   def root_=(rootDir: Option[String]) {
     rootDir match {
       case Some(dir) =>
+        pollThread.map { _.stopPolling() }
         fileTreeModel.root = FileNode(new File(dir))
-
-        pollThread.map { _.interrupt() }
-        val rootPath = FileSystems.getDefault.getPath(dir)
-
-        val watcher = DirectoryWatcher(rootPath, recursive = true){ e =>
-          SwingUtilities.invokeLater(new Runnable {
-            def run() = refreshTree()
-          })
-        }
-
-        val watcherThread = new Thread(watcher)
-        watcherThread.start()
-        pollThread = Some(watcherThread)
 
         refreshTree(rootChanged = true)
         fileTree.expandRow(0)
+
+        val watcher = DirectoryWatcher(dir){ e =>
+          Swing.onEDT { refreshTree() }
+        }
+
+        pollThread = Some(watcher)
+        watcher.start()
       case None =>
         fileTreeModel.root = EmptyNode
-        refreshTree()
+        refreshTree(rootChanged = true)
     }
   }
 

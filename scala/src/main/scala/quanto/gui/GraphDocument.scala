@@ -2,10 +2,8 @@ package quanto.gui
 
 import java.io.File
 import quanto.data._
-import quanto.util.json.{JsonParseException, Json}
+import quanto.util.json.Json
 import scala.swing.Component
-import quanto.layout.ForceLayout
-import quanto.layout.constraint._
 
 
 class GraphDocument(val parent: Component, theory: Theory) extends Document with HasGraph {
@@ -43,21 +41,13 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
     publish(GraphReplaced(this, clearSelection = true))
   }
 
-  def loadGraph(json : Json) {
-    try {
-      // force to layout the graph before drawing
-      //val lo = new ForceLayout with Clusters
-      val layout = new ForceLayout with IRanking with VerticalBoundary with Clusters
-      graph = layout.layout(Graph.fromJson(json, theory))
-      publish(GraphReplaced(this, clearSelection = true))
-
-    } catch {
-      case _: JsonParseException => sys.error("load - mal-formed JSON")
-      case _: GraphLoadException => sys.error("load - invalid graph")
+  override protected def exportDocument(f: File) = {
+    val view = parent match {
+      case component : GraphEditPanel => component.graphView
+      case _ => throw new Exception(
+        "Exporting from this component is not supported. Please report bug"
+      )
     }
-  }
-
-  def exportJson () =  {
-    Graph.toJson(graph, theory)
+    view.exportView(f, false)
   }
 }

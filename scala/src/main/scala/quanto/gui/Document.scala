@@ -31,6 +31,12 @@ abstract class Document extends Publisher {
   protected def loadDocument(f: File)
   protected def parent : Component
 
+  /**
+   * Given a file, export the document to that
+   * file (or directory) as tikz diagram(s) where applicable
+   */
+  protected def exportDocument(f: File) = { }
+
   protected def resetDocumentInfo() {
     undoStack.clear()
     file = None
@@ -83,11 +89,46 @@ abstract class Document extends Publisher {
   def titleDescription =
     file.map(f => f.getName).getOrElse("untitled") + (if (unsavedChanges) "*" else "")
 
+  /**
+   * Try to save a document in current file if it exists and prompt the
+   * SaveAs dialog if it doesn't
+   * @return true if the file was saved and false if it wasn't as per user
+   * interaction
+   */
+  def trySave() = {
+    file match {
+      case Some(_) => save()
+      case None => showSaveAsDialog()
+    }
+
+    /* see if saving was successful */
+    file match {
+      case Some(_) => true
+      case None => false
+    }
+  }
+
+  /**
+   * Show a dialog asking the user whether to save or discard
+   * any changes before closing the document, or to cancel closing
+   * the document
+   * @return true if the document can be closed, false otherwise
+   * (as per user decission)
+   */
   def promptUnsaved() = {
     if (unsavedChanges) {
-      Dialog.showConfirmation(
+      val choice = Dialog.showOptions(
         title = "Unsaved changes",
-        message = "There are unsaved changes, do you wish to continue?") == Dialog.Result.Yes
+        message = "Do you want to save your changes or discard them?",
+        entries = "Save" :: "Discard" :: "Cancel" :: Nil,
+        initial = 0
+      )
+
+      // scala swing dialogs implementation is dumb, here's what I found :
+      // Result(0) = Save, Result(1) = Discard, Result(2) = Cancel
+
+      if (choice == Dialog.Result(0)) trySave()
+      else choice == Dialog.Result(1)
     } else true
   }
 
@@ -110,7 +151,6 @@ abstract class Document extends Publisher {
     val dir = if (f.isDirectory) f.getPath
               else f.getParent
     if (dir != null) {
-//      println("Setting previous dir to: " + dir)
       val prefs = Preferences.userRoot().node(this.getClass.getName)
       prefs.put("previousDir", dir)
     }
@@ -130,7 +170,30 @@ abstract class Document extends Publisher {
     chooser.fileFilter = new FileNameExtensionFilter("Quantomatic " + description + " File (*." + fileExtension + ")", fileExtension)
     chooser.showSaveDialog(parent) match {
       case FileChooser.Result.Approve =>
-        if (promptExists(chooser.selectedFile)) save(Some(chooser.selectedFile))
+        val p = chooser.selectedFile.getAbsolutePath
+        val file = new File(if (p.endsWith("." + fileExtension)) p else p + "." + fileExtension)
+        if (promptExists(file)) save(Some(file))
+      case _ =>
+    }
+  }
+
+  /**
+   * Shows a dialog allowing the user to choose a file
+   * to which the document will be exported as a tikz
+   * diagram(s)
+   */
+  def export(rootDir: Option[String] = None) {
+    val chooser = new FileChooser()
+    chooser.peer.setCurrentDirectory(rootDir match {
+      case Some(d) => new File(d)
+      case None => previousDir
+    })
+    chooser.fileFilter = new FileNameExtensionFilter("Quantomatic " + description + " File (*.tikz)", "tikz")
+    chooser.showSaveDialog(parent) match {
+      case FileChooser.Result.Approve =>
+        val p = chooser.selectedFile.getAbsolutePath
+        val file = new File(if (p.endsWith(".tikz")) p else p + ".tikz")
+        if (promptExists(file)) exportDocument(file)
       case _ =>
     }
   }

@@ -14,21 +14,21 @@ class DeriveLayout {
 
     while (steps.size < derivation.steps.size) derivation.steps.foreach { case (sname, step) =>
       // try to pull a parent that has already been processed, or root if step has no parent
-      val parentOpt = derivation.parent.get(sname) match {
+      val parentOpt = derivation.parentMap.get(sname) match {
         case Some(p) => steps.get(p).map(_.graph)
         case None => Some(derivation.root)
       }
 
       parentOpt.map { parent: Graph =>
         var g = step.graph
-        layoutProc.lockedVertices.clear()
+        layoutProc.clearLockedVertices()
 
         // transport and lock all the coords from parent (NOTE: this assumes that vertices added with rule application
         //  are fresh for parent)
         for (v <- parent.verts) {
           if (g.verts.contains(v)) {
             g = g.updateVData(v) { _.withCoord(parent.vdata(v).coord) }
-            layoutProc.lockedVertices += v
+            layoutProc.lockVertex(v)
           }
         }
 

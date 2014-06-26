@@ -99,10 +99,11 @@ object GraphEditor extends SimpleSwingApplication {
     }
   }
 
-  val EditMenu = new Menu("Edit") {
+  val EditMenu = new Menu("Edit") { menu =>
     mnemonic = Key.E
 
     val UndoAction = new Action("Undo") with Reactor {
+      menu.contents += new MenuItem(this) { mnemonic = Key.U }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask))
       enabled = false
       def apply() { graphDocument.undoStack.undo() }
@@ -115,6 +116,7 @@ object GraphEditor extends SimpleSwingApplication {
     }
 
     val RedoAction = new Action("Redo") with Reactor {
+      menu.contents += new MenuItem(this) { mnemonic = Key.R }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask | Key.Modifier.Shift))
       enabled = false
       def apply() { graphDocument.undoStack.redo() }
@@ -126,14 +128,33 @@ object GraphEditor extends SimpleSwingApplication {
       }
     }
 
-    val LayoutAction = new Action("Layout Graph") with Reactor {
+    contents += new Separator()
+
+    val CutAction = new Action("Cut") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.U }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_X, CommandMask))
+      def apply() { graphEditController.cutSubgraph() }
+    }
+
+    val CopyAction = new Action("Copy") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.C }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_C, CommandMask))
+      def apply() { graphEditController.copySubgraph() }
+    }
+
+    val PasteAction = new Action("Paste") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.P }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_V, CommandMask))
+      def apply() { graphEditController.pasteSubgraph() }
+    }
+
+    contents += new Separator()
+
+    val LayoutAction = new Action("Layout Graph") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.L }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
       def apply() { graphEditController.layoutGraph() }
     }
-
-    contents += new MenuItem(UndoAction) { mnemonic = Key.U }
-    contents += new MenuItem(RedoAction) { mnemonic = Key.R }
-    contents += new MenuItem(LayoutAction) { mnemonic = Key.L }
   }
 
   def top = new MainFrame {

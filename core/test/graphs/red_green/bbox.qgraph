@@ -1,0 +1,1 @@
+{"bang_boxes":{"bx0":{"contents":["b0"]}},"wire_vertices":{"b0":{"annotation":{"boundary":true,"coord":[-0.22,-0.44]}}},"node_vertices":{"v0":{"data":{"type":"X","value":""},"annotation":{"coord":[-0.22,0.88]}}},"undir_edges":{"e0":{"src":"v0","tgt":"b0"}}}

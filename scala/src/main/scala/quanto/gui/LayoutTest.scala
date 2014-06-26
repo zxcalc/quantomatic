@@ -132,14 +132,21 @@ object LayoutTest extends SimpleSwingApplication {
 //  
 //  graphView.graph = Graph.random(20,20,1)
 
-  val layout = new ForceLayout with IRanking with VerticalBoundary with Clusters
-  //layout.alpha0 = 0.2
+  val layout = new ForceLayout with IRanking with Clusters
+//  layout.alpha0 = 2.0
 
   //layout.initialize(graphView.graph)
+
+  val t0 = System.currentTimeMillis()
+  graphView.graph = layout.layout(graphView.graph)
+  val t1 = System.currentTimeMillis()
+  println("time: " + (t1 - t0))
+  println("final alpha: " + layout.alpha)
+  println("final iteration: " + layout.iteration)
   var run = 0
   //var constraints = false
 
-  graphView.graph = layout.layout(graphView.graph)
+  //graphView.graph = layout.layout(graphView.graph)
 
   val timer = new javax.swing.Timer(10, new ActionListener {
     def actionPerformed(e: ActionEvent) {
@@ -164,6 +171,8 @@ object LayoutTest extends SimpleSwingApplication {
 //      if (run % 80 == 0) println()
     }
   })
+
+
 
   def top = new MainFrame {
     title = "GraphView"

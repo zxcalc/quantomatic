@@ -29,7 +29,7 @@ case class StreamMessage(parts: MessagePart*) {
   }
 
   def writeTo(out: OutputStream) {
-    writeTo(new OutputStreamWriter(out))
+    writeTo(new OutputStreamWriter(out, "ISO-8859-1"))
   }
 
   def stripCodes = parts.filter{ case _: CodePart => false ; case _ => true }
@@ -74,7 +74,7 @@ extends Thread("Signalling Stream Redirector") {
       case (_ :: IntPart(id) :: _) =>
         val msg = StreamMessage(msgParts: _*)
         listeners.synchronized {
-          listeners.remove(id).map { _.foreach( f => f(msg)) }
+          listeners.remove(id).map { _.reverse.foreach( f => f(msg)) }
         }
       case _ =>
         println("Got bad message: " + msgParts)

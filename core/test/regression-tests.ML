@@ -53,6 +53,43 @@ val _ = Testing.test "ruleset rewriting 2: ladder with red spider (rpt)" (fn () 
                 writeln "Got"; G.print new_graph;
                 raise ERROR "Rewriting gave wrong graph")
   in () end) ()
+
+
+  val bb_graph = "graphs/red_green/bbox.qgraph"
+        |> Json.read_file |> GraphJSON.input
+  val bb_rule = Rule.mk (bb_graph, bb_graph)
+
+  val bb_matches = MatchSearch.match bb_graph bb_graph
+  val _ = Testing.test "red-green !-graph should match itself" (fn () => (
+      if length (Seq.list_of bb_matches) >= 1 then ()
+      else raise ERROR "No matches found"
+    )) ()
+
+  val bb_rewrites = Rewriter.find_rewrites bb_rule bb_graph
+  val _ = Testing.test "red-green !-graph rule should match its own LHS" (fn () => (
+      if length (Seq.list_of bb_rewrites) >= 1 then ()
+      else raise ERROR "No matches found"
+    )) ()
+
+  val bb_graph = "graphs/red_green/gen-bialg-inst.qgraph"
+        |> Json.read_file |> GraphJSON.input
+  val bb_rule = Rule.mk (bb_graph, bb_graph)
+
+  val _ = PolyML.exception_trace (fn () => Seq.list_of bb_matches)
+
+  val bb_matches = MatchSearch.match bb_graph bb_graph
+  val _ = Testing.test "gen-bialg !-graph should match itself" (fn () => (
+      if length (Seq.list_of bb_matches) >= 1 then ()
+      else raise ERROR "No matches found"
+    )) ()
+
+
+  (*val bb_rewrites = Rewriter.find_rewrites bb_rule bb_graph
+  val _ = Testing.test "gen-bialg !-graph rule should match its own LHS" (fn () => (
+      if length (Seq.list_of bb_rewrites) >= 1 then ()
+      else raise ERROR "No matches found"
+    )) ()*)
+
 end
 
 (* GHZ/W *)

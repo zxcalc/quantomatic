@@ -1,16 +1,11 @@
 package quanto.gui
 
-import _root_.scala.Boolean
-import _root_.scala.Predef._
-import _root_.scala.swing.Button
-import _root_.scala.swing.Dialog
 import graphview.GraphView
 import quanto.data._
 import swing._
 import swing.event._
 import javax.swing.ImageIcon
 import quanto.util.swing.ToolBar
-import quanto.util.{SockJson,SockJsonError,SockJsonErrorType}
 
 case class MouseStateChanged(m : MouseState) extends Event
 
@@ -20,7 +15,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
   val VertexTypeSelect = new ComboBox(theory.vertexTypes.keys.toSeq :+ "<wire>") { enabled = false }
   val EdgeTypeLabel    = new Label("Edge Type:  ") { xAlignment = Alignment.Right; enabled = false }
   val EdgeTypeSelect   = new ComboBox(theory.edgeTypes.keys.toSeq) { enabled = false }
-  val EdgeDirected     = new CheckBox("directed") { selected = true; enabled = false }
+  val EdgeDirected     = new CheckBox("directed") { selected = false; enabled = false }
 
   // Bottom panel
   object BottomPanel extends GridPanel(1,5) {
@@ -29,7 +24,6 @@ class GraphEditControls(theory: Theory) extends Publisher {
   }
 
   trait ToolButton { var tool: MouseState = SelectTool() }
-  def setMouseState(m : MouseState) { publish(MouseStateChanged(m)) }
 
   val ge = GraphEditor.getClass
 
@@ -38,111 +32,102 @@ class GraphEditControls(theory: Theory) extends Publisher {
   val SelectButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("select-rectangular.png"), "Select")
     tool = SelectTool()
+    tooltip = "Select (S)"
     selected = true
   }
 
   val AddVertexButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-ellipse.png"), "Add Vertex")
     tool = AddVertexTool()
+    tooltip = "Add Vertex (V)"
   }
 
   val AddBoundaryButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-ellipse-b.png"), "Add Boundary")
     tool = AddBoundaryTool()
+    tooltip = "Add Boundary (I/O)"
   }
 
   val AddEdgeButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Add Edge")
     tool = AddEdgeTool()
+    tooltip = "Add Edge (E)"
   }
 
   val AddBangBoxButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-bbox.png"), "Add Bang Box")
     tool = AddBangBoxTool()
+    tooltip = "Add Bang Box (B)"
   }
 
   val GraphToolGroup = new ButtonGroup(SelectButton,
-                                       AddVertexButton,
-                                       AddBoundaryButton,
-                                       AddEdgeButton,
-                                       AddBangBoxButton
-                                      )
+    AddVertexButton,
+    AddBoundaryButton,
+    AddEdgeButton,
+    AddBangBoxButton)
 
-  val MainToolBar = new ToolBar {
-    contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton)
+  def setMouseState(m : MouseState) {
+    publish(MouseStateChanged(m))
+    m match {
+      case SelectTool() =>
+        VertexTypeLabel.enabled = false
+        VertexTypeSelect.enabled = false
+        EdgeTypeLabel.enabled = false
+        EdgeTypeSelect.enabled = false
+        EdgeDirected.enabled = false
+        GraphToolGroup.select(SelectButton)
+      case AddVertexTool() =>
+        VertexTypeLabel.enabled = true
+        VertexTypeSelect.enabled = true
+        EdgeTypeLabel.enabled = false
+        EdgeTypeSelect.enabled = false
+        EdgeDirected.enabled = false
+        GraphToolGroup.select(AddVertexButton)
+      case AddEdgeTool() =>
+        VertexTypeLabel.enabled = false
+        VertexTypeSelect.enabled = false
+        EdgeTypeLabel.enabled = true
+        EdgeTypeSelect.enabled = true
+        EdgeDirected.enabled = true
+        GraphToolGroup.select(AddEdgeButton)
+      case AddBangBoxTool() =>
+        VertexTypeLabel.enabled = false
+        VertexTypeSelect.enabled = false
+        EdgeTypeLabel.enabled = false
+        EdgeTypeSelect.enabled = false
+        EdgeDirected.enabled = false
+        GraphToolGroup.select(AddBangBoxButton)
+      case AddBoundaryTool() =>
+        VertexTypeLabel.enabled = true
+        VertexTypeSelect.enabled = true
+        EdgeTypeLabel.enabled = false
+        EdgeTypeSelect.enabled = false
+        EdgeDirected.enabled = false
+        GraphToolGroup.select(AddBoundaryButton)
+      case _ =>
+    }
   }
 
   GraphToolGroup.buttons.foreach(listenTo(_))
   reactions += {
     case ButtonClicked(t: ToolButton) =>
       setMouseState(t.tool)
-      t.tool match {
-        case SelectTool() =>
-          VertexTypeLabel.enabled = false
-          VertexTypeSelect.enabled = false
-          EdgeTypeLabel.enabled = false
-          EdgeTypeSelect.enabled = false
-          EdgeDirected.enabled = false
-        case AddVertexTool() =>
-          VertexTypeLabel.enabled = true
-          VertexTypeSelect.enabled = true
-          EdgeTypeLabel.enabled = false
-          EdgeTypeSelect.enabled = false
-          EdgeDirected.enabled = false
-        case AddEdgeTool() =>
-          VertexTypeLabel.enabled = false
-          VertexTypeSelect.enabled = false
-          EdgeTypeLabel.enabled = true
-          EdgeTypeSelect.enabled = true
-          EdgeDirected.enabled = true
-        case AddBangBoxTool() =>
-          VertexTypeLabel.enabled = false
-          VertexTypeSelect.enabled = false
-          EdgeTypeLabel.enabled = false
-          EdgeTypeSelect.enabled = false
-          EdgeDirected.enabled = false
-        case _ =>
-      }
-   // case ButtonClicked (ReLayoutButton) =>
-     // graphDocument.reLayout();     ???
-
   }
-}
 
-class EvalControls (theory: Theory, document: GraphDocument) extends Publisher {
-  /*
-*  a set of tools for evaluation, the event handlers are defined in reactions in the Eval Controllor
-* */
-  val ConnectButton = new Button("Connect")
-  val BacktrackButton = new Button("Backtrack")
-  val PrevButton = new Button("Prev")
-  val NextButton = new Button("Next")
-  val DisconnectButton = new Button("Finish")
-
-  def errorDlg (msg : String) = {
-    Dialog.showMessage(title = "Info", message = msg)
-  };
-
-  val evalController = new EvalController (
-    ConnectButton, DisconnectButton,
-    BacktrackButton, NextButton, PrevButton,
-    errorDlg, document
-  );
-
-  val EvalToolBar = new ToolBar {
-    contents += (ConnectButton, DisconnectButton, BacktrackButton, PrevButton, NextButton)
+  val MainToolBar = new ToolBar {
+    contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton)
   }
 }
 
 
 class GraphEditPanel(val theory: Theory, val readOnly: Boolean = false)
-  extends BorderPanel
-  with HasDocument
+extends BorderPanel
+with HasDocument
 {
 
   val document = new GraphDocument(this, theory)
-  //  def graph = document.graph
-  //  def graph_=(g: Graph) { document.graph = g }
+//  def graph = document.graph
+//  def graph_=(g: Graph) { document.graph = g }
 
   // GUI components
   val graphView = new GraphView(theory, document) {
@@ -151,23 +136,17 @@ class GraphEditPanel(val theory: Theory, val readOnly: Boolean = false)
   }
 
   val controls = new GraphEditControls(theory)
-  val eval_ctrl = new EvalControls (theory, document)
 
   // alias for graph_=, used in java code
-  //  def setGraph(g: Graph) { graph_=(g) }
+//  def setGraph(g: Graph) { graph_=(g) }
 
-  val graphEditController = new GraphEditController(graphView, readOnly) {
-    undoStack            = document.undoStack
-    vertexTypeSelect     = controls.VertexTypeSelect
-    edgeTypeSelect       = controls.EdgeTypeSelect
-    edgeDirectedCheckBox = controls.EdgeDirected
-  }
+  val graphEditController = new GraphEditController(graphView, document.undoStack, readOnly)
+  graphEditController.controlsOpt = Some(controls)
 
   val GraphViewScrollPane = new ScrollPane(graphView)
 
   if (!readOnly) {
-    add(new FlowPanel{contents += controls.MainToolBar; contents += eval_ctrl.EvalToolBar},
-          BorderPanel.Position.North)
+    add(controls.MainToolBar, BorderPanel.Position.North)
     add(controls.BottomPanel, BorderPanel.Position.South)
   }
 

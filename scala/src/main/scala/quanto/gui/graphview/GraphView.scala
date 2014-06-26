@@ -10,6 +10,9 @@ import math._
 import java.awt.geom.{AffineTransform, Line2D, Rectangle2D}
 import java.awt.Font
 import java.awt.font.TextLayout
+import java.io.File
+import quanto.util.FileHelper.printToFile
+import quanto.util.json.JsonString
 
 
 // a visual overlay for edge drawing
@@ -30,7 +33,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   var drawBBoxConnections = false
   var snapToGrid = false
   var gridMajor = 1.0
-  var gridSubs = 2
+  //var gridSubs = 4
   var showNames = true
   val highlights = collection.mutable.Set[Highlight]()
 
@@ -96,6 +99,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   def invalidateGraph(clearSelection: Boolean) {
     invalidateAllVerts()
     invalidateAllEdges()
+    invalidateAllBBoxes()
     if (clearSelection) {
       selectedVerts = Set[VName]()
       selectedEdges = Set[EName]()
@@ -105,6 +109,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
   private def drawGridLines(g: Graphics2D) {
     val origin = trans toScreen (0,0)
+    val gridSubs = if (zoom <= 0.15) 1 else if (zoom <= 0.6) 2 else 4
     val minor = (trans scaleToScreen gridMajor) / gridSubs.toDouble
 
     val iterations = List(
@@ -280,7 +285,32 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
     g.setStroke(new BasicStroke(1))
     var a = g.getColor
     for ((v, VDisplay(shape,color,label)) <- vertexDisplay) {
-      if (graph.vdata(v).isBoundary) g.setColor(Color.RED)
+
+      /* draw red line if vertex coordinates are within !-box rectangle
+       * but the vertex is not a member of the !-box and also write
+       * an explanatory text on the middle of the line
+       */
+      for ((b, bbd) <- bboxDisplay) {
+        if (!graph.contents(b).contains(v) && shape.intersects(bbd.rect)) {
+          val bbd_corner = bbd.corner
+          val shape_rec = shape.getBounds2D
+
+          val corner_x = bbd_corner.getMaxX
+          val corner_y = bbd_corner.getMaxY
+          val node_x = shape_rec.getCenterX
+          val node_y = shape_rec.getCenterY
+          g.setColor(Color.RED)
+          g.draw(new Line2D.Double(corner_x, corner_y, node_x, node_y))
+          val text_layout = new TextLayout("not in !-box",
+                                          VertexLabelFont,
+                                          g.getFontRenderContext)
+          val text_x = corner_x + (node_x - corner_x) / 2.0
+          val text_y = corner_y + (node_y - corner_y) / 2.0
+          text_layout.draw(g, text_x.toFloat, text_y.toFloat)
+        }
+      }
+
+      if (graph.vdata(v).isBoundary) g.setColor(Color.BLACK)
       else g.setColor(color)
 
       g.fill(shape)
@@ -294,7 +324,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
       if (showNames || graph.vdata(v).isBoundary) {
         a = g.getColor
         g.setFont(EdgeLabelFont)
-        g.setColor(Color.RED)
+        g.setColor(Color.BLACK)
 
         g.drawString(v.toString, px, py - 5)
         g.setColor(a)
@@ -427,6 +457,202 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
   def blockIncrement(visibleRect: Rectangle, orientation: Orientation.Value, direction: Int): Int = 50
   def unitIncrement(visibleRect: Rectangle, orientation: Orientation.Value, direction: Int): Int = 50
+
+  /**
+   * Export the current graph view into a tikzit-readable file
+   */
+  def exportView(f: File, append: Boolean) = {
+
+    /* Tikzit-compatible string representation of coordinate pair */
+    def coordToString(p : (Double, Double)) = {
+      "(" + p._1.toString + ", " + p._2.toString +")"
+    }
+
+    var min_max_init : Boolean = false
+    var minX : Double = 0.0
+    var maxX : Double = 0.0
+    var minY : Double = 0.0
+    var maxY : Double = 0.0
+
+    def min_max(p : (Double, Double)) {
+      if (min_max_init) {
+        minX = min(minX, p._1)
+        maxX = max(maxX, p._1)
+        minY = min(minY, p._2)
+        maxY = max(maxY, p._2)
+      }
+      else {
+        minX = p._1
+        maxX = p._1
+        minY = p._2
+        maxY = p._2
+        min_max_init = true
+      }
+    }
+
+    /* Output view to a tikzit-readable file */
+    printToFile(f, append)(p => {
+      p.println("\\begin{tikzpicture}[baseline={([yshift=-.5ex]current bounding box.center)}]")
+      p.println("\t\\begin{pgfonlayer}{nodelayer}")
+
+      /* fill in all vertices */
+      for ((vn,vd) <- graph.vdata) {
+        val style = vd match {
+          case vertexData : NodeV => vertexData.typ
+          case _ : WireV => "wire"
+        }
+
+        val number = vn.toString
+        val disp_rec = vertexDisplay(vn).shape.getBounds
+        val trans_coord = trans.fromScreen(disp_rec.getCenterX, disp_rec.getCenterY)
+        min_max(trans_coord)
+        val coord = coordToString(trans_coord)
+
+        val data = vd match {
+          case vertexData : NodeV => vertexData.value
+          case _ => JsonString("")
+        }
+
+        p.println("\t\t\\node [style=" + style +"] (" + number + ") at " + coord + " {" + data.stringValue +"};")
+      }
+
+      /* fill in corners of !-boxes */
+      for ((bbn,bbd) <- bboxDisplay) {
+        val number_ul = bbn.toString + "ul"
+        val trans_coord_ul = trans.fromScreen(bbd.rect.getMinX, bbd.rect.getMinY)
+        min_max(trans_coord_ul)
+        val coord_ul = coordToString(trans_coord_ul)
+        p.println("\t\t\\node [style=bbox] (" + number_ul + ") at " + coord_ul + " {};")
+
+        val number_ur = bbn.toString + "ur"
+        val trans_coord_ur = trans.fromScreen(bbd.rect.getMaxX, bbd.rect.getMinY)
+        min_max(trans_coord_ur)
+        val coord_ur = coordToString(trans_coord_ur)
+        p.println("\t\t\\node [style=none] (" + number_ur + ") at " + coord_ur + " {};")
+
+        val number_ll = bbn.toString + "ll"
+        val trans_coord_ll = trans.fromScreen(bbd.rect.getMinX, bbd.rect.getMaxY)
+        min_max(trans_coord_ll)
+        val coord_ll = coordToString(trans_coord_ll)
+        p.println("\t\t\\node [style=none] (" + number_ll + ") at " + coord_ll + " {};")
+
+        val number_lr = bbn.toString + "lr"
+        val trans_coord_lr = trans.fromScreen(bbd.rect.getMaxX, bbd.rect.getMaxY)
+        min_max(trans_coord_lr)
+        val coord_lr = coordToString(trans_coord_lr)
+        p.println("\t\t\\node [style=none] (" + number_lr + ") at " + coord_lr + " {};")
+      }
+
+      /* output 4 nodes used for padding*/
+      val pad_size = 1.0
+      minX -= pad_size
+      maxX += pad_size
+      minY -= pad_size
+      maxY += pad_size
+
+      p.println("\t\t\\node [style=none] (padl) at " + coordToString(minX, minY) + " {};")
+      p.println("\t\t\\node [style=none] (padr) at " + coordToString(maxX, maxY) + " {};")
+      p.println("\t\t\\node [style=none] (padu) at " + coordToString(minX, maxY) + " {};")
+      p.println("\t\t\\node [style=none] (padd) at " + coordToString(maxX, minY) + " {};")
+
+      p.println("\t\\end{pgfonlayer}")
+
+      p.println("\t\\begin{pgfonlayer}{edgelayer}")
+
+      /* fill in all graph edges */
+      for (edge_set <- graph.edgePartition) {
+        val edge_arr : Array[EName] = edge_set.toArray
+        val size = edge_arr.size
+        val canonical_source = graph.source(edge_arr(0)).toString
+        val canonical_target = graph.target(edge_arr(0)).toString
+
+        if (canonical_source != canonical_target) {
+          /* edges are between different nodes */
+
+          var start : Int = 0
+
+          /* if there's an odd number of edges between two nodes, draw a single straight edge */
+          if ((size % 2) == 1) {
+            val en = edge_arr(0)
+            val ed = graph.edata(en)
+            val style = if (ed.isDirected) "directed" else "simple"
+            p.println("\t\t\\draw [style=" + style + "] (" + graph.source(en).toString + ") to (" + graph.target(en).toString + ");" )
+            start = 1
+          }
+
+          val angle_diff = 180.0 / (size - start)
+          var angle_it = angle_diff
+          var right_left = "left="
+
+          /* draw the rest of the edges as arcs by setting the bend angle */
+          for (i <- start to size-1) {
+            val en = edge_arr(i)
+            val ed = graph.edata(en)
+            val style = if (ed.isDirected) "directed" else "simple"
+            val angle = angle_it.toString
+            val source = graph.source(en).toString
+            val target = graph.target(en).toString
+
+            /* alternate bending left or right */
+            if ((i-start) % 2 == 0) {
+              if (source == canonical_source) right_left = "left="
+              else right_left = "right="
+            }
+            else {
+              if (source == canonical_source) right_left = "right="
+              else right_left = "left="
+              angle_it += angle_diff
+            }
+
+            p.println("\t\t\\draw [style=" + style + ", bend " + right_left
+              + angle + "] (" + source + ") to (" + target + ");"
+            )
+          }
+        }
+        else {
+          /* edges have same source and target, so we need to output loops */
+
+          var looseness = 4.5
+          for (i <- 0 to size-1) {
+            val en = edge_arr(i)
+            val ed = graph.edata(en)
+            val style = if (ed.isDirected) "directed" else "simple"
+
+            p.println("\t\t\\draw [style=" + style + ", in=135, out=45, loop, looseness="
+              + looseness + "] (" + canonical_source + ") to (" + canonical_target + ");"
+            )
+
+            looseness += 3.0
+          }
+        }
+      }
+
+      /* fill in edges related to !-boxes */
+      for ((bbn, _) <- bboxDisplay) {
+
+        /* fill in edges connecting !-box corners */
+        val number_ul = bbn.toString + "ul.center"
+        val number_ur = bbn.toString + "ur.center"
+        val number_ll = bbn.toString + "ll.center"
+        val number_lr = bbn.toString + "lr.center"
+        p.println("\t\t\\draw [style=blue] (" + number_ul + ") to (" + number_ur + ");" )
+        p.println("\t\t\\draw [style=blue] (" + number_ul + ") to (" + number_ll + ");" )
+        p.println("\t\t\\draw [style=blue] (" + number_ll + ") to (" + number_lr + ");" )
+        p.println("\t\t\\draw [style=blue] (" + number_lr + ") to (" + number_ur + ");" )
+
+        /* draw edges indicating nested !-boxes */
+        graph.bboxParent.get(bbn) match {
+          case Some(bb_parent) => {
+            val parent_number_ul = bb_parent.toString + "ul.center"
+            p.println("\t\t\\draw [style=blue] (" + number_ul + ") to (" + parent_number_ul + ");" )
+          }
+          case None =>
+        }
+      }
+      p.println("\t\\end{pgfonlayer}")
+      p.println("\\end{tikzpicture}")
+    })
+  }
 }
 
 object GraphView {

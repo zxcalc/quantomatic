@@ -46,7 +46,7 @@ object VData {
 }
 
 /**
- * A class which represents node vertex data. 
+ * A class which represents node vertex data.
  * 
  * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/VData.scala Source code]]
  * @see [[https://github.com/Quantomatic/quantomatic/blob/integration/docs/json_formats.txt json_formats.txt]]
@@ -57,7 +57,7 @@ case class NodeV(
   theory: Theory = Theory.DefaultTheory) extends VData
 {
   /** Type of the vertex */
-  def typ = (data / "type").stringValue
+  val typ = (data / "type").stringValue
 
   def value = (data.getPath(theory.vertexTypes(typ).value.path)).stringValue
   def label = data.getOrElse("label",value).stringValue
@@ -126,7 +126,7 @@ case class WireV(
   theory: Theory = Theory.DefaultTheory) extends VData
 {
   def isWireVertex = true
-  def isBoundary = annotation.get("boundary") match { case Some(JsonBool(b)) => b; case None => false }
+  def isBoundary = annotation.get("boundary") match { case Some(JsonBool(b)) => b; case _ => false }
   def withCoord(c: (Double,Double)) =
     copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
 }

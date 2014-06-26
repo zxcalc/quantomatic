@@ -36,6 +36,7 @@ case class AddConsoleOutput(out: OutputStream) extends PolyConsoleMessage
 case class RemoveConsoleOutput(out: OutputStream) extends PolyConsoleMessage
 case class CompileML(fileName: Option[String], code: String)(val onComplete : StreamMessage => Any) extends PolyConsoleMessage
 case object InterruptML extends PolyConsoleMessage
+case class SetMLWorkingDir(dir: String) extends PolyConsoleMessage
 
 
 abstract class CallResponse
@@ -59,14 +60,17 @@ class Core extends Actor with ActorLogging {
   val listeners = collection.mutable.Map[Int, (ActorRef,CoreRequest)]()
   val activeRequests = collection.mutable.Set[Int]()
   private var requestId = 10
-  private var mlCompileId = 10
+  private var mlCompileId = 100
+  private var workingDir = "."
+
+  log.info("running core process")
 
   coreProcess.startCore()
   reader = context.actorOf(Props { new CoreReader(coreProcess) }, name = "core_reader")
   writer = context.actorOf(Props { new CoreWriter(coreProcess) }, name = "core_writer")
 
   val codeWrapper =
-    """PolyML.exception_trace (fn () => (use "%1$s"; TextIO.print ("\n<Success>\n")))"""
+    """PolyML.exception_trace (fn () => (OS.FileSys.chDir "%1s"; use "%2$s"; TextIO.print ("\n<Success>\n")))"""
 
 //  +
 //    """  handle SML90.Interrupt => TextIO.print ("\n<Interrupted>\n")"""+
@@ -77,9 +81,15 @@ class Core extends Actor with ActorLogging {
   def receive = {
     case req : CoreRequest =>
       //log.info("Request: " + req)
-      val json = req.json.setPath("$.request_id", JsonInt(requestId))
-      listeners += requestId -> (sender, req)
-      writer ! json
+      try {
+        val json = req.json.setPath("$.request_id", JsonInt(requestId))
+        listeners += requestId -> (sender, req)
+        writer ! json
+      } catch {
+        case e: JsonAccessException =>
+          log.error(e, "JsonAccessException in Core request: " + req.json.toString)
+      }
+
       requestId += 1
     case CoreResponse(rid, resp) =>
       //log.info("Response: " + resp)
@@ -89,6 +99,8 @@ class Core extends Actor with ActorLogging {
       }
     case StopCore =>
       log.info("shutting down")
+      reader ! PoisonPill
+      writer ! PoisonPill
       coreProcess.killCore(waitForExit = false)
     case AddConsoleOutput(out) =>
       coreProcess.consoleOutput.addOutputStream(out)
@@ -100,7 +112,7 @@ class Core extends Actor with ActorLogging {
       fw.write(msg.code)
       fw.write("\n")
       fw.close()
-      val code = codeWrapper.format(file.getAbsolutePath, mlCompileId)
+      val code = codeWrapper.format(workingDir.replace("\\","\\\\"), file.getAbsolutePath.replace("\\","\\\\"), mlCompileId)
 
       activeRequests.synchronized(activeRequests += mlCompileId)
       coreProcess.consoleOutput.addListener(mlCompileId)(msg.onComplete)
@@ -121,6 +133,8 @@ class Core extends Actor with ActorLogging {
         val sm = StreamMessage(CodePart('K'), IntPart(rid), CodePart('k'))
         sm.writeTo(coreProcess.consoleInput)
       }}
+    case SetMLWorkingDir(dir) =>
+      workingDir = dir
       //coreProcess.polyPid.map { p => Runtime.getRuntime.exec("kill -SIGINT " + p) }
 
     case x => log.warning("Unexpected message: " + x)

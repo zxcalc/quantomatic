@@ -51,7 +51,7 @@ trait VertexDisplayData { self: GraphView =>
       vertexDisplay(v) = data match {
         case vertexData : NodeV =>
           val style = vertexData.typeInfo.style
-          val text = vertexData.label
+          val text = vertexData.value.stringValue
             /*vertexData.typeInfo.value.typ match {
             case Theory.ValueType.String => vertexData.value
             case _ => ""
@@ -111,7 +111,12 @@ trait VertexDisplayData { self: GraphView =>
       }
     }
     
-    new Rectangle2D.Double(ulx, uly, lrx - ulx, lry - uly)
+    val bounds = new Rectangle2D.Double(ulx, uly, lrx - ulx, lry - uly)
+    val em = trans.scaleToScreen(0.1)
+    val p = (bounds.getX - 3*em, bounds.getY - 3*em)
+    val q = (bounds.getWidth + 6*em, bounds.getHeight + 6*em)
+
+    new Rectangle2D.Double(p._1, p._2, q._1, q._2)
   }
 
   def invalidateAllVerts() { vertexDisplay.clear() }

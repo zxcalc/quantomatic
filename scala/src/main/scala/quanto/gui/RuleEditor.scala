@@ -74,10 +74,11 @@ object RuleEditor extends SimpleSwingApplication {
     }
   }
 
-  val EditMenu = new Menu("Edit") {
+  val EditMenu = new Menu("Edit") { menu =>
     mnemonic = Key.E
 
     val UndoAction = new Action("Undo") with Reactor {
+      menu.contents += new MenuItem(this) { mnemonic = Key.U }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask))
       enabled = false
       def apply() { ruleDocument.undoStack.undo() }
@@ -90,6 +91,7 @@ object RuleEditor extends SimpleSwingApplication {
     }
 
     val RedoAction = new Action("Redo") with Reactor {
+      menu.contents += new MenuItem(this) { mnemonic = Key.R }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask | Key.Modifier.Shift))
       enabled = false
       def apply() { ruleDocument.undoStack.redo() }
@@ -101,17 +103,36 @@ object RuleEditor extends SimpleSwingApplication {
       }
     }
 
+    contents += new Separator()
+
+    val CutAction = new Action("Cut") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.U }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_X, CommandMask))
+      def apply() { ruleEditPanel.focusedController.cutSubgraph() }
+    }
+
+    val CopyAction = new Action("Copy") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.C }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_C, CommandMask))
+      def apply() { ruleEditPanel.focusedController.copySubgraph() }
+    }
+
+    val PasteAction = new Action("Paste") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.P }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_V, CommandMask))
+      def apply() { ruleEditPanel.focusedController.pasteSubgraph() }
+    }
+
+    contents += new Separator()
+
     val LayoutAction = new Action("Layout Graph") with Reactor {
+      menu.contents += new MenuItem(this) { mnemonic = Key.L }
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
       def apply() {
         ruleEditPanel.lhsController.layoutGraph()
         ruleEditPanel.rhsController.layoutGraph()
       }
     }
-
-    contents += new MenuItem(UndoAction) { mnemonic = Key.U }
-    contents += new MenuItem(RedoAction) { mnemonic = Key.R }
-    contents += new MenuItem(LayoutAction) { mnemonic = Key.L }
   }
 
   def top = new MainFrame {

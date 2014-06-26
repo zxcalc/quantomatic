@@ -1,96 +1,55 @@
 theory io  
-imports Main graph 
+imports theories 
 uses
 
-(* these imports need to be fixed *)
-
-(* Quantomatic CORE *)
 
 (*
- * Matching
+ * Descrimination nets
  *)
- "../../core/matching/match_state.ML"
- "../../core/matching/bang_graph_match_state.ML"
-(* signature for inner (concrete) matching *)
- "../../core/matching/inner_match_search.ML"
-(* signature for outer (e.g. !-box) matching *)
- "../../core/matching/match_search.ML"
-(* simple inner loop for the matching algo *)
- "../../core/matching/simple_inner_match_search.ML"
-(* wrappers for inner_match_search *)
-(* pattern-free wrapper (concrete graphs onto concrete graphs) *)
- "../../core/matching/concrete_match_search.ML"
-(* naive pattern-graph wrapper *)
- "../../core/matching/greedy_match_search.ML"
+ "../../core/dnets/DNetsLib.ML"
+ "../../core/dnets/Literal.ML"
+ "../../core/dnets/Contour.ML"
+ "../../core/dnets/ContourList.ML"
+ "../../core/dnets/TopDNet.ML"
+
+(* SKIPPING QUANTOCOSY *)
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
+(*                          Compile the controller                         *)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
 
 
+(* Overall controller for theories *)
+ "../../core/interface/controller_state.ML" (* control state for quanto *)
+ "../../core/interface/controller.ML" (* commands *)
+ "../../core/interface/controller_registry.ML"  (* theory lists *)
+
+(* interface protocol/console *)
+ "../../core/interface/control_interface.ML" (* generic interface for run_in_textstreams *)
+
+ "../../core/interface/console_commands.ML"  (* console commands and help *)
+ "../../core/interface/console_lexer.ML" (* lexer for quanto console *)
+ "../../core/interface/console.ML" (* generic protocol using commands *)
+ "../../core/interface/console_interface.ML" (* generic protocol using commands *)
+ "../../core/interface/protocol.ML" (* protocol for tools *)
 
 
-(* Generic output/input tools *)
- "../../core/io/input.ML"
- "../../core/io/output.ML"
- "../../core/io/json_io.ML"
+(* new modular controller *)
 
-(* Expressions *)
- "../../core/io/linrat_json.ML"
+ "../../core/json_interface/controller_util.ML"
+ "../../core/json_interface/controller_module.ML"
+ "../../core/json_interface/modules/test.ML"
+ "../../core/json_interface/modules/rewrite.ML"
+ "../../core/json_interface/modules/simplify.ML"
+ "../../core/json_interface/controller.ML"
+ "../../core/json_interface/controller_registry.ML"
+ "../../core/json_interface/protocol.ML"
+ "../../core/json_interface/run.ML"
 
+(* some combinators and shorthand functions for simprocs *)
+ "../../core/rewriting/simp_util.ML"
+ "../../core/theories/red_green/rg_simp_util.ML"
 
-
-(* data for strings *)
- "../../core/theories/string_data.ML"
-
-(* Graphs *)
- "../../core/io/graph_json.ML"
- "../../core/io/graph_annotations_json.ML"
-
-(* Rules *)
- "../../core/io/rule_json.ML"
-
-(* Rulesets *)
- "../../core/io/ruleset_json.ML"
- "../../core/io/ruleset_annotations_json.ML"
-
-(* Lists of rewrites *)
- "../../core/io/rewrite_json.ML"
-
-(* Simple dot output for graphs *)
- "../../core/io/graph_dot_output.ML"
-
-(* matching *)
- "../../core/matching/match_state.ML"
- "../../core/matching/bang_graph_match_state.ML"
-(* signature for inner (concrete) matching *)
- "../../core/matching/inner_match_search.ML"
-(* signature for outer (e.g. !-box) matching *)
- "../../core/matching/match_search.ML"
-(* simple inner loop for the matching algo *)
- "../../core/matching/simple_inner_match_search.ML"
-(* wrappers for inner_match_search *)
-(* pattern-free wrapper (concrete graphs onto concrete graphs) *)
- "../../core/matching/concrete_match_search.ML"
-(* naive pattern-graph wrapper *)
- "../../core/matching/greedy_match_search.ML"
-
-
-(*
- * Rewriting
- *)
-(* substitution of a matched subgraph for another graph (used to be graphsubst with some
-    extra stuff from ruleset_rewriter) *)
- "../../core/rewriting/rewriter.ML"
-(* substitution used to provide rewriting with rulesets *)
- "../../core/rewriting/ruleset_rewriter.ML" 
-
-(* Heuristic derived data structures *)
- "../../core/rewriting/heuristic/distancematrix.ML" (* distance matrix *)
-
-(* I/O *)
- "../../core/io/rewrite_json.ML"
-
-
-(* construction of everything in a graphical theory from just param *)
- "../../core/theories/graphical_theory.ML"
- "../../core/io/graphical_theory_io.ML"
 
 
 begin

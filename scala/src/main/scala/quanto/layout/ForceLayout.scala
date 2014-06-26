@@ -3,6 +3,8 @@ package quanto.layout
 import quanto.util._
 import quanto.data._
 import math.{min,max,abs}
+import quanto.layout.constraint._
+
 /**
  * Force-directed layout algorithm. Parts are based on:
  *   [1] force.js from the D3 javascript library (see d3js.org)
@@ -12,7 +14,9 @@ import math.{min,max,abs}
 class ForceLayout extends GraphLayout with Constraints {
   // repulsive force between vertices
   //var charge: VName => Double = (v => if (graph.vdata(v).isWireVertex) 3.0 else 5.0)
-  def charge(v:VName) = if (graph.vdata(v).isWireVertex) 2.0 else 5.0
+  var nodeCharge = 5.0
+
+  def charge(v:VName) = if (graph.vdata(v).isWireVertex) 1.0 else nodeCharge
 
   // spring strength on edges
   var strength = 2.5
@@ -30,10 +34,10 @@ class ForceLayout extends GraphLayout with Constraints {
   var friction = 0.9
 
   // initial step size
-  var alpha0: Double = 2.0
+  var alpha0: Double = 1.0
 
   // increase or decrease step size by this amount
-  var alphaAdjust = 0.9
+  var alphaAdjust = 0.7
 
   // maximum iterations
   var maxIterations = 3000
@@ -46,6 +50,7 @@ class ForceLayout extends GraphLayout with Constraints {
   var prevEnergy: Double = _
   var energy: Double = _
   var progress: Int = _
+  var iteration = 0
 
   override def initialize(g: Graph, randomCoords: Boolean = true) {
     super.initialize(g, randomCoords)
@@ -79,7 +84,7 @@ class ForceLayout extends GraphLayout with Constraints {
   def relax() {
     if (energy < prevEnergy) {
       progress += 1
-      if (progress >= 5) {
+      if (progress >= 15) {
         progress = 0
         alpha /= alphaAdjust
       }
@@ -97,7 +102,8 @@ class ForceLayout extends GraphLayout with Constraints {
     for (e <- graph.edges) {
       val sp = coord(graph.source(e))
       val tp = coord(graph.target(e))
-      val (dx,dy) = (tp._1 - sp._1, tp._2 - sp._2)
+      val (dx,dy) = if (this.isInstanceOf[Ranking] || this.isInstanceOf[IRanking]) (2.0*(tp._1 - sp._1), tp._2 - sp._2)
+                    else (tp._1 - sp._1, tp._2 - sp._2)
       val d = math.sqrt(dx*dx + dy*dy)
       if (d != 0.0) {
         val displacement = d - edgeLength
@@ -140,7 +146,7 @@ class ForceLayout extends GraphLayout with Constraints {
               if ((nd.x2 - nd.x1) / math.sqrt(d2) < theta) {
                 energy += (charge(v) + nodeCharge) / d2
                 val kx = alpha * nodeCharge / d2
-                val ky = kx * 1.5
+                val ky = if (this.isInstanceOf[Ranking] || this.isInstanceOf[IRanking]) kx * 1.5 else kx
                 p = (p._1 - dx*kx, p._2 - dy*ky)
                 true
               } else {
@@ -192,11 +198,10 @@ class ForceLayout extends GraphLayout with Constraints {
   }
 
   def compute() {
-    var iteration = 0
+    iteration = 0
     while (alpha > 0.01 && iteration < maxIterations) {
       step()
       iteration += 1
     }
-    println("final alpha: " + alpha)
   }
 }

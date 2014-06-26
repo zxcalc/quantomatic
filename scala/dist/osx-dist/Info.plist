@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleAllowMixedLocalizations</key>
+	<string>true</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.3.1</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>0.3.1</string>
+	<key>CFBundleIdentifier</key>
+	<string>org.quantomatic.quantoderiveapp</string>
+	<key>CFBundleName</key>
+	<string>QuantoDerive</string>
+	<key>CFBundleIconFile</key>
+	<string>application.icns</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>Java</key>
+	<dict>
+		<key>WorkingDirectory</key>
+		<string>$APP_PACKAGE/Contents/Resources</string>
+		<key>Properties</key>
+		<dict>
+			<key>apple.laf.useScreenMenuBar</key>
+			<string>false</string>
+		</dict>
+		<key>JVMVersion</key>
+		<string>1.6+</string>
+		<key>ClassPath</key>
+		<array>
+			<string>$JAVAROOT/jedit-textArea.jar</string>
+			<string>$JAVAROOT/jsr305.jar</string>
+			<string>$JAVAROOT/scala-library.jar</string>
+			<string>$JAVAROOT/akka-actor.jar</string>
+			<string>$JAVAROOT/config.jar</string>
+			<string>$JAVAROOT/jackson-core.jar</string>
+			<string>$JAVAROOT/jackson-module-scala.jar</string>
+			<string>$JAVAROOT/jackson-annotations.jar</string>
+			<string>$JAVAROOT/jackson-databind.jar</string>
+			<string>$JAVAROOT/scalabeans.jar</string>
+			<string>$JAVAROOT/paranamer.jar</string>
+			<string>$JAVAROOT/guava-r09.jar</string>
+			<string>$JAVAROOT/scala-swing.jar</string>
+			<string>$JAVAROOT/quanto.jar</string>
+		</array>
+		<key>MainClass</key>
+		<string>quanto.gui.QuantoDerive</string>
+		<key>VMOptions</key>
+		<array/>
+	</dict>
+	<key>CFBundleExecutable</key>
+	<string>JavaApplicationStub</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+</dict>
+</plist>

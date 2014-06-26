@@ -82,7 +82,7 @@ class UndoStackSpec extends FlatSpec {
   }
 
   it can "cope with multiple undos and redos" in {
-    stateVar = 3
+    stateVar = 3.0
     undoStack = new UndoStack
 
     multBy2()
@@ -109,6 +109,11 @@ class UndoStackSpec extends FlatSpec {
     assert(stateVar === 6.0)
     assert(undoStack.undoActionName === Some("Multiply by 2"))
     assert(undoStack.redoActionName === Some("Subtract 5"))
+
+    undoStack.redo()
+    assert(stateVar === 1.0)
+    assert(undoStack.undoActionName === Some("Subtract 5"))
+    assert(undoStack.redoActionName === None)
   }
 
   it should "clear the redo stack when a change is made" in {

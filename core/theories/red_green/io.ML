@@ -1,3 +1,7 @@
+(* Data input for red-green graphs. The input strives to be as backward-compatible
+ * as possible, while output always outputs the newest format. As a consequence,
+ * the old Quantomatic GUI will no longer talk to the core. *)
+
 structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
 = struct
   type nvdata = RG_Data.nvdata
@@ -10,7 +14,14 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
     type data = nvdata
     fun get_angle obj =
       case Json.lookup obj "value"
-        of SOME v => L.input v
+           (* new RG-graphs just store angle as a string, to be parsed *)
+        of SOME (Json.String s) => 
+             (LinratAngleExpr.parse s
+               handle LinratAngleExpr.parse_exp =>
+                 raise bad_input_exp ("Could not parse \""^s^"\"",""))
+           (* older RG-graphs use a (redundant) JSON representation of angle data *)
+         | SOME (v as Json.Object _) => L.input v
+           (* really old (pre-Derive) graphs call this field 'angle' *)
          | NONE => L.input (get_easy Json.Null obj "angle")
     val to_lower = String.implode o (map Char.toLower) o String.explode
     fun input (Json.String t) =
@@ -34,18 +45,17 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
     open JsonOutputUtils
     structure L = OutputLinratJSON
     type data = nvdata
-    val angle_to_jstring = Json.String o Pretty.string_of o LinratAngleExpr.pretty
+    fun angle_to_jstring a = Json.String
+      (case Pretty.string_of (LinratAngleExpr.pretty a) of "0" => "" | s => s)
     fun output (RG_Data.Znd a) =
           Json.Object (
             Json.empty_obj |> update ("type",Json.String "Z")
-                           |> update ("label",angle_to_jstring a)
-                           |> update ("value",L.output a)
+                           |> update ("value",angle_to_jstring a)
           )
       | output (RG_Data.Xnd a) =
           Json.Object (
             Json.empty_obj |> update ("type",Json.String "X")
-                           |> update ("label",angle_to_jstring a)
-                           |> update ("value",L.output a)
+                           |> update ("value",angle_to_jstring a)
           )
       | output RG_Data.Hnd =
           Json.Object (
