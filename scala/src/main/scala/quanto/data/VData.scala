@@ -59,7 +59,12 @@ case class NodeV(
   /** Type of the vertex */
   val typ = (data / "type").stringValue
 
-  def value = (data.getPath(theory.vertexTypes(typ).value.path)).stringValue
+  val value: Json = (data.getPath(theory.vertexTypes(typ).value.path)) match {
+    case str : JsonString => str
+    case obj : JsonObject => obj.getOrElse("pretty", JsonString(""))
+    case _ => JsonString("")
+  }
+
   def label = data.getOrElse("label",value).stringValue
  // def value = data ? "value"
 
@@ -105,8 +110,8 @@ object NodeV {
 
     // if any of these throw an exception, they should do it here
     n.coord
-    n.value
-    n.label
+    //n.value
+    //n.label
     val typ = n.typ
     if (!thy.vertexTypes.keySet.contains(typ)) throw new GraphLoadException("Unrecognized vertex type: " + typ)
 
