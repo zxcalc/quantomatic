@@ -1,8 +1,8 @@
 structure Substr_Linrat_Data =
 struct
   val pretty_theory_name = Pretty.str "substr_linrat"
-  type psubst = LinratMatcher.psubst
-  type subst  = LinratMatcher.subst
+  type psubst = LinratAngleMatcher.psubst
+  type subst  = LinratAngleMatcher.subst
 
   type nvdata = string * LinratAngleExpr.T
   val default_nvdata = ("",LinratAngleExpr.zero)
@@ -17,11 +17,11 @@ struct
   
   fun match_nvdata ((s1,a1),(s2,a2)) m =
         if String.isPrefix s1 s2
-        then LinratMatcher.match (a1,a2) m
+        then LinratAngleMatcher.match (a1,a2) m
         else NONE
 
   fun subst_in_nvdata u (s,a) =
-    let val (sub',a') = LinratMatcher.subst_in_expr u a
+    let val (sub',a') = LinratAngleMatcher.subst_in_expr u a
     in (sub', (s,a')) end
 
   open EmptyEdgeData
@@ -33,8 +33,8 @@ struct
          ) nvtab
   in
     fun init_psubst_from_data p_data t_data =
-      LinratMatcher.init_psubst_from_names (pull_names p_data, pull_names t_data)
+      LinratAngleMatcher.init_psubst_from_names (pull_names p_data, pull_names t_data)
   end
 
-  fun solve_psubst ps = Seq.single (LinratMatcher.solve_psubst ps)
+  fun solve_psubst ps = Seq.single (LinratAngleMatcher.solve_psubst ps)
 end

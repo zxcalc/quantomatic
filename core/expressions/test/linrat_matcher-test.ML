@@ -19,16 +19,16 @@ local
     [0, 1, 2, ~6, 0, ~1]
   ])
 
-  val (tab,_) = LinratMatcher.solve_psubst
+  val (tab,_) = LinratAngleMatcher.solve_psubst
     (matr, X.NSet.of_list (map X.mk ["a","b","c"]), X.NSet.of_list (map X.mk ["d","e"]))
 
-  val (tab_notfresh,_) = LinratMatcher.solve_psubst
+  val (tab_notfresh,_) = LinratAngleMatcher.solve_psubst
     (matr, X.NSet.of_list (map X.mk ["a","b","c"]), X.NSet.of_list (map X.mk ["a","b"]))
 
-  val (tab_underspec,_) = LinratMatcher.solve_psubst
+  val (tab_underspec,_) = LinratAngleMatcher.solve_psubst
     (matr_under_spec, X.NSet.of_list (map X.mk ["a","b","c"]), X.NSet.of_list (map X.mk ["d","e"]))
 
-  val (tab_underspec_notfresh,_) = LinratMatcher.solve_psubst
+  val (tab_underspec_notfresh,_) = LinratAngleMatcher.solve_psubst
     (matr_under_spec, X.NSet.of_list (map X.mk ["a","b","c"]), X.NSet.of_list (map X.mk ["c","d"]))
 
   (*

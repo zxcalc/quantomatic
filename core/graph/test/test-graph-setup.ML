@@ -78,8 +78,8 @@ struct
         Pretty.block [Pretty.str "EString2(", Pretty.str s, Pretty.str ")"]
   
   (* matching and substitution *)
-  type psubst = LinratMatcher.psubst
-  type subst = LinratMatcher.subst
+  type psubst = LinratAngleMatcher.psubst
+  type subst = LinratAngleMatcher.subst
   
   local
     fun pull_names (nvtab,etab) = X.NSet.empty
@@ -95,42 +95,42 @@ struct
          ) etab
   in
     fun init_psubst_from_data p_tabs t_tabs =
-      LinratMatcher.init_psubst_from_names (pull_names p_tabs, pull_names t_tabs)
+      LinratAngleMatcher.init_psubst_from_names (pull_names p_tabs, pull_names t_tabs)
   end
   
-  fun solve_psubst ps = Seq.single (LinratMatcher.solve_psubst ps)
+  fun solve_psubst ps = Seq.single (LinratAngleMatcher.solve_psubst ps)
 
   fun match_nvdata ((VExpr1 a1),(VExpr1 a2)) m = 
-        LinratMatcher.match (a1, a2) m
+        LinratAngleMatcher.match (a1, a2) m
     | match_nvdata ((VExpr2 a1),(VExpr2 a2)) m = 
-        LinratMatcher.match (a1, a2) m
+        LinratAngleMatcher.match (a1, a2) m
     | match_nvdata (v1,v2) m = 
         if nvdata_eq (v1, v2) then SOME m else NONE
 
   fun subst_in_nvdata sub (VExpr1 a) =
-        let val (sub',a') = LinratMatcher.subst_in_expr sub a
+        let val (sub',a') = LinratAngleMatcher.subst_in_expr sub a
         in (sub', VExpr1 a') end
     | subst_in_nvdata sub (VExpr2 a) =
-        let val (sub',a') = LinratMatcher.subst_in_expr sub a
+        let val (sub',a') = LinratAngleMatcher.subst_in_expr sub a
         in (sub', VExpr2 a') end
     | subst_in_nvdata sub vd = (sub,vd)
 
   fun match_edata ((EExpr1 a1),(EExpr1 a2)) m = 
-        LinratMatcher.match (a1, a2) m
+        LinratAngleMatcher.match (a1, a2) m
     | match_edata ((EExpr2 a1),(EExpr2 a2)) m = 
-        LinratMatcher.match (a1, a2) m
+        LinratAngleMatcher.match (a1, a2) m
     | match_edata (e1,e2) m = 
         if edata_eq (e1,e2) then SOME m else NONE
   
   fun subst_in_edata sub (EExpr1 a) =
-        let val (sub',a') = LinratMatcher.subst_in_expr sub a
+        let val (sub',a') = LinratAngleMatcher.subst_in_expr sub a
         in (sub', EExpr1 a') end
     | subst_in_edata sub (EExpr2 a) =
-        let val (sub',a') = LinratMatcher.subst_in_expr sub a
+        let val (sub',a') = LinratAngleMatcher.subst_in_expr sub a
         in (sub', EExpr2 a') end
     | subst_in_edata sub ed = (sub,ed)
     
-  val pretty_subst = LinratMatcher.pretty_subst
+  val pretty_subst = LinratAngleMatcher.pretty_subst
   val print_subst = Pretty.writeln o pretty_subst
 end
 
