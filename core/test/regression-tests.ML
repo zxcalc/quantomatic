@@ -95,15 +95,15 @@ end
 (* GHZ/W *)
 local
   open GHZW_Theory
-  structure Controller = GHZW_Controller
+  (*structure Controller = GHZW_Controller*)
   structure G = Graph
   structure HomeoFinder = BangGraphHomeomorphismSearcher(Graph)
-  fun ctrlr_assert_ok Commands.OkResponse = ()
+  (*fun ctrlr_assert_ok Commands.OkResponse = ()
     | ctrlr_assert_ok _ = raise ERROR "Unexpected response from controller"
   fun ctrlr_assert_string (Commands.StringResponse { data }) = data
     | ctrlr_assert_string _ = raise ERROR "Unexpected response from controller"
   fun ctrlr_assert_count (Commands.CountResponse { count }) = count
-    | ctrlr_assert_count _ = raise ERROR "Unexpected response from controller"
+    | ctrlr_assert_count _ = raise ERROR "Unexpected response from controller"*)
 in
 val _ = Testing.test "GHZ/W ruleset rewriting 1: 2x2" (fn () => let
   val ruleset = "rulesets/ghz_w/default.rules"
@@ -134,7 +134,7 @@ val _ = Testing.test "GHZ/W ruleset rewriting 1: 2x2" (fn () => let
                 raise ERROR "Rewriting gave wrong graph")
   in () end) ()
 
-val _ = Testing.test "GHZ/W ruleset rewriting 1: 2x2 (controller)" (fn () => let
+(*val _ = Testing.test "GHZ/W ruleset rewriting 1: 2x2 (controller)" (fn () => let
   open Commands
   val _ = ctrlr_assert_ok (Controller.serviceRequest
     (ImportRulesetFromFileRequest {
@@ -155,9 +155,9 @@ val _ = Testing.test "GHZ/W ruleset rewriting 1: 2x2 (controller)" (fn () => let
        vertexNames = vertex_names
     }))
 
-  in () end) ()
+  in () end) ()*)
 
-val _ = Testing.test "GHZ/W ruleset rewriting 2: spider" (fn () => let
+(*val _ = Testing.test "GHZ/W ruleset rewriting 2: spider" (fn () => let
   open Commands
   val _ = ctrlr_assert_ok (Controller.serviceRequest
     (ImportRulesetFromFileRequest {
@@ -179,7 +179,7 @@ val _ = Testing.test "GHZ/W ruleset rewriting 2: spider" (fn () => let
     }))
   val _ = Testing.assert "Count is 1" (count = 1)
 
-  in () end) ()
+  in () end) () *)
 end
 
 val _ = Testing.assert_no_failed_tests()
