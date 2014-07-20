@@ -2,7 +2,6 @@
  *  ROOT file to compile all libraries and quantomatic core
  *)
 
-
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
 (*                          Compile isaplib code                           *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
@@ -37,117 +36,22 @@ PolyML.Project.depend_on_files
 PolyML.Project.optional_make "local_config.ML";
 
 
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
-(*                         Compile quantomatic core                        *)
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
+(* quanto-lib contains all of core graph/rule/match/rewrite
+ * functionality of quantomatic *)
 
-(* 
- * Utility Code
- *)
-
-(* IO Utils *)
-PolyML.Project.make "io/input.ML";
-PolyML.Project.make "io/output.ML";
-PolyML.Project.make "io/json_io.ML";
-PolyML.Project.make "io/file_io.ML";
-
-(*
- * Names
- *)
-PolyML.Project.make "names.ML"; (* defines basic names used in Quantomatic *)
+PolyML.Project.make "quanto-lib.ML";
 
 
-(*
- * Expressions for use in graph component data
- *)
-PolyML.Project.make "expressions/lex.ML";
-PolyML.Project.make "expressions/coeff.ML";
-PolyML.Project.make "expressions/matrix.ML";
-PolyML.Project.make "expressions/expr.ML"; 
-PolyML.Project.make "expressions/linrat_angle_expr.ML";
-PolyML.Project.make "expressions/semiring.ML";
-PolyML.Project.make "expressions/tensor.ML";
-PolyML.Project.make "expressions/linrat_angle_matcher.ML";
-
-PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
-
-(* I/O *)
-PolyML.Project.make "io/linrat_json.ML";
+(* tests from quanto-lib files *)
 
 Testing.make_test "expressions/test/linrat_angle_expr-test.ML";
 Testing.make_test "expressions/test/linrat_matcher-test.ML";
 Testing.make_test "io/test/linrat-json-test.ML";
-
-
-(*
- * Graphs
- *)
-
-(* arity of vertices (in,out,undir) *)
-PolyML.Project.make "graph/arity.ML";
-(* neighbourhood data for non-commutative vertices *)
-PolyML.Project.make "graph/nhd.ML"; 
-
-
-PolyML.Project.make "graph/graph_data.ML";
-PolyML.Project.make "graph/ograph.sig.ML";
-PolyML.Project.make "graph/bang_graph.sig.ML";
-PolyML.Project.make "graph/bang_graph.ML";
-
-PolyML.Project.make "graph/graph_annotations.ML"; (* graph annotations *)
-
-(* I/O *)
-PolyML.Project.make "io/graph_json.ML";
-PolyML.Project.make "io/graph_annotations_json.ML";
-PolyML.Project.make "io/graph_dot_output.ML";
-
-(* new, combined IO struct *)
-PolyML.Project.make "io/graph_json_io.ML";
-
 Testing.make_test "graph/test/test-graph-setup.ML";
 Testing.make_test "graph/test/test-nhd.ML";
 Testing.make_test "graph/test/test-ograph.ML";
 Testing.make_test "graph/test/test-bang-graph.ML";
-
 Testing.make_test "io/test/graph-json-test.ML";
-
-(*
- * Misc stuff
- *)
-(* hilbert space stuff: depends on OGRAPH *)
-(*PolyML.Project.make "expressions/hilb.ML";*)
-
-(*
- * Metrics
- *)
-
-(*PolyML.Project.make "metrics/metric_type.ML"; (* Utils to handle int tuples *)
-PolyML.Project.make "metrics/metrics/metric.ML"; (* METRIC signature *)
-PolyML.Project.make "metrics/metrics/edge_complexity_metric.ML";
-PolyML.Project.make "metrics/metrics/weighted_arity_metric.ML";
-PolyML.Project.make "metrics/metrics/sets_cardinals_metric.ML";
-PolyML.Project.make "metrics/metrics.ML"; (* Metrics on graphs *) *)
-
-
-(*
- * Matching
- *)
-PolyML.Project.make "matching/match.ML";
-PolyML.Project.make "matching/bg_match.ML";
-PolyML.Project.make "matching/match_state.ML";
-
-(* piece-by-piece matching utility *)
-PolyML.Project.make "matching/progressive_match_search.ML";
-
-(* signature for outer (e.g. !-box) matching *)
-PolyML.Project.make "matching/match_search.ML";
-(* wrappers for inner_match_search *)
-(* pattern-free wrapper (concrete graphs onto concrete graphs) *)
-PolyML.Project.make "matching/concrete_match_search.ML";
-(* naive pattern-graph wrapper *)
-PolyML.Project.make "matching/greedy_match_search.ML";
-PolyML.Project.make "matching/bang_graph_homeomorphism_search.ML";
-
 Testing.make_test "matching/test/test-matching-setup.ML";
 Testing.make_test "matching/test/test-sg-to-sg-matching.ML";
 Testing.make_test "matching/test/test-bg-to-sg-matching.ML";
@@ -155,49 +59,8 @@ Testing.make_test "matching/test/test-bg-to-bg-matching.ML";
 Testing.make_test "matching/test/test-concrete-matcher.ML";
 Testing.make_test "matching/test/test-greedy-matcher.ML";
 Testing.make_test "matching/test/test-bang-graph-homeomorphism-search.ML";
-
-
-(*
- * Rules
- *)
-PolyML.Project.make "rewriting/rule.ML";
-
-(* I/O *)
-PolyML.Project.make "io/rule_json.ML";
-
-(* new, combined rule IO struct *)
-PolyML.Project.make "io/rule_json_io.ML";
-
 Testing.make_test "rewriting/test/rule-test.ML";
-
-
-(*
- * Rulesets
- *)
-PolyML.Project.make "theories/ruleset.ML";
-PolyML.Project.make "theories/ruleset_annotations.ML";
-
-(* Ruleset I/O *)
-PolyML.Project.make "io/ruleset_json.ML";
-PolyML.Project.make "io/ruleset_annotations_json.ML";
-
-PolyML.Project.make "io/ruleset_json_io.ML";
-
-
 Testing.make_test "theories/test/ruleset-test.ML";
-
-
-(*
- * Rewriting
- *)
-(* substitution of a matched subgraph for another graph *)
-PolyML.Project.make "rewriting/rewriter.ML";
-(* substitution used to provide rewriting with rulesets *)
-PolyML.Project.make "rewriting/ruleset_rewriter.ML";
-(* Heuristic derived data structures *)
-PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
-(* I/O *)
-PolyML.Project.make "io/rewrite_json.ML";
 Testing.make_test "rewriting/test/rewriter-test.ML";
 Testing.make_test "rewriting/test/ruleset_rewriter-tests.ML";
 
