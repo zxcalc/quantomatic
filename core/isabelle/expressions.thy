@@ -19,7 +19,7 @@ uses
  "../../core/expressions/linrat_angle_expr.ML"
  "../../core/expressions/semiring.ML"
  "../../core/expressions/tensor.ML"
- "../../core/expressions/linrat_matcher.ML"
+ "../../core/expressions/linrat_angle_matcher.ML"
 
  "../../core/expressions/alg.ML" (* algebraic expression utils *)
 
