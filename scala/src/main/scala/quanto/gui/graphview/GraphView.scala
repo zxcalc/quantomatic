@@ -315,19 +315,20 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
       g.fill(shape)
       
-      /// show the vname on the GUI
-      val sh = shape.getBounds.getLocation
-      val px = sh.getX.toInt
-      val py = sh.getY.toInt
-      
-      //println(sh)
-      if (showNames || graph.vdata(v).isBoundary) {
-        a = g.getColor
-        g.setFont(EdgeLabelFont)
-        g.setColor(Color.BLACK)
+      /// show the vname on the GUI only if zoomed in enough
+      if(zoom >= zoomCutOut) {
+        val sh = shape.getBounds.getLocation
+        val px = sh.getX.toInt
+        val py = sh.getY.toInt
 
-        g.drawString(v.toString, px, py - 5)
-        g.setColor(a)
+        if (showNames || graph.vdata(v).isBoundary) {
+          a = g.getColor
+          g.setFont(EdgeLabelFont)
+          g.setColor(Color.BLACK)
+
+          g.drawString(v.toString, px, py - 5)
+          g.setColor(a)
+        }
       }
       
       if (selectedVerts contains v) {
@@ -663,6 +664,8 @@ object GraphView {
   final val EdgeSelectionRadius = 3.0
   final val VertexLabelFont = new Font("Dialog", AWTFont.PLAIN, 12)
   final val EdgeLabelFont = new Font("Dialog", AWTFont.PLAIN, 10)
+
+  final val zoomCutOut = 0.36
 
   final val AxisColor = new Color(0.8f,0.8f,0.9f)
   final val MajorColor = new Color(0.85f,0.85f,1.0f)

@@ -51,7 +51,11 @@ trait VertexDisplayData { self: GraphView =>
       vertexDisplay(v) = data match {
         case vertexData : NodeV =>
           val style = vertexData.typeInfo.style
-          val text = vertexData.value.stringValue
+          val text = if(zoom < GraphView.zoomCutOut &&
+                     vertexData.value.stringValue != "")
+                       "~"
+                     else
+                       vertexData.value.stringValue
             /*vertexData.typeInfo.value.typ match {
             case Theory.ValueType.String => vertexData.value
             case _ => ""
