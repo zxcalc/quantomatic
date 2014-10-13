@@ -294,17 +294,13 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
    * Snaps the graph to a square grid with size 0.25
    */
   def snapToGrid() = {
-    if (!readOnly) {
-      val old_graph = graph
-      graph = graph.snapToGrid()
-      view.invalidateGraph(false)
-      undoStack.register("Snap to Grid") {
-        graph = old_graph
-        view.invalidateGraph(false)
-        view.repaint()
-      }
-      view.repaint()
-    }
+    graph = graph.snapToGrid()
+    view.invalidateGraph(false)
+    view.repaint()
+  }
+
+  private def roundCoord(d : Double) = {
+    (math.rint(d * 4.0)) / 4.0 // rounds to .25
   }
 
   def layoutGraph() {
@@ -571,6 +567,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
         case state => throw new InvalidMouseStateException("MouseReleased", state)
       }
+      snapToGrid()
 
   }
   
