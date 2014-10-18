@@ -8,9 +8,6 @@ signature LINRAT_EXPR
   exception parse_exp
   (* Parse a string into a linear rational expression *)
   (* any alphabetic text (and \) is considered a variable name *)
-  (* except \pi *)
-  (* constants and coeffs of \pi are taken as coeffs of \pi, *)
-  (* and calculated modulo 2 *)
   val parse : string -> T
   val zero : T
   val is_zero : T -> bool
@@ -29,7 +26,7 @@ signature LINRAT_EXPR
   val free_vars : T -> X.NSet.T
 
   val pretty : T -> Pretty.T
-  val pretty_math : AlgFormat.format -> T -> Pretty.T
+  (*val pretty_math : AlgFormat.format -> T -> Pretty.T*)
   val print : T -> unit
 end
 
@@ -160,29 +157,28 @@ struct
       else if Coeff.is_one v then X.pretty_name k
       else Pretty.block [Coeff.pretty v, Pretty.str " ", X.pretty_name k]
 
-  fun pretty_list [] = [Pretty.str "0"]
-    | pretty_list [x] = [pretty1 x]
-    | pretty_list (x::(xs as ((k,v)::ys))) =
-      (pretty1 x)::
+  fun pretty_list [] = []
+    | pretty_list ((k,v)::xs) =
       (if Coeff.ord (v, Coeff.zero) = LESS
-       then Pretty.str " - " :: pretty_list ((k,Coeff.subtr Coeff.zero v)::ys)
-       else Pretty.str " + " :: pretty_list xs)
+       then Pretty.str " - " :: pretty1 (k,Coeff.subtr Coeff.zero v) :: pretty_list xs
+       else Pretty.str " + " :: pretty1 (k,v) :: pretty_list xs)
 
-  fun pretty' pistr (const, tab) =
-      let val tlist = rev (XTab.list_of tab)
-      in (Pretty.block o pretty_list)
-         (if Coeff.is_zero const then tlist
-          else (pistr, const)::tlist)
-      end
+  fun pretty (const, tab) =
+        Pretty.block
+        (case rev (XTab.list_of tab)
+           of [] => [Coeff.pretty const]
+            | (kv::kvs) =>
+                (if Coeff.is_zero const then pretty1 kv :: pretty_list kvs
+                 else Coeff.pretty const :: pretty_list (kv::kvs)))
 
 
-  fun pretty_math fmt = case fmt
+  (*fun pretty_math fmt = case fmt
                  of AlgFormat.MATHEMATICA => pretty' (X.mk "Pi")
               | AlgFormat.LATEX => pretty' (X.mk "\\pi")
               | AlgFormat.PLAIN => pretty' (X.mk "pi")
-              | _ => raise AlgFormat.not_supported_exp
+              | _ => raise AlgFormat.not_supported_exp*)
 
-  val pretty = pretty_math AlgFormat.LATEX
+  (*val pretty = pretty_math AlgFormat.LATEX*)
 
   val print = Pretty.writeln o pretty
 
@@ -273,4 +269,5 @@ struct
      |  parse s = LinratParser.parse s
 
 end
+
 

@@ -17,7 +17,8 @@ OS.FileSys.chDir rootDir;
 PolyML.Project.depend_on_files
   [
    rootDir ^ "/../../isaplib/ROOT.ML",
-   rootDir ^ "/ROOT.ML"
+   rootDir ^ "/ROOT.ML",
+   rootDir ^ "/quanto-lib.ML"
   ];
 
 
@@ -39,12 +40,14 @@ PolyML.Project.optional_make "local_config.ML";
 (* quanto-lib contains all of core graph/rule/match/rewrite
  * functionality of quantomatic *)
 
-PolyML.Project.make "quanto-lib.ML";
+(*PolyML.Project.make "quanto-lib.ML";*)
+use "quanto-lib.ML";
 
 
 (* tests from quanto-lib files *)
 
 Testing.make_test "expressions/test/linrat_angle_expr-test.ML";
+Testing.make_test "expressions/test/linrat_expr-test.ML";
 Testing.make_test "expressions/test/linrat_matcher-test.ML";
 Testing.make_test "io/test/linrat-json-test.ML";
 Testing.make_test "graph/test/test-graph-setup.ML";
