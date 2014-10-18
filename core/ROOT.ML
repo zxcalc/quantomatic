@@ -131,7 +131,7 @@ Testing.make_test "theories/isaplanner_rtechn/test/test.ML";
 PolyML.Project.make "theories/rational_pair/data.ML";
 PolyML.Project.make "theories/rational_pair/io.ML";
 PolyML.Project.make "theories/rational_pair/theory.ML";
-(*Testing.make_test "theories/rational_pair/test/test.ML";*)
+Testing.make_test "theories/rational_pair/test/test.ML";
 
 
 (*

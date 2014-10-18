@@ -22,13 +22,13 @@ structure RP_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
     val to_lower = String.implode o (map Char.toLower) o String.explode
     fun input (Json.String t) =
           (case to_lower t
-             of "B" => RP_Data.Bnd LinratExpr.zero
-              | "W" => RP_Data.Wnd LinratExpr.zero
+             of "b" => RP_Data.Bnd LinratExpr.zero
+              | "w" => RP_Data.Wnd LinratExpr.zero
               | _   => raise bad_input_exp ("Unknown vertex type "^t,""))
       | input (Json.Object obj) =
           (case to_lower (get_string obj "type")
-             of "B" => RP_Data.Bnd (get_expr obj)
-              | "W" => RP_Data.Wnd (get_expr obj)
+             of "b" => RP_Data.Bnd (get_expr obj)
+              | "w" => RP_Data.Wnd (get_expr obj)
               | t   => raise bad_input_exp ("Unknown vertex type "^t,"type"))
       | input _ = raise bad_input_exp ("Expected object","")
   end
