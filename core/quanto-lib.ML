@@ -24,7 +24,8 @@ PolyML.Project.make "names.ML"; (* defines basic names used in Quantomatic *)
 PolyML.Project.make "expressions/lex.ML";
 PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/matrix.ML";
-PolyML.Project.make "expressions/expr.ML"; 
+PolyML.Project.make "expressions/expr.ML";
+PolyML.Project.make "expressions/linrat_expr.ML";
 PolyML.Project.make "expressions/linrat_angle_expr.ML";
 PolyML.Project.make "expressions/semiring.ML";
 PolyML.Project.make "expressions/tensor.ML";

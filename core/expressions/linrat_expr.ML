@@ -1,5 +1,5 @@
 (* linear combinations with rational coeffs (and pi) *)
-signature LINRAT_ANGLE_EXPR
+signature LINRAT_EXPR
 = sig
   type T (* expressions *)
   val ord : T * T -> General.order
@@ -14,7 +14,7 @@ signature LINRAT_ANGLE_EXPR
   val parse : string -> T
   val zero : T
   val is_zero : T -> bool
-  val pi : T
+  val one : T
   val mk_var : X.name -> T
   val mk : Coeff.T -> (X.name * Coeff.T) list -> T
   val mk_const : Coeff.T -> T
@@ -33,15 +33,15 @@ signature LINRAT_ANGLE_EXPR
   val print : T -> unit
 end
 
-structure LinratAngleExpr : LINRAT_ANGLE_EXPR =
+structure LinratExpr : LINRAT_EXPR =
 struct
 
   (* Variable names in expressions *)
   exception parse_exp
-  structure PiCoeff = RationalMod2
   structure Coeff = Rational
 
-  type T = PiCoeff.T * (Coeff.T XTab.T)  (* the PiCoeff is for Pi *)
+  type T = Coeff.T * (Coeff.T XTab.T) 
+  (* a constant coefficient, plus a table of coeffs for variables  *)
 
   (* =====================================================================*)
 
@@ -56,7 +56,7 @@ struct
     | forall_pair _ _ = raise ListPair.UnequalLengths
 
   fun eq (x,xT) (y,yT) =
-      if PiCoeff.eq x y then
+      if Coeff.eq x y then
         forall_pair kv_eq (XTab.list_of xT, XTab.list_of yT)
           handle ListPair.UnequalLengths => false
       else false
@@ -92,15 +92,15 @@ struct
   val empty = XTab.empty : Coeff.T XTab.T
 
 
-  val zero = (PiCoeff.zero, empty)
+  val zero = (Coeff.zero, empty)
   fun is_zero (cpi,vars) =
-      (PiCoeff.is_zero cpi andalso XTab.is_empty vars)
+      (Coeff.is_zero cpi andalso XTab.is_empty vars)
 
-  val pi = (PiCoeff.one, empty)
+  val one = (Coeff.one, empty)
 
   fun mk const kv_list = (const, fold XTab.add kv_list empty)
 
-  fun mk_var nm = mk PiCoeff.zero [(nm, Coeff.mk (1, 1))]
+  fun mk_var nm = mk Coeff.zero [(nm, Coeff.mk (1, 1))]
 
   fun coeff_for_var (_,tab) (SOME x) =
         (case XTab.get_opt tab x of SOME r => r | NONE => Rational.zero)
@@ -120,19 +120,19 @@ struct
 
   (* multiplication of an expression by a scalar ===================*)
   fun scale_expr s (e_pi, e_tab) =
-      (PiCoeff.mult s e_pi, XTab.map_all (Coeff.mult s) e_tab)
+      (Coeff.mult s e_pi, XTab.map_all (Coeff.mult s) e_tab)
 
-  fun mk_const k = scale_expr k pi
+  fun mk_const k = scale_expr k one
 
   (* arithmetic addition for expressions ========================*)
-  fun add_expr (pi1,tab1) (pi2,tab2) =
+  fun add_expr (const1,tab1) (const2,tab2) =
       let
         fun f (k,v) t =
               if XTab.dom_contains t k
               then XTab.map_entry (Coeff.add v) k t
               else XTab.set (k, v) t
         val newtab = XTab.fold f tab2 tab1
-      in reduce_expr (PiCoeff.add pi1 pi2, newtab) end
+      in reduce_expr (Coeff.add const1 const2, newtab) end
 
   (* arithmetic subtraction for expressions ========================*)
   fun subtr_expr e1 e2 =
@@ -168,11 +168,11 @@ struct
        then Pretty.str " - " :: pretty_list ((k,Coeff.subtr Coeff.zero v)::ys)
        else Pretty.str " + " :: pretty_list xs)
 
-  fun pretty' pistr (pi, tab) =
+  fun pretty' pistr (const, tab) =
       let val tlist = rev (XTab.list_of tab)
       in (Pretty.block o pretty_list)
-         (if Coeff.is_zero pi then tlist
-          else (pistr, pi)::tlist)
+         (if Coeff.is_zero const then tlist
+          else (pistr, const)::tlist)
       end
 
 
@@ -205,14 +205,14 @@ struct
     (* semantic ops *)
     fun rat (TOK(L.INT n), TOK(L.INT d)) = RAT (Coeff.mk (n, d))
       | rat _ = raise semantic_exp
-    fun pirat (TOK(L.INT n), TOK(L.INT d)) = RAT (PiCoeff.mk (n, d))
-      | pirat _ = raise semantic_exp
+    (*fun pirat (TOK(L.INT n), TOK(L.INT d)) = RAT (PiCoeff.mk (n, d))
+      | pirat _ = raise semantic_exp*)
     fun whole_num mker n = mker (n,TOK(L.INT 1))
-    fun rat_term (RAT r, TOK(L.ID id)) = EXP (mk (PiCoeff.mk (0, 1)) [(X.mk id,r)])
+    fun rat_term (RAT r, TOK(L.ID id)) = EXP (mk (Coeff.mk (0, 1)) [(X.mk id,r)])
       | rat_term _ = raise semantic_exp
     fun const_term (RAT r) = EXP (mk r [])
       | const_term _ = raise semantic_exp
-    val one_pi = const_term (RAT (Coeff.mk (1, 1)))
+    (*val one_pi = const_term (RAT (Coeff.mk (1, 1)))*)
     fun var_term (TOK(L.ID id)) = EXP (mk_var (X.mk id))
       | var_term _ = raise semantic_exp
     fun plus (EXP a, EXP b) = EXP (add_expr a b)
@@ -221,8 +221,8 @@ struct
       | neg _ = raise semantic_exp
 
     (* the grammar, decorated with semantic operators *)
-    fun pi x = x|>((sym "\\" || noop)
-               --| (sym "p" || sym "P") --| (sym "i" || sym "I"))
+    (*fun pi x = x|>((sym "\\" || noop)
+               --| (sym "p" || sym "P") --| (sym "i" || sym "I"))*)
 
     fun coeff mker x = x|>(
               ((num --| sym "/" -- num) >> mker)
@@ -234,8 +234,7 @@ struct
                       || (fn x => (TOK(L.INT 1),x))
       fun mkrat_term ((n,i),d) = rat_term (rat (n,d),i)
     in
-      x |> (  ((maybe_num --| pi --| sym "/" -- num) >> pirat >> const_term)
-            ||((maybe_num -- ident --| sym "/" -- num) >> mkrat_term)
+      x |> (   ((maybe_num -- ident --| sym "/" -- num) >> mkrat_term)
             || (sym "(" |-- frac --| sym ")"))
     end
 
@@ -244,10 +243,8 @@ struct
     fun term x = x|>(
              ((sym "-" |-- term) >> neg)
              || frac
-             || (((coeff pirat) --| (sym "*" || noop) --| pi) >> const_term)
-             || (pi >> (K one_pi))
              || (((coeff rat) --| (sym "*" || noop) -- ident) >> rat_term)
-             || ((coeff pirat) >> const_term)
+             || ((coeff rat) >> const_term)
              || (ident >> var_term)
              || (sym "(" |-- expr --| sym ")"))
 
