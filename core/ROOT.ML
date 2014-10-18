@@ -127,6 +127,13 @@ PolyML.Project.make "theories/isaplanner_rtechn/theory.ML";
 Testing.make_test "theories/isaplanner_rtechn/test/test.ML";
 
 
+(* Pair of dots with rational expressions *)
+PolyML.Project.make "theories/rational_pair/data.ML";
+PolyML.Project.make "theories/rational_pair/io.ML";
+PolyML.Project.make "theories/rational_pair/theory.ML";
+(*Testing.make_test "theories/rational_pair/test/test.ML";*)
+
+
 (*
  * Descrimination nets
  *)
