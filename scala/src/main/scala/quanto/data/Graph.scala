@@ -144,7 +144,7 @@ case class Graph(
   def snapToGrid() = {
 
     def roundCoord(d : Double) = {
-      (math.rint(d * 4.0)) / 4.0 // rounds to .25
+      math.rint(d * 4.0) / 4.0 // rounds to .25
     }
 
     val snapped_vdata = vdata.mapValues {vd =>

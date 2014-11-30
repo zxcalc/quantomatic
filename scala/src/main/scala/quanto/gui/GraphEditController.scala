@@ -294,13 +294,13 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
    * Snaps the graph to a square grid with size 0.25
    */
   def snapToGrid() = {
-    graph = graph.snapToGrid()
-    view.invalidateGraph(false)
+    replaceGraph(graph.snapToGrid(), "Snap to grid")
+    view.invalidateGraph(clearSelection = false)
     view.repaint()
   }
 
   private def roundCoord(d : Double) = {
-    (math.rint(d * 4.0)) / 4.0 // rounds to .25
+    math.rint(d * 4.0) / 4.0 // rounds to .25
   }
 
   def layoutGraph() {
@@ -567,7 +567,9 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
         case state => throw new InvalidMouseStateException("MouseReleased", state)
       }
-      snapToGrid()
+
+      // Auto-snapping disabled for now....
+      //snapToGrid()
 
   }
   
@@ -605,6 +607,9 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
       replaceGraph(graph, "")
       undoStack.commit()
+    case KeyReleased(_, Key.G, _, _) =>
+      snapToGrid()
+      //replaceGraph(graph, "")
     case KeyPressed(_, Key.Minus, _, _)  => view.zoom *= 0.6
     case KeyPressed(_, Key.Equals, _, _) => view.zoom *= 1.6
     case KeyPressed(_, Key.C, modifiers, _) =>
