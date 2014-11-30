@@ -45,6 +45,8 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   var vertexTypeLabel : Option[Label] = None
   var controlsOpt : Option[GraphEditControls] = None
 
+  var keepSnapped = true
+
 //  var vertexTypeSelect : ComboBox[String] = _
 //  var edgeTypeLabel: Option[Label] = None
 //  var edgeTypeSelect : ComboBox[String] = _
@@ -110,7 +112,12 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     graph = vs.foldLeft(graph) { (g,v) =>
       view.invalidateVertex(v)
       graph.adjacentEdges(v).foreach { view.invalidateEdge }
-      g.updateVData(v) { d => d.withCoord (d.coord._1 + dx, d.coord._2 - dy) }
+
+      g.updateVData(v) { d =>
+        d.withCoord (
+          d.coord._1 + dx,
+          d.coord._2 - dy
+        ) }
     }
   }
 

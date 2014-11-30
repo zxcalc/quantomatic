@@ -5,6 +5,7 @@ import java.awt.{FontMetrics, Color, Shape}
 import math._
 import quanto.data._
 import quanto.gui._
+import quanto.core.data.TexConstants
 
 case class VDisplay(shape: Shape, color: Color, label: Option[LabelDisplayData]) {
   def pointHit(pt: Point2D) = shape.contains(pt)
@@ -55,7 +56,7 @@ trait VertexDisplayData { self: GraphView =>
                      vertexData.value.stringValue != "")
                        "~"
                      else
-                       vertexData.value.stringValue
+                       TexConstants.translate(vertexData.value.stringValue)
             /*vertexData.typeInfo.value.typ match {
             case Theory.ValueType.String => vertexData.value
             case _ => ""
