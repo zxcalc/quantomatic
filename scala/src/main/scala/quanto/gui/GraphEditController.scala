@@ -107,8 +107,15 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
   // controller actions.
 
-  private def shiftVertsNoRegister(vs: TraversableOnce[VName], p1: Point, p2: Point) {
-    val (dx,dy) = (view.trans scaleFromScreen (p2.getX - p1.getX), view.trans scaleFromScreen (p2.getY - p1.getY))
+  // note we need start *and* previous position to do accurate dragging with snapping
+  private def shiftVertsNoRegister(vs: TraversableOnce[VName], start: Point, prev: Point, end: Point) {
+    val dx =
+      roundCoordIfSnapped(view.trans scaleFromScreen (end.getX - start.getX)) -
+      roundCoordIfSnapped(view.trans scaleFromScreen (prev.getX - start.getX))
+    val dy =
+      roundCoordIfSnapped(view.trans scaleFromScreen (end.getY - start.getY)) -
+      roundCoordIfSnapped(view.trans scaleFromScreen (prev.getY - start.getY))
+    //val (dx,dy) = (view.trans scaleFromScreen (p2.getX - p1.getX), view.trans scaleFromScreen (p2.getY - p1.getY))
     graph = vs.foldLeft(graph) { (g,v) =>
       view.invalidateVertex(v)
       graph.adjacentEdges(v).foreach { view.invalidateEdge }
@@ -123,7 +130,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
   // shift vertices and register undo
   private def shiftVerts(vs: TraversableOnce[VName], p1: Point, p2: Point) {
-    shiftVertsNoRegister(vs, p1, p2)
+    shiftVertsNoRegister(vs, p1, p1, p2)
     undoStack.register("Move Vertices") { shiftVerts(vs, p2, p1) }
   }
 
@@ -306,8 +313,8 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     view.repaint()
   }
 
-  private def roundCoord(d : Double) = {
-    math.rint(d * 4.0) / 4.0 // rounds to .25
+  private def roundCoordIfSnapped(d : Double) = {
+    if (keepSnapped) math.rint(d / 0.25) * 0.25 else d // rounds to .25
   }
 
   def layoutGraph() {
@@ -372,7 +379,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
                   view.publish(VertexSelectionChanged(graph, selectedVerts))
                 }
 
-                mouseState = DragVertex(pt,pt)
+                mouseState = DragVertex(pt, pt)
               case None =>
                 val box = SelectionBox(pt, pt)
                 mouseState = box
@@ -423,7 +430,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
           view.selectionBox = Some(box.rect)
           view.repaint() 
         case DragVertex(start, prev) =>
-          shiftVertsNoRegister(selectedVerts, prev, pt)
+          shiftVertsNoRegister(selectedVerts, start, prev, pt)
           view.repaint()
           mouseState = DragVertex(start, pt)
         case DragEdge(startV) =>
