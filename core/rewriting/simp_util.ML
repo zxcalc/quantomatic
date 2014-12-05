@@ -13,6 +13,9 @@ sig
                     -> (R.name * Theory.Rule.T)
                     -> simproc
 
+  val REDUCE_WHILE : (Theory.Graph.T -> bool)
+                     -> (R.name * Theory.Rule.T)
+                     -> simproc
   val REDUCE_METRIC : (Theory.Graph.T -> int)
                       -> (R.name * Theory.Rule.T)
                       -> simproc
@@ -100,6 +103,8 @@ fun REDUCE_METRIC_TO i metric =
                 POST = (fn (g,g') => (metric g' < metric g)) }
 
 val REDUCE_METRIC = REDUCE_METRIC_TO 0
+
+fun REDUCE_WHILE b = REDUCE_WITH { PRE = b, POST = K true }
 
 (*fun REDUCE_METRIC_TO i metric rule graph =
   Seq.make (fn () => (
