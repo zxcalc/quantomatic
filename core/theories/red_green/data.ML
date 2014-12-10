@@ -7,17 +7,20 @@ struct
   datatype nvdata = Xnd of LinratAngleExpr.T (* Red: defined using H of Z *) 
                   | Znd of LinratAngleExpr.T (* Green *)
                   | Hnd (* Hadamard node *)
+                  | Var of string
   val default_nvdata = Znd LinratAngleExpr.zero
 
   fun default_nvdata_of_typestring s =
     case s of "X" => Xnd LinratAngleExpr.zero
             | "Z" => Znd LinratAngleExpr.zero
             | "hadamard" => Hnd
+            | "var" => Var ""
             | _ => raise unknown_typestring_exp s
 
   fun nvdata_eq (Hnd, Hnd) = true
     | nvdata_eq (Znd a, Znd b) = LinratAngleExpr.eq a b
     | nvdata_eq (Xnd a, Xnd b) = LinratAngleExpr.eq a b
+    | nvdata_eq (Var s, Var t) = (s = t)
     | nvdata_eq _ = false
       
   fun pretty_nvdata (Xnd a) = 
@@ -25,13 +28,16 @@ struct
     | pretty_nvdata (Znd a) = 
       Pretty.block [Pretty.str "Z(", LinratAngleExpr.pretty a, Pretty.str ")"]
     | pretty_nvdata Hnd = Pretty.str "H"
+    | pretty_nvdata (Var s) = Pretty.block [Pretty.str "Var(", Pretty.str s, Pretty.str ")"]
   
   fun match_nvdata (Hnd, Hnd) m = SOME m
     | match_nvdata (Znd a1,Znd a2) m = LinratAngleMatcher.match (a1,a2) m
     | match_nvdata (Xnd a1,Xnd a2) m = LinratAngleMatcher.match (a1,a2) m
+    | match_nvdata (Var s, Var t) m = if s = t then SOME m else NONE
     | match_nvdata _ _ = NONE
 
   fun subst_in_nvdata sub Hnd = (sub, Hnd)
+    | subst_in_nvdata sub (Var s) = (sub, Var s)
     | subst_in_nvdata u (Xnd a) =
         let val (sub',a') = LinratAngleMatcher.subst_in_expr u a
         in (sub', Xnd a') end

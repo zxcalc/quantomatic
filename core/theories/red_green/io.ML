@@ -30,6 +30,7 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
               | "h" => RG_Data.Hnd
               | "x" => RG_Data.Xnd LinratAngleExpr.zero
               | "z" => RG_Data.Znd LinratAngleExpr.zero
+              | "var" => RG_Data.Var ""
               | _   => raise bad_input_exp ("Unknown vertex type "^t,""))
       | input (Json.Object obj) =
           (case to_lower (get_string obj "type")
@@ -37,6 +38,9 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
               | "h" => RG_Data.Hnd
               | "z" => RG_Data.Znd (get_angle obj)
               | "x" => RG_Data.Xnd (get_angle obj)
+              | "var" => RG_Data.Var (case Json.lookup obj "value"
+                                        of SOME (Json.String s) => s
+                                         | NONE => "")
               | t   => raise bad_input_exp ("Unknown vertex type "^t,"type"))
       | input _ = raise bad_input_exp ("Expected object","")
   end
@@ -61,6 +65,11 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
           Json.Object (
             Json.empty_obj |> update ("type",Json.String "hadamard")
           )
+      | output (RG_Data.Var s) =
+          Json.Object (
+            Json.empty_obj |> update ("type", Json.String "var")
+                           |> update ("value", Json.String s)
+          )
   end
   structure EDataInputJSON = InputUnitJSON
   structure EDataOutputJSON = OutputUnitJSON
@@ -72,6 +81,8 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
           "[style=filled,fillcolor=green,fontcolor=black,shape=circle]"
       | style_for_ivertex_data (RG_Data.Xnd _) =
           "[style=filled,fillcolor=red,fontcolor=white,shape=circle]"
+      | style_for_ivertex_data (RG_Data.Var _) =
+          "[style=filled,fillcolor=white,fontcolor=black,shape=circle]"
       | style_for_ivertex_data RG_Data.Hnd =
           "[style=filled,fillcolor=yellow,fontcolor=white,shape=square]"
   end
