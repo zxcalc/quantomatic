@@ -1,0 +1,10 @@
+{
+  "wire_vertices" : ["n","o"],
+  "node_vertices" : ["m","p"],
+  "dir_edges" :
+    {
+      "10" : { "src" : "m", "tgt" : "n" },
+      "11" : { "src" : "n", "tgt" : "o" },
+      "12" : { "src" : "o", "tgt" : "p" }
+    }
+}

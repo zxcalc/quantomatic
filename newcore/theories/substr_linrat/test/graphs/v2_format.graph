@@ -1,0 +1,1 @@
+{"wire_vertices":{"w":{}},"node_vertices":{"a":{"data":{"type":"string_linrat","label":"foo","value":{"string":"foo","angle":{"pretty":"0"}}}},"b":{"data":{"type":"string_linrat","label":"bar","value":{"string":"bar","angle":{"vars":{"a":{"denom":1,"num":1},"b":{"denom":1,"num":1}},"pretty":"a + b"}}}}},"dir_edges":{"e1":{"src":"a","tgt":"w"},"e2":{"src":"w","tgt":"b"}}}
