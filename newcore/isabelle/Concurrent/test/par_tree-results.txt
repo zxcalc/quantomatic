@@ -1,0 +1,1 @@
+ Group No: 960 Hardness: 10000 Branches: 2 Depth: 18 Parallel: 76848964
