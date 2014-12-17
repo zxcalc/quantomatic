@@ -70,23 +70,6 @@ ML_file "io/graph_dot_output.ML";
 ML_file "io/graph_json_io.ML";
 
 
-(*
- * Misc stuff
- *)
-(* hilbert space stuff: depends on OGRAPH *)
-(*ML_file "expressions/hilb.ML";*)
-
-(*
- * Metrics
- *)
-
-(*ML_file "metrics/metric_type.ML"; (* Utils to handle int tuples *)
-ML_file "metrics/metrics/metric.ML"; (* METRIC signature *)
-ML_file "metrics/metrics/edge_complexity_metric.ML";
-ML_file "metrics/metrics/weighted_arity_metric.ML";
-ML_file "metrics/metrics/sets_cardinals_metric.ML";
-ML_file "metrics/metrics.ML"; (* Metrics on graphs *) *)
-
 
 (*
  * Matching
