@@ -82,6 +82,7 @@ sig
   val map_index: (int * 'a -> 'b) -> 'a list -> 'b list
   val fold_index: (int * 'a -> 'b -> 'b) -> 'a list -> 'b -> 'b
   val map_range: (int -> 'a) -> int -> 'a list
+  val fold_range: (int -> 'a -> 'a) -> int -> 'a -> 'a
   val split_last: 'a list -> 'a list * 'a
   val find_first: ('a -> bool) -> 'a list -> 'a option
   val find_index: ('a -> bool) -> 'a list -> int
@@ -138,12 +139,14 @@ sig
   val enclose: string -> string -> string -> string
   val unenclose: string -> string
   val quote: string -> string
+  val cartouche: string -> string
   val space_implode: string -> string list -> string
   val commas: string list -> string
   val commas_quote: string list -> string
   val cat_lines: string list -> string
   val space_explode: string -> string -> string list
   val split_lines: string -> string list
+  val plain_words: string -> string
   val prefix_lines: string -> string -> string
   val prefix: string -> string -> string
   val suffix: string -> string -> string
@@ -157,7 +160,6 @@ sig
   (*reals*)
   val string_of_real: real -> string
   val signed_string_of_real: real -> string
-  val smart_string_of_real: real -> string
 
   (*lists as sets -- see also Pure/General/ord_list.ML*)
   val member: ('b * 'a -> bool) -> 'a list -> 'b -> bool
@@ -216,7 +218,7 @@ sig
   val serial_string: unit -> string
   eqtype stamp
   val stamp: unit -> stamp
-  structure Object: sig type T = exn end
+  structure Any: sig type T = exn end
   val cd: string -> unit
   val pwd: unit -> string
   val getenv: string -> string
@@ -264,6 +266,7 @@ exception ERROR of string;
 fun error msg = raise ERROR msg;
 
 fun cat_error "" msg = error msg
+  | cat_error msg "" = error msg
   | cat_error msg1 msg2 = error (msg1 ^ "\n" ^ msg2);
 
 fun assert_all pred list msg =
@@ -431,21 +434,28 @@ fun nth_drop n xs =
 
 fun map_index f =
   let
-    fun mapp (_: int) [] = []
-      | mapp i (x :: xs) = f (i, x) :: mapp (i + 1) xs
-  in mapp 0 end;
+    fun map_aux (_: int) [] = []
+      | map_aux i (x :: xs) = f (i, x) :: map_aux (i + 1) xs
+  in map_aux 0 end;
 
 fun fold_index f =
   let
     fun fold_aux (_: int) [] y = y
-      | fold_aux i (x :: xs) y = fold_aux (i + 1) xs (f (i, x) y);
+      | fold_aux i (x :: xs) y = fold_aux (i + 1) xs (f (i, x) y)
   in fold_aux 0 end;
 
 fun map_range f i =
   let
-    fun mapp (k: int) =
-      if k < i then f k :: mapp (k + 1) else [];
-  in mapp 0 end;
+    fun map_aux (k: int) =
+      if k < i then f k :: map_aux (k + 1) else []
+  in map_aux 0 end;
+
+fun fold_range f i =
+  let
+    fun fold_aux (k: int) y =
+      if k < i then fold_aux (k + 1) (f k y) else y
+  in fold_aux 0 end;
+
 
 (*rear decomposition*)
 fun split_last [] = raise List.Empty
@@ -722,6 +732,8 @@ fun unenclose str = String.substring (str, 1, size str - 2);
 (*simple quoting (does not escape special chars)*)
 val quote = enclose "\"" "\"";
 
+val cartouche = enclose "\\<open>" "\\<close>";
+
 fun space_implode a bs = implode (separate a bs);
 
 val commas = space_implode ", ";
@@ -734,6 +746,8 @@ fun space_explode _ "" = []
   | space_explode sep s = String.fields (fn c => str c = sep) s;
 
 val split_lines = space_explode "\n";
+
+fun plain_words s = space_explode "_" s |> space_implode " ";
 
 fun prefix_lines "" txt = txt
   | prefix_lines prfx txt = txt |> split_lines |> map (fn s => prfx ^ s) |> cat_lines;
@@ -777,15 +791,6 @@ val string_of_real = Real.fmt (StringCvt.GEN NONE);
 
 fun signed_string_of_real x =
   if x < 0.0 then "-" ^ string_of_real (~ x) else string_of_real x;
-
-fun smart_string_of_real x =
-  let
-    val s = signed_string_of_real x;
-  in
-    (case space_explode "." s of
-      [a, b] => if forall_string (fn c => c = "0") b then a else s
-    | _ => s)
-  end;
 
 
 
@@ -1065,11 +1070,11 @@ datatype stamp = Stamp of serial;
 fun stamp () = Stamp (serial ());
 
 
-(* generic objects *)
+(* values of any type *)
 
 (*note that the builtin exception datatype may be extended by new
   constructors at any time*)
-structure Object = struct type T = exn end;
+structure Any = struct type T = exn end;
 
 
 (* current directory *)

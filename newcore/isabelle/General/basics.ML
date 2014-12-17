@@ -78,7 +78,7 @@ fun is_none (SOME _) = false
   | is_none NONE = true;
 
 fun the (SOME x) = x
-  | the NONE = raise Option;
+  | the NONE = raise Option.Option;
 
 fun these (SOME x) = x
   | these NONE = [];

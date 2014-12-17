@@ -19,7 +19,7 @@ end;
 structure Par_Exn: PAR_EXN =
 struct
 
-(* identification via serial numbers *)
+(* identification via serial numbers -- NOT portable! *)
 
 fun identify default_props exn =
   let
@@ -46,9 +46,10 @@ fun par_exns (Par_Exn exns) = exns
   | par_exns exn = if Exn.is_interrupt exn then [] else [identify [] exn];
 
 fun make exns =
-  (case Ord_List.unions exn_ord (map par_exns exns) of
-    [] => Exn.Interrupt
-  | es => Par_Exn es);
+  let
+    val exnss = map par_exns exns;
+    val exns' = Ord_List.unions exn_ord exnss handle Option.Option => flat exnss;
+  in if null exns' then Exn.Interrupt else Par_Exn exns' end;
 
 fun dest (Par_Exn exns) = SOME exns
   | dest exn = if Exn.is_interrupt exn then SOME [] else NONE;

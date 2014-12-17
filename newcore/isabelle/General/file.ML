@@ -35,7 +35,6 @@ sig
   val append_list: Path.T -> string list -> unit
   val write_buffer: Path.T -> Buffer.T -> unit
   val eq: Path.T * Path.T -> bool
-  val copy: Path.T -> Path.T -> unit
 end;
 
 structure File: FILE =
@@ -165,17 +164,11 @@ fun append path txt = append_list path [txt];
 fun write_buffer path buf = open_output (Buffer.output buf) path;
 
 
-(* copy *)
+(* eq *)
 
 fun eq paths =
   (case try (pairself (OS.FileSys.fileId o platform_path)) paths of
     SOME ids => is_equal (OS.FileSys.compare ids)
   | NONE => false);
-
-fun copy src dst =
-  if eq (src, dst) then ()
-  else
-    let val target = if is_dir dst then Path.append dst (Path.base src) else dst
-    in write target (read src) end;
 
 end;

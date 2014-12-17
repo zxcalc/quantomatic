@@ -20,16 +20,22 @@ sig
   val start: unit -> start
   val result: start -> timing
   val timing: ('a -> 'b) -> 'a -> timing * 'b
+  val is_relevant_time: Time.time -> bool
   val is_relevant: timing -> bool
   val message: timing -> string
+  val protocol_message: Properties.T -> timing -> unit
+  val protocol: Properties.T -> ('a -> 'b) -> 'a -> 'b
 end
 
 structure Timing: TIMING =
 struct
 
-(* timer control *)
+(* type timing *)
 
 type timing = {elapsed: Time.time, cpu: Time.time, gc: Time.time};
+
+
+(* timer control *)
 
 abstype start = Start of
   Timer.real_timer * Time.time * Timer.cpu_timer *
@@ -70,10 +76,12 @@ fun timing f x =
 
 val min_time = Time.fromMilliseconds 1;
 
+fun is_relevant_time time = Time.>= (time, min_time);
+
 fun is_relevant {elapsed, cpu, gc} =
-  Time.>= (elapsed, min_time) orelse
-  Time.>= (cpu, min_time) orelse
-  Time.>= (gc, min_time);
+  is_relevant_time elapsed orelse
+  is_relevant_time cpu orelse
+  is_relevant_time gc;
 
 fun message {elapsed, cpu, gc} =
   Time.toString elapsed ^ "s elapsed time, " ^
@@ -83,10 +91,10 @@ fun message {elapsed, cpu, gc} =
 fun cond_timeit enabled msg e =
   if enabled then
     let
-      val (timing, result) = timing (Exn.interruptible_capture e) ();
+      val (t, result) = timing (Exn.interruptible_capture e) ();
       val _ =
-        if is_relevant timing then
-          let val end_msg = message timing
+        if is_relevant t then
+          let val end_msg = message t
           in warning (if msg = "" then end_msg else msg ^ "\n" ^ end_msg) end
         else ();
     in Exn.release result end
@@ -95,6 +103,15 @@ fun cond_timeit enabled msg e =
 fun timeit e = cond_timeit true "" e;
 fun timeap f x = timeit (fn () => f x);
 fun timeap_msg msg f x = cond_timeit true msg (fn () => f x);
+
+fun protocol_message props t =
+  Output.try_protocol_message (props @ Markup.timing_properties t) [];
+
+fun protocol props f x =
+  let
+    val (t, result) = timing (Exn.interruptible_capture f) x;
+    val _ = protocol_message props t;
+  in Exn.release result end;
 
 end;
 

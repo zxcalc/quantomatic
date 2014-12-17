@@ -23,6 +23,13 @@ val process = uninterruptible (fn restore_attributes => fn script =>
     val err_path = File.tmp_path (Path.basic ("bash_err" ^ id));
     val pid_path = File.tmp_path (Path.basic ("bash_pid" ^ id));
 
+    fun cleanup_files () =
+     (try File.rm script_path;
+      try File.rm out_path;
+      try File.rm err_path;
+      try File.rm pid_path);
+    val _ = cleanup_files ();
+
     val system_thread =
       Simple_Thread.fork false (fn () =>
         Multithreading.with_attributes Multithreading.private_interrupts (fn _ =>
@@ -33,14 +40,10 @@ val process = uninterruptible (fn restore_attributes => fn script =>
                 File.shell_path script_path ^
                 " > " ^ File.shell_path out_path ^
                 " 2> " ^ File.shell_path err_path;
+            val _ = getenv_strict "EXEC_PROCESS";
             val status =
               OS.Process.system
-                (if getenv "EXEC_PROCESS" = "" then
-                  ("exec \"$ISABELLE_HOME/lib/scripts/process\" group " ^
-                    File.shell_path pid_path ^ " script " ^ quote bash_script)
-                 else
-                  ("exec \"$EXEC_PROCESS\" " ^
-                    File.shell_path pid_path ^ " " ^ quote bash_script));
+                ("exec \"$EXEC_PROCESS\" " ^ File.shell_path pid_path ^ " " ^ quote bash_script);
             val res =
               (case Posix.Process.fromStatus status of
                 Posix.Process.W_EXITED => Result 0
@@ -55,37 +58,36 @@ val process = uninterruptible (fn restore_attributes => fn script =>
           handle exn =>
             (Synchronized.change result (fn Wait => Signal | res => res); reraise exn)));
 
-    fun get_pid () = Int.fromString (File.read pid_path) handle IO.Io _ => NONE;
+    fun read_pid 0 = NONE
+      | read_pid count =
+          (case (Int.fromString (File.read pid_path) handle IO.Io _ => NONE) of
+            NONE => (OS.Process.sleep (seconds 0.1); read_pid (count - 1))
+          | some => some);
 
-    fun terminate opt_pid =
-      let
-        val sig_test = Posix.Signal.fromWord 0w0;
+    fun terminate NONE = ()
+      | terminate (SOME pid) =
+          let
+            val sig_test = Posix.Signal.fromWord 0w0;
 
-        fun kill_group pid s =
-          (Posix.Process.kill
-            (Posix.Process.K_GROUP (Posix.Process.wordToPid (LargeWord.fromInt pid)), s); true)
-          handle OS.SysErr _ => false;
+            fun kill_group pid s =
+              (Posix.Process.kill
+                (Posix.Process.K_GROUP (Posix.Process.wordToPid (LargeWord.fromInt pid)), s); true)
+              handle OS.SysErr _ => false;
 
-        fun kill s =
-          (case opt_pid of
-            NONE => true
-          | SOME pid => (kill_group pid s; kill_group pid sig_test));
+            fun kill s = (kill_group pid s; kill_group pid sig_test);
 
-        fun multi_kill count s =
-          count = 0 orelse
-            kill s andalso (OS.Process.sleep (seconds 0.1); multi_kill (count - 1) s);
-        val _ =
-          multi_kill 10 Posix.Signal.int andalso
-          multi_kill 10 Posix.Signal.term andalso
-          multi_kill 10 Posix.Signal.kill;
-      in () end;
+            fun multi_kill count s =
+              count = 0 orelse
+                kill s andalso (OS.Process.sleep (seconds 0.1); multi_kill (count - 1) s);
+            val _ =
+              multi_kill 10 Posix.Signal.int andalso
+              multi_kill 10 Posix.Signal.term andalso
+              multi_kill 10 Posix.Signal.kill;
+          in () end;
 
     fun cleanup () =
      (Simple_Thread.interrupt_unsynchronized system_thread;
-      try File.rm script_path;
-      try File.rm out_path;
-      try File.rm err_path;
-      try File.rm pid_path);
+      cleanup_files ());
   in
     let
       val _ =
@@ -95,10 +97,10 @@ val process = uninterruptible (fn restore_attributes => fn script =>
       val out = the_default "" (try File.read out_path);
       val err = the_default "" (try File.read err_path);
       val rc = (case Synchronized.value result of Signal => Exn.interrupt () | Result rc => rc);
-      val pid = get_pid ();
+      val pid = read_pid 1;
       val _ = cleanup ();
     in {out = out, err = err, rc = rc, terminate = fn () => terminate pid} end
-    handle exn => (terminate (get_pid ()); cleanup (); reraise exn)
+    handle exn => (terminate (read_pid 10); cleanup (); reraise exn)
   end);
 
 end;

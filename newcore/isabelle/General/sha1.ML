@@ -10,6 +10,7 @@ sig
   eqtype digest
   val digest: string -> digest
   val rep: digest -> string
+  val fake: string -> digest
 end;
 
 structure SHA1: SHA1 =
@@ -135,5 +136,7 @@ datatype digest = Digest of string;
 
 val digest = Digest o digest_string;
 fun rep (Digest s) = s;
+
+val fake = Digest;
 
 end;

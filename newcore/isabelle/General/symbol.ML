@@ -13,6 +13,7 @@ sig
   val is_char: symbol -> bool
   val is_utf8: symbol -> bool
   val is_symbolic: symbol -> bool
+  val is_symbolic_char: symbol -> bool
   val is_printable: symbol -> bool
   val eof: symbol
   val is_eof: symbol -> bool
@@ -46,7 +47,6 @@ sig
   val decode: symbol -> sym
   datatype kind = Letter | Digit | Quasi | Blank | Other
   val kind: symbol -> kind
-  val is_letter_symbol: symbol -> bool
   val is_letter: symbol -> bool
   val is_digit: symbol -> bool
   val is_quasi: symbol -> bool
@@ -99,12 +99,17 @@ fun is_char s = size s = 1;
 
 fun is_utf8 s = size s > 0 andalso forall_string (fn c => ord c >= 128) s;
 
-fun is_symbolic s =
+fun raw_symbolic s =
   String.isPrefix "\\<" s andalso String.isSuffix ">" s andalso not (String.isPrefix "\\<^" s);
+
+fun is_symbolic s =
+  s <> "\\<open>" andalso s <> "\\<close>" andalso raw_symbolic s;
+
+val is_symbolic_char = member (op =) (raw_explode "!#$%&*+-/<=>?@^_|~");
 
 fun is_printable s =
   if is_char s then ord space <= ord s andalso ord s <= ord "~"
-  else is_utf8 s orelse is_symbolic s;
+  else is_utf8 s orelse raw_symbolic s;
 
 
 (* input source control *)
@@ -114,6 +119,7 @@ fun is_eof s = s = eof;
 fun not_eof s = s <> eof;
 val stopper = Scan.stopper (K eof) is_eof;
 
+(*Proof General legacy*)
 val sync = "\\<^sync>";
 fun is_sync s = s = sync;
 
@@ -377,9 +383,7 @@ local
       "\\<Upsilon>",
       "\\<Phi>",
       "\\<Psi>",
-      "\\<Omega>",
-      "\\<^isub>",
-      "\\<^isup>"
+      "\\<Omega>"
     ];
 in
 
@@ -426,8 +430,7 @@ fun implode_pseudo_utf8 (cs as ["\192", c]) =
 
 val scan_encoded_newline =
   $$ "\^M" -- $$ "\n" >> K "\n" ||
-  $$ "\^M" >> K "\n" ||
-  Scan.this_string "\\<^newline>" >> K "\n";
+  $$ "\^M" >> K "\n";
 
 val scan_raw =
   Scan.this_string "raw:" ^^ (Scan.many raw_chr >> implode) ||
@@ -519,9 +522,8 @@ fun strip_blanks s =
 (* bump string -- treat as base 26 or base 1 numbers *)
 
 fun symbolic_end (_ :: "\\<^sub>" :: _) = true
-  | symbolic_end (_ :: "\\<^isub>" :: _) = true
-  | symbolic_end (_ :: "\\<^isup>" :: _) = true
-  | symbolic_end (s :: _) = is_symbolic s
+  | symbolic_end ("'" :: ss) = symbolic_end ss
+  | symbolic_end (s :: _) = raw_symbolic s
   | symbolic_end [] = false;
 
 fun bump_init str =

@@ -4,38 +4,27 @@
 ML context and antiquotations.
 *)
 
-signature BASIC_ML_CONTEXT =
-sig
-  val bind_thm: string * thm -> unit
-  val bind_thms: string * thm list -> unit
-end
-
 signature ML_CONTEXT =
 sig
-  include BASIC_ML_CONTEXT
   val the_generic_context: unit -> Context.generic
   val the_global_context: unit -> theory
   val the_local_context: unit -> Proof.context
   val thm: xstring -> thm
   val thms: xstring -> thm list
   val exec: (unit -> unit) -> Context.generic -> Context.generic
-  val get_stored_thms: unit -> thm list
-  val get_stored_thm: unit -> thm
-  val ml_store_thms: string * thm list -> unit
-  val ml_store_thm: string * thm -> unit
-  type antiq = Proof.context -> (Proof.context -> string * string) * Proof.context
-  val add_antiq: binding -> (Position.T -> antiq context_parser) -> theory -> theory
-  val intern_antiq: theory -> xstring -> string
-  val defined_antiq: theory -> string -> bool
-  val trace_raw: Config.raw
-  val trace: bool Config.T
+  val check_antiquotation: Proof.context -> xstring * Position.T -> string
+  type decl = Proof.context -> string * string
+  val add_antiquotation: binding -> (Args.src -> Proof.context -> decl * Proof.context) ->
+    theory -> theory
+  val print_antiquotations: Proof.context -> unit
   val eval_antiquotes: ML_Lex.token Antiquote.antiquote list * Position.T ->
     Context.generic option -> (ML_Lex.token list * ML_Lex.token list) * Context.generic option
-  val eval: bool -> Position.T -> ML_Lex.token Antiquote.antiquote list -> unit
-  val eval_text: bool -> Position.T -> Symbol_Pos.text -> unit
-  val eval_in: Proof.context option -> bool -> Position.T ->
+  val eval: ML_Compiler.flags -> Position.T -> ML_Lex.token Antiquote.antiquote list -> unit
+  val eval_file: ML_Compiler.flags -> Path.T -> unit
+  val eval_source: ML_Compiler.flags -> Symbol_Pos.source -> unit
+  val eval_in: Proof.context option -> ML_Compiler.flags -> Position.T ->
     ML_Lex.token Antiquote.antiquote list -> unit
-  val eval_text_in: Proof.context option -> bool -> Position.T -> Symbol_Pos.text -> unit
+  val eval_source_in: Proof.context option -> ML_Compiler.flags -> Symbol_Pos.source -> unit
   val expression: Position.T -> string -> string -> ML_Lex.token Antiquote.antiquote list ->
     Context.generic -> Context.generic
 end
@@ -58,68 +47,36 @@ fun exec (e: unit -> unit) context =
   | NONE => error "Missing context after execution");
 
 
-(* theorem bindings *)
-
-structure Stored_Thms = Theory_Data
-(
-  type T = thm list;
-  val empty = [];
-  fun extend _ = [];
-  fun merge _ = [];
-);
-
-fun get_stored_thms () = Stored_Thms.get (the_global_context ());
-val get_stored_thm = hd o get_stored_thms;
-
-fun ml_store get (name, ths) =
-  let
-    val ths' = Context.>>> (Context.map_theory_result
-      (Global_Theory.store_thms (Binding.name name, ths)));
-    val _ = Context.>> (Context.map_theory (Stored_Thms.put ths'));
-    val _ =
-      if name = "" then ()
-      else if not (ML_Syntax.is_identifier name) then
-        error ("Cannot bind theorem(s) " ^ quote name ^ " as ML value")
-      else
-        ML_Compiler.eval true Position.none
-          (ML_Lex.tokenize ("val " ^ name ^ " = " ^ get ^ " ();"));
-    val _ = Context.>> (Context.map_theory (Stored_Thms.put []));
-  in () end;
-
-val ml_store_thms = ml_store "ML_Context.get_stored_thms";
-fun ml_store_thm (name, th) = ml_store "ML_Context.get_stored_thm" (name, [th]);
-
-fun bind_thm (name, thm) = ml_store_thm (name, Drule.export_without_context thm);
-fun bind_thms (name, thms) = ml_store_thms (name, map Drule.export_without_context thms);
-
-
 
 (** ML antiquotations **)
 
-(* antiquotation commands *)
+(* theory data *)
 
-type antiq = Proof.context -> (Proof.context -> string * string) * Proof.context;
-
-structure Antiq_Parsers = Theory_Data
+type decl = Proof.context -> string * string;  (*final context -> ML env, ML body*)
+structure Antiquotations = Theory_Data
 (
-  type T = (Position.T -> antiq context_parser) Name_Space.table;
+  type T = (Args.src -> Proof.context -> decl * Proof.context) Name_Space.table;
   val empty : T = Name_Space.empty_table Markup.ML_antiquotationN;
   val extend = I;
   fun merge data : T = Name_Space.merge_tables data;
 );
 
-fun add_antiq name scan thy = thy
-  |> Antiq_Parsers.map (Name_Space.define (Context.Theory thy) true (name, scan) #> snd);
+val get_antiquotations = Antiquotations.get o Proof_Context.theory_of;
 
-val intern_antiq = Name_Space.intern o #1 o Antiq_Parsers.get;
-val defined_antiq = Symtab.defined o #2 o Antiq_Parsers.get;
+fun check_antiquotation ctxt =
+  #1 o Name_Space.check (Context.Proof ctxt) (get_antiquotations ctxt);
 
-fun antiquotation src ctxt =
-  let
-    val thy = Proof_Context.theory_of ctxt;
-    val ((xname, _), pos) = Args.dest_src src;
-    val (_, scan) = Name_Space.check (Context.Proof ctxt) (Antiq_Parsers.get thy) (xname, pos);
-  in Args.context_syntax Markup.ML_antiquotationN (scan pos) src ctxt end;
+fun add_antiquotation name f thy = thy
+  |> Antiquotations.map (Name_Space.define (Context.Theory thy) true (name, f) #> snd);
+
+fun print_antiquotations ctxt =
+  Pretty.big_list "ML antiquotations:"
+    (map (Pretty.mark_str o #1) (Name_Space.markup_table ctxt (get_antiquotations ctxt)))
+  |> Pretty.writeln;
+
+fun apply_antiquotation src ctxt =
+  let val (src', f) = Args.check_src ctxt (get_antiquotations ctxt) src
+  in f src' ctxt end;
 
 
 (* parsing and evaluation *)
@@ -127,13 +84,19 @@ fun antiquotation src ctxt =
 local
 
 val antiq =
-  Parse.!!! (Parse.position Parse.xname -- Args.parse --| Scan.ahead Parse.eof)
-  >> (fn ((x, pos), y) => Args.src ((x, y), pos));
+  Parse.!!! (Parse.position Parse.xname -- Parse.args --| Scan.ahead Parse.eof)
+  >> uncurry Args.src;
 
 val begin_env0 = ML_Lex.tokenize "structure Isabelle =\nstruct\n";
-val begin_env =
+
+fun begin_env visible =
   ML_Lex.tokenize
-    "structure Isabelle =\nstruct\nval ML_context = ML_Context.the_local_context ();\n";
+    ("structure Isabelle =\nstruct\n\
+     \val ML_context = Context_Position.set_visible " ^ Bool.toString visible ^
+     " (ML_Context.the_local_context ());\n\
+     \val ML_print_depth =\n\
+     \  let val default = ML_Options.get_print_depth ()\n\
+     \  in fn () => ML_Options.get_print_depth_default default end;\n");
 
 val end_env = ML_Lex.tokenize "end;";
 val reset_env = ML_Lex.tokenize "structure Isabelle = struct end";
@@ -142,52 +105,50 @@ in
 
 fun eval_antiquotes (ants, pos) opt_context =
   let
+    val visible =
+      (case opt_context of
+        SOME (Context.Proof ctxt) => Context_Position.is_visible ctxt
+      | _ => true);
     val opt_ctxt = Option.map (Context.Proof o Context.proof_of) opt_context;
+
     val ((ml_env, ml_body), opt_ctxt') =
       if forall Antiquote.is_text ants
       then ((begin_env0, map (fn Antiquote.Text tok => tok) ants), opt_ctxt)
       else
         let
+          val lex = #1 (Keyword.get_lexicons ());
+          fun no_decl _ = ([], []);
+
+          fun expand (Antiquote.Text tok) ctxt = (K ([], [tok]), ctxt)
+            | expand (Antiquote.Antiq (ss, {range, ...})) ctxt =
+                let
+                  val (decl, ctxt') =
+                    apply_antiquotation (Token.read_antiq lex antiq (ss, #1 range)) ctxt;
+                  val decl' = decl #> pairself (ML_Lex.tokenize #> map (ML_Lex.set_range range));
+                in (decl', ctxt') end;
+
           val ctxt =
             (case opt_ctxt of
               NONE => error ("No context -- cannot expand ML antiquotations" ^ Position.here pos)
             | SOME ctxt => Context.proof_of ctxt);
 
-          val lex = #1 (Keyword.get_lexicons ());
-          fun no_decl _ = ([], []);
-
-          fun expand (Antiquote.Text tok) state = (K ([], [tok]), state)
-            | expand (Antiquote.Antiq (ss, range)) (scope, background) =
-                let
-                  val context = Stack.top scope;
-                  val (f, context') =
-                    antiquotation (Token.read_antiq lex antiq (ss, #1 range)) context;
-                  val (decl, background') = f background;
-                  val decl' = decl #> pairself (ML_Lex.tokenize #> map (ML_Lex.set_range range));
-                in (decl', (Stack.map_top (K context') scope, background')) end
-            | expand (Antiquote.Open _) (scope, background) =
-                (no_decl, (Stack.push scope, background))
-            | expand (Antiquote.Close _) (scope, background) =
-                (no_decl, (Stack.pop scope, background));
-
-          val (decls, (_, ctxt')) = fold_map expand ants (Stack.init ctxt, ctxt);
-          val (ml_env, ml_body) = decls |> map (fn decl => decl ctxt') |> split_list |> pairself flat;
-        in ((begin_env @ ml_env, ml_body), SOME (Context.Proof ctxt')) end;
+          val (decls, ctxt') = fold_map expand ants ctxt;
+          val (ml_env, ml_body) =
+            decls |> map (fn decl => decl ctxt') |> split_list |> pairself flat;
+        in ((begin_env visible @ ml_env, ml_body), SOME (Context.Proof ctxt')) end;
   in ((ml_env @ end_env, ml_body), opt_ctxt') end;
 
-val trace_raw = Config.declare "ML_trace" (fn _ => Config.Bool false);
-val trace = Config.bool trace_raw;
-
-fun eval verbose pos ants =
+fun eval flags pos ants =
   let
+    val non_verbose = ML_Compiler.verbose false flags;
+
     (*prepare source text*)
     val ((env, body), env_ctxt) = eval_antiquotes (ants, pos) (Context.thread_data ());
     val _ =
       (case Option.map Context.proof_of env_ctxt of
         SOME ctxt =>
-          if Config.get ctxt trace then
-            Context_Position.if_visible ctxt
-              tracing (cat_lines [ML_Lex.flatten env, ML_Lex.flatten body])
+          if Config.get ctxt ML_Options.source_trace andalso Context_Position.is_visible ctxt
+          then tracing (cat_lines [ML_Lex.flatten env, ML_Lex.flatten body])
           else ()
       | NONE => ());
 
@@ -195,11 +156,11 @@ fun eval verbose pos ants =
     val _ =
       Context.setmp_thread_data
         (Option.map (Context.mapping I (Context_Position.set_visible false)) env_ctxt)
-        (fn () => (ML_Compiler.eval false Position.none env; Context.thread_data ())) ()
+        (fn () => (ML_Compiler.eval non_verbose Position.none env; Context.thread_data ())) ()
       |> (fn NONE => () | SOME context' => Context.>> (ML_Env.inherit context'));
 
-    val _ = ML_Compiler.eval verbose pos body;
-    val _ = ML_Compiler.eval false Position.none reset_env;
+    val _ = ML_Compiler.eval flags pos body;
+    val _ = ML_Compiler.eval non_verbose Position.none reset_env;
   in () end;
 
 end;
@@ -207,20 +168,26 @@ end;
 
 (* derived versions *)
 
-fun eval_text verbose pos txt = eval verbose pos (ML_Lex.read pos txt);
+fun eval_file flags path =
+  let val pos = Path.position path
+  in eval flags pos (ML_Lex.read pos (File.read path)) end;
 
-fun eval_in ctxt verbose pos ants =
-  Context.setmp_thread_data (Option.map Context.Proof ctxt) (fn () => eval verbose pos ants) ();
+fun eval_source flags source =
+  eval flags (#pos source) (ML_Lex.read_source (#SML flags) source);
 
-fun eval_text_in ctxt verbose pos txt =
-  Context.setmp_thread_data (Option.map Context.Proof ctxt) (fn () => eval_text verbose pos txt) ();
+fun eval_in ctxt flags pos ants =
+  Context.setmp_thread_data (Option.map Context.Proof ctxt)
+    (fn () => eval flags pos ants) ();
+
+fun eval_source_in ctxt flags source =
+  Context.setmp_thread_data (Option.map Context.Proof ctxt)
+    (fn () => eval_source flags source) ();
 
 fun expression pos bind body ants =
-  exec (fn () => eval false pos
-    (ML_Lex.read Position.none ("Context.set_thread_data (SOME (let " ^ bind ^ " = ") @ ants @
+  exec (fn () =>
+    eval ML_Compiler.flags pos
+     (ML_Lex.read Position.none ("Context.set_thread_data (SOME (let " ^ bind ^ " = ") @ ants @
       ML_Lex.read Position.none (" in " ^ body ^ " end (ML_Context.the_generic_context ())));")));
 
 end;
 
-structure Basic_ML_Context: BASIC_ML_CONTEXT = ML_Context;
-open Basic_ML_Context;

@@ -3,6 +3,8 @@
  *)
 OS.FileSys.chDir "isabelle";
 
+val exit = OS.Process.exit;
+
 use "ML-Systems/polyml.ML";
 
 (* from Isabelle/src/Pure/Generic *)
@@ -86,5 +88,8 @@ use "basics/polym_table.ML";
 
 
 use "basics/toplevel.ML";
+
+(* adds support for "use"-ing Isabelle theories *)
+use "use_thy.ML";
 
 OS.FileSys.chDir "..";

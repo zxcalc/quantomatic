@@ -6,6 +6,7 @@ Lexical syntax for SML.
 
 signature ML_LEX =
 sig
+  val keywords: string list
   datatype token_kind =
     Keyword | Ident | LongIdent | TypeVar | Word | Int | Real | Char | String |
     Space | Comment | Error of string | EOF
@@ -20,16 +21,38 @@ sig
   val content_of: token -> string
   val check_content_of: token -> string
   val flatten: token list -> string
-  val keywords: string list
   val source: (Symbol.symbol, 'a) Source.source ->
     (token, (Symbol_Pos.T, Position.T * (Symbol.symbol, 'a) Source.source)
       Source.source) Source.source
   val tokenize: string -> token list
   val read: Position.T -> Symbol_Pos.text -> token Antiquote.antiquote list
+  val read_source: bool -> Symbol_Pos.source -> token Antiquote.antiquote list
 end;
 
 structure ML_Lex: ML_LEX =
 struct
+
+(** keywords **)
+
+val keywords =
+ ["#", "(", ")", ",", "->", "...", ":", ":>", ";", "=", "=>", "[",
+  "]", "_", "{", "|", "}", "abstype", "and", "andalso", "as", "case",
+  "datatype", "do", "else", "end", "eqtype", "exception", "fn", "fun",
+  "functor", "handle", "if", "in", "include", "infix", "infixr",
+  "let", "local", "nonfix", "of", "op", "open", "orelse", "raise",
+  "rec", "sharing", "sig", "signature", "struct", "structure", "then",
+  "type", "val", "where", "while", "with", "withtype"];
+
+val keywords2 =
+ ["case", "do", "else", "end", "if", "in", "let", "local", "of",
+  "sig", "struct", "then", "while", "with"];
+
+val keywords3 =
+ ["handle", "open", "raise"];
+
+val lexicon = Scan.make_lexicon (map raw_explode keywords);
+
+
 
 (** tokens **)
 
@@ -69,6 +92,12 @@ fun kind_of (Token (_, (k, _))) = k;
 fun content_of (Token (_, (_, x))) = x;
 fun token_leq (tok, tok') = content_of tok <= content_of tok';
 
+fun is_keyword (Token (_, (Keyword, _))) = true
+  | is_keyword _ = false;
+
+fun is_delimiter (Token (_, (Keyword, x))) = not (Symbol.is_ascii_identifier x)
+  | is_delimiter _ = false;
+
 fun is_regular (Token (_, (Error _, _))) = false
   | is_regular (Token (_, (EOF, _))) = false
   | is_regular _ = true;
@@ -103,8 +132,8 @@ val flatten = implode o flatten_content;
 
 local
 
-val token_kind_markup =
- fn Keyword   => (Markup.ML_keyword, "")
+fun token_kind_markup SML =
+ fn Keyword   => (Markup.empty, "")
   | Ident     => (Markup.empty, "")
   | LongIdent => (Markup.empty, "")
   | TypeVar   => (Markup.ML_tvar, "")
@@ -112,21 +141,22 @@ val token_kind_markup =
   | Int       => (Markup.ML_numeral, "")
   | Real      => (Markup.ML_numeral, "")
   | Char      => (Markup.ML_char, "")
-  | String    => (Markup.ML_string, "")
+  | String    => (if SML then Markup.SML_string else Markup.ML_string, "")
   | Space     => (Markup.empty, "")
-  | Comment   => (Markup.ML_comment, "")
+  | Comment   => (if SML then Markup.SML_comment else Markup.ML_comment, "")
   | Error msg => (Markup.bad, msg)
   | EOF       => (Markup.empty, "");
 
-fun token_markup kind x =
-  if kind = Keyword andalso exists_string (not o Symbol.is_ascii_letter) x
-  then (Markup.ML_delimiter, "")
-  else token_kind_markup kind;
-
 in
 
-fun report_of_token (Token ((pos, _), (kind, x))) =
-  let val (markup, txt) = token_markup kind x
+fun report_of_token SML (tok as Token ((pos, _), (kind, x))) =
+  let
+    val (markup, txt) =
+      if not (is_keyword tok) then token_kind_markup SML kind
+      else if is_delimiter tok then (Markup.ML_delimiter, "")
+      else if member (op =) keywords2 x then (Markup.ML_keyword2, "")
+      else if member (op =) keywords3 x then (Markup.ML_keyword3, "")
+      else (Markup.ML_keyword1, "");
   in ((pos, markup), txt) end;
 
 end;
@@ -137,27 +167,9 @@ end;
 
 open Basic_Symbol_Pos;
 
-fun !!! msg = Symbol_Pos.!!! (fn () => "SML lexical error: " ^ msg);
+val err_prefix = "SML lexical error: ";
 
-
-(* blanks *)
-
-val scan_blank = Scan.one (Symbol.is_ascii_blank o Symbol_Pos.symbol);
-val scan_blanks1 = Scan.repeat1 scan_blank;
-
-
-(* keywords *)
-
-val keywords = ["#", "(", ")", ",", "->", "...", ":", ":>", ";", "=",
-  "=>", "[", "]", "_", "{", "|", "}", "abstype", "and", "andalso", "as",
-  "case", "datatype", "do", "else", "end", "eqtype", "exception", "fn",
-  "fun", "functor", "handle", "if", "in", "include", "infix", "infixr",
-  "let", "local", "nonfix", "of", "op", "open", "orelse", "raise", "rec",
-  "sharing", "sig", "signature", "struct", "structure", "then", "type",
-  "val", "where", "while", "with", "withtype"];
-
-val lex = Scan.make_lexicon (map raw_explode keywords);
-fun scan_keyword x = Scan.literal lex x;
+fun !!! msg = Symbol_Pos.!!! (fn () => err_prefix ^ msg);
 
 
 (* identifiers *)
@@ -165,9 +177,7 @@ fun scan_keyword x = Scan.literal lex x;
 local
 
 val scan_letdigs =
-  Scan.many
-    ((Symbol.is_ascii_letter orf Symbol.is_ascii_digit orf Symbol.is_ascii_quasi) o
-      Symbol_Pos.symbol);
+  Scan.many (Symbol.is_ascii_letdig o Symbol_Pos.symbol);
 
 val scan_alphanumeric =
   Scan.one (Symbol.is_ascii_letter o Symbol_Pos.symbol) -- scan_letdigs >> op ::;
@@ -179,10 +189,10 @@ in
 
 val scan_ident = scan_alphanumeric || scan_symbolic;
 
-val scan_longident =
+val scan_long_ident =
   (Scan.repeat1 (scan_alphanumeric @@@ $$$ ".") >> flat) @@@ (scan_ident || $$$ "=");
 
-val scan_typevar = $$$ "'" @@@ scan_letdigs;
+val scan_type_var = $$$ "'" @@@ scan_letdigs;
 
 end;
 
@@ -195,6 +205,7 @@ val scan_dec = Scan.many1 (Symbol.is_ascii_digit o Symbol_Pos.symbol);
 val scan_hex = Scan.many1 (Symbol.is_ascii_hex o Symbol_Pos.symbol);
 val scan_sign = Scan.optional ($$$ "~") [];
 val scan_decint = scan_sign @@@ scan_dec;
+val scan_exp = ($$$ "E" || $$$ "e") @@@ scan_decint;
 
 in
 
@@ -204,8 +215,6 @@ val scan_word =
 
 val scan_int = scan_sign @@@ ($$$ "0" @@@ $$$ "x" @@@ scan_hex || scan_dec);
 
-val scan_exp = ($$$ "E" || $$$ "e") @@@ scan_decint;
-
 val scan_real =
   scan_decint @@@ $$$ "." @@@ scan_dec @@@ Scan.optional scan_exp [] ||
   scan_decint @@@ scan_exp;
@@ -214,6 +223,8 @@ end;
 
 
 (* chars and strings *)
+
+val scan_blanks1 = Scan.many1 (Symbol.is_ascii_blank o Symbol_Pos.symbol);
 
 local
 
@@ -241,8 +252,9 @@ val recover_char =
   $$$ "#" @@@ $$$ "\"" @@@ scan_gaps @@@ Scan.optional (Scan.permissive scan_str @@@ scan_gaps) [];
 
 val scan_string =
-  $$$ "\"" @@@ !!! "missing quote at end of string"
-    ((Scan.repeat (scan_gap || scan_str) >> flat) @@@ $$$ "\"");
+  Scan.ahead ($$ "\"") |--
+    !!! "unclosed string literal"
+      ($$$ "\"" @@@ (Scan.repeat (scan_gap || scan_str) >> flat) @@@ $$$ "\"");
 
 val recover_string =
   $$$ "\"" @@@ (Scan.repeat (scan_gap || Scan.permissive scan_str) >> flat);
@@ -260,17 +272,17 @@ val scan_ml =
  (scan_char >> token Char ||
   scan_string >> token String ||
   scan_blanks1 >> token Space ||
-  Symbol_Pos.scan_comment !!! >> token Comment ||
+  Symbol_Pos.scan_comment err_prefix >> token Comment ||
   Scan.max token_leq
-   (scan_keyword >> token Keyword)
+   (Scan.literal lexicon >> token Keyword)
    (scan_word >> token Word ||
     scan_real >> token Real ||
     scan_int >> token Int ||
-    scan_longident >> token LongIdent ||
+    scan_long_ident >> token LongIdent ||
     scan_ident >> token Ident ||
-    scan_typevar >> token TypeVar));
+    scan_type_var >> token TypeVar));
 
-val scan_antiq = Antiquote.scan || scan_ml >> Antiquote.Text;
+val scan_antiq = Antiquote.scan_antiq >> Antiquote.Antiq || scan_ml >> Antiquote.Text;
 
 fun recover msg =
  (recover_char ||
@@ -278,6 +290,29 @@ fun recover msg =
   Symbol_Pos.recover_comment ||
   Scan.one (Symbol.not_eof o Symbol_Pos.symbol) >> single)
   >> (single o token (Error msg));
+
+fun gen_read SML pos text =
+  let
+    val syms = Symbol_Pos.explode (text, pos);
+    val termination =
+      if null syms then []
+      else
+        let
+          val pos1 = List.last syms |-> Position.advance;
+          val pos2 = Position.advance Symbol.space pos1;
+        in [Antiquote.Text (Token (Position.range pos1 pos2, (Space, Symbol.space)))] end;
+
+    val scan = if SML then scan_ml >> Antiquote.Text else scan_antiq;
+    fun check (Antiquote.Text tok) = (check_content_of tok; if SML then () else warn tok)
+      | check _ = ();
+    val input =
+      Source.of_list syms
+      |> Source.source Symbol_Pos.stopper (Scan.bulk (!!! "bad input" scan))
+        (SOME (false, fn msg => recover msg >> map Antiquote.Text))
+      |> Source.exhaust
+      |> tap (Position.reports_text o Antiquote.antiquote_reports (single o report_of_token SML))
+      |> tap (List.app check);
+  in input @ termination end;
 
 in
 
@@ -287,28 +322,15 @@ fun source src =
 
 val tokenize = Source.of_string #> Symbol.source #> source #> Source.exhaust;
 
-fun read pos txt =
+val read = gen_read false;
+
+fun read_source SML {delimited, text, pos} =
   let
-    val _ = Position.report pos Markup.ML_source;
-    val syms = Symbol_Pos.explode (txt, pos);
-    val termination =
-      if null syms then []
-      else
-        let
-          val pos1 = List.last syms |-> Position.advance;
-          val pos2 = Position.advance Symbol.space pos1;
-        in [Antiquote.Text (Token (Position.range pos1 pos2, (Space, Symbol.space)))] end;
-    val input =
-      (Source.of_list syms
-        |> Source.source Symbol_Pos.stopper (Scan.bulk (!!! "bad input" scan_antiq))
-          (SOME (false, fn msg => recover msg >> map Antiquote.Text))
-        |> Source.exhaust
-        |> tap (Position.reports_text o Antiquote.reports_of (single o report_of_token))
-        |> tap Antiquote.check_nesting
-        |> tap (List.app (fn Antiquote.Text tok => (check_content_of tok; warn tok) | _ => ())))
-      handle ERROR msg =>
-        cat_error msg ("The error(s) above occurred in ML source" ^ Position.here pos);
-  in input @ termination end;
+    val language = if SML then Markup.language_SML else Markup.language_ML;
+    val _ =
+      if Position.is_reported_range pos then Position.report pos (language delimited)
+      else ();
+  in gen_read SML pos text end;
 
 end;
 

@@ -20,8 +20,9 @@ sig
   val file_name: string -> Properties.T
   val file_only: string -> T
   val file: string -> T
-  val line: int -> T
+  val line_file_only: int -> string -> T
   val line_file: int -> string -> T
+  val line: int -> T
   val id: string -> T
   val id_only: string -> T
   val get_id: T -> string option
@@ -34,6 +35,7 @@ sig
   val default_properties: T -> Properties.T -> Properties.T
   val markup: T -> Markup.T -> Markup.T
   val is_reported: T -> bool
+  val is_reported_range: T -> bool
   val reported_text: T -> Markup.T -> string -> string
   val report_text: T -> Markup.T -> string -> unit
   val report: T -> Markup.T -> unit
@@ -41,7 +43,9 @@ sig
   type report_text = report * string
   val reports_text: report_text list -> unit
   val reports: report list -> unit
-  val store_reports: report list Unsynchronized.ref -> T list -> ('a -> Markup.T list) -> 'a -> unit
+  val store_reports: report_text list Unsynchronized.ref ->
+    T list -> ('a -> Markup.T list) -> 'a -> unit
+  val append_reports: report_text list Unsynchronized.ref -> report list -> unit
   val here: T -> string
   val here_list: T list -> string
   type range = T * T
@@ -115,6 +119,7 @@ fun file_name "" = []
 fun file_only name = Pos ((0, 0, 0), file_name name);
 fun file name = Pos ((1, 1, 0), file_name name);
 
+fun line_file_only i name = Pos ((i, 0, 0), file_name name);
 fun line_file i name = Pos ((i, 1, 0), file_name name);
 fun line i = line_file i "";
 
@@ -146,7 +151,7 @@ fun value k i = if valid i then [(k, Markup.print_int i)] else [];
 fun properties_of (Pos ((i, j, k), props)) =
   value Markup.lineN i @ value Markup.offsetN j @ value Markup.end_offsetN k @ props;
 
-val def_properties_of = properties_of #> (map (fn (x, y) => ("def_" ^ x, y)));
+val def_properties_of = properties_of #> map (fn (x, y) => ("def_" ^ x, y));
 
 fun entity_properties_of def id pos =
   if def then (Markup.defN, Markup.print_int id) :: properties_of pos
@@ -162,9 +167,10 @@ val markup = Markup.properties o properties_of;
 (* reports *)
 
 fun is_reported pos = is_some (offset_of pos) andalso is_some (get_id pos);
+fun is_reported_range pos = is_reported pos andalso is_some (end_offset_of pos);
 
 fun reported_text pos m txt = if is_reported pos then Markup.markup (markup pos m) txt else "";
-fun report_text pos markup txt = Output.report (reported_text pos markup txt);
+fun report_text pos markup txt = Output.report [reported_text pos markup txt];
 fun report pos markup = report_text pos markup "";
 
 type report = T * Markup.T;
@@ -172,30 +178,33 @@ type report_text = report * string;
 
 val reports_text =
   map (fn ((pos, m), txt) => if is_reported pos then Markup.markup (markup pos m) txt else "")
-  #> implode #> Output.report;
+  #> Output.report;
 
 val reports = map (rpair "") #> reports_text;
 
 fun store_reports _ [] _ _ = ()
-  | store_reports (r: report list Unsynchronized.ref) ps markup x =
+  | store_reports (r: report_text list Unsynchronized.ref) ps markup x =
       let val ms = markup x
-      in Unsynchronized.change r (fold (fn p => fold (fn m => cons (p, m)) ms) ps) end;
+      in Unsynchronized.change r (fold (fn p => fold (fn m => cons ((p, m), "")) ms) ps) end;
+
+fun append_reports (r: report_text list Unsynchronized.ref) reports =
+  Unsynchronized.change r (append (map (rpair "") reports));
 
 
-(* here: inlined formal markup *)
+(* here: user output *)
 
 fun here pos =
   let
     val props = properties_of pos;
-    val s =
+    val (s1, s2) =
       (case (line_of pos, file_of pos) of
-        (SOME i, NONE) => "(line " ^ Markup.print_int i ^ ")"
-      | (SOME i, SOME name) => "(line " ^ Markup.print_int i ^ " of " ^ quote name ^ ")"
-      | (NONE, SOME name) => "(file " ^ quote name ^ ")"
-      | _ => "");
+        (SOME i, NONE) => (" ", "(line " ^ Markup.print_int i ^ ")")
+      | (SOME i, SOME name) => (" ", "(line " ^ Markup.print_int i ^ " of " ^ quote name ^ ")")
+      | (NONE, SOME name) => (" ", "(file " ^ quote name ^ ")")
+      | _ => if is_reported pos then ("", "\\<here>") else ("", ""));
   in
     if null props then ""
-    else (if s = "" then "" else " ") ^ Markup.markup (Markup.properties props Markup.position) s
+    else s1 ^ Markup.markup (Markup.properties props Markup.position) s2
   end;
 
 val here_list = space_implode " " o map here;

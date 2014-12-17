@@ -18,11 +18,11 @@ end;
 structure ML_System: ML_SYSTEM =
 struct
 
-val SOME name = OS.Process.getEnv "ML_SYSTEM";
+val SOME name = SOME "polyml"; (*OS.Process.getEnv "ML_SYSTEM";*)
 val is_polyml = String.isPrefix "polyml" name;
 val is_smlnj = String.isPrefix "smlnj" name;
 
-val SOME platform = OS.Process.getEnv "ML_PLATFORM";
+val platform = case OS.Process.getEnv "ML_PLATFORM" of SOME p => p | NONE => "unknown";
 val platform_is_cygwin = String.isSuffix "cygwin" platform;
 
 fun share_common_data () = ();

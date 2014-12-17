@@ -17,11 +17,13 @@ sig
   val variable: string -> T
   val is_absolute: T -> bool
   val is_basic: T -> bool
+  val starts_basic: T -> bool
   val append: T -> T -> T
   val appends: T list -> T
   val make: string list -> T
   val implode: T -> string
   val explode: string -> T
+  val split: string -> T list
   val pretty: T -> Pretty.T
   val print: T -> string
   val dir: T -> T
@@ -29,6 +31,7 @@ sig
   val ext: string -> T -> T
   val split_ext: T -> T * string
   val expand: T -> T
+  val smart_implode: T -> string
   val position: T -> Position.T
 end;
 
@@ -45,21 +48,24 @@ datatype elem =
 
 local
 
-fun err_elem msg chs = error (msg ^ " path element specification: " ^ quote (implode chs));
+fun err_elem msg s = error (msg ^ " path element specification " ^ quote s);
 
-fun check_elem (chs as []) = err_elem "Illegal" chs
-  | check_elem (chs as ["~"]) = err_elem "Illegal" chs
-  | check_elem (chs as ["~", "~"]) = err_elem "Illegal" chs
-  | check_elem chs =
-      (case inter (op =) ["/", "\\", "$", ":", "\"", "'"] chs of
-        [] => chs
-      | bads => err_elem ("Illegal character(s) " ^ commas_quote bads ^ " in") chs);
+fun check_elem s =
+  if s = "" orelse s = "~" orelse s = "~~" then err_elem "Illegal" s
+  else
+    let
+      fun check c =
+        if exists_string (fn c' => c = c') s then
+          err_elem ("Illegal character " ^ quote c ^ " in") s
+        else ();
+      val _ = List.app check ["/", "\\", "$", ":", "\"", "'"];
+    in s end;
 
 in
 
-val root_elem = Root o implode o check_elem;
-val basic_elem = Basic o implode o check_elem;
-val variable_elem = Variable o implode o check_elem;
+val root_elem = Root o check_elem;
+val basic_elem = Basic o check_elem;
+val variable_elem = Variable o check_elem;
 
 end;
 
@@ -75,9 +81,9 @@ fun is_current (Path []) = true
 
 val current = Path [];
 val root = Path [Root ""];
-fun named_root s = Path [root_elem (raw_explode s)];
-fun basic s = Path [basic_elem (raw_explode s)];
-fun variable s = Path [variable_elem (raw_explode s)];
+fun named_root s = Path [root_elem s];
+fun basic s = Path [basic_elem s];
+fun variable s = Path [variable_elem s];
 val parent = Path [Parent];
 
 fun is_absolute (Path xs) =
@@ -87,6 +93,11 @@ fun is_absolute (Path xs) =
 
 fun is_basic (Path [Basic _]) = true
   | is_basic _ = false;
+
+fun starts_basic (Path xs) =
+  (case try List.last xs of
+    SOME (Basic _) => true
+  | _ => false);
 
 
 (* append and norm *)
@@ -124,31 +135,31 @@ end;
 
 (* explode *)
 
-local
-
-fun explode_elem ".." = Parent
-  | explode_elem "~" = Variable "USER_HOME"
-  | explode_elem "~~" = Variable "ISABELLE_HOME"
-  | explode_elem s =
-      (case raw_explode s of
-        "$" :: cs => variable_elem cs
-      | cs => basic_elem cs);
-
-val explode_elems =
-  rev o map explode_elem o filter_out (fn c => c = "" orelse c = ".");
-
-in
-
 fun explode_path str =
-  let val (roots, raw_elems) =
-    (case take_prefix (equal "") (space_explode "/" str) |>> length of
-      (0, es) => ([], es)
-    | (1, es) => ([Root ""], es)
-    | (_, []) => ([Root ""], [])
-    | (_, e :: es) => ([root_elem (raw_explode e)], es))
-  in Path (norm (explode_elems raw_elems @ roots)) end;
+  let
+    fun explode_elem s =
+     (if s = ".." then Parent
+      else if s = "~" then Variable "USER_HOME"
+      else if s = "~~" then Variable "ISABELLE_HOME"
+      else
+        (case try (unprefix "$") s of
+          SOME s' => variable_elem s'
+        | NONE => basic_elem s))
+      handle ERROR msg => cat_error msg ("The error(s) above occurred in " ^ quote str);
 
-end;
+    val (roots, raw_elems) =
+      (case take_prefix (equal "") (space_explode "/" str) |>> length of
+        (0, es) => ([], es)
+      | (1, es) => ([Root ""], es)
+      | (_, []) => ([Root ""], [])
+      | (_, e :: es) => ([root_elem e], es));
+    val elems = raw_elems |> filter_out (fn c => c = "" orelse c = ".") |> map explode_elem;
+
+  in Path (norm (rev elems @ roots)) end;
+
+fun split str =
+  space_explode ":" str
+  |> map_filter (fn s => if s = "" then NONE else SOME (explode_path s));
 
 
 (* print *)
@@ -190,21 +201,26 @@ fun eval (Variable s) =
 val expand = rep #> maps eval #> norm #> Path;
 
 
-(* source position -- with smart replacement of ISABELLE_HOME *)
+(* smart implode *)
 
-val isabelle_home = explode_path "~~";
-
-fun position path =
+fun smart_implode path =
   let
-    val s = implode_path path;
-    val prfx = implode_path (expand isabelle_home) ^ "/";
+    val full_name = implode_path (expand path);
+    fun fold_path a =
+      let val b = implode_path (expand (explode_path a)) in
+        if full_name = b then SOME a
+        else
+          (case try (unprefix (b ^ "/")) full_name of
+            SOME name => SOME (a ^ "/" ^ name)
+          | NONE => NONE)
+      end;
   in
-    Position.file
-      (case try (unprefix prfx) s of
-        NONE => s
-      | SOME s' => "~~/" ^ s')
+    (case get_first fold_path ["~~", "$ISABELLE_HOME_USER", "~"] of
+      SOME name => name
+    | NONE => implode_path path)
   end;
 
+val position = Position.file o smart_implode;
 
 (*final declarations of this structure!*)
 val implode = implode_path;

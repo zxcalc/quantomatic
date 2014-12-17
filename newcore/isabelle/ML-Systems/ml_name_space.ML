@@ -54,4 +54,11 @@ val global: T =
   allSig = fn _ => [],
   allFunct = fn _ => []};
 
+val initial_val : (string * valueVal) list = [];
+val initial_type : (string * typeVal) list = [];
+val initial_fixity : (string * fixityVal) list = [];
+val initial_structure : (string * structureVal) list = [];
+val initial_signature : (string * signatureVal) list = [];
+val initial_functor : (string * functorVal) list = [];
+
 end;

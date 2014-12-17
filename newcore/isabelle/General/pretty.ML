@@ -38,17 +38,16 @@ sig
   val mark: Markup.T -> T -> T
   val mark_str: Markup.T * string -> T
   val marks_str: Markup.T list * string -> T
-  val command: string -> T
-  val keyword: string -> T
+  val item: T list -> T
+  val text_fold: T list -> T
+  val keyword1: string -> T
+  val keyword2: string -> T
   val text: string -> T list
   val paragraph: T list -> T
   val para: string -> T
-  val markup_chunks: Markup.T -> T list -> T
-  val chunks: T list -> T
-  val chunks2: T list -> T
-  val block_enclose: T * T -> T list -> T
   val quote: T -> T
   val backquote: T -> T
+  val cartouche: T -> T
   val separate: string -> T list -> T list
   val commas: T list -> T list
   val enclose: string -> string -> T list -> T
@@ -69,6 +68,12 @@ sig
   val symbolic_output: T -> Output.output
   val symbolic_string_of: T -> string
   val str_of: T -> string
+  val markup_chunks: Markup.T -> T list -> T
+  val chunks: T list -> T
+  val chunks2: T list -> T
+  val block_enclose: T * T -> T list -> T
+  val writeln_chunks: T list -> unit
+  val writeln_chunks2: T list -> unit
   val to_ML: T -> ML_Pretty.pretty
   val from_ML: ML_Pretty.pretty -> T
 end;
@@ -79,12 +84,13 @@ struct
 (** spaces **)
 
 local
-  val small_spaces = Vector.tabulate (65, fn i => Library.replicate_string i Symbol.space);
+  val small_spaces = Vector.tabulate (65, fn i => replicate_string i Symbol.space);
 in
   fun spaces k =
     if k < 64 then Vector.sub (small_spaces, k)
-    else Library.replicate_string (k div 64) (Vector.sub (small_spaces, 64)) ^
-      Vector.sub (small_spaces, k mod 64);
+    else
+      replicate_string (k div 64) (Vector.sub (small_spaces, 64)) ^
+        Vector.sub (small_spaces, k mod 64);
 end;
 
 
@@ -156,23 +162,19 @@ fun mark m prt = if m = Markup.empty then prt else markup m [prt];
 fun mark_str (m, s) = mark m (str s);
 fun marks_str (ms, s) = fold_rev mark ms (str s);
 
-fun command name = mark_str (Markup.keyword1, name);
-fun keyword name = mark_str (Markup.keyword2, name);
+val item = markup Markup.item;
+val text_fold = markup Markup.text_fold;
+
+fun keyword1 name = mark_str (Markup.keyword1, name);
+fun keyword2 name = mark_str (Markup.keyword2, name);
 
 val text = breaks o map str o Symbol.explode_words;
 val paragraph = markup Markup.paragraph;
 val para = paragraph o text;
 
-fun markup_chunks m prts = markup m (fbreaks (map (mark Markup.text_fold) prts));
-val chunks = markup_chunks Markup.empty;
-
-fun chunks2 prts =
-  blk (0, flat (Library.separate [fbrk, fbrk] (map (single o mark Markup.text_fold) prts)));
-
-fun block_enclose (prt1, prt2) prts = chunks [block (fbreaks (prt1 :: prts)), prt2];
-
 fun quote prt = blk (1, [str "\"", prt, str "\""]);
 fun backquote prt = blk (1, [str "`", prt, str "`"]);
+fun cartouche prt = blk (1, [str "\\<open>", prt, str "\\<close>"]);
 
 fun separate sep prts =
   flat (Library.separate [str sep, brk 1] (map single prts));
@@ -342,6 +344,33 @@ val symbolic_output = Buffer.content o symbolic;
 val symbolic_string_of = Output.escape o symbolic_output;
 
 val str_of = Output.escape o Buffer.content o unformatted;
+
+
+(* chunks *)
+
+fun markup_chunks m prts = markup m (fbreaks (map (text_fold o single) prts));
+val chunks = markup_chunks Markup.empty;
+
+fun chunks2 prts =
+  (case try split_last prts of
+    NONE => blk (0, [])
+  | SOME (prefix, last) =>
+      blk (0, maps (fn prt => [text_fold [prt, fbrk], fbrk]) prefix @ [text_fold [last]]));
+
+fun block_enclose (prt1, prt2) prts = chunks [block (fbreaks (prt1 :: prts)), prt2];
+
+fun string_of_text_fold prt = string_of prt |> Markup.markup Markup.text_fold;
+
+fun writeln_chunks prts =
+  Output.writelns (Library.separate "\n" (map string_of_text_fold prts));
+
+fun writeln_chunks2 prts =
+  (case try split_last prts of
+    NONE => ()
+  | SOME (prefix, last) =>
+      (map (fn prt => Markup.markup Markup.text_fold (string_of prt ^ "\n") ^ "\n") prefix @
+        [string_of_text_fold last])
+      |> Output.writelns);
 
 
 

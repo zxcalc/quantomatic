@@ -1,14 +1,16 @@
 (*  Title:      Pure/ML-Systems/smlnj.ML
 
-Compatibility file for Standard ML of New Jersey 110 or later.
+Compatibility file for Standard ML of New Jersey.
 *)
 
+val io_buffer_size = 4096;
 use "ML-Systems/proper_int.ML";
 
 exception Interrupt;
 fun reraise exn = raise exn;
-fun set_exn_serial (_: int) (exn: exn) = exn;
-fun get_exn_serial (exn: exn) : int option = NONE;
+
+fun exit rc = Posix.Process.exit (Word8.fromInt rc);
+fun quit () = exit 0;
 
 use "ML-Systems/overloading_smlnj.ML";
 use "General/exn.ML";
@@ -21,6 +23,7 @@ use "ML-Systems/ml_pretty.ML";
 structure PolyML = struct end;
 use "ML-Systems/pp_dummy.ML";
 use "ML-Systems/use_context.ML";
+use "ML-Systems/ml_positions.ML";
 
 
 val seconds = Time.fromReal;
@@ -28,8 +31,6 @@ val seconds = Time.fromReal;
 (*low-level pointer equality*)
 CM.autoload "$smlnj/init/init.cmi";
 val pointer_eq = InlineT.ptreql;
-
-fun share_common_data () = ();
 
 
 (* restore old-style character / string functions *)
@@ -52,18 +53,16 @@ val _ =
 
 (* Poly/ML emulation *)
 
-val exit = exit o dest_int;
-fun quit () = exit 0;
-
 (*limit the printing depth -- divided by 2 for comparibility with Poly/ML*)
 local
   val depth = ref (10: int);
 in
-  fun get_print_depth () = ! depth;
-  fun print_depth n =
+  fun get_default_print_depth () = ! depth;
+  fun default_print_depth n =
    (depth := n;
     Control.Print.printDepth := dest_int n div 2;
     Control.Print.printLength := dest_int n);
+  val _ = default_print_depth 10;
 end;
 
 val ml_make_string = "(fn _ => \"?\")";
@@ -77,7 +76,7 @@ fun ml_prompts p1 p2 =
 fun profile (n: int) f x = f x;
 
 (*dummy implementation*)
-fun exception_trace f = f ();
+fun print_exception_trace (_: exn -> string) f = f ();
 
 
 (* ML command execution *)
@@ -93,9 +92,10 @@ fun use_text ({tune_source, print, error, ...}: use_context) (line, name) verbos
       in String.substring (str, 0, Int.max (0, size str - 1)) end;
   in
     Control.Print.out := out;
-    Backend.Interact.useStream (TextIO.openString (tune_source txt)) handle exn =>
-      (Control.Print.out := out_orig;
-        error ((if name = "" then "" else "Error in " ^ name ^ "\n") ^ output ()); raise exn);
+    Backend.Interact.useStream (TextIO.openString (tune_source (ml_positions line name txt)))
+      handle exn =>
+        (Control.Print.out := out_orig;
+          error ((if name = "" then "" else "Error in " ^ name ^ "\n") ^ output ()); raise exn);
     Control.Print.out := out_orig;
     if verbose then print (output ()) else ()
   end;
@@ -162,5 +162,19 @@ end;
 
 use "ML-Systems/unsynchronized.ML";
 
-(* use "ML-Systems/ml_system.ML"; *)
+
+(* ML system operations *)
+
+use "ML-Systems/ml_system.ML";
+
+structure ML_System =
+struct
+
+open ML_System;
+
+fun save_state name =
+  if SMLofNJ.exportML name then ()
+  else OS.FileSys.rename {old = name ^ "." ^ platform, new = name};
+
+end;
 

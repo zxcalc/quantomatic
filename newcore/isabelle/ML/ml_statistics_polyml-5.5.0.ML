@@ -51,10 +51,8 @@ fun get () =
      ("threads_wait_IO", Markup.print_int threadsWaitIO),
      ("threads_wait_mutex", Markup.print_int threadsWaitMutex),
      ("threads_wait_signal", Markup.print_int threadsWaitSignal),
-     ("time_GC_system", signed_string_of_real (Time.toReal timeGCSystem)),
-     ("time_GC_user", signed_string_of_real (Time.toReal timeGCUser)),
-     ("time_non_GC_system", signed_string_of_real (Time.toReal timeNonGCSystem)),
-     ("time_non_GC_user", signed_string_of_real (Time.toReal timeNonGCUser))] @
+     ("time_CPU", Markup.print_real (Time.toReal timeNonGCSystem + Time.toReal timeNonGCUser)),
+     ("time_GC", Markup.print_real (Time.toReal timeGCSystem + Time.toReal timeGCUser))] @
     user_counters
   end;
 

@@ -59,9 +59,6 @@ fun encode_graphview (graph: graph) =
   |> fold (fn {ID = a, parents = bs, ...} => fold (fn b => Graph.add_edge (b, a)) bs) graph
   |> let open XML.Encode in Graph.encode string (pair string encode_content) end;
 
-fun write_graph_graphview path graph =
-  File.write path (YXML.string_of_body (encode_graphview graph));
-
 
 (* display graph *)
 
@@ -76,14 +73,10 @@ fun display_graph graph =
     in writeln ("See " ^ bg1 ^ body ^ bg2 ^ "graph" ^ en) end
   else
     let
-      val (write, tool) =
-        if is_browser () then (write_graph_browser, "browser")
-        else (write_graph_graphview, "graphview");
-
       val _ = writeln "Displaying graph ...";
       val path = Isabelle_System.create_tmp_path "graph" "";
-      val _ = write path graph;
-      val _ = Isabelle_System.isabelle_tool tool ("-c " ^ File.shell_path path ^ " &");
+      val _ = write_graph_browser path graph;
+      val _ = Isabelle_System.isabelle_tool "browser" ("-c " ^ File.shell_path path ^ " &");
     in () end;
 
 end;

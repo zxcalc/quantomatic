@@ -85,17 +85,17 @@ val print_indexname = print_pair print_string print_int;
 val print_class = print_string;
 val print_sort = print_list print_class;
 
-fun print_typ (Type arg) = "Type " ^ print_pair print_string (print_list print_typ) arg
-  | print_typ (TFree arg) = "TFree " ^ print_pair print_string print_sort arg
-  | print_typ (TVar arg) = "TVar " ^ print_pair print_indexname print_sort arg;
+fun print_typ (Type arg) = "Term.Type " ^ print_pair print_string (print_list print_typ) arg
+  | print_typ (TFree arg) = "Term.TFree " ^ print_pair print_string print_sort arg
+  | print_typ (TVar arg) = "Term.TVar " ^ print_pair print_indexname print_sort arg;
 
-fun print_term (Const arg) = "Const " ^ print_pair print_string print_typ arg
-  | print_term (Free arg) = "Free " ^ print_pair print_string print_typ arg
-  | print_term (Var arg) = "Var " ^ print_pair print_indexname print_typ arg
-  | print_term (Bound i) = "Bound " ^ print_int i
+fun print_term (Const arg) = "Term.Const " ^ print_pair print_string print_typ arg
+  | print_term (Free arg) = "Term.Free " ^ print_pair print_string print_typ arg
+  | print_term (Var arg) = "Term.Var " ^ print_pair print_indexname print_typ arg
+  | print_term (Bound i) = "Term.Bound " ^ print_int i
   | print_term (Abs (s, T, t)) =
-      "Abs (" ^ print_string s ^ ", " ^ print_typ T ^ ", " ^ print_term t ^ ")"
-  | print_term (t1 $ t2) = atomic (print_term t1) ^ " $ " ^ atomic (print_term t2);
+      "Term.Abs (" ^ print_string s ^ ", " ^ print_typ T ^ ", " ^ print_term t ^ ")"
+  | print_term (t1 $ t2) = "Term.$ " ^ print_pair print_term print_term (t1, t2);
 
 
 (* toplevel pretty printing *)

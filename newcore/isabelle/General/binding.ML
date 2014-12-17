@@ -9,10 +9,11 @@ type bstring = string;    (*primitive names to be bound*)
 
 signature BINDING =
 sig
-  type binding
+  eqtype binding
   val dest: binding -> bool * (string * bool) list * bstring
   val make: bstring * Position.T -> binding
   val pos_of: binding -> Position.T
+  val set_pos: Position.T -> binding -> binding
   val name: bstring -> binding
   val name_of: binding -> bstring
   val map_name: (bstring -> bstring) -> binding -> binding
@@ -41,13 +42,12 @@ struct
 
 (* datatype *)
 
-abstype binding = Binding of
+datatype binding = Binding of
  {conceal: bool,                    (*internal -- for foundational purposes only*)
   prefix: (string * bool) list,     (*system prefix*)
   qualifier: (string * bool) list,  (*user qualifier*)
   name: bstring,                    (*base name*)
-  pos: Position.T}                  (*source position*)
-with
+  pos: Position.T};                 (*source position*)
 
 fun make_binding (conceal, prefix, qualifier, name, pos) =
   Binding {conceal = conceal, prefix = prefix, qualifier = qualifier, name = name, pos = pos};
@@ -65,9 +65,12 @@ fun dest (Binding {conceal, prefix, qualifier, name, ...}) =
 (* name and position *)
 
 fun make (name, pos) = make_binding (false, [], [], name, pos);
-fun name name = make (name, Position.none);
 
 fun pos_of (Binding {pos, ...}) = pos;
+fun set_pos pos =
+  map_binding (fn (conceal, prefix, qualifier, name, _) => (conceal, prefix, qualifier, name, pos));
+
+fun name name = make (name, Position.none);
 fun name_of (Binding {name, ...}) = name;
 
 fun eq_name (b, b') = name_of b = name_of b';
@@ -139,7 +142,6 @@ fun check binding =
   if Symbol_Pos.is_identifier (name_of binding) then ()
   else legacy_feature (bad binding);
 
-end;
 end;
 
 type binding = Binding.binding;

@@ -25,8 +25,8 @@ sig
   val fold_rev: (key * 'b -> 'a -> 'a) -> 'b table -> 'a -> 'a
   val dest: 'a table -> (key * 'a) list
   val keys: 'a table -> key list
-  val min_key: 'a table -> key option
-  val max_key: 'a table -> key option
+  val min: 'a table -> (key * 'a) option
+  val max: 'a table -> (key * 'a) option
   val get_first: (key * 'a -> 'b option) -> 'a table -> 'b option
   val exists: (key * 'a -> bool) -> 'a table -> bool
   val forall: (key * 'a -> bool) -> 'a table -> bool
@@ -36,10 +36,10 @@ sig
   val update: key * 'a -> 'a table -> 'a table
   val update_new: key * 'a -> 'a table -> 'a table                     (*exception DUP*)
   val default: key * 'a -> 'a table -> 'a table
-  val map_entry: key -> ('a -> 'a) -> 'a table -> 'a table
+  val map_entry: key -> ('a -> 'a) (*exception SAME*) -> 'a table -> 'a table
   val map_default: key * 'a -> ('a -> 'a) -> 'a table -> 'a table
   val make: (key * 'a) list -> 'a table                                (*exception DUP*)
-  val join: (key -> 'a * 'a -> 'a) (*exception DUP/SAME*) ->
+  val join: (key -> 'a * 'a -> 'a) (*exception SAME*) ->
     'a table * 'a table -> 'a table                                    (*exception DUP*)
   val merge: ('a * 'a -> bool) -> 'a table * 'a table -> 'a table      (*exception DUP*)
   val delete: key -> 'a table -> 'a table                              (*exception UNDEF*)
@@ -116,19 +116,19 @@ fun dest tab = fold_rev_table cons tab [];
 fun keys tab = fold_rev_table (cons o #1) tab [];
 
 
-(* min/max keys *)
+(* min/max entries *)
 
-fun min_key Empty = NONE
-  | min_key (Branch2 (Empty, (k, _), _)) = SOME k
-  | min_key (Branch3 (Empty, (k, _), _, _, _)) = SOME k
-  | min_key (Branch2 (left, _, _)) = min_key left
-  | min_key (Branch3 (left, _, _, _, _)) = min_key left;
+fun min Empty = NONE
+  | min (Branch2 (Empty, p, _)) = SOME p
+  | min (Branch3 (Empty, p, _, _, _)) = SOME p
+  | min (Branch2 (left, _, _)) = min left
+  | min (Branch3 (left, _, _, _, _)) = min left;
 
-fun max_key Empty = NONE
-  | max_key (Branch2 (_, (k, _), Empty)) = SOME k
-  | max_key (Branch3 (_, _, _, (k, _), Empty)) = SOME k
-  | max_key (Branch2 (_, _, right)) = max_key right
-  | max_key (Branch3 (_, _, _, _, right)) = max_key right;
+fun max Empty = NONE
+  | max (Branch2 (_, p, Empty)) = SOME p
+  | max (Branch3 (_, _, _, p, Empty)) = SOME p
+  | max (Branch2 (_, _, right)) = max right
+  | max (Branch3 (_, _, _, _, right)) = max right;
 
 
 (* get_first *)
@@ -368,8 +368,13 @@ fun remove eq (key, x) tab =
 fun make entries = fold update_new entries empty;
 
 fun join f (table1, table2) =
-  let fun add (key, y) tab = modify key (fn NONE => y | SOME x => f key (x, y)) tab;
-  in if pointer_eq (table1, table2) then table1 else fold_table add table2 table1 end;
+  let
+    fun add (key, y) tab = modify key (fn NONE => y | SOME x => f key (x, y)) tab;
+  in
+    if pointer_eq (table1, table2) then table1
+    else if is_empty table1 then table2
+    else fold_table add table2 table1
+  end;
 
 fun merge eq = join (fn key => fn xy => if eq xy then raise SAME else raise DUP key);
 

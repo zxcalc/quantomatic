@@ -26,9 +26,6 @@ sig
   val source: 'a Scan.stopper -> ('a list -> 'b list * 'a list) ->
     (bool * (string -> 'a list -> 'b list * 'a list)) option ->
     ('a, 'd) source -> ('b, ('a, 'd) source) source
-  (* <+++ *)
-  val raw_stream: (string -> bool) -> TextIO.instream -> (string, unit) source
-  (* +++> *)
 end;
 
 structure Source: SOURCE =
@@ -141,17 +138,7 @@ fun tty in_stream = make_source [] () default_prompt (fn prompt => fn () =>
       | NONE => (input, ()))
   end);
 
-(* <+++ *)
-fun raw_stream flush_on in_stream = make_source [] () ""
-  (fn prompt => fn () =>
-  let val input = slurp_input in_stream in
-    if exists flush_on input then (input, ())
-    else
-      (case TextIO.input1 in_stream of
-        SOME ch => (input @ [String.implode [ch]], ())
-      | NONE => (input, ()))
-  end);
-(* +++> *)
+
 
 (** cascade sources **)
 
@@ -169,8 +156,9 @@ fun drain_source' stopper scan opt_recover prompt (state, src) =
           NONE => drain (Scan.error scan) inp
         | SOME (interactive, recover) =>
             (drain (Scan.catch scan) inp handle Fail msg =>
-              (if interactive then Output.error_msg msg else ();
-                drain (Scan.unless (Scan.lift (Scan.one (Scan.is_stopper stopper))) (recover msg)) inp)));
+              (if interactive then Output.error_message msg else ();
+                drain (Scan.unless (Scan.lift (Scan.one (Scan.is_stopper stopper))) (recover msg))
+                  inp)));
   in (ys, (state', unget (xs', src'))) end;
 
 fun source' init_state stopper scan recover src =

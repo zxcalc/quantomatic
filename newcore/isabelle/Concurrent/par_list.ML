@@ -35,9 +35,13 @@ fun managed_results name f xs =
   else
     uninterruptible (fn restore_attributes => fn () =>
       let
-        val group = Future.new_group (Future.worker_group ());
+        val (group, pri) =
+          (case Future.worker_task () of
+            SOME task =>
+              (Future.new_group (SOME (Task_Queue.group_of_task task)), Task_Queue.pri_of_task task)
+          | NONE => (Future.new_group NONE, 0));
         val futures =
-          Future.forks {name = name, group = SOME group, deps = [], pri = 0, interrupts = true}
+          Future.forks {name = name, group = SOME group, deps = [], pri = pri, interrupts = true}
             (map (fn x => fn () => f x) xs);
         val results =
           restore_attributes Future.join_results futures

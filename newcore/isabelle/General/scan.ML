@@ -64,6 +64,7 @@ sig
   val state: 'a * 'b -> 'a * ('a * 'b)
   val depend: ('a -> 'b -> ('c * 'd) * 'e) -> 'a * 'b -> 'd * ('c * 'e)
   val peek: ('a -> 'b -> 'c * 'd) -> 'a * 'b -> 'c * ('a * 'd)
+  val provide: ('a -> bool) -> 'b -> ('b * 'c -> 'd * ('a * 'e)) -> 'c -> 'd * 'e
   val pass: 'a -> ('a * 'b -> 'c * ('d * 'e)) -> 'b -> 'c * 'e
   val lift: ('a -> 'b * 'c) -> 'd * 'a -> 'b * ('d * 'c)
   val unlift: (unit * 'a -> 'b * ('c * 'd)) -> 'a -> 'b * 'd
@@ -210,9 +211,11 @@ fun depend scan (st, xs) =
 
 fun peek scan = depend (fn st => scan st >> pair st);
 
-fun pass st scan xs =
-  let val (y, (_, xs')) = scan (st, xs)
-  in (y, xs') end;
+fun provide pred st scan xs =
+  let val (y, (st', xs')) = scan (st, xs)
+  in if pred st' then (y, xs') else fail () end;
+
+fun pass st = provide (K true) st;
 
 fun lift scan (st, xs) =
   let val (y, xs') = scan xs

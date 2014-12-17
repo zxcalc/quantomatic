@@ -6,7 +6,7 @@ Exception properties for Poly/ML.
 
 signature EXN_PROPERTIES =
 sig
-  val of_location: PolyML.location -> Properties.T
+  val position_of: PolyML.location -> Position.T
   val get: exn -> Properties.T
   val update: Properties.entry list -> exn -> exn
 end;
@@ -14,23 +14,35 @@ end;
 structure Exn_Properties: EXN_PROPERTIES =
 struct
 
-fun of_location (loc: PolyML.location) =
+(* source locations *)
+
+fun props_of (loc: PolyML.location) =
   (case YXML.parse_body (#file loc) of
     [] => []
   | [XML.Text file] => [(Markup.fileN, file)]
   | body => XML.Decode.properties body);
 
+fun position_of loc =
+  Position.make
+   {line = #startLine loc,
+    offset = #startPosition loc,
+    end_offset = #endPosition loc,
+    props = props_of loc};
+
+
+(* exception properties *)
+
 fun get exn =
   (case PolyML.exceptionLocation exn of
     NONE => []
-  | SOME loc => of_location loc);
+  | SOME loc => props_of loc);
 
 fun update entries exn =
   let
     val loc =
       the_default {file = "", startLine = 0, endLine = 0, startPosition = 0, endPosition = 0}
         (PolyML.exceptionLocation exn);
-    val props = of_location loc;
+    val props = props_of loc;
     val props' = fold Properties.put entries props;
   in
     if props = props' then exn

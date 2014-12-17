@@ -1,69 +1,77 @@
 (*  Title:      Pure/ML/ml_compiler_polyml.ML
     Author:     Makarius
 
-Advanced runtime compilation for Poly/ML.
+Runtime compilation and evaluation -- Poly/ML version.
 *)
 
 structure ML_Compiler: ML_COMPILER =
 struct
 
-(* source locations *)
-
-fun position_of (loc: PolyML.location) =
-  let
-    val {startLine = line, startPosition = offset, endPosition = end_offset, ...} = loc;
-    val props = Exn_Properties.of_location loc;
-  in
-    Position.make {line = line, offset = offset, end_offset = end_offset, props = props}
-  end;
-
-fun exn_position exn =
-  (case PolyML.exceptionLocation exn of
-    NONE => Position.none
-  | SOME loc => position_of loc);
-
-val exn_messages_ids = Runtime.exn_messages_ids exn_position;
-val exn_messages = Runtime.exn_messages exn_position;
-val exn_message = Runtime.exn_message exn_position;
+open ML_Compiler;
 
 
 (* parse trees *)
 
-fun report_parse_tree depth space =
+fun report_parse_tree redirect depth space parse_tree =
   let
-    val reported_text =
+    val is_visible =
       (case Context.thread_data () of
-        SOME (Context.Proof ctxt) => Context_Position.reported_text ctxt
-      | _ => Position.reported_text);
+        SOME context => Context_Position.is_visible_generic context
+      | NONE => true);
+    fun is_reported pos = is_visible andalso Position.is_reported pos;
+
+    fun reported_types loc types =
+      let val pos = Exn_Properties.position_of loc in
+        is_reported pos ?
+          let
+            val xml =
+              PolyML.NameSpace.displayTypeExpression (types, depth, space)
+              |> pretty_ml |> Pretty.from_ML |> Pretty.string_of
+              |> Output.output |> YXML.parse_body;
+          in cons (pos, fn () => Markup.ML_typing, fn () => YXML.string_of_body xml) end
+      end;
 
     fun reported_entity kind loc decl =
-      reported_text (position_of loc)
-        (Markup.entityN, (Markup.kindN, kind) :: Position.def_properties_of (position_of decl)) "";
+      let val pos = Exn_Properties.position_of loc in
+        is_reported pos ?
+          let
+            val def_pos = Exn_Properties.position_of decl;
+            fun markup () =
+              (Markup.entityN, (Markup.kindN, kind) :: Position.def_properties_of def_pos);
+          in cons (pos, markup, fn () => "") end
+      end;
 
-    fun reported loc (PolyML.PTtype types) =
-          cons
-            (PolyML.NameSpace.displayTypeExpression (types, depth, space)
-              |> pretty_ml |> Pretty.from_ML |> Pretty.string_of
-              |> reported_text (position_of loc) Markup.ML_typing)
-      | reported loc (PolyML.PTdeclaredAt decl) =
-          cons (reported_entity Markup.ML_defN loc decl)
-      | reported loc (PolyML.PTopenedAt decl) =
-          cons (reported_entity Markup.ML_openN loc decl)
-      | reported loc (PolyML.PTstructureAt decl) =
-          cons (reported_entity Markup.ML_structN loc decl)
+    fun reported loc (PolyML.PTtype types) = reported_types loc types
+      | reported loc (PolyML.PTdeclaredAt decl) = reported_entity Markup.ML_defN loc decl
+      | reported loc (PolyML.PTopenedAt decl) = reported_entity Markup.ML_openN loc decl
+      | reported loc (PolyML.PTstructureAt decl) = reported_entity Markup.ML_structureN loc decl
       | reported _ (PolyML.PTnextSibling tree) = reported_tree (tree ())
       | reported _ (PolyML.PTfirstChild tree) = reported_tree (tree ())
       | reported _ _ = I
     and reported_tree (loc, props) = fold (reported loc) props;
-  in fn tree => Output.report (implode (reported_tree tree [])) end;
+
+    val persistent_reports = reported_tree parse_tree [];
+
+    fun output () =
+      persistent_reports
+      |> map (fn (pos, markup, text) => Position.reported_text pos (markup ()) (text ()))
+      |> Output.report;
+  in
+    if not (null persistent_reports) andalso redirect andalso Multithreading.enabled ()
+    then
+      Execution.print
+        {name = "ML_Compiler.report", pos = Position.thread_data (), pri = 1} output
+    else output ()
+  end;
 
 
 (* eval ML source tokens *)
 
-fun eval verbose pos toks =
+fun eval (flags: flags) pos toks =
   let
     val _ = Secure.secure_mltext ();
-    val space = ML_Env.name_space;
+    val space = ML_Env.name_space {SML = #SML flags, exchange = #exchange flags}
+    val opt_context = Context.thread_data ();
 
 
     (* input *)
@@ -91,7 +99,7 @@ fun eval verbose pos toks =
 
     val writeln_buffer = Unsynchronized.ref Buffer.empty;
     fun write s = Unsynchronized.change writeln_buffer (Buffer.add s);
-    fun output_writeln () = writeln (Buffer.content (! writeln_buffer));
+    fun output_writeln () = writeln (trim_line (Buffer.content (! writeln_buffer)));
 
     val warnings = Unsynchronized.ref ([]: string list);
     fun warn msg = Unsynchronized.change warnings (cons msg);
@@ -104,7 +112,7 @@ fun eval verbose pos toks =
 
     fun message {message = msg, hard, location = loc, context = _} =
       let
-        val pos = position_of loc;
+        val pos = Exn_Properties.position_of loc;
         val txt =
           (if hard then "ML error" else "ML warning") ^ Position.here pos ^ ":\n" ^
           Pretty.string_of (Pretty.from_ML (pretty_ml msg));
@@ -113,7 +121,7 @@ fun eval verbose pos toks =
 
     (* results *)
 
-    val depth = get_print_depth ();
+    val depth = ML_Options.get_print_depth ();
 
     fun apply_result {fixes, types, signatures, structures, functors, values} =
       let
@@ -148,14 +156,14 @@ fun eval verbose pos toks =
     fun result_fun (phase1, phase2) () =
      ((case phase1 of
         NONE => ()
-      | SOME parse_tree => report_parse_tree depth space parse_tree);
+      | SOME parse_tree => report_parse_tree (#redirect flags) depth space parse_tree);
       (case phase2 of
         NONE => raise STATIC_ERRORS ()
       | SOME code =>
           apply_result
             ((code
-              |> Runtime.debugging
-              |> Runtime.toplevel_error (err o exn_message)) ())));
+              |> Runtime.debugging opt_context
+              |> Runtime.toplevel_error (err o Runtime.exn_message)) ())));
 
 
     (* compiler invocation *)
@@ -167,6 +175,7 @@ fun eval verbose pos toks =
       PolyML.Compiler.CPLineNo (the_default 0 o Position.line_of o get_pos),
       PolyML.Compiler.CPLineOffset (the_default 0 o Position.offset_of o get_pos),
       PolyML.Compiler.CPFileName location_props,
+      PolyML.Compiler.CPPrintDepth ML_Options.get_print_depth,
       PolyML.Compiler.CPCompilerResultFun result_fun,
       PolyML.Compiler.CPPrintInAlphabeticalOrder false];
     val _ =
@@ -180,12 +189,12 @@ fun eval verbose pos toks =
               (case exn of
                 STATIC_ERRORS () => ""
               | Runtime.TOPLEVEL_ERROR => ""
-              | _ => "Exception- " ^ General.exnMessage exn ^ " raised");
+              | _ => "Exception- " ^ Pretty.string_of (Exn_Output.pretty exn) ^ " raised");
             val _ = output_warnings ();
             val _ = output_writeln ();
           in raise_error exn_msg end;
   in
-    if verbose then (output_warnings (); flush_error (); output_writeln ())
+    if #verbose flags then (output_warnings (); flush_error (); output_writeln ())
     else ()
   end;
 

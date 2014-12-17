@@ -21,12 +21,16 @@ val lib_path =
   ("$ML_HOME/" ^ (if ML_System.platform_is_cygwin then "sha1.dll" else "libsha1.so"))
   |> Path.explode;
 
+val STRING_INPUT_BYTES =
+  CInterface.mkConversion undefined (CInterface.toCbytes o Byte.stringToBytes)
+    (CInterface.Cpointer CInterface.Cchar);
+
 fun digest_external str =
   let
     val digest = CInterface.alloc 20 CInterface.Cchar;
     val _ =
       CInterface.call3 (CInterface.get_sym (File.platform_path lib_path) "sha1_buffer")
-        (CInterface.STRING, CInterface.LONG, CInterface.POINTER)
+        (STRING_INPUT_BYTES, CInterface.LONG, CInterface.POINTER)
         CInterface.POINTER (str, size str, CInterface.address digest);
   in fold (suffix o hex_string digest) (0 upto 19) "" end;
 
@@ -41,5 +45,7 @@ datatype digest = Digest of string;
 
 val digest = Digest o digest_string;
 fun rep (Digest s) = s;
+
+val fake = Digest;
 
 end;

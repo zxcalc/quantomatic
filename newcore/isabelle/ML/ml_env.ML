@@ -1,14 +1,16 @@
 (*  Title:      Pure/ML/ml_env.ML
     Author:     Makarius
 
-Local environment of ML results.
+Toplevel environment for Standard ML and Isabelle/ML within the
+implicit context.
 *)
 
 signature ML_ENV =
 sig
   val inherit: Context.generic -> Context.generic -> Context.generic
-  val name_space: ML_Name_Space.T
+  val name_space: {SML: bool, exchange: bool} -> ML_Name_Space.T
   val local_context: use_context
+  val local_name_space: ML_Name_Space.T
   val check_functor: string -> unit
 end
 
@@ -17,49 +19,85 @@ struct
 
 (* context data *)
 
+type tables =
+  ML_Name_Space.valueVal Symtab.table *
+  ML_Name_Space.typeVal Symtab.table *
+  ML_Name_Space.fixityVal Symtab.table *
+  ML_Name_Space.structureVal Symtab.table *
+  ML_Name_Space.signatureVal Symtab.table *
+  ML_Name_Space.functorVal Symtab.table;
+
+fun merge_tables
+  ((val1, type1, fixity1, structure1, signature1, functor1),
+   (val2, type2, fixity2, structure2, signature2, functor2)) : tables =
+  (Symtab.merge (K true) (val1, val2),
+   Symtab.merge (K true) (type1, type2),
+   Symtab.merge (K true) (fixity1, fixity2),
+   Symtab.merge (K true) (structure1, structure2),
+   Symtab.merge (K true) (signature1, signature2),
+   Symtab.merge (K true) (functor1, functor2));
+
+type data = {bootstrap: bool, tables: tables, sml_tables: tables};
+
+fun make_data (bootstrap, tables, sml_tables) : data =
+  {bootstrap = bootstrap, tables = tables, sml_tables = sml_tables};
+
 structure Env = Generic_Data
 (
-  type T =
-    ML_Name_Space.valueVal Symtab.table *
-    ML_Name_Space.typeVal Symtab.table *
-    ML_Name_Space.fixityVal Symtab.table *
-    ML_Name_Space.structureVal Symtab.table *
-    ML_Name_Space.signatureVal Symtab.table *
-    ML_Name_Space.functorVal Symtab.table;
-  val empty = (Symtab.empty, Symtab.empty, Symtab.empty, Symtab.empty, Symtab.empty, Symtab.empty);
-  val extend = I;
-  fun merge
-   ((val1, type1, fixity1, structure1, signature1, functor1),
-    (val2, type2, fixity2, structure2, signature2, functor2)) : T =
-    (Symtab.merge (K true) (val1, val2),
-     Symtab.merge (K true) (type1, type2),
-     Symtab.merge (K true) (fixity1, fixity2),
-     Symtab.merge (K true) (structure1, structure2),
-     Symtab.merge (K true) (signature1, signature2),
-     Symtab.merge (K true) (functor1, functor2));
+  type T = data
+  val empty =
+    make_data (true,
+      (Symtab.empty, Symtab.empty, Symtab.empty, Symtab.empty, Symtab.empty, Symtab.empty),
+      (Symtab.make ML_Name_Space.initial_val,
+       Symtab.make ML_Name_Space.initial_type,
+       Symtab.make ML_Name_Space.initial_fixity,
+       Symtab.make ML_Name_Space.initial_structure,
+       Symtab.make ML_Name_Space.initial_signature,
+       Symtab.make ML_Name_Space.initial_functor));
+  fun extend (data : T) = make_data (false, #tables data, #sml_tables data);
+  fun merge (data : T * T) =
+    make_data (false,
+      merge_tables (pairself #tables data),
+      merge_tables (pairself #sml_tables data));
 );
 
 val inherit = Env.put o Env.get;
 
 
-(* results *)
+(* name space *)
 
-val name_space: ML_Name_Space.T =
+fun name_space {SML, exchange} : ML_Name_Space.T =
   let
     fun lookup sel1 sel2 name =
-      Context.thread_data ()
-      |> (fn NONE => NONE | SOME context => Symtab.lookup (sel1 (Env.get context)) name)
-      |> (fn NONE => sel2 ML_Name_Space.global name | some => some);
+      if SML then
+        Context.the_thread_data ()
+        |> (fn context => Symtab.lookup (sel1 (#sml_tables (Env.get context))) name)
+      else
+        Context.thread_data ()
+        |> (fn NONE => NONE | SOME context => Symtab.lookup (sel1 (#tables (Env.get context))) name)
+        |> (fn NONE => sel2 ML_Name_Space.global name | some => some);
 
     fun all sel1 sel2 () =
-      Context.thread_data ()
-      |> (fn NONE => [] | SOME context => Symtab.dest (sel1 (Env.get context)))
-      |> append (sel2 ML_Name_Space.global ())
+      (if SML then
+        Context.the_thread_data ()
+        |> (fn context => Symtab.dest (sel1 (#sml_tables (Env.get context))))
+      else
+        Context.thread_data ()
+        |> (fn NONE => [] | SOME context => Symtab.dest (sel1 (#tables (Env.get context))))
+        |> append (sel2 ML_Name_Space.global ()))
       |> sort_distinct (string_ord o pairself #1);
 
     fun enter ap1 sel2 entry =
-      if is_some (Context.thread_data ()) then
-        Context.>> (Env.map (ap1 (Symtab.update entry)))
+      if SML <> exchange then
+        Context.>> (Env.map (fn {bootstrap, tables, sml_tables} =>
+          let val sml_tables' = ap1 (Symtab.update entry) sml_tables
+          in make_data (bootstrap, tables, sml_tables') end))
+      else if is_some (Context.thread_data ()) then
+        Context.>> (Env.map (fn {bootstrap, tables, sml_tables} =>
+          let
+            val _ = if bootstrap then sel2 ML_Name_Space.global entry else ();
+            val tables' = ap1 (Symtab.update entry) tables;
+          in make_data (bootstrap, tables', sml_tables) end))
       else sel2 ML_Name_Space.global entry;
   in
    {lookupVal    = lookup #1 #lookupVal,
@@ -84,12 +122,14 @@ val name_space: ML_Name_Space.T =
 
 val local_context: use_context =
  {tune_source = ML_Parse.fix_ints,
-  name_space = name_space,
+  name_space = name_space {SML = false, exchange = false},
   str_of_pos = Position.here oo Position.line_file,
   print = writeln,
   error = error};
 
-val is_functor = is_some o #lookupFunct name_space;
+val local_name_space = #name_space local_context;
+
+val is_functor = is_some o #lookupFunct local_name_space;
 
 fun check_functor name =
   if not (is_functor "Table") (*mask dummy version of name_space*) orelse is_functor name then ()

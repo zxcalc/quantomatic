@@ -14,6 +14,8 @@ sig
   val append: T -> T -> T
   val implode: T -> string
   val explode: string -> T
+  val pretty: T -> Pretty.T
+  val print: T -> string
 end;
 
 structure Url: URL =
@@ -73,6 +75,13 @@ in
 fun explode_url s = Symbol.scanner "Malformed URL" scan_url (Symbol.explode s);
 
 end;
+
+
+(* print *)
+
+val pretty = Pretty.mark_str o `Markup.url o implode_url;
+
+val print = Pretty.str_of o pretty;
 
 
 (*final declarations of this structure!*)

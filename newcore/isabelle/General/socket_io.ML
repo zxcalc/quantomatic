@@ -25,7 +25,7 @@ fun make_streams socket =
     val rd =
       BinPrimIO.RD {
         name = name,
-        chunkSize = Socket.Ctl.getRCVBUF socket,
+        chunkSize = io_buffer_size,
         readVec = SOME (fn n => Socket.recvVec (socket, n)),
         readArr = SOME (fn buffer => Socket.recvArr (socket, buffer)),
         readVecNB = NONE,
@@ -44,7 +44,7 @@ fun make_streams socket =
     val wr =
       BinPrimIO.WR {
         name = name,
-        chunkSize = Socket.Ctl.getSNDBUF socket,
+        chunkSize = io_buffer_size,
         writeVec = SOME (fn buffer => Socket.sendVec (socket, buffer)),
         writeArr = SOME (fn buffer => Socket.sendArr (socket, buffer)),
         writeVecNB = NONE,
@@ -81,6 +81,7 @@ fun open_streams socket_name =
       | _ => err ());
     val socket: Socket.active INetSock.stream_sock = INetSock.TCP.socket ();
     val _ = Socket.connect (socket, INetSock.toAddr (NetHostDB.addr host, port));
+    val _ = INetSock.TCP.setNODELAY (socket, true);
   in make_streams socket end;
 
 end;

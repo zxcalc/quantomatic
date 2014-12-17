@@ -159,7 +159,7 @@ fun drain_source' stopper scan opt_recover prompt (state, src) =
           NONE => drain (Scan.error scan) inp
         | SOME (interactive, recover) =>
             (drain (Scan.catch scan) inp handle Fail msg =>
-              (if interactive then Output.error_message msg else ();
+              (if interactive then (*Output.error_message msg*) () else ();
                 drain (Scan.unless (Scan.lift (Scan.one (Scan.is_stopper stopper))) (recover msg))
                   inp)));
   in (ys, (state', unget (xs', src'))) end;

@@ -83,17 +83,17 @@ fun optional_start set NONE = start_of set
 fun iterate opt_start f set =
   let
     val entries = entries_of set;
-    fun apply _ NONE y = y
-      | apply prev (SOME key) y =
+    fun iter _ NONE y = y
+      | iter prev (SOME key) y =
           let
             val (x, next) = the_entry entries key;
             val item = ((prev, key), x);
           in
             (case f item y of
               NONE => y
-            | SOME y' => apply (SOME key) next y')
+            | SOME y' => iter (SOME key) next y')
           end;
-  in apply NONE (optional_start set opt_start) end;
+  in iter NONE (optional_start set opt_start) end;
 
 fun dest set = rev (iterate NONE (fn ((_, key), x) => SOME o cons (key, x)) set []);
 

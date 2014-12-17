@@ -14,8 +14,9 @@ signature MULTITHREADING =
 sig
   include BASIC_MULTITHREADING
   val available: bool
-  val max_threads: int ref
   val max_threads_value: unit -> int
+  val max_threads_update: int -> unit
+  val max_threads_setmp: int -> ('a -> 'b) -> 'a -> 'b
   val enabled: unit -> bool
   val no_interrupts: Thread.threadAttribute list
   val public_interrupts: Thread.threadAttribute list
@@ -39,8 +40,9 @@ struct
 (* options *)
 
 val available = false;
-val max_threads = ref (1: int);
 fun max_threads_value () = 1: int;
+fun max_threads_update _ = ();
+fun max_threads_setmp _ f x = f x;
 fun enabled () = false;
 
 

@@ -8,9 +8,14 @@ signature LONG_NAME =
 sig
   val separator: string
   val is_qualified: string -> bool
+  val hidden: string -> string
+  val is_hidden: string -> bool
+  val localN: string
+  val is_local: string -> bool
   val implode: string list -> string
   val explode: string -> string list
   val append: string -> string -> string
+  val qualification: string -> int
   val qualify: string -> string -> string
   val qualifier: string -> string
   val base_name: string -> string
@@ -21,7 +26,14 @@ structure Long_Name: LONG_NAME =
 struct
 
 val separator = ".";
+
 val is_qualified = exists_string (fn s => s = separator);
+
+fun hidden name = "??." ^ name;
+val is_hidden = String.isPrefix "??.";
+
+val localN = "local";
+val is_local = String.isPrefix "local.";
 
 val implode = space_implode separator;
 val explode = space_explode separator;
@@ -29,6 +41,9 @@ val explode = space_explode separator;
 fun append name1 "" = name1
   | append "" name2 = name2
   | append name1 name2 = name1 ^ separator ^ name2;
+
+fun qualification "" = 0
+  | qualification name = fold_string (fn s => s = separator ? Integer.add 1) name 1;
 
 fun qualify qual name =
   if qual = "" orelse name = "" then name

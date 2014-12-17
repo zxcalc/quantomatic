@@ -9,6 +9,7 @@ sig
   val is_self: Thread.thread -> bool
   val attributes: bool -> Thread.threadAttribute list
   val fork: bool -> (unit -> unit) -> Thread.thread
+  val join: Thread.thread -> unit
   val interrupt_unsynchronized: Thread.thread -> unit
   val synchronized: string -> Mutex.mutex -> (unit -> 'a) -> 'a
 end;
@@ -23,9 +24,13 @@ fun attributes interrupts =
 
 fun fork interrupts body =
   Thread.fork (fn () =>
-    exception_trace (fn () =>
-      body () handle exn => if Exn.is_interrupt exn then () else reraise exn),
+    print_exception_trace General.exnMessage (fn () =>
+      body () handle exn => if Exn.is_interrupt exn then () (*sic!*) else reraise exn),
     attributes interrupts);
+
+fun join thread =
+  while Thread.isActive thread
+  do OS.Process.sleep (seconds 0.1);
 
 fun interrupt_unsynchronized thread = Thread.interrupt thread handle Thread _ => ();
 

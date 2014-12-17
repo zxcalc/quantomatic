@@ -12,7 +12,7 @@ sig
   val eq_group: group * group -> bool
   val cancel_group: group -> exn -> unit
   val is_canceled: group -> bool
-  val group_status: group -> exn option
+  val group_status: group -> exn list
   val str_of_group: group -> string
   val str_of_groups: group -> string
   type task
@@ -35,6 +35,7 @@ sig
   val cancel: queue -> group -> Thread.thread list
   val cancel_all: queue -> group list * Thread.thread list
   val finish: task -> queue -> bool * queue
+  val enroll: Thread.thread -> string -> group -> queue -> task * queue
   val enqueue_passive: group -> (unit -> bool) -> queue -> task * queue
   val enqueue: string -> group -> task list -> int -> (bool -> bool) -> queue -> task * queue
   val extend: task -> (bool -> bool) -> queue -> queue option
@@ -47,7 +48,7 @@ end;
 structure Task_Queue: TASK_QUEUE =
 struct
 
-val new_id = Synchronized.counter ();
+val new_id = Counter.make ();
 
 
 (** nested groups of tasks **)
@@ -81,14 +82,9 @@ fun is_canceled (Group {parent, status, ...}) =
   is_some (Synchronized.value status) orelse
     (case parent of NONE => false | SOME group => is_canceled group);
 
-fun group_exns (Group {parent, status, ...}) =
+fun group_status (Group {parent, status, ...}) =
   the_list (Synchronized.value status) @
-    (case parent of NONE => [] | SOME group => group_exns group);
-
-fun group_status group =
-  (case group_exns group of
-    [] => NONE
-  | exns => SOME (Par_Exn.make exns));
+    (case parent of NONE => [] | SOME group => group_status group);
 
 fun str_of_group group =
   (is_canceled group ? enclose "(" ")") (string_of_int (group_id group));
@@ -153,7 +149,7 @@ fun task_statistics (Task {name, id, timing, pos, ...}) =
       (case timing of NONE => timing_start | SOME var => Synchronized.value var);
     fun micros time = string_of_int (Time.toNanoseconds time div 1000);
   in
-    [("now", signed_string_of_real (Time.toReal (Time.now ()))),
+    [("now", Markup.print_real (Time.toReal (Time.now ()))),
      ("task_name", name), ("task_id", Markup.print_int id),
      ("run", micros run), ("wait", micros wait), ("wait_deps", commas wait_deps)] @
     Position.properties_of pos
@@ -297,6 +293,16 @@ fun finish task (Queue {groups, jobs}) =
     val jobs' = Task_Graph.del_node task jobs;
     val maximal = Task_Graph.is_maximal jobs task;
   in (maximal, make_queue groups' jobs') end;
+
+
+(* enroll *)
+
+fun enroll thread name group (Queue {groups, jobs}) =
+  let
+    val task = new_task group name NONE;
+    val groups' = fold_groups (fn g => add_task (group_id g, task)) group groups;
+    val jobs' = jobs |> Task_Graph.new_node (task, Running thread);
+  in (task, make_queue groups' jobs') end;
 
 
 (* enqueue *)

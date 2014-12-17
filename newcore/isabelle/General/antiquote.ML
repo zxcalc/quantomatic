@@ -1,23 +1,19 @@
 (*  Title:      Pure/General/antiquote.ML
-    Author:     Markus Wenzel, TU Muenchen
+    Author:     Makarius
 
-Text with antiquotations of inner items (types, terms, theorems etc.).
+Antiquotations within plain text.
 *)
 
 signature ANTIQUOTE =
 sig
-  datatype 'a antiquote =
-    Text of 'a |
-    Antiq of Symbol_Pos.T list * Position.range |
-    Open of Position.T |
-    Close of Position.T
+  type antiq = Symbol_Pos.T list * {start: Position.T, stop: Position.T, range: Position.range}
+  datatype 'a antiquote = Text of 'a | Antiq of antiq
   val is_text: 'a antiquote -> bool
-  val reports_of: ('a -> Position.report_text list) ->
+  val antiq_reports: antiq -> Position.report list
+  val antiquote_reports: ('a -> Position.report_text list) ->
     'a antiquote list -> Position.report_text list
-  val check_nesting: 'a antiquote list -> unit
-  val scan_antiq: Symbol_Pos.T list -> (Symbol_Pos.T list * Position.range) * Symbol_Pos.T list
-  val scan: Symbol_Pos.T list -> 'a antiquote * Symbol_Pos.T list
-  val scan_text: Symbol_Pos.T list -> Symbol_Pos.T list antiquote * Symbol_Pos.T list
+  val scan_antiq: Symbol_Pos.T list -> antiq * Symbol_Pos.T list
+  val scan_antiquote: Symbol_Pos.T list -> Symbol_Pos.T list antiquote * Symbol_Pos.T list
   val read: Symbol_Pos.T list * Position.T -> Symbol_Pos.T list antiquote list
 end;
 
@@ -26,11 +22,8 @@ struct
 
 (* datatype antiquote *)
 
-datatype 'a antiquote =
-  Text of 'a |
-  Antiq of Symbol_Pos.T list * Position.range |
-  Open of Position.T |
-  Close of Position.T;
+type antiq = Symbol_Pos.T list * {start: Position.T, stop: Position.T, range: Position.range};
+datatype 'a antiquote = Text of 'a | Antiq of antiq;
 
 fun is_text (Text _) = true
   | is_text _ = false;
@@ -38,28 +31,12 @@ fun is_text (Text _) = true
 
 (* reports *)
 
-fun reports_of text =
-  maps
-    (fn Text x => text x
-      | Antiq (_, (pos, _)) => [((pos, Markup.antiq), "")]
-      | Open pos => [((pos, Markup.antiq), "")]
-      | Close pos => [((pos, Markup.antiq), "")]);
+fun antiq_reports ((_, {start, stop, range = (pos, _)}): antiq) =
+  [(start, Markup.antiquote), (stop, Markup.antiquote),
+   (pos, Markup.antiquoted), (pos, Markup.language_antiquotation)];
 
-
-(* check_nesting *)
-
-fun err_unbalanced pos =
-  error ("Unbalanced antiquotation block parentheses" ^ Position.here pos);
-
-fun check_nesting antiqs =
-  let
-    fun check [] [] = ()
-      | check [] (pos :: _) = err_unbalanced pos
-      | check (Open pos :: ants) ps = check ants (pos :: ps)
-      | check (Close pos :: _) [] = err_unbalanced pos
-      | check (Close _ :: ants) (_ :: ps) = check ants ps
-      | check (_ :: ants) ps = check ants ps;
-  in check antiqs [] end;
+fun antiquote_reports text =
+  maps (fn Text x => text x | Antiq antiq => map (rpair "") (antiq_reports antiq));
 
 
 (* scan *)
@@ -71,27 +48,27 @@ local
 val err_prefix = "Antiquotation lexical error: ";
 
 val scan_txt =
-  $$$ "@" --| Scan.ahead (~$$$ "{") ||
-  Scan.one (fn (s, _) => s <> "@" andalso s <> "\\<lbrace>" andalso s <> "\\<rbrace>"
-    andalso Symbol.is_regular s) >> single;
+  Scan.repeat1 ($$$ "@" --| Scan.ahead (~$$ "{") ||
+    Scan.many1 (fn (s, _) => s <> "@" andalso Symbol.is_regular s)) >> flat;
 
-val scan_ant =
+val scan_antiq_body =
   Scan.trace (Symbol_Pos.scan_string_qq err_prefix || Symbol_Pos.scan_string_bq err_prefix) >> #2 ||
+  Scan.trace (Symbol_Pos.scan_cartouche err_prefix) >> #2 ||
   Scan.one (fn (s, _) => s <> "}" andalso Symbol.is_regular s) >> single;
-
-val scan_open = Symbol_Pos.scan_pos --| $$$ "\\<lbrace>";
-val scan_close = Symbol_Pos.scan_pos --| $$$ "\\<rbrace>";
 
 in
 
 val scan_antiq =
-  Symbol_Pos.scan_pos -- ($$$ "@" |-- $$$ "{" |--
+  Symbol_Pos.scan_pos -- ($$ "@" |-- $$ "{" |-- Symbol_Pos.scan_pos --
     Symbol_Pos.!!! (fn () => err_prefix ^ "missing closing brace")
-      (Scan.repeat scan_ant -- ($$$ "}" |-- Symbol_Pos.scan_pos)))
-  >> (fn (pos1, (body, pos2)) => (flat body, Position.range pos1 pos2));
+      (Scan.repeat scan_antiq_body -- Symbol_Pos.scan_pos -- ($$ "}" |-- Symbol_Pos.scan_pos)))
+  >> (fn (pos1, (pos2, ((body, pos3), pos4))) =>
+      (flat body,
+        {start = Position.set_range (pos1, pos2),
+         stop = Position.set_range (pos3, pos4),
+         range = Position.range pos1 pos4}));
 
-fun scan x = (scan_antiq >> Antiq || scan_open >> Open || scan_close >> Close) x;
-val scan_text = scan || Scan.repeat1 scan_txt >> (Text o flat);
+val scan_antiquote = scan_antiq >> Antiq || scan_txt >> Text;
 
 end;
 
@@ -99,8 +76,8 @@ end;
 (* read *)
 
 fun read (syms, pos) =
-  (case Scan.read Symbol_Pos.stopper (Scan.repeat scan_text) syms of
-    SOME xs => (Position.reports_text (reports_of (K []) xs); check_nesting xs; xs)
+  (case Scan.read Symbol_Pos.stopper (Scan.repeat scan_antiquote) syms of
+    SOME xs => (Position.reports_text (antiquote_reports (K []) xs); xs)
   | NONE => error ("Malformed quotation/antiquotation source" ^ Position.here pos));
 
 end;

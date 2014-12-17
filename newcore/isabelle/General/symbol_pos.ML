@@ -8,9 +8,12 @@ signature SYMBOL_POS =
 sig
   type T = Symbol.symbol * Position.T
   val symbol: T -> Symbol.symbol
+  val $$ : Symbol.symbol -> T list -> T * T list
+  val ~$$ : Symbol.symbol -> T list -> T * T list
   val $$$ : Symbol.symbol -> T list -> T list * T list
   val ~$$$ : Symbol.symbol -> T list -> T list * T list
   val content: T list -> string
+  val range: T list -> Position.range
   val is_eof: T -> bool
   val stopper: T Scan.stopper
   val !!! : Scan.message -> (T list -> 'a) -> T list -> 'a
@@ -25,18 +28,20 @@ sig
   val quote_string_q: string -> string
   val quote_string_qq: string -> string
   val quote_string_bq: string -> string
-  val scan_comment: (string -> (T list -> T list * T list) -> T list -> T list * T list) ->
-    T list -> T list * T list
-  val scan_comment_body: (string -> (T list -> T list * T list) -> T list -> T list * T list) ->
-    T list -> T list * T list
+  val scan_cartouche: string -> T list -> T list * T list
+  val recover_cartouche: T list -> T list * T list
+  val cartouche_content: T list -> T list
+  val scan_comment: string -> T list -> T list * T list
+  val scan_comment_body: string -> T list -> T list * T list
   val recover_comment: T list -> T list * T list
   val source: Position.T -> (Symbol.symbol, 'a) Source.source ->
     (T, Position.T * (Symbol.symbol, 'a) Source.source) Source.source
   type text = string
   val implode: T list -> text
-  val range: T list -> Position.range
   val implode_range: Position.T -> Position.T -> T list -> text * Position.range
   val explode: text * Position.T -> T list
+  type source = {delimited: bool, text: text, pos: Position.T}
+  val source_content: source -> string * Position.T
   val scan_ident: T list -> T list * T list
   val is_identifier: string -> bool
 end;
@@ -51,6 +56,11 @@ type T = Symbol.symbol * Position.T;
 fun symbol ((s, _): T) = s;
 
 val content = implode o map symbol;
+
+fun range (syms as (_, pos) :: _) =
+      let val pos' = List.last syms |-> Position.advance
+      in Position.range pos pos' end
+  | range [] = Position.no_range;
 
 
 (* stopper *)
@@ -79,6 +89,9 @@ fun !!! text scan =
 
 fun change_prompt scan = Scan.prompt "# " scan;
 
+fun $$ s = Scan.one (fn x => symbol x = s);
+fun ~$$ s = Scan.one (fn x => symbol x <> s);
+
 fun $$$ s = Scan.one (fn x => symbol x = s) >> single;
 fun ~$$$ s = Scan.one (fn x => symbol x <> s) >> single;
 
@@ -103,8 +116,10 @@ fun scan_str q err_prefix =
   Scan.one (fn (s, _) => s <> q andalso s <> "\\" andalso Symbol.is_regular s) >> single;
 
 fun scan_strs q err_prefix =
-  (scan_pos --| $$$ q) -- !!! (fn () => err_prefix ^ "missing quote at end of string")
-    (change_prompt ((Scan.repeat (scan_str q err_prefix) >> flat) -- ($$$ q |-- scan_pos)));
+  Scan.ahead ($$ q) |--
+    !!! (fn () => err_prefix ^ "unclosed string literal")
+      ((scan_pos --| $$$ q) --
+        (change_prompt ((Scan.repeat (scan_str q err_prefix) >> flat) -- ($$$ q |-- scan_pos))));
 
 fun recover_strs q =
   $$$ q @@@ (Scan.repeat (Scan.permissive (scan_str q "")) >> flat);
@@ -145,6 +160,38 @@ val quote_string_bq = quote_string "`";
 end;
 
 
+(* nested text cartouches *)
+
+val scan_cartouche_depth =
+  Scan.repeat1 (Scan.depend (fn (d: int) =>
+    $$ "\\<open>" >> pair (d + 1) ||
+      (if d > 0 then
+        Scan.one (fn (s, _) => s <> "\\<close>" andalso Symbol.is_regular s) >> pair d ||
+        $$ "\\<close>" >> pair (d - 1)
+      else Scan.fail)));
+
+fun scan_cartouche err_prefix =
+  Scan.ahead ($$ "\\<open>") |--
+    !!! (fn () => err_prefix ^ "unclosed text cartouche")
+      (change_prompt (Scan.provide (fn d => d = 0) 0 scan_cartouche_depth));
+
+val recover_cartouche = Scan.pass 0 scan_cartouche_depth;
+
+fun cartouche_content syms =
+  let
+    fun err () =
+      error ("Malformed text cartouche: "
+        ^ quote (content syms) ^ Position.here (#1 (range syms)));
+  in
+    (case syms of
+      ("\\<open>", _) :: rest =>
+        (case rev rest of
+          ("\\<close>", _) :: rrest => rev rrest
+        | _ => err ())
+    | _ => err ())
+  end;
+
+
 (* ML-style comments *)
 
 local
@@ -161,11 +208,15 @@ val scan_body = change_prompt scan_cmts;
 
 in
 
-fun scan_comment cut =
-  $$$ "(" @@@ $$$ "*" @@@ cut "missing end of comment" (scan_body @@@ $$$ "*" @@@ $$$ ")");
+fun scan_comment err_prefix =
+  Scan.ahead ($$ "(" -- $$ "*") |--
+    !!! (fn () => err_prefix ^ "unclosed comment")
+      ($$$ "(" @@@ $$$ "*" @@@ scan_body @@@ $$$ "*" @@@ $$$ ")");
 
-fun scan_comment_body cut =
-  $$$ "(" |-- $$$ "*" |-- cut "missing end of comment" (scan_body --| $$$ "*" --| $$$ ")");
+fun scan_comment_body err_prefix =
+  Scan.ahead ($$ "(" -- $$ "*") |--
+    !!! (fn () => err_prefix ^ "unclosed comment")
+      ($$ "(" |-- $$ "*" |-- scan_body --| $$ "*" --| $$ ")");
 
 val recover_comment =
   $$$ "(" @@@ $$$ "*" @@@ scan_cmts;
@@ -194,11 +245,6 @@ fun pad [] = []
 
 val implode = implode o pad;
 
-fun range (syms as (_, pos) :: _) =
-      let val pos' = List.last syms |-> Position.advance
-      in Position.range pos pos' end
-  | range [] = Position.no_range;
-
 fun implode_range pos1 pos2 syms =
   let val syms' = (("", pos1) :: syms @ [("", pos2)])
   in (implode syms', range syms') end;
@@ -211,54 +257,28 @@ fun explode (str, pos) =
   in fold (fn (s, p) => if s = Symbol.DEL then I else cons (s, p)) res [] end;
 
 
+(* full source information *)
+
+type source = {delimited: bool, text: text, pos: Position.T};
+
+fun source_content {delimited = _, text, pos} =
+  let val syms = explode (text, pos) in (content syms, pos) end;
+
+
 (* identifiers *)
 
 local
 
-val latin = Symbol.is_ascii_letter;
-val digit = Symbol.is_ascii_digit;
-fun underscore s = s = "_";
-fun prime s = s = "'";
-fun subscript s = s = "\\<^sub>" orelse s = "\\<^isub>";
-fun script s = s = "\\<^sub>" orelse s = "\\<^isub>" orelse s = "\\<^isup>";
-fun special_letter s = Symbol.is_letter_symbol s andalso not (script s);
+val letter = Scan.one (symbol #> Symbol.is_letter);
+val letdigs1 = Scan.many1 (symbol #> Symbol.is_letdig);
 
-val scan_plain = Scan.one ((latin orf digit orf prime) o symbol) >> single;
-val scan_digit = Scan.one (digit o symbol) >> single;
-val scan_prime = Scan.one (prime o symbol) >> single;
-val scan_extended =
-  Scan.one ((latin orf digit orf prime orf underscore orf special_letter) o symbol) >> single;
-
-val scan_subscript =
-  Scan.one (subscript o symbol) --
-  Scan.one ((latin orf digit orf prime orf special_letter) o symbol)
-  >> (fn (x, y) => [x, y]);
-
-val scan_ident_part1 =
-  Scan.one (latin o symbol) ::: (Scan.repeat (scan_plain || scan_subscript) >> flat) ||
-  Scan.one (special_letter o symbol) :::
-    (Scan.repeat (scan_digit || scan_prime || scan_subscript) >> flat);
-
-val scan_ident_part2 =
-  Scan.repeat1 (scan_plain || scan_subscript) >> flat ||
-  scan_ident_part1;
+val sub = Scan.one (symbol #> (fn s => s = "\\<^sub>"));
 
 in
 
-val scan_ident0 =
-  Scan.one (Symbol.is_letter o symbol) ::: Scan.many (Symbol.is_letdig o symbol);
-
-val scan_ident1 =
-  Scan.one ((latin orf special_letter) o symbol) :::
-    (Scan.repeat (scan_extended || Scan.one (subscript o symbol) ::: scan_extended) >> flat);
-
-val scan_ident2 =
-  scan_ident_part1 @@@
-    (Scan.repeat (Scan.many1 (underscore o symbol) @@@ scan_ident_part2) >> flat);
+val scan_ident = letter ::: (Scan.repeat (letdigs1 || sub ::: letdigs1) >> flat);
 
 end;
-
-val scan_ident = scan_ident0;
 
 fun is_identifier s =
   Symbol.is_ascii_identifier s orelse
@@ -270,6 +290,8 @@ end;
 
 structure Basic_Symbol_Pos =   (*not open by default*)
 struct
+  val $$ = Symbol_Pos.$$;
+  val ~$$ = Symbol_Pos.~$$;
   val $$$ = Symbol_Pos.$$$;
   val ~$$$ = Symbol_Pos.~$$$;
 end;

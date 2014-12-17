@@ -15,7 +15,8 @@ fun use_text ({tune_source, name_space, str_of_pos, print, error, ...}: use_cont
     (start_line, name) verbose txt =
   let
     val line = Unsynchronized.ref start_line;
-    val in_buffer = Unsynchronized.ref (String.explode (tune_source txt));
+    val in_buffer =
+      Unsynchronized.ref (String.explode (tune_source (ml_positions start_line name txt)));
     val out_buffer = Unsynchronized.ref ([]: string list);
     fun output () = drop_newline (implode (rev (! out_buffer)));
 
