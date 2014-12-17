@@ -19,7 +19,8 @@ structure TextSocket : TEXT_SOCKET =
 struct
   
   (* debugging, can be turned off or on *)
-  fun server_print str = ()(*writeln str*);
+  (*fun server_print str = writeln str;
+  fun server_print _ = ();*)
 
   datatype T = SockData of { 
    sock : Socket.active INetSock.stream_sock,
@@ -149,9 +150,9 @@ fun init_server_socket port =
  fun read (SockData data) = TextIO.input (#sin data);
 
  fun close (SockData data) =
-      (TextIO.closeOut (#sout data) handle e => warning ("can't close output stream");
-      TextIO.closeIn (#sin data) handle e => warning ("can't close input stream");
-      Socket.close (#sock data) handle e => warning ("can't close active socket");
+      (TextIO.closeOut (#sout data) handle _ => warning ("can't close output stream");
+      TextIO.closeIn (#sin data) handle _ => warning ("can't close input stream");
+      Socket.close (#sock data) handle _ => warning ("can't close active socket");
       Socket.close (#passive data) handle _ =>  warning ("can't close passive socket"));
 
  val last_sock :
@@ -188,7 +189,7 @@ fun init_server_socket port =
       val _ = 
         Synchronized.change 
           last_sock 
-          (fn {sock, passive, sin, sout} =>  {sock = sock, passive = SOME passive_sock, sin = sin, sout = sout});
+          (fn {sock, passive=_, sin, sout} =>  {sock = sock, passive = SOME passive_sock, sin = sin, sout = sout});
       (* a time out is working here *)
       val sock0 = 
         let 
@@ -207,12 +208,12 @@ fun init_server_socket port =
       val _ = 
         Synchronized.change 
           last_sock 
-          (fn {sock, passive, sin, sout} =>  {sock = SOME sock0, passive = passive, sin = sin, sout = sout})
+          (fn {sock=_, passive, sin, sout} =>  {sock = SOME sock0, passive = passive, sin = sin, sout = sout})
       val (sin0, sout0) = make_streams sock0;
       val _ = 
         Synchronized.change 
           last_sock 
-          (fn {sock, passive, sin, sout} =>  {sock = sock, passive = passive, sin = SOME sin0, sout = SOME sout0})
+          (fn {sock, passive, sin=_, sout=_} =>  {sock = sock, passive = passive, sin = SOME sin0, sout = SOME sout0})
     in
       SockData { sock = sock0, passive = passive_sock, sin = sin0, sout = sout0}
     end
