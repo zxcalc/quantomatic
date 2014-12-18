@@ -61,9 +61,55 @@ use "General/binding.ML";
 use "General/path.ML";
 use "General/url.ML";
 use "General/file.ML";
+use "General/sha1.ML";
 use "PIDE/yxml.ML";
+use "System/options.ML";
+
+(* hard-coded options *)
+val options = Options.empty |>
+  Options.declare {pos=Position.none, name="completion_limit",
+                   typ=Options.intT, value="200"};
+Options.set_default options;
+
+use "General/completion.ML";
 (*use "General/json.ML";*)
 (*use "General/text_socket.ML";*)
+
+
+(* Isar lexer, for use_thy *)
+
+(* all proof-related types are stubs  *)
+type typ = unit;
+type term = unit;
+type attribute = unit;
+type morphism = unit;
+type thm = unit;
+type indexname = string * int;
+(*structure Proof =
+struct
+  type context = unit
+end;
+structure Context_Position =
+struct
+  fun reported_text _ _ _ _ = "";
+end;*)
+(*use "Syntax/type_annotation.ML";
+use "Syntax/term_position.ML";*)
+(*use "Syntax/lexicon.ML";*)
+
+structure Lexicon =
+struct
+  fun fail () = raise Fail "inner syntax not supported";
+  fun scan_longid _ = fail();
+  fun scan_id _ = fail();
+  fun scan_var _ = fail();
+  fun scan_tid _ = fail();
+  fun scan_tvar _ = fail();
+  fun scan_float _ = fail();
+  fun scan_nat _ = fail();
+end;
+
+use "Isar/token.ML";
 
 
 (* from Isabelle/src/Pure/Concurrent; this is the main stuff loaded in

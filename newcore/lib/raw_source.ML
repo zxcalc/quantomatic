@@ -4,7 +4,7 @@
 Coalgebraic data sources -- efficient purely functional input streams.
 *)
 
-signature SOURCE =
+signature RAW_SOURCE =
 sig
   type ('a, 'b) source
   val default_prompt: string
@@ -31,7 +31,7 @@ sig
   (* +++> *)
 end;
 
-structure Source: SOURCE =
+structure RawSource: RAW_SOURCE =
 struct
 
 
