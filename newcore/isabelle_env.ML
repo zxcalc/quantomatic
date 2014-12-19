@@ -85,28 +85,31 @@ type attribute = unit;
 type morphism = unit;
 type thm = unit;
 type indexname = string * int;
-(*structure Proof =
-struct
-  type context = unit
-end;
-structure Context_Position =
-struct
-  fun reported_text _ _ _ _ = "";
-end;*)
-(*use "Syntax/type_annotation.ML";
-use "Syntax/term_position.ML";*)
-(*use "Syntax/lexicon.ML";*)
 
+
+(* a very minimal lex structure for inner syntax *)
 structure Lexicon =
 struct
-  fun fail () = raise Fail "inner syntax not supported";
-  fun scan_longid _ = fail();
-  fun scan_id _ = fail();
-  fun scan_var _ = fail();
-  fun scan_tid _ = fail();
-  fun scan_tvar _ = fail();
-  fun scan_float _ = fail();
-  fun scan_nat _ = fail();
+open Basic_Symbol_Pos;
+
+val err_prefix = "Inner lexical error: ";
+
+fun !!! msg = Symbol_Pos.!!! (fn () => err_prefix ^ msg);
+
+val scan_id = Symbol_Pos.scan_ident;
+val scan_longid = scan_id @@@ (Scan.repeat1 ($$$ "." @@@ scan_id) >> flat);
+val scan_tid = $$$ "'" @@@ scan_id;
+
+val scan_nat = Scan.many1 (Symbol.is_digit o Symbol_Pos.symbol);
+val scan_int = $$$ "-" @@@ scan_nat || scan_nat;
+val scan_natdot = scan_nat @@@ $$$ "." @@@ scan_nat;
+val scan_float = $$$ "-" @@@ scan_natdot || scan_natdot;
+val scan_hex = $$$ "0" @@@ $$$ "x" @@@ Scan.many1 (Symbol.is_ascii_hex o Symbol_Pos.symbol);
+val scan_bin = $$$ "0" @@@ $$$ "b" @@@ Scan.many1 (fn (s, _) => s = "0" orelse s = "1");
+
+val scan_id_nat = scan_id @@@ Scan.optional ($$$ "." @@@ scan_nat) [];
+val scan_var = $$$ "?" @@@ scan_id_nat;
+val scan_tvar = $$$ "?" @@@ $$$ "'" @@@ scan_id_nat;
 end;
 
 use "Isar/token.ML";
@@ -170,11 +173,11 @@ PolyML.Project.use_root "maps/ROOT.ML";
 *)
 
 (* Other basic top level things *)
-use "basics/collection.ML";
-use "basics/polym_table.ML";
+(*use "basics/collection.ML";*)
+(*use "basics/polym_table.ML";*)
 
 
-use "basics/toplevel.ML";
+(*use "basics/toplevel.ML";*)
 
 use "use_thy.ML";
 

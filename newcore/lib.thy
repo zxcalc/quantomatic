@@ -4,7 +4,7 @@ begin
 
 ML_file "lib/log.ML";
 ML_file "lib/testing.ML";
-ML_file "lib/source.ML";
+ML_file "lib/raw_source.ML";
 ML_file "lib/json.ML";
 ML_file "lib/text_socket.ML";
 
