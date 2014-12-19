@@ -227,7 +227,7 @@ struct
   
   fun normalise t = let
     val perm_table = all_perms t
-    val t' = the (Tab.min_key perm_table)
+    val (t',_) = the (Tab.min perm_table)
   in (the (Tab.lookup perm_table t'), t')
   end
   

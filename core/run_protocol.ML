@@ -1,8 +1,8 @@
 PolyML.SaveState.loadState "heaps/quanto.heap";
-PolyML.Compiler.printDepth:=100;
 
 (* Futures may hang unless we allow at least 4 workers *)
-if (!Multithreading.max_threads <= 4) then Multithreading.max_threads := 4 else ();
+if (Multithreading.max_threads_value() <= 4)
+then Multithreading.max_threads_update 4 else ();
 
 fun run_protocol port () =
 let
