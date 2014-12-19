@@ -1,7 +1,7 @@
 (*
  * Emulate the Isabelle toplevel environment
  *)
-OS.FileSys.chDir "isabelle";
+OS.FileSys.chDir "Pure";
 
 fun exit st =
   OS.Process.exit
@@ -12,7 +12,7 @@ use "ML-Systems/polyml.ML";
 (* from Isabelle/src/Pure/Generic *)
 use "General/basics.ML";
 (* from Isabelle/src/Pure *)
-use "basics/library.ML";
+use "library.ML";
 
 (* Global version variable *)
 val version = "Isabelle/IsaPlanner Library";
@@ -179,6 +179,7 @@ PolyML.Project.use_root "maps/ROOT.ML";
 
 (*use "basics/toplevel.ML";*)
 
-use "use_thy.ML";
 
 OS.FileSys.chDir "..";
+
+use "use_thy.ML";

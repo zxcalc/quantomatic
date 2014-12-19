@@ -1,0 +1,16 @@
+
+                        Pure: The Pure Isabelle System
+
+
+This directory contains the ML source files for Pure Isabelle, which
+is the basis for all object-logics.  Building the Isabelle/Pure heap
+image in batch mode works as for any other session:
+
+  isabelle build -b Pure
+
+To explore the bootstrap of Pure interactively, the raw ML console can
+be used like this:
+
+  isabelle console -l RAW
+  use "ROOT.ML";
+

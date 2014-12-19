@@ -18,7 +18,7 @@ end;
 structure ML_System: ML_SYSTEM =
 struct
 
-val SOME name = SOME "polyml"; (*OS.Process.getEnv "ML_SYSTEM";*)
+val name = case OS.Process.getEnv "ML_SYSTEM" of SOME s => s | NONE => "polyml";
 val is_polyml = String.isPrefix "polyml" name;
 val is_smlnj = String.isPrefix "smlnj" name;
 
