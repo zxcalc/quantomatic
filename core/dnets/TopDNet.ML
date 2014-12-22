@@ -54,14 +54,14 @@ struct
     val empty = Node{contour=C.empty, children=[]}
 
     (* This function checks if a tree node is a Node or a Leaf *)
-    fun is_node (Node{contour=contour, children = children}) = true
-      | is_node (Leaf{graph=graph}) = false
+    fun is_node (Node _) = true
+      | is_node (Leaf _) = false
 
     (* Getters for a tree *)
-    fun get_contour(Node{contour=contour, children = children}) = contour
+    fun get_contour(Node{contour=contour, ...}) = contour
       | get_contour _ = raise ERROR "Not a contour"
 
-    fun get_children(Node{contour=contour, children=children}) = children
+    fun get_children(Node{children=children, ...}) = children
       | get_children _ = raise ERROR "Not a contour"
 
     fun get_graph(Leaf{graph=graph}) = graph
@@ -71,14 +71,14 @@ struct
 
     
     (* This function checks is a contour c is contained in a list of Node or Leaf *)
-	  fun is_equiv_contained(c,[]) = false
-  	  | is_equiv_contained(c,Node{contour=contour, children=children}::[]) = if C.equiv(contour,c) then true else false
-  	  | is_equiv_contained(c,Leaf{graph=graph}::[]) = false
-  	  | is_equiv_contained(c,Node{contour=contour, children=children}::cl) = if C.equiv(contour,c) then true else is_equiv_contained(c,cl)
-  	  | is_equiv_contained(c,Leaf{graph=graph}::cl) = is_equiv_contained(c,cl)
+	  fun is_equiv_contained(_,[]) = false
+  	  | is_equiv_contained(c,Node{contour=contour, children=_}::[]) = if C.equiv(contour,c) then true else false
+  	  | is_equiv_contained(_,Leaf{graph=_}::[]) = false
+  	  | is_equiv_contained(c,Node{contour=contour, children=_}::cl) = if C.equiv(contour,c) then true else is_equiv_contained(c,cl)
+  	  | is_equiv_contained(c,Leaf{graph=_}::cl) = is_equiv_contained(c,cl)
 
     (* This function checks if a contour c is equivalent with the contour stored in a Node *)
-    fun equiv(Node{contour=contour, children=children}, c) =
+    fun equiv(Node{contour=contour, children=_}, c) =
        if C.equiv(contour,c) then true else false
       | equiv _ = false
 
@@ -93,7 +93,7 @@ struct
   
     (* This function retrieves a list of literals not equiv to x from a contour list cl, given that x is contained in cl*)
     (* PRECONDITION: x is contained in cl *)
-    fun get_equiv_remaining(x,c::[]) = []
+    fun get_equiv_remaining(_,_::[]) = []
       | get_equiv_remaining(x,c::cl) = 
           if is_node(c)
           then if equiv(c,x) then cl else c::get_equiv_remaining(x,cl)
@@ -142,7 +142,7 @@ struct
   (* This function add a list of contour lists cls together with the list of graph named gns to the tree *)
   fun add_cl_list_to_dnet d (cl::[]) (gn::[]) = add_cl_to_dnet d cl gn
     | add_cl_list_to_dnet d (cl::cll) (gn::gns) = add_cl_list_to_dnet (add_cl_to_dnet d cl gn) cll gns
-    | add_cl_list_to_dnet d _ _ = raise ERROR "Contour and graph list lengths differ"
+    | add_cl_list_to_dnet _ _ _ = raise ERROR "Contour and graph list lengths differ"
 
   fun add_graph (n,g) dnet = add_cl_to_dnet dnet (CL.mk g) n
 
@@ -162,13 +162,13 @@ struct
   (* This function recursively prunes the tree t using weak compatibility*)
   fun weak_prune_trees([],[]) = []
     | weak_prune_trees(t::[],[]) = t::[]
-    | weak_prune_trees([],c::[]) = []    
+    | weak_prune_trees([],_::[]) = []    
     | weak_prune_trees(t::[],c::[]) =
         if (is_node(t)) then
           if (C.check_weak_compatibility(c,get_contour(t))) then Node{contour=get_contour(t),children=weak_prune_trees(get_children(t),[])} :: []
           else []
         else t :: []        
-    | weak_prune_trees([],c::cs) = []
+    | weak_prune_trees([],_::_) = []
     | weak_prune_trees(t::ts,[]) = 
         if (is_node(t)) then weak_prune_trees(ts,[])
         else t :: weak_prune_trees(ts,[])
@@ -192,7 +192,7 @@ struct
   (* This function recursively prunes the tree t using strong compatibility*)
   fun extended_strong_prune_trees([],[]) = []
     | extended_strong_prune_trees(t::[],[]) = t::[]
-    | extended_strong_prune_trees([],c::[]) = []    
+    | extended_strong_prune_trees([],_::[]) = []    
     | extended_strong_prune_trees(t::[],c::[]) =
         if (is_node(t))
         then
@@ -207,7 +207,7 @@ struct
           end
         else
           t :: []
-    | extended_strong_prune_trees([],c::cs) = []
+    | extended_strong_prune_trees([],_::_) = []
     | extended_strong_prune_trees(t::ts,[]) = 
         if (is_node(t)) then extended_strong_prune_trees(ts,[])
         else t :: extended_strong_prune_trees(ts,[])
@@ -333,12 +333,12 @@ struct
     | collect_graphs (t::ts) = (graphs t) :: (collect_graphs ts)
 
   (* This function receives a discrimination tree and executes the extended pruning algorithm using all possible contour list built from a target and a starting node-vertex n *)
-  fun do_extended_pruning tree target [] = []
+  fun do_extended_pruning _ _ [] = []
     | do_extended_pruning tree target (n::[]) = (extended_prune n target tree) :: []
     | do_extended_pruning tree target (n::ns) = (extended_prune n target tree) :: (do_extended_pruning tree target ns)
 
   (* This function receives a discrimination tree and executes the standard pruning algorithm using all possible contour list built from a target and a starting node-vertex n *)
-  fun do_standard_pruning tree target [] = []
+  fun do_standard_pruning _ _ [] = []
     | do_standard_pruning tree target (n::[]) = (standard_prune n target tree) :: []
     | do_standard_pruning tree target (n::ns) = (standard_prune n target tree) :: (do_standard_pruning tree target ns)
 
@@ -373,24 +373,24 @@ struct
  
   (* This function removes the graph g from the list of graphs gl, given that g is contained in gl*)
   (* PRECONDITION: g is contained in gl*)
-  fun remove_eq_graph(g,gl::[]) = []
+  fun remove_eq_graph(_,_::[]) = []
     | remove_eq_graph(g,gl::gls) = if graphname_eq(g,gl) then gls else gl::remove_eq_graph(g,gls) 
     | remove_eq_graph(_,[]) = raise ERROR "Empty graph list"
 
   (* This function checks if a graph g is contained in the graph list gl*)
-  fun find_eq_graph(g,[]) = false
+  fun find_eq_graph(_,[]) = false
     | find_eq_graph(g,gl::[]) = if graphname_eq(g,gl) then true else false
     | find_eq_graph(g,gl::gls) = if graphname_eq(g,gl) then true else find_eq_graph(g,gls)
 
   (* This function checks if two graph lists g1s and g2s are equal *)
   fun is_eq_graphs([],[]) = true
-    | is_eq_graphs([],g2::[]) = false
-    | is_eq_graphs(g1::[],[]) = false
-    | is_eq_graphs([],g2::g2s) = false
-    | is_eq_graphs(g1::g1s,[]) = false
+    | is_eq_graphs([],_::[]) = false
+    | is_eq_graphs(_::[],[]) = false
+    | is_eq_graphs([],_::_) = false
+    | is_eq_graphs(_::_,[]) = false
     | is_eq_graphs(g1::[],g2::[]) = if graphname_eq(g1,g2) then true else false
-    | is_eq_graphs(g1::g1s,g2::[]) = false 
-    | is_eq_graphs(g1::[],g2::g2s) = false 
+    | is_eq_graphs(_::_,_::[]) = false 
+    | is_eq_graphs(_::[],_::_) = false 
     | is_eq_graphs(g1::g1s,g2::g2s) = 
       if graphname_eq(g1,g2) then is_eq_graphs (g1s,g2s)
       else if find_eq_graph(g1,g2s) then is_eq_graphs(g1s,g2::remove_eq_graph(g1,g2s)) else false
