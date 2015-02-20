@@ -10,4 +10,8 @@ ML_file "json_interface/controller.ML";
 ML_file "json_interface/controller_registry.ML";
 ML_file "json_interface/protocol.ML";
 ML_file "json_interface/run.ML";
+
+ML_file "rewriting/simp_util.ML";
+ML_file "theories/red_green/rg_simp_util.ML";
+
 end

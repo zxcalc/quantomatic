@@ -110,11 +110,11 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   // note we need start *and* previous position to do accurate dragging with snapping
   private def shiftVertsNoRegister(vs: TraversableOnce[VName], start: Point, prev: Point, end: Point) {
     val dx =
-      roundCoordIfSnapped(view.trans scaleFromScreen (end.getX - start.getX)) -
-      roundCoordIfSnapped(view.trans scaleFromScreen (prev.getX - start.getX))
+      roundIfSnapped(view.trans scaleFromScreen (end.getX - start.getX)) -
+      roundIfSnapped(view.trans scaleFromScreen (prev.getX - start.getX))
     val dy =
-      roundCoordIfSnapped(view.trans scaleFromScreen (end.getY - start.getY)) -
-      roundCoordIfSnapped(view.trans scaleFromScreen (prev.getY - start.getY))
+      roundIfSnapped(view.trans scaleFromScreen (end.getY - start.getY)) -
+      roundIfSnapped(view.trans scaleFromScreen (prev.getY - start.getY))
     //val (dx,dy) = (view.trans scaleFromScreen (p2.getX - p1.getX), view.trans scaleFromScreen (p2.getY - p1.getY))
     graph = vs.foldLeft(graph) { (g,v) =>
       view.invalidateVertex(v)
@@ -158,7 +158,8 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
 
   private def addVertex(v: VName, d: VData) {
-    graph = graph.addVertex(v, d)
+    val d1 = d.withCoord(roundCoordIfSnapped(d.coord))
+    graph = graph.addVertex(v, d1)
     undoStack.register("Add Vertex") { deleteVertex(v) }
   }
 
@@ -313,9 +314,11 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     view.repaint()
   }
 
-  private def roundCoordIfSnapped(d : Double) = {
+  private def roundIfSnapped(d : Double) = {
     if (keepSnapped) math.rint(d / 0.25) * 0.25 else d // rounds to .25
   }
+
+  private def roundCoordIfSnapped(d : (Double, Double)) = (roundIfSnapped(d._1), roundIfSnapped(d._2))
 
   def layoutGraph() {
     val lo = new ForceLayout with Ranking with Clusters
@@ -532,7 +535,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
               case "<wire>" => WireV(theory = theory)
               case typ      =>
                 //              println("adding: " + theory.vertexTypes(typ).defaultData)
-                NodeV(data = theory.vertexTypes(typ).defaultData, theory = theory).withCoord(coord)
+                NodeV(data = theory.vertexTypes(typ).defaultData, theory = theory)
             }
 
             addVertex(graph.verts.freshWithSuggestion(VName("v0")), vertexData.withCoord(coord))
