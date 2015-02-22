@@ -581,7 +581,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
             start = 1
           }
 
-          val angle_diff = 180.0 / (size - start)
+          val angle_diff = 100.0 / (size - start)
           var angle_it = angle_diff
           var right_left = "left="
 
