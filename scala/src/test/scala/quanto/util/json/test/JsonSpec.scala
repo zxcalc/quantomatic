@@ -74,42 +74,41 @@ class JsonSpec extends FlatSpec {
   it should "be the expected object" in {
     result match {
       case obj: JsonObject =>
-        assert(obj("foo").intValue === 12)
+        assert((obj / "foo").intValue === 12)
 
         // match-case for nested objects and arrays (recommended if coercion might fail)
-        obj("bar") match {
+        obj / "bar" match {
           case arr: JsonArray =>
-            assert(arr(0).intValue === 23)
-            assert(arr(1).intValue === 14)
-            assert(arr(2).stringValue === "etc")
+            assert((arr / 0).intValue === 23)
+            assert((arr / 1).intValue === 14)
+            assert((arr / 2).stringValue === "etc")
           case _ => fail("expected: JsonArray")
         }
 
         // coercion for nested objects/arrays
-        val obj1 = obj("nested").asObject
-        assert(obj1("obj").stringValue === "ect")
+        val obj1 = (obj / "nested").asObject
+        assert((obj1 / "obj").stringValue === "ect")
 
-        val arr = obj1("and").asArray
-        assert(arr(0).stringValue === "l")
-        assert(arr(1).stringValue === "i")
+        val arr = (obj1 / "and").asArray
+        assert((arr / 0).stringValue === "l")
+        assert((arr / 1).stringValue === "i")
 
-        // short-form coercion via overloaded apply() method
-        assert(arr(2)("s").stringValue === "t")
+        assert((arr / 2 / "s").stringValue === "t")
       case _ => fail("expected: JsonObject")
     }
   }
 
   it can "be accessed using optional fields" in {
-    assert((result ? "foo") === result("foo"))
-    assert((result ? "bar")(0) === result("bar")(0))
-    assert((result ? "bar")(1) === result("bar")(1))
-    assert((result ? "bar")(2) === result("bar")(2))
+    assert((result ? "foo") === result / "foo")
+    assert((result ? "bar" ? 0) === result / "bar" / 0)
+    assert((result ? "bar" ? 1) === result / "bar" / 1)
+    assert((result ? "bar" ? 2) === result / "bar" / 2)
   }
 
   it should "return null, empty array, or empty object for missing optional fields" in {
-    assert((result ? "missing") === JsonNull())
-    assert((result ?@ "missing") === JsonArray())
-    assert((result ?# "missing") === JsonObject())
+    assert((result ? "missing") === JsonNull)
+    assert((result ? "missing").asArray === JsonArray())
+    assert((result ? "missing").asObject === JsonObject())
   }
 
   it should "throw JsonAccessException for bad coercions" in {
@@ -118,26 +117,26 @@ class JsonSpec extends FlatSpec {
     val obj = result.asObject
 
     intercept[JsonAccessException] {
-      obj("foo").stringValue
+      (obj / "foo").stringValue
     }
 
-    val arr = result("bar")  // okay, since result is an object
+    val arr = result / "bar"  // okay, since result is an object
     intercept[JsonAccessException] {
-      result(2) // not okay to treat object as an array
+      result / 2 // not okay to treat object as an array
     }
     intercept[JsonAccessException] {
-      arr("foo") // or array as object
+      arr / "foo" // or array as object
     }
   }
 
   it should "throw JsonAccessException for bad keys or indices" in {
     val obj = result.asObject
 
-    intercept[JsonAccessException] { obj("bad_key") }
+    intercept[JsonAccessException] { obj / "bad_key" }
 
-    val arr = obj("bar").asArray
+    val arr = (obj / "bar").asArray
 
-    intercept[JsonAccessException] { arr(1000) }
+    intercept[JsonAccessException] { arr / 1000 }
   }
 
   behavior of "Json path"

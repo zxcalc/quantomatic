@@ -2,6 +2,7 @@
 package quanto.data
 
 import collection.immutable.TreeSet
+import scala.collection.{mutable, IterableLike}
 
 /**
  * A trait which contains useful methods for binary relations
@@ -12,7 +13,7 @@ import collection.immutable.TreeSet
  * @author Aleks Kissinger 
  * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/BinRel.scala Source code]]
  */
-trait BinRel[A,B] extends Iterable[(A,B)] {
+trait BinRel[A,B] extends IterableLike[(A,B), BinRel[A,B]] {
   /** Domain function - assigns a set to each element of the domain */
   def domf : Map[A,Set[B]]
 
@@ -35,6 +36,7 @@ trait BinRel[A,B] extends Iterable[(A,B)] {
    * current one except '''kv'''
    */
   def unmap(kv: (A,B)): BinRel[A,B]
+  def -(kv: (A,B)) : BinRel[A,B] = unmap(kv)
 
   /**
    * Remove all relation pairs '''(d,_)'''
@@ -54,9 +56,11 @@ trait BinRel[A,B] extends Iterable[(A,B)] {
 
   /** The domain set of the relation */
   def dom = domf.keys
+  def domSet = domf.keySet
 
   /** The codomain set of the relation */
   def cod = codf.keys
+  def codSet = codf.keySet
 
   /**
    * The codomain image of a set of domain elements under this relation
@@ -95,6 +99,13 @@ trait BinRel[A,B] extends Iterable[(A,B)] {
     case that: BinRel[_,_] => (that canEqual this) && (this.domf == that.domf)
     case _ => false
   }
+
+  override def toString() = {
+    getClass.getSimpleName + "(" + seq.map{ case (k,v) => k.toString + " -> " + v.toString }.mkString(", ") + ")"
+  }
+
+  // TODO: get ++ implemented correctly (i.e. using builders etc) for PFun/BinRel
+  def ++(r:BinRel[A,B]) = r.foldLeft(this) { case (mp, kv) => mp + kv }
 }
 
 /**
@@ -133,13 +144,13 @@ class MapPairBinRel[A,B](domMap: Map[A,TreeSet[B]], codMap: Map[B,TreeSet[A]])
   def unmap(kv: (A,B)) = {
     new MapPairBinRel[A,B](
       domMap.get(kv._1) match {
-        case Some(xs) if xs.size == 1 => domMap - kv._1
+        case Some(xs) if (xs.size == 1 && xs.contains(kv._2)) => domMap - kv._1
         case Some(xs) => domMap + (kv._1 -> (xs - kv._2))
         case None => domMap
       },
 
       codMap.get(kv._2) match {
-        case Some(xs) if xs.size == 1 => codMap - kv._2
+        case Some(xs) if (xs.size == 1 && xs.contains(kv._1)) => codMap - kv._2
         case Some(xs) => codMap + (kv._2 -> (xs - kv._1))
         case None => codMap
       }
@@ -153,6 +164,15 @@ class MapPairBinRel[A,B](domMap: Map[A,TreeSet[B]], codMap: Map[B,TreeSet[A]])
   def iterator = domMap.foldLeft(Iterator[(A,B)]()) { case (iter, (domElement, codSet)) =>
     iter ++ (Iterator.continually(domElement) zip codSet.iterator)
   }
+
+  protected[this] def newBuilder = new mutable.Builder[(A,B),BinRel[A,B]] {
+    val s = collection.mutable.Buffer[(A,B)]()
+    def result() = BinRel(s: _*)
+    def clear() = s.clear()
+    def +=(elem: (A,B)) = { s += elem; this }
+  }
+
+  def seq = iterator.toSeq
 }
 
 /**

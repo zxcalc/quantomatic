@@ -64,11 +64,11 @@ case class UndirEdge(
  */
 object DirEdge {
   def toJson(d: EData, theory: Theory) = JsonObject(
-    "data" -> (if (d.data == theory.edgeTypes(d.typ).defaultData) JsonNull() else d.data),
+    "data" -> (if (d.data == theory.edgeTypes(d.typ).defaultData) JsonNull else d.data),
     "annotation" -> d.annotation).noEmpty
   def fromJson(json: Json, theory: Theory) : DirEdge = {
     val data = json.getOrElse("data", theory.defaultEdgeData).asObject
-    val annotation = json ?# "annotation"
+    val annotation = (json ? "annotation").asObject
     DirEdge(data, annotation, theory)
   }
 }
@@ -82,11 +82,11 @@ object DirEdge {
  */
 object UndirEdge {
   def toJson(d: EData, theory: Theory) = JsonObject(
-    "data" -> (if (d.data == theory.edgeTypes(d.typ).defaultData) JsonNull() else d.data),
+    "data" -> (if (d.data == theory.edgeTypes(d.typ).defaultData) JsonNull else d.data),
     "annotation" -> d.annotation).noEmpty
   def fromJson(json: Json, theory: Theory) : UndirEdge = {
     val data = json.getOrElse("data", theory.defaultEdgeData).asObject
-    val annotation = json ?# "annotation"
+    val annotation = (json ? "annotation").asObject
     UndirEdge(data, annotation, theory)
   }
 }

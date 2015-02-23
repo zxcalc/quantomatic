@@ -5,9 +5,27 @@ import quanto.util.json._
 import math.sqrt
 import JsonValues._
 import collection.mutable.ArrayBuffer
+import quanto.util._
+import java.awt.datatransfer.{DataFlavor, Transferable}
+
+trait GraphException extends Exception
+
+class SafeDeleteVertexException(name: VName, reason: String) extends
+Exception("Unable to safely delete " + name + ", because " + reason)
+with GraphException
+
+class DanglingEdgeException(edge: EName, endPoint: VName) extends
+Exception("Edge: " + edge + " has no endpoint: " + endPoint + " in graph")
+with GraphException
+
+class CyclicBBoxParentException(bb: BBName, bbp: BBName) extends
+Exception("Adding parent " + bbp + " to bbox " + bb + " introduces cycle.")
+
+case class GraphSearchContext(exploredV: Set[VName], exploredE: Set[EName])
 
 class GraphLoadException(message: String, cause: Throwable = null)
-  extends Exception(message, cause)
+extends Exception(message, cause)
+with GraphException
 
 
 case class Graph(
@@ -19,22 +37,503 @@ case class Graph(
                    bbdata: Map[BBName,BBData]      = Map[BBName,BBData](),
                    inBBox: BinRel[VName,BBName]    = BinRel[VName,BBName](),
                    bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]())
-  extends GraphLike[GData,VData,EData,BBData,Graph]
 {
-  protected val factory = new Graph(_,_,_,_,_,_,_,_)
-
   def isInput (v: VName): Boolean = vdata(v).isWireVertex && inEdges(v).isEmpty && outEdges(v).size == 1
   def isOutput(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).isEmpty && inEdges(v).size == 1
   def isInternal(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).size == 1 && inEdges(v).size == 1
-  def inputs  = verts.filter(isInput(_))
-  def outputs = verts.filter(isOutput(_))
+  def inputs  = verts.filter(isInput)
+  def outputs = verts.filter(isOutput)
+
+  def verts = vdata.keySet
+  def edges = edata.keySet
+  def bboxes = bbdata.keySet
+
+  override def hashCode = {
+    var h = data.hashCode
+    h = 41 * h + vdata.hashCode
+    h = 41 * h + edata.hashCode
+    h = 41 * h + source.hashCode
+    h = 41 * h + target.hashCode
+    h = 41 * h + bbdata.hashCode
+    h = 41 * h + inBBox.hashCode
+    h = 41 * h + bboxParent.hashCode
+    h
+  }
+
+  def canEqual(other: Any) = other.isInstanceOf[Graph]
+
+  override def equals(other: Any) = other match {
+    case that: Graph => (that canEqual this) &&
+      vdata == that.vdata &&
+      edata == that.edata &&
+      source == that.source &&
+      target == that.target &&
+      bbdata == that.bbdata &&
+      inBBox == that.inBBox &&
+      bboxParent == that.bboxParent
+    case _ => false
+  }
+
+
+  protected val factory = new Graph(_,_,_,_,_,_,_,_)
+
+  def copy(data: GData                     = this.data,
+           vdata: Map[VName,VData]         = this.vdata,
+           edata: Map[EName,EData]         = this.edata,
+           source: PFun[EName,VName]       = this.source,
+           target: PFun[EName,VName]       = this.target,
+           bbdata: Map[BBName,BBData]      = this.bbdata,
+           inBBox: BinRel[VName,BBName]    = this.inBBox,
+           bboxParent: PFun[BBName,BBName] = this.bboxParent): Graph =
+    factory(data,vdata,edata,source,target,bbdata,inBBox,bboxParent)
+
+  // convenience methods
+  def inEdges(vn: VName) = target.codf(vn)
+  def outEdges(vn: VName) = source.codf(vn)
+  def predVerts(vn: VName) = inEdges(vn).map(source(_))
+  def succVerts(vn: VName) = outEdges(vn).map(target(_))
+  def contents(bbn: BBName) = inBBox.codf(bbn)
+  def isBoundary(vn: VName) = vdata(vn) match {
+    case _: WireV => (inEdges(vn).size + outEdges(vn).size) <= 1
+    case _ => false
+  }
+
+  /** Returns a set of edge names adjacent to vn */
+  def adjacentEdges(vn: VName) = source.codf(vn) union target.codf(vn)
+
+  /** Returns a set of edge names which connect v1 to v2 or vice versa */
+  def edgesBetween(v1: VName, v2: VName) = {
+    if (v1 == v2) {
+      source.codf(v1) intersect target.codf(v1)
+    }
+    else {
+      adjacentEdges(v1) intersect adjacentEdges(v2)
+    }
+  }
+
+  /**
+   * Partition of all edges into sets, s.t. they connect the same two vertices
+   * regardless of edge direction
+   */
+  def edgePartition() : List[Set[EName]] = {
+    var res : List[Set[EName]] = List()
+    for ((v1,_) <- vdata; (v2,_) <- vdata if v1 <= v2) {
+      val edgeSet = edgesBetween(v1,v2)
+      if (edgeSet.size > 0) res = edgeSet :: res
+    }
+    res
+  }
+
+  def isBBoxed(v: VName) = !inBBox.domf(v).isEmpty
+
+  /// by song
+  // to compute whether two vertices are in the same bbox.
+  def isInSameBBox(v1:VName, v2:VName) = !(inBBox.domf(v1) & inBBox.domf(v2)).isEmpty
+
+  def addVertex(vn: VName, data: VData) = {
+    if (vdata contains vn)
+      throw new DuplicateVertexNameException(vn) with GraphException
+
+    copy(vdata = vdata + (vn -> data))
+  }
+
+  /**
+   * @return A new graph where all vertices have coordinates which align to a
+   * grid
+   */
+  def snapToGrid() = {
+
+    def roundCoord(d : Double) = {
+      math.rint(d * 4.0) / 4.0 // rounds to .25
+    }
+
+    val snapped_vdata = vdata.mapValues {vd =>
+      val coord = vd.coord
+      vd.withCoord(roundCoord(coord._1), roundCoord(coord._2))
+    }
+    copy(vdata = snapped_vdata)
+  }
+
+  def newVertex(data: VData) = {
+    val vn = vdata.fresh
+    (addVertex(vn, data), vn)
+  }
+
+  def addEdge(en: EName, data: EData, vns: (VName, VName)) = {
+    if (edata contains en)
+      throw new DuplicateEdgeNameException(en) with GraphException
+    if (!vdata.contains(vns._1))
+      throw new DanglingEdgeException(en, vns._1)
+    if (!vdata.contains(vns._1))
+      throw new DanglingEdgeException(en, vns._2)
+
+    copy(
+      edata = edata + (en -> data),
+      source = source + (en -> vns._1),
+      target = target + (en -> vns._2)
+    )
+  }
+
+  def newEdge(data: EData, vns: (VName, VName)) = {
+    val en = edata.fresh
+    (addEdge(en, data, vns), en)
+  }
+
+  def addBBox(bbn: BBName, data: BBData, contents: Set[VName] = Set[VName](), parent: Option[BBName] = None) = {
+    if (bbdata contains bbn)
+      throw new DuplicateBBoxNameException(bbn) with GraphException
+
+    val g1 = copy(
+      bbdata = bbdata + (bbn -> data),
+      inBBox = contents.foldLeft(inBBox){ (x,v) => x + (v -> bbn) }
+    )
+
+    parent match {
+      case Some(p) => g1.setBBoxParent(bbn, Some(p))
+      case None => g1
+    }
+  }
+
+  def bboxParents(bb : BBName) : List[BBName] =
+    bboxParent.get(bb) match {
+      case Some(bb1) => bb1 :: bboxParents(bb1)
+      case None => List()
+    }
+
+  def bboxChildren(bb: BBName) : Set[BBName] =
+    bboxParent.codf(bb)
+
+
+  /** Replace the contents of a bang box with new ones
+    * NOTE: this affects parents as well. */
+  def updateBBoxContents(bbn: BBName, newContents: Set[VName]) = {
+    val oldContents = contents(bbn)
+    val updateBB = bbn :: bboxParents(bbn)
+
+    var inBB = inBBox
+
+    for (bb1 <- updateBB) {
+      oldContents.foreach {v => inBB -= (v -> bb1) }
+      newContents.foreach {v => inBB += (v -> bb1) }
+    }
+
+    copy( inBBox = inBB )
+  }
+
+  /** Change bbox parent. All contents will be removed from old parents and added to
+    * new parents. */
+  def setBBoxParent(bb: BBName, bbParentOpt: Option[BBName]) = {
+    val cont = contents(bb)
+    var inBB = inBBox
+    var bbP = bboxParent
+    val oldParents = bboxParents(bb)
+    val newParents = bbParentOpt match {
+      case Some(bbParent) =>
+        bbP += (bb -> bbParent)
+        val newP = bbParent :: bboxParents(bbParent)
+        if (newP.contains(bb)) throw new CyclicBBoxParentException(bb, bbParent)
+
+        newP
+      case None =>
+        bbP -= bb
+        List()
+    }
+
+
+
+    for (bbp <- oldParents) {
+      cont.foreach {v => inBB -= (v -> bbp) }
+    }
+
+    for (bbp <- newParents) {
+      cont.foreach {v => inBB += (v -> bbp) }
+    }
+
+
+    copy( inBBox = inBB , bboxParent = bbP )
+  }
+
+  def newBBox(data: BBData, contents: Set[VName] = Set[VName](), parent: Option[BBName] = None) = {
+    val bbn = bbdata.fresh
+    (addBBox(bbn, data, contents, parent), bbn)
+  }
+
+  def deleteBBox(bb: BBName) = {
+    copy(
+      bbdata = bbdata - bb,
+      inBBox = inBBox.unmapCod(bb),
+      bboxParent = bboxParent.unmapCod(bb).unmapDom(bb)
+    )
+  }
+
+  def deleteEdge(en: EName) = {
+    copy(
+      edata = edata - en,
+      source = source.unmapDom(en),
+      target = target.unmapDom(en)
+    )
+  }
+
+  def safeDeleteVertex(vn: VName) = {
+    if (!source.codf(vn).isEmpty || !target.codf(vn).isEmpty)
+      throw new SafeDeleteVertexException(vn, "vertex has adjancent edges")
+    if (!inBBox.domf(vn).isEmpty)
+      throw new SafeDeleteVertexException(vn, "vertex is in one or more bboxes")
+    copy(vdata = vdata - vn, inBBox = inBBox.unmapDom(vn))
+  }
+
+  def deleteVertex(vn: VName) = {
+    var g = this
+    for (e <- source.codf(vn)) g = g.deleteEdge(e)
+    for (e <- target.codf(vn)) g = g.deleteEdge(e)
+
+    g.copy(vdata = vdata - vn, inBBox = inBBox.unmapDom(vn))
+  }
+
+  // data updaters
+  def updateData(f: GData => GData)                  = copy(data = f(data))
+  def updateVData(vn: VName)(f: VData => VData)      = copy(vdata = vdata + (vn -> f(vdata(vn))))
+  def updateEData(en: EName)(f: EData => EData)      = copy(edata = edata + (en -> f(edata(en))))
+  def updateBBData(bbn: BBName)(f: BBData => BBData) = copy(bbdata = bbdata + (bbn -> f(bbdata(bbn))))
+
+  def rename(vrn: Map[VName,VName], ern: Map[EName, EName], brn: Map[BBName,BBName]) = {
+    // compute inverses
+//    val vrni = vrn.foldLeft(Map[VName,VName]()) { case (mp, (k,v)) => mp + (v -> k) }
+//    val erni = ern.foldLeft(Map[EName,EName]()) { case (mp, (k,v)) => mp + (v -> k) }
+//    val brni = brn.foldLeft(Map[BBName,BBName]()) { case (mp, (k,v)) => mp + (v -> k) }
+
+    val vdata1 = vdata.foldLeft(Map[VName,VData]()) { case (mp, (k,v)) => mp + (vrn(k) -> v)}
+    val edata1 = edata.foldLeft(Map[EName,EData]()) { case (mp, (k,v)) => mp + (ern(k) -> v)}
+    val bbdata1 = bbdata.foldLeft(Map[BBName,BBData]()) { case (mp, (k,v)) => mp + (brn(k) -> v)}
+    val source1 = source.foldLeft(PFun[EName,VName]()) { case (mp, (k,v)) => mp + (ern(k) -> vrn(v))}
+    val target1 = target.foldLeft(PFun[EName,VName]()) { case (mp, (k,v)) => mp + (ern(k) -> vrn(v))}
+    val inBBox1 = inBBox.foldLeft(BinRel[VName,BBName]()) { case (mp, (k,v)) => mp + (vrn(k) -> brn(v))}
+    val bboxParent1 = bboxParent.foldLeft(PFun[BBName,BBName]()) { case (mp, (k,v)) => mp + (brn(k) -> brn(v))}
+
+    copy(vdata=vdata1,edata=edata1,source=source1,target=target1,
+      bbdata=bbdata1,inBBox=inBBox1,bboxParent=bboxParent1)
+  }
+
+  // get a subgraph consisting of the given vertices and bboxes, with any edges/nesting between them
+  def fullSubgraph(vs: Set[VName], bbs: Set[BBName]) = {
+    val es = edges.filter { e => vs.contains(source(e)) && vs.contains(target(e)) }
+
+    val vdata1 = vdata.filter { case (v,_) => vs.contains(v) }
+    val edata1 = edata.filter { case (e,_) => es.contains(e) }
+    val source1 = source.filter { case (e,_) => es.contains(e) }
+    val target1 = target.filter { case (e,_) => es.contains(e) }
+    val inBBox1 = inBBox.filter{ case (v,b) => vs.contains(v) && bbs.contains(b) }
+    val bbdata1 = bbdata.filter { case (b,_) => bbs.contains(b) }
+    val bboxParent1 = bboxParent.filter { case (b1,b2) => bbs.contains(b1) && bbs.contains(b2) }
+
+    copy(data=GData(),vdata=vdata1,edata=edata1,source=source1,target=target1,
+      bbdata=bbdata1,inBBox=inBBox1,bboxParent=bboxParent1)
+  }
+
+  def renameAvoiding(g: Graph): Graph = {
+    val vrn = verts.foldLeft((Map[VName,VName](), g.verts)) { case ((mp,avoid), x) =>
+      val x1 = avoid.freshWithSuggestion(x)
+      (mp + (x -> x1), avoid + x1)
+    }._1
+
+    val ern = edges.foldLeft((Map[EName,EName](), g.edges)) { case ((mp,avoid), x) =>
+      val x1 = avoid.freshWithSuggestion(x)
+      (mp + (x -> x1), avoid + x1)
+    }._1
+
+    val brn = bboxes.foldLeft((Map[BBName,BBName](), g.bboxes)) { case ((mp,avoid), x) =>
+      val x1 = avoid.freshWithSuggestion(x)
+      (mp + (x -> x1), avoid + x1)
+    }._1
+
+    rename(vrn,ern,brn)
+  }
+
+  // append the given graph. note that its names should already be fresh
+  def appendGraph(g: Graph) = {
+    val coords = verts.map(vdata(_).coord)
+
+    // Pick any vertex in g and offset until that vertex is not sitting exactly
+    // on top of another.
+    var offset = 0.0
+    g.verts.headOption.map { v1 =>
+      val (x,y) = g.vdata(v1).coord
+      while (coords.contains((x + offset, y))) offset += 1.0
+    }
+
+    val g1 = g.verts.foldLeft(g) { (g1,v) =>
+      g1.updateVData(v) { d => d.withCoord (d.coord._1 + offset, d.coord._2) }
+    }
+
+    copy(
+      vdata = vdata ++ g1.vdata,
+      source = source ++ g1.source,
+      target = target ++ g1.target,
+      inBBox = inBBox ++ g1.inBBox,
+      edata = edata ++ g1.edata,
+      bbdata = bbdata ++ g1.bbdata,
+      bboxParent = bboxParent ++ g1.bboxParent
+    )
+  }
+
+  override def toString = {
+    """%s {
+      |  verts: %s,
+      |  edges: %s,
+      |  bboxes: %s,
+      |  nesting: %s
+      |}""".stripMargin.format(
+        data, vdata,
+        edata.map(kv => kv._1 -> "(%s => %s)::%s".format(source(kv._1), target(kv._1), kv._2)),
+        bbdata.map(kv => kv._1 -> "%s::%s".format(inBBox.codf(kv._1), kv._2)),
+        bboxParent.toString
+      )
+  }
+
+  private def dftSuccessors[T](fromV: VName, exploredV: Set[VName], exploredE: Set[EName])(base: T)
+                              (f: (T, EName, GraphSearchContext) => T): (T, Set[VName], Set[EName]) =
+  {
+    val nextEs = outEdges(fromV).filter(!exploredE.contains(_))
+
+    if (!nextEs.isEmpty) {
+      val e = nextEs.min
+      val nextV = target(e)
+
+      val (base1, exploredV1, exploredE1) =
+        dftSuccessors(nextV, exploredV + nextV, exploredE + e)(base)(f)
+      val (base2, exploredV2, exploredE2) =
+        dftSuccessors(fromV, exploredV1, exploredE1)(base1)(f)
+
+      val context = GraphSearchContext(exploredV2, exploredE2)
+      (f(base2, e, context), exploredV2, exploredE2)
+    } else {
+      (base, exploredV, exploredE)
+    }
+  }
+
+  private def dftComponents[T](exploredV: Set[VName], exploredE: Set[EName])(base: T)
+                              (f: (T, EName, GraphSearchContext) => T) : T =
+  {
+    val nextVs = vdata.keySet.filter(!exploredV.contains(_))
+    val initialVs = nextVs.filter(inEdges(_).isEmpty)
+
+    // Try to start with the minimal unexplored vertex with no in-edges. Failing that, start with the
+    // minimal unexplored vertex.
+    val vOpt = if (!initialVs.isEmpty)   Some(initialVs.min)
+    else if (!nextVs.isEmpty) Some(nextVs.min)
+    else None
+
+    vOpt match {
+      case Some(v) =>
+        val (base1, exploredV1, exploredE1) = dftSuccessors(v, exploredV + v, exploredE)(base)(f)
+        dftComponents[T](exploredV1, exploredE1)(base1)(f)
+      case None => base
+    }
+  }
+
+  def dft[T](base: T)(f: (T, EName, GraphSearchContext) => T): T =
+    dftComponents(Set[VName](), Set[EName]())(base)(f)
+
+
+  private def bbDft(bb : BBName, bbSeq : collection.mutable.Buffer[BBName], bbs : collection.mutable.Set[BBName]) {
+    for (ch <- bboxParent.codf(bb)) bbDft(ch, bbSeq, bbs)
+    if (bbs.contains(bb)) {
+      bbs.remove(bb)
+      bbSeq += bb
+    }
+  }
+
+  def bboxesChildrenFirst = {
+    val bbSeq = collection.mutable.Buffer[BBName]()
+    val bbs = collection.mutable.Set[BBName](bboxes.toSeq : _*)
+    while (!bbs.isEmpty) bbDft(bbs.iterator.next(),bbSeq,bbs)
+
+    bbSeq.toSeq
+  }
+
+  // returns a topo ordering. If graph is a dag, all edges will be consistent with this ordering
+  def topologicalOrdering: PartialOrdering[VName] = {
+    val visited = collection.mutable.Set[VName]()
+    var ordMap = Map[VName,Int]()
+    var max = 0
+
+    def visit(v: VName) {
+      if (!visited.contains(v)) {
+        visited += v
+        for (e <- outEdges(v)) visit(target(e))
+        ordMap += v -> max
+        max += 1
+      }
+    }
+
+    verts.foreach(visit)
+
+    new PartialOrdering[VName] {
+      def tryCompare(x: VName, y: VName) = (ordMap.get(x), ordMap.get(y)) match {
+        case (Some(i1), Some(i2)) => Some(i2 compare i1)
+        case _ => None
+      }
+
+      def lteq(x: VName, y: VName) = tryCompare(x,y) match {
+        case Some(c)  => c != 1
+        case None     => false
+      }
+    }
+  }
+
+  def dagCopy: Graph = {
+    // make a copy with no edges
+    val noEdges = copy(
+      edata  = Map[EName,EData](),
+      source = PFun[EName,VName](),
+      target = PFun[EName,VName]()
+    )
+
+    val ord = this.topologicalOrdering
+
+    dft(noEdges) { (graph, e, context) =>
+      val s = source(e)
+      val t = target(e)
+
+      if (s == t) graph // throw away self-loops
+      else {
+        // reverse back-edges to break cycles
+        graph.addEdge(e, edata(e),
+          if (ord.lteq(s,t)) (s,t) else (t,s))
+      }
+    }
+  }
+
+  def simpleCopy: Graph = {
+    var g = copy(
+      edata  = Map[EName,EData](),
+      source = PFun[EName,VName](),
+      target = PFun[EName,VName]()
+    )
+    for (v <- verts; w <- verts) {
+      outEdges(v).find(target(_) == w) match {
+        case Some(e) => g = g.addEdge(e, edata(e), (v,w))
+        case None => ()
+      }
+    }
+
+    g
+  }
 }
 
 object Graph {
+//  val Flavor = new DataFlavor(Graph.getClass, "X-quantoderive/qgraph; class=<quanto.data.Graph>;")
+//  class GraphPacket(graph: Graph, val theory: Theory) extends Transferable {
+//    def getTransferData(f: DataFlavor) = this
+//    def isDataFlavorSupported(f: DataFlavor) = { f == Graph.Flavor }
+//    def getTransferDataFlavors = Array(Graph.Flavor)
+//  }
+
   implicit def qGraphAndNameToQGraph[N <: Name[N]](t: (Graph, Name[N])) : Graph = t._1
 
   def apply(theory: Theory): Graph = Graph(data = GData(theory = theory))
 
+  
   def fromJson(s: String, thy: Theory): Graph =
     try   { fromJson(Json.parse(s), thy) }
     catch { case e:JsonParseException => throw new GraphLoadException("Error parsing JSON", e) }
@@ -45,42 +544,46 @@ object Graph {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): Graph = try {
     Function.chain[Graph](Seq(
 
-      (json ?# "wire_vertices").foldLeft(_) { (g,v) =>
+      (json ? "wire_vertices").asObject.foldLeft(_) { (g,v) =>
         g.addVertex(v._1, WireV.fromJson(v._2, thy))
       },
 
-      (json ?# "node_vertices").foldLeft(_) { (g,v) =>
+      (json ? "node_vertices").asObject.foldLeft(_) { (g,v) =>
         g.addVertex(v._1, NodeV.fromJson(v._2, thy))
       },
 
-      (json ?# "dir_edges").foldLeft(_) { (g,e) =>
+      (json ? "dir_edges").asObject.foldLeft(_) { (g,e) =>
         val data = e._2.getOrElse("data", thy.defaultEdgeData).asObject
-        val annotation = e._2 ?# "annotation"
+        val annotation = (e._2 ? "annotation").asObject
         g.addEdge(e._1, DirEdge(data, annotation, thy),
-          (e._2("src").stringValue, e._2("tgt").stringValue))
+          ((e._2 / "src").stringValue, (e._2 / "tgt").stringValue))
       },
 
-      (json ?# "undir_edges").foldLeft(_) { (g,e) =>
+      (json ? "undir_edges").asObject.foldLeft(_) { (g,e) =>
         val data = e._2.getOrElse("data", thy.defaultEdgeData).asObject
-        val annotation = e._2 ?# "annotation"
-        g.addEdge(e._1, UndirEdge(data, annotation, thy), (e._2("src").stringValue, e._2("tgt").stringValue))
+        val annotation = (e._2 ? "annotation").asObject
+        g.addEdge(e._1, UndirEdge(data, annotation, thy), ((e._2 / "src").stringValue, (e._2 / "tgt").stringValue))
       },
 
-      (json ?# "bang_boxes").foldLeft(_) { (g,bb) =>
-        val data = bb._2 ?# "data"
-        val annotation = bb._2 ?# "annotation"
-        val contains = (bb._2 ?@ "contains") map { VName(_) }
+      (json ? "bang_boxes").asObject.foldLeft(_) { (g,bb) =>
+        val data = (bb._2 ? "data").asObject
+        val annotation = (bb._2 ? "annotation").asObject
+        val contains = (bb._2 ? "contents").vectorValue map { VName(_) }
         val parent = bb._2.get("parent") map { BBName(_) }
         g.addBBox(bb._1, BBData(data, annotation), contains.toSet, parent)
       }
 
     ))({
-      val data = json ?# "data"
-      val annotation = json ?# "annotation"
+      val data = (json ? "data").asObject
+      val annotation = (json ? "annotation").asObject
       Graph(GData(data, annotation, thy))
     })
   } catch {
-    case e: JsonAccessException => throw new GraphLoadException("Error reading JSON", e)
+    case e: JsonAccessException =>
+      throw new GraphLoadException(e.getMessage, e)
+    case e: Exception =>
+      e.printStackTrace()
+      throw new GraphLoadException("Unexpected error reading JSON", e)
   }
 
   def toJson(graph: Graph, thy: Theory = Theory.DefaultTheory): Json = {
@@ -99,10 +602,10 @@ object Graph {
     val bangBoxes = graph.bbdata.foldLeft(JsonObject()) { case (obj, (bb, d)) =>
       obj + (bb.toString ->
         JsonObject(
-          "contains"   -> JsonArray(graph.contents(bb)),
+          "contents"   -> JsonArray(graph.contents(bb)),
           "parent"     -> (graph.bboxParent.get(bb) match {
             case Some(p) => JsonString(p.toString)
-            case None    => JsonNull() }),
+            case None    => JsonNull }),
           "data"       -> d.data,
           "annotation" -> d.annotation
         ).noEmpty)
@@ -124,7 +627,7 @@ object Graph {
     var randomGraph = Graph()
     for (i <- 1 to nverts) {
       val p = (rand.nextDouble * 6.0 - 3.0, rand.nextDouble * 6.0 - 3.0)
-      if (rand.nextBoolean) randomGraph = randomGraph.newVertex(NodeV(p))
+      if (rand.nextBoolean()) randomGraph = randomGraph.newVertex(NodeV(p))
       else randomGraph = randomGraph.newVertex(WireV(p))
     }
 
@@ -132,7 +635,7 @@ object Graph {
       val sources = new ArrayBuffer[VName](randomGraph.vdata.keys.size)
       val targets = new ArrayBuffer[VName](randomGraph.vdata.keys.size)
       randomGraph.vdata.keys.foreach{k => sources += k; targets += k}
-      for(j <- 1 to nedges if (!sources.isEmpty && !targets.isEmpty)) {
+      for(j <- 1 to nedges if !sources.isEmpty && !targets.isEmpty) {
         val (si,ti) = (rand.nextInt(sources.size), rand.nextInt(targets.size))
         val s = sources(si)
         val t = targets(ti)
@@ -145,7 +648,7 @@ object Graph {
       val varray = randomGraph.vdata.keys.toArray
 
       for (i <- 1 to nbboxes) {
-        val randomVSet = (1 to (sqrt(nverts).toInt)).foldLeft(Set[VName]()) { (s,_) =>
+        val randomVSet = (1 to sqrt(nverts).toInt).foldLeft(Set[VName]()) { (s,_) =>
           s + varray(rand.nextInt(varray.size))
         }
 
@@ -172,9 +675,7 @@ object Graph {
         val y = rand.nextInt(varray.size - 1)
         val s = varray(x)
         val t = varray(if (y >= x) y+1 else y)
-        randomGraph = randomGraph.newEdge(DirEdge(),
-          if (s <= t) (s,t) else (t,s)
-        )
+        randomGraph = randomGraph.newEdge(DirEdge(), if (s <= t) (s,t) else (t,s))
       }
 
     randomGraph

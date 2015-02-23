@@ -4,7 +4,7 @@ import org.scalatest._
 import quanto.data._
 import quanto.data.Names._
 import quanto.util.json._
-
+import scala.collection.immutable.TreeSet
 
 
 class GraphSpec extends FlatSpec with GivenWhenThen {
@@ -41,10 +41,10 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 
   it should "get fresh names for newBBox" in {
     g.newBBox(BBData()) match {case (g1,b) => g = g1; bb0 = b}
-    assert(bb0 === BBName("bb0"))
+    assert(bb0 === BBName("bx0"))
 
     g.newBBox(BBData(), Set(v0), Some(bb0)) match {case (g1,b) => g = g1; bb1 = b}
-    assert(bb1 === BBName("bb1"))
+    assert(bb1 === BBName("bx1"))
   }
 
   it should "contain 2 vertices, edges, and bboxes" in {
@@ -63,7 +63,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     }
 
     intercept[DuplicateBBoxNameException] {
-      g.addBBox("bb0", BBData())
+      g.addBBox("bx0", BBData())
     }
   }
 
@@ -87,8 +87,8 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       addEdge   ("e1", UndirEdge(), "v0" -> "v1")
       addEdge   ("e2", DirEdge(), "v1" -> "v2")
       newEdge   (DirEdge(), "v0" -> "v1") // fresh name is returned, but dropped by implicit conversion
-      addBBox   ("bb0", BBData(), Set("v0", "v1"))
-      addBBox   ("bb1", BBData(), Set("v2"), parent = Some("bb0"))
+      addBBox   ("bx0", BBData(), Set("v0", "v1"))
+      addBBox   ("bx1", BBData(), Set("v2"), parent = Some("bx0"))
     )
 
     println(otherG.toString)
@@ -114,9 +114,9 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       |    "e2": {"src": "n0", "tgt": "n1"}
       |  },
       |  "bang_boxes": {
-      |    "bb0": {"contains": ["n0", "n1", "w0"]},
-      |    "bb1": {"contains": ["n0", "n1"], "parent": "bb0"},
-      |    "bb2": {}
+      |    "bx0": {"contents": ["n0", "n1", "w0"]},
+      |    "bx1": {"contents": ["n0", "n1"], "parent": "bx0"},
+      |    "bx2": {}
       |  }
       |}
     """.stripMargin
@@ -128,9 +128,9 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     addEdge("e0", DirEdge(), "w0" -> "w1")
     addEdge("e1", DirEdge(), "w1" -> "w2")
     addEdge("e2", UndirEdge(), "n0" -> "n1")
-    addBBox("bb0", BBData(), Set[VName]("w0", "n0", "n1"))
-    addBBox("bb1", BBData(), Set[VName]("n0", "n1"), parent=Some(BBName("bb0")))
-    addBBox("bb2", BBData())
+    addBBox("bx0", BBData(), Set[VName]("w0", "n0", "n1"))
+    addBBox("bx1", BBData(), Set[VName]("n0", "n1"), parent=Some(BBName("bx0")))
+    addBBox("bx2", BBData())
   )
 
   var jsonGraph: Graph = _
@@ -193,8 +193,8 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       |{
       |  "node_vertices": ["n0", "n1", "n2", "n3", "n4", "n5"],
       |  "dir_edges": {
-      |    "e0": {"src": "n0", "tgt": "n1"},
-      |    "e1": {"tgt": "n2", "src": "n0"},
+      |    "e0": {"src": "n1", "tgt": "n0"},
+      |    "e1": {"src": "n2", "tgt": "n0"},
       |    "e2": {"src": "n1", "tgt": "n2"},
       |    "e3": {"src": "n0", "tgt": "n3"},
       |    "e4": {"src": "n4", "tgt": "n5"}
@@ -211,6 +211,8 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     assert(dag.dagCopy === dag)
   }
 
+
+
   def traverseFrom(graph: Graph, v: VName, seen: Set[VName]) {
     if (seen contains v) fail("directed cycle detected")
     for (e <- graph.outEdges(v)) traverseFrom(graph, graph.target(e), seen + v)
@@ -222,4 +224,27 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 
     for ((v,_) <- graph.vdata) traverseFrom(dag, v, Set[VName]())
   }
+
+  val twobb = (new Graph()
+    addVertex ("v0", NodeV())
+    addBBox   ("bx0", BBData(), Set("v0"))
+    addBBox   ("bx1", BBData(), Set("v0"))
+    )
+
+  "vertex in two bboxes" should "retain bbox membership for fullSubgraph" in {
+    val twobb1 = twobb.fullSubgraph(Set("v0"), Set("bx0", "bx1"))
+    assert(twobb1.inBBox.domf("v0") === Set[BBName]("bx0","bx1"))
+  }
+
+  it should "copy correctly" in {
+    val twobb1 = twobb.fullSubgraph(Set("v0"), Set("bx0", "bx1")).renameAvoiding(twobb)
+    val v1 = twobb1.verts.head
+    val bs = twobb1.bboxes
+    assert(bs.size === 2)
+    assert(twobb1.inBBox.domf(v1) === bs)
+  }
+
+//  it should "support Graph.Flavor clipboard flavor" in {
+//    assert(Graph().isDataFlavorSupported(Graph.Flavor))
+//  }
 }

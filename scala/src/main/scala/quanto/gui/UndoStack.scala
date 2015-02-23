@@ -11,6 +11,7 @@ case class RedoPerformed(name: String) extends UndoEvent
 
 class UndoStackException(msg: String) extends Exception(msg)
 
+
 class UndoStack extends Publisher {
   private var redoMode = false
 
@@ -39,7 +40,7 @@ class UndoStack extends Publisher {
     tempStack = (() => f) :: tempStack
   }
 
-  def commit() {
+  def commit(clearStack: Boolean = true) {
     commitDepth -= 1
 
     if (commitDepth < 0) throw new UndoStackException("no active undo action")
@@ -49,7 +50,9 @@ class UndoStack extends Publisher {
         redoStack = (actionName, tempStack) :: redoStack
       } else {
         undoStack = (actionName, tempStack) :: undoStack
-        redoStack = List[(String, List[()=>Any])]()
+        if (clearStack) {
+          redoStack = List[(String, List[()=>Any])]()
+        }
       }
 
       publish(UndoRegistered(actionName))
@@ -96,7 +99,11 @@ class UndoStack extends Publisher {
   def redo() {
     redoStack match {
       case (n, fs) :: s =>
+
+        this.start(n)
         fs foreach (f => f())
+        this.commit(clearStack=false)
+
         redoStack = s
         publish(RedoPerformed(n))
       case _ =>

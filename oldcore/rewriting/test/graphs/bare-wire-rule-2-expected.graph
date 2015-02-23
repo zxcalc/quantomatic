@@ -1,0 +1,8 @@
+{
+  "node_vertices" : ["Va","Vb","Vc"],
+  "dir_edges" :
+    {
+      "Ea" : { "src" : "Va", "tgt" : "Vb" },
+      "Eb" : { "src" : "Vb", "tgt" : "Vc" }
+    }
+}

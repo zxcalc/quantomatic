@@ -1,7 +1,7 @@
 {
 	"name": "Black/White",
 	"coreName": "ghz_w",
-	"vertexTypePath": "",
+	"vertexTypePath": "type",
 	"vertexTypes": {
 		"GHZ": {
 			"mnemonic": "g",

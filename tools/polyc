@@ -136,8 +136,16 @@ rm -f "$BUILDFILE"
 
 if [[ $POLYEXIT == 0 ]]; then
 	export LD_RUN_PATH="$POLYML_LIB:$LD_RUN_PATH"
-	echo "cc $LDFLAGS \"-L${POLYML_LIB}\" -lpolymain -lpolyml -o \"${PROG}\" \"${PROG}${OBJEXT}\""
-	cc $LDFLAGS "-L${POLYML_LIB}" -lpolymain -lpolyml -o "${PROG}" "${PROG}${OBJEXT}"
+	if [ -x "$POLYML_HOME/bin/polyc" ]; then
+		# polyc knows the correct linker flags better than we do
+		# (eg: whether to include -lgmp or not)
+		echo "$POLYML_HOME/bin/polyc -o \"${PROG}\" \"${PROG}${OBJEXT}\""
+		$POLYML_HOME/bin/polyc -o "${PROG}" "${PROG}${OBJEXT}"
+	else
+		# polyml 5.5 does not have polyc
+		echo "cc $LDFLAGS \"-L${POLYML_LIB}\" -lpolymain -lpolyml -o \"${PROG}\" \"${PROG}${OBJEXT}\""
+		cc $LDFLAGS "-L${POLYML_LIB}" -lpolymain -lpolyml -o "${PROG}" "${PROG}${OBJEXT}"
+	fi
 	CCEXIT=$?
 	rm -f "${PROG}${OBJEXT}"
 	exit $CCEXIT

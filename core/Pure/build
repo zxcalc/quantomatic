@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+#
+# Author: Makarius
+#
+# build - build Isabelle/ML
+#
+# Requires proper Isabelle settings environment.
+
+
+## diagnostics
+
+function usage()
+{
+  echo
+  echo "Usage: $PRG TARGET [OUTPUT]"
+  echo
+  exit 1
+}
+
+function fail()
+{
+  echo "$1" >&2
+  exit 2
+}
+
+[ -z "$ISABELLE_HOME" ] && fail "Missing Isabelle settings environment"
+
+
+## process command line
+
+# args
+
+if [ "$#" -eq 1 ]; then
+  TARGET="$1"; shift
+  OUTPUT=""; shift
+elif [ "$#" -eq 2 ]; then
+  TARGET="$1"; shift
+  OUTPUT="$1"; shift
+else
+  usage
+fi
+
+
+## main
+
+# get compatibility file
+
+ML_SYSTEM_BASE=$(echo "$ML_SYSTEM" | cut -f1 -d-)
+[ -z "$ML_SYSTEM" ] && fail "Missing ML_SYSTEM settings!"
+
+COMPAT=""
+[ -f "ML-Systems/${ML_SYSTEM_BASE}.ML" ] && COMPAT="ML-Systems/${ML_SYSTEM_BASE}.ML"
+[ -f "ML-Systems/${ML_SYSTEM}.ML" ] && COMPAT="ML-Systems/${ML_SYSTEM}.ML"
+[ -z "$COMPAT" ] && fail "Missing compatibility file for ML system \"$ML_SYSTEM\"!"
+
+
+# run isabelle
+
+. "$ISABELLE_HOME/lib/scripts/timestart.bash"
+
+if [ "$TARGET" = RAW ]; then
+  if [ -z "$OUTPUT" ]; then
+    "$ISABELLE_PROCESS" \
+      -e "use\"$COMPAT\" handle _ => Posix.Process.exit 0w1;" \
+      -q RAW_ML_SYSTEM
+  else
+    "$ISABELLE_PROCESS" \
+      -e "use\"$COMPAT\" handle _ => Posix.Process.exit 0w1;" \
+      -e "structure Isar = struct fun main () = () end;" \
+      -e "ml_prompts \"ML> \" \"ML# \";" \
+      -q -w RAW_ML_SYSTEM "$OUTPUT"
+  fi
+else
+  if [ -z "$OUTPUT" ]; then
+    "$ISABELLE_PROCESS" \
+      -e "(use\"$COMPAT\"; use\"ROOT.ML\") handle _ => Posix.Process.exit 0w1;" \
+      -q RAW_ML_SYSTEM
+  else
+    "$ISABELLE_PROCESS" \
+      -e "(use\"$COMPAT\"; use\"ROOT.ML\") handle _ => Posix.Process.exit 0w1;" \
+      -e "ml_prompts \"ML> \" \"ML# \";" \
+      -e "Command_Line.tool0 Session.finish;" \
+      -e "Options.reset_default ();" \
+      -q -w RAW_ML_SYSTEM "$OUTPUT"
+  fi
+fi
+
+RC="$?"
+
+. "$ISABELLE_HOME/lib/scripts/timestop.bash"
+
+if [ "$RC" -eq 0 ]; then
+  echo "Finished $TARGET ($TIMES_REPORT)" >&2
+fi
+
+exit "$RC"

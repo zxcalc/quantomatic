@@ -1,0 +1,1 @@
+{"wire_vertices":{"Va":{}},"node_vertices":{"Vb":{"data":{"value":"blah.foo.","label":"blah.foo.","type":"string"}},"Vc":{"data":{"value":"blah.bar.","label":"blah.bar.","type":"string"}}},"undir_edges":{"Ec":{"src":"Vc","tgt":"Vc"}},"dir_edges":{"Ea":{"src":"Va","tgt":"Vb"},"Eb":{"src":"Vb","tgt":"Vc"}}}

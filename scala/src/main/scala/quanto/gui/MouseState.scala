@@ -48,6 +48,9 @@ case class DragVertex(start: Point, end: Point) extends MouseState
 /** The AddVertex tool has been selected from the main toolbar */
 case class AddVertexTool() extends MouseState
 
+/** The AddBoundary tool has been selected from the main toolbar */
+case class AddBoundaryTool() extends MouseState
+
 /** The Add Edge tool has been selected from the main toolbar */
 case class AddEdgeTool() extends MouseState
 
@@ -56,3 +59,6 @@ case class DragEdge(startVertex: VName) extends MouseState
 
 /** The Add BangBox tool has been selected from the main toolbar */
 case class AddBangBoxTool() extends MouseState
+
+/** A nesting edge is being dragged from the bang box corner */
+case class DragBangBoxNesting(startBBox: BBName) extends MouseState

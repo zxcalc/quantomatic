@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>true</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>jars\quanto_2.10-1.0.jar</jar>
+  <outfile>C:\Users\aleks\Desktop\QuantoDerive\QuantoDerive.exe</outfile>
+  <errTitle></errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>http://java.com/download</downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <manifest></manifest>
+  <icon>C:\Users\aleks\git\quanto\quantomatic\docs\graphics\quantoderive.ico</icon>
+  <classPath>
+    <mainClass>quanto.gui.QuantoDerive</mainClass>
+    <cp>jars/scala-swing-2.10.4.jar</cp>
+    <cp>jars/akka-actor_2.10-2.1.1.jar</cp>
+    <cp>jars/config-1.0.0.jar</cp>
+    <cp>jars/jackson-core-2.1.2.jar</cp>
+    <cp>jars/jedit-textArea.jar</cp>
+    <cp>jars/jsr305.jar</cp>
+    <cp>jars/scala-library-2.10.4.jar</cp>
+  </classPath>
+  <jre>
+    <path></path>
+    <bundledJre64Bit>false</bundledJre64Bit>
+    <minVersion>1.6.0</minVersion>
+    <maxVersion></maxVersion>
+    <jdkPreference>preferJre</jdkPreference>
+    <runtimeBits>64/32</runtimeBits>
+    <initialHeapSize>384</initialHeapSize>
+    <maxHeapSize>1024</maxHeapSize>
+  </jre>
+</launch4jConfig>

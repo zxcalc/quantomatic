@@ -1,3 +1,7 @@
+(* Data input for red-green graphs. The input strives to be as backward-compatible
+ * as possible, while output always outputs the newest format. As a consequence,
+ * the old Quantomatic GUI will no longer talk to the core. *)
+
 structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
 = struct
   type nvdata = RG_Data.nvdata
@@ -10,7 +14,14 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
     type data = nvdata
     fun get_angle obj =
       case Json.lookup obj "value"
-        of SOME v => L.input v
+           (* new RG-graphs just store angle as a string, to be parsed *)
+        of SOME (Json.String s) => 
+             (LinratAngleExpr.parse s
+               handle LinratAngleExpr.parse_exp =>
+                 raise bad_input_exp ("Could not parse \""^s^"\"",""))
+           (* older RG-graphs use a (redundant) JSON representation of angle data *)
+         | SOME (v as Json.Object _) => L.input v
+           (* really old (pre-Derive) graphs call this field 'angle' *)
          | NONE => L.input (get_easy Json.Null obj "angle")
     val to_lower = String.implode o (map Char.toLower) o String.explode
     fun input (Json.String t) =
@@ -19,6 +30,7 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
               | "h" => RG_Data.Hnd
               | "x" => RG_Data.Xnd LinratAngleExpr.zero
               | "z" => RG_Data.Znd LinratAngleExpr.zero
+              | "var" => RG_Data.Var ""
               | _   => raise bad_input_exp ("Unknown vertex type "^t,""))
       | input (Json.Object obj) =
           (case to_lower (get_string obj "type")
@@ -26,6 +38,9 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
               | "h" => RG_Data.Hnd
               | "z" => RG_Data.Znd (get_angle obj)
               | "x" => RG_Data.Xnd (get_angle obj)
+              | "var" => RG_Data.Var (case Json.lookup obj "value"
+                                        of SOME (Json.String s) => s
+                                         | NONE => "")
               | t   => raise bad_input_exp ("Unknown vertex type "^t,"type"))
       | input _ = raise bad_input_exp ("Expected object","")
   end
@@ -34,22 +49,26 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
     open JsonOutputUtils
     structure L = OutputLinratJSON
     type data = nvdata
-    val angle_to_jstring = Json.String o Pretty.string_of o LinratAngleExpr.pretty
+    fun angle_to_jstring a = Json.String
+      (case Pretty.string_of (LinratAngleExpr.pretty a) of "0" => "" | s => s)
     fun output (RG_Data.Znd a) =
           Json.Object (
             Json.empty_obj |> update ("type",Json.String "Z")
-                           |> update ("label",angle_to_jstring a)
-                           |> update ("value",L.output a)
+                           |> update ("value",angle_to_jstring a)
           )
       | output (RG_Data.Xnd a) =
           Json.Object (
             Json.empty_obj |> update ("type",Json.String "X")
-                           |> update ("label",angle_to_jstring a)
-                           |> update ("value",L.output a)
+                           |> update ("value",angle_to_jstring a)
           )
       | output RG_Data.Hnd =
           Json.Object (
             Json.empty_obj |> update ("type",Json.String "hadamard")
+          )
+      | output (RG_Data.Var s) =
+          Json.Object (
+            Json.empty_obj |> update ("type", Json.String "var")
+                           |> update ("value", Json.String s)
           )
   end
   structure EDataInputJSON = InputUnitJSON
@@ -62,14 +81,11 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
           "[style=filled,fillcolor=green,fontcolor=black,shape=circle]"
       | style_for_ivertex_data (RG_Data.Xnd _) =
           "[style=filled,fillcolor=red,fontcolor=white,shape=circle]"
+      | style_for_ivertex_data (RG_Data.Var _) =
+          "[style=filled,fillcolor=white,fontcolor=black,shape=circle]"
       | style_for_ivertex_data RG_Data.Hnd =
           "[style=filled,fillcolor=yellow,fontcolor=white,shape=square]"
   end
 end
 
-(* Use this for convenience if you don't need annotations *)
-structure RG_GraphicalTheoryIO = GraphicalTheoryIO(
-  structure Theory = RG_Theory
-  structure GraphComponentDataIO = RG_ComponentDataIO
-)
 

@@ -5,6 +5,7 @@ import java.awt.{FontMetrics, Color, Shape}
 import math._
 import quanto.data._
 import quanto.gui._
+import quanto.core.data.TexConstants
 
 case class VDisplay(shape: Shape, color: Color, label: Option[LabelDisplayData]) {
   def pointHit(pt: Point2D) = shape.contains(pt)
@@ -21,7 +22,10 @@ trait VertexDisplayData { self: GraphView =>
     val c = graph.vdata(vn).coord
 
     vertexDisplay(vn).shape match {
-      case _: Ellipse2D => (c._1 + GraphView.NodeRadius * cos(angle), c._2 + GraphView.NodeRadius * sin(angle))
+      case e: Ellipse2D =>
+        val radius = trans.scaleFromScreen(e.getWidth) / 2.0
+        (c._1 + radius * cos(angle),
+         c._2 + radius * sin(angle))
       case r: Rectangle2D =>
         val chopX = (trans scaleFromScreen r.getWidth) / 2 + 0.01
         val chopY = (trans scaleFromScreen r.getHeight) / 2 + 0.01
@@ -48,7 +52,11 @@ trait VertexDisplayData { self: GraphView =>
       vertexDisplay(v) = data match {
         case vertexData : NodeV =>
           val style = vertexData.typeInfo.style
-          val text = vertexData.label
+          val text = if(zoom < GraphView.zoomCutOut &&
+                     vertexData.value.stringValue != "")
+                       "~"
+                     else
+                       TexConstants.translate(vertexData.value.stringValue)
             /*vertexData.typeInfo.value.typ match {
             case Theory.ValueType.String => vertexData.value
             case _ => ""
@@ -60,16 +68,20 @@ trait VertexDisplayData { self: GraphView =>
             vertexData.typeInfo.style.labelForegroundColor,
             vertexData.typeInfo.style.labelBackgroundColor)
 
+
           val shape = style.shape match {
             case Theory.VertexShape.Rectangle =>
+
               new Rectangle2D.Double(
                 labelDisplay.bounds.getMinX - 5.0, labelDisplay.bounds.getMinY - 3.0,
                 labelDisplay.bounds.getWidth + 10.0, labelDisplay.bounds.getHeight + 6.0)
             case Theory.VertexShape.Circle =>
-              // TODO: fix ellipse case
+              val r = max((labelDisplay.bounds.getWidth / 2.0) + 3.0, trans.scaleToScreen(0.25))
+
               new Ellipse2D.Double(
-                labelDisplay.bounds.getMinX - 3.0, labelDisplay.bounds.getMinY - 3.0,
-                labelDisplay.bounds.getWidth + 6.0, labelDisplay.bounds.getHeight + 6.0)
+                labelDisplay.bounds.getCenterX - r,
+                labelDisplay.bounds.getCenterY -r,
+                2.0 * r, 2.0 * r)
             case _ => throw new Exception("Shape not supported yet")
           }
 
@@ -104,7 +116,12 @@ trait VertexDisplayData { self: GraphView =>
       }
     }
     
-    new Rectangle2D.Double(ulx, uly, lrx - ulx, lry - uly)
+    val bounds = new Rectangle2D.Double(ulx, uly, lrx - ulx, lry - uly)
+    val em = trans.scaleToScreen(0.1)
+    val p = (bounds.getX - 3*em, bounds.getY - 3*em)
+    val q = (bounds.getWidth + 6*em, bounds.getHeight + 6*em)
+
+    new Rectangle2D.Double(p._1, p._2, q._1, q._2)
   }
 
   def invalidateAllVerts() { vertexDisplay.clear() }

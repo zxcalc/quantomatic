@@ -26,6 +26,7 @@ abstract class VData extends GraphElementData {
   def withCoord(c: (Double,Double)): VData
 
   def isWireVertex: Boolean
+  def isBoundary : Boolean
 }
 
 /**
@@ -45,7 +46,7 @@ object VData {
 }
 
 /**
- * A class which represents node vertex data. 
+ * A class which represents node vertex data.
  * 
  * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/VData.scala Source code]]
  * @see [[https://github.com/Quantomatic/quantomatic/blob/integration/docs/json_formats.txt json_formats.txt]]
@@ -56,25 +57,36 @@ case class NodeV(
   theory: Theory = Theory.DefaultTheory) extends VData
 {
   /** Type of the vertex */
-  def typ = (data / "type").stringValue
+  val typ = (data / "type").stringValue
 
-  def label = data.getOrElse("label","").stringValue
-  def value = data ? "value"
+//  def label = data.getOrElse("label","").stringValue
   def typeInfo = theory.vertexTypes(typ)
+
+  // support input of old-style graphs, where data may be stored at value/pretty
+  val value: Json = data ? "value" match {
+    case str : JsonString => str
+    case obj : JsonObject => obj.getOrElse("pretty", JsonString(""))
+    case _ => JsonString("")
+  }
 
   def withCoord(c: (Double,Double)) =
     copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
   
   /** Create a copy of the current vertex with the new value */
   def withValue(s: String) =
-    copy(data = data.setPath("$.value", s).setPath("$.label", s).asObject)
+    copy(data = data.setPath("$.value", s).asObject)
 
   def isWireVertex = false
+  def isBoundary = false
 
-  override def toJson = JsonObject(
-    "data" -> (if (data == theory.vertexTypes(typ).defaultData) JsonNull() else data),
-    "annotation" -> annotation).noEmpty
-}
+  override def toJson =
+    if (data == theory.defaultVertexData)
+      JsonObject("annotation" -> annotation).noEmpty
+    else
+      JsonObject(
+        "data" -> data,
+        "annotation" -> annotation).noEmpty
+ }
 
 /**
  * Companion object for the NodeV class. Contains methods to convert to/from 
@@ -89,20 +101,15 @@ object NodeV {
   def apply(coord: (Double,Double)): NodeV = NodeV(annotation = JsonObject("coord" -> JsonArray(coord._1,coord._2)))
 
   def toJson(d: NodeV, theory: Theory) = JsonObject(
-    "data" -> (if (d.data == theory.vertexTypes(d.typ).defaultData) JsonNull() else d.data),
+    "data" -> (if (d.data == theory.vertexTypes(d.typ).defaultData) JsonNull else d.data),
     "annotation" -> d.annotation).noEmpty
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): NodeV = {
     val data = json.getOrElse("data", thy.defaultVertexData).asObject
-    val annotation = json ?# "annotation"
+    val annotation = (json ? "annotation").asObject
 
     val n = NodeV(data, annotation, thy)
-
-    // if any of these throw an exception, they should do it here
-    n.coord
-    n.value
-    n.label
-    val typ = n.typ
-    if (!thy.vertexTypes.keySet.contains(typ)) throw new GraphLoadException("Unrecognized vertex type: " + typ)
+    n.coord // make sure coord is accessible
+    if (!thy.vertexTypes.keySet.contains(n.typ)) throw new GraphLoadException("Unrecognized vertex type: " + n.typ)
 
     n
   }
@@ -120,8 +127,9 @@ case class WireV(
   theory: Theory = Theory.DefaultTheory) extends VData
 {
   def isWireVertex = true
+  def isBoundary = annotation.get("boundary") match { case Some(JsonBool(b)) => b; case _ => false }
   def withCoord(c: (Double,Double)) =
-    copy(annotation = (annotation + ("coord" -> JsonArray(c._1, c._2))))
+    copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
 }
 
 /**
@@ -138,5 +146,5 @@ object WireV {
   def toJson(d: NodeV, theory: Theory) = JsonObject(
     "data" -> d.data, "annotation" -> d.annotation).noEmpty
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): WireV =
-    WireV(json ?# "data", json ?# "annotation", thy)
+    WireV((json ? "data").asObject, (json ? "annotation").asObject, thy)
 }

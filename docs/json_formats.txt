@@ -171,8 +171,27 @@ VALUE_DESC ::=
 
 
 
+========================
+DERIVATIONS
+========================
 
+File extension: .qderive
 
+A derivation is a named collection of rewrite steps. It is essentially a linked list of graphs, starting with "head", that has some additional metadata.
 
+DERIVATION ::=
+{
+  "head": GRAPH,
+  "steps": { STEP_NAME: STEP (, STEP_NAME: STEP)* }
+}
+
+STEP ::=
+{
+  "parent": STEP_NAME,
+  "rule": "relative/path/to/rule.qrule",
+  "matched": { "vertices": VERTEX_NAMESET },
+  "replaced": { "vertices": VERTEX_NAMESET },
+  "graph": GRAPH
+}
 
 

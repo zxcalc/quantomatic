@@ -47,7 +47,7 @@ trait EdgeDisplayData { self: GraphView with VertexDisplayData =>
             val arcEnd = atan2(tp._2 - arcCenter._2, tp._1 - arcCenter._1)
 
             val trCenter = trans toScreen arcCenter
-            val trRad = trans scaleToScreen (curveRadius)
+            val trRad = trans.scaleToScreen(curveRadius)
             val rect = new Rectangle2D.Double(trCenter._1 - trRad, trCenter._2 - trRad, 2.0 * trRad, 2.0 * trRad)
 
             val arc = new Arc2D.Double(rect, toDegrees(arcStart),
