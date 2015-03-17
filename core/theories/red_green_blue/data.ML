@@ -22,6 +22,7 @@ struct
     | default_nvdata_of_typestring s = raise unknown_typestring_exp s
   
   open EmptyEdgeData
+  open NoXNames
   
   fun init_psubst_from_data _ _ = ()
   val solve_psubst = Seq.single

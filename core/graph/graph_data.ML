@@ -47,6 +47,12 @@ sig
   (* Apply substitutions to data. *)
   val subst_in_nvdata : subst -> nvdata -> subst * nvdata
   val subst_in_edata : subst -> edata -> subst * edata
+
+  (* xnames on nodes and edges *)
+  val xnames_in_nvdata : nvdata -> X.NSet.T
+  val xnames_in_edata : edata -> X.NSet.T
+  val rename_in_nvdata : XSub.T -> nvdata -> nvdata
+  val rename_in_edata : XSub.T -> edata -> edata
 end
 
 (* Convenience structure for defining GRAPH_DATA with empty edge data *)
@@ -59,4 +65,14 @@ struct
   fun subst_in_edata sub () = (sub, ())
   fun pretty_edata () = Pretty.str "()"
   fun default_edata_of_typestring _ = ()
+  fun xnames_in_edata _ = X.NSet.empty
+  fun rename_in_edata _ _ = ()
+end
+
+structure NoXNames =
+struct
+  fun xnames_in_nvdata _ = X.NSet.empty
+  fun rename_in_nvdata _ d = d
+  fun xnames_in_edata _ = X.NSet.empty
+  fun rename_in_edata _ d = d
 end

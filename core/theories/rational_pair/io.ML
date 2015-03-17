@@ -19,6 +19,7 @@ structure RP_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
                handle LinratExpr.parse_exp =>
                  raise bad_input_exp ("Could not parse \""^s^"\"",""))
          | NONE => LinratExpr.zero
+         | _ => raise bad_input_exp ("Expected string for 'value'","")
     val to_lower = String.implode o (map Char.toLower) o String.explode
     fun input (Json.String t) =
           (case to_lower t

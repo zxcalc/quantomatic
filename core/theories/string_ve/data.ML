@@ -21,4 +21,6 @@ struct
 
   val pretty_nvdata = Pretty.str
   val pretty_edata = Pretty.str
+
+  open NoXNames
 end

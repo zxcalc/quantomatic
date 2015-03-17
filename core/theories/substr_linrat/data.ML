@@ -25,6 +25,7 @@ struct
     in (sub', (s,a')) end
 
   open EmptyEdgeData
+  open NoXNames
 
   local
     fun pull_names (nvtab,_) = X.NSet.empty

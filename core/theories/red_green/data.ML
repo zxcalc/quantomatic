@@ -45,6 +45,12 @@ struct
         let val (sub',a') = LinratAngleMatcher.subst_in_expr u a
         in (sub', Znd a') end
 
+  fun xnames_in_nvdata (Znd a) = LinratAngleExpr.free_vars a
+    | xnames_in_nvdata (Xnd a) = LinratAngleExpr.free_vars a
+    | xnames_in_nvdata _ = X.NSet.empty
+
+  fun rename_in_nvdata _ d = d
+
   open EmptyEdgeData
 
   local

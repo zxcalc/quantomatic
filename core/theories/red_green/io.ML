@@ -23,6 +23,7 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
          | SOME (v as Json.Object _) => L.input v
            (* really old (pre-Derive) graphs call this field 'angle' *)
          | NONE => L.input (get_easy Json.Null obj "angle")
+         | _ => raise bad_input_exp ("Expected string or object for 'value' of red or green node","")
     val to_lower = String.implode o (map Char.toLower) o String.explode
     fun input (Json.String t) =
           (case to_lower t
@@ -40,7 +41,8 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
               | "x" => RG_Data.Xnd (get_angle obj)
               | "var" => RG_Data.Var (case Json.lookup obj "value"
                                         of SOME (Json.String s) => s
-                                         | NONE => "")
+                                         | NONE => ""
+                                         | _ => raise bad_input_exp ("Expected string for 'value' of variable",""))
               | t   => raise bad_input_exp ("Unknown vertex type "^t,"type"))
       | input _ = raise bad_input_exp ("Expected object","")
   end

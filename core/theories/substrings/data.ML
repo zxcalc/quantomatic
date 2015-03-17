@@ -21,6 +21,7 @@ struct
   fun subst_in_nvdata sub d = (sub, d)
 
   open EmptyEdgeData
+  open NoXNames
 
   fun init_psubst_from_data _ _ = ()
   val solve_psubst = Seq.single

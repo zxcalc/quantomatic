@@ -48,6 +48,8 @@ struct
 
   fun subst_in_edata sub d = (sub, d)
 
+  open NoXNames
+
   fun init_psubst_from_data _ _ = ()
   val solve_psubst = Seq.single
 end

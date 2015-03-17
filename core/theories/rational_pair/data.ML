@@ -34,13 +34,13 @@ struct
         in (sub', Wnd a') end
 
   open EmptyEdgeData
+  open NoXNames
 
   local
     fun pull_names (nvtab,_) = X.NSet.empty
       |> VTab.fold (
            fn (_,Bnd a) => X.NSet.union_merge (LinratExpr.free_vars a)
             | (_,Wnd a) => X.NSet.union_merge (LinratExpr.free_vars a)
-            | _ => I
          ) nvtab
   in
     fun init_psubst_from_data p_data t_data =
