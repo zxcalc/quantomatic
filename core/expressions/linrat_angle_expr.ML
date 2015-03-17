@@ -22,6 +22,8 @@ signature LINRAT_ANGLE_EXPR
   val add_expr : T -> T -> T
   val scale_expr : Coeff.T -> T -> T
 
+  val rename_expr : XSub.T -> T -> T
+
   (* For SOME x, return the coefficient for x. For NONE, return the constant
    * term. *)
   val coeff_for_var : T -> X.name option -> Coeff.T
@@ -137,6 +139,10 @@ struct
   (* arithmetic subtraction for expressions ========================*)
   fun subtr_expr e1 e2 =
       add_expr e1 (scale_expr (Coeff.mk (~1, 1)) e2)
+
+  (* renaming free variables *)
+
+  fun rename_expr rn (p,t) = (p, XTab.compose (t, XSub.inverse_of rn))
 
 
   (* =====================================================================*)

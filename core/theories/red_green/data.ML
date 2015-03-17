@@ -49,7 +49,9 @@ struct
     | xnames_in_nvdata (Xnd a) = LinratAngleExpr.free_vars a
     | xnames_in_nvdata _ = X.NSet.empty
 
-  fun rename_in_nvdata _ d = d
+  fun rename_in_nvdata rn (Znd a) = Znd (LinratAngleExpr.rename_expr rn a)
+    | rename_in_nvdata rn (Xnd a) = Znd (LinratAngleExpr.rename_expr rn a)
+    | rename_in_nvdata _ d = d
 
   open EmptyEdgeData
 
