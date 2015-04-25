@@ -29,6 +29,10 @@ sig
 
   (* raises assertion_failed_exp with the string arg if the bool arg is false *)
   val assert : string -> bool -> unit;
+
+  (* same, but raises exp if i1 <> i2, more informative output *)
+  val assert_int_eq : string -> int -> int -> unit;
+
   (* raises assertion_failed_exp with the string arg if the function returns false *)
   val fassert : string -> ('a -> bool) -> 'a -> unit;
 
@@ -110,6 +114,13 @@ fun assert msg true = Log.log 3 ("  - " ^ msg ^ " [OK]")
   | assert msg false = (Log.log 2 ("  - " ^ msg ^ " [FAILED]");
       raise assertion_failed_exp ("Assertion '" ^ msg ^ "' failed"))
 fun fassert msg f x = assert msg (f x)
+
+fun assert_int_eq msg expected_i got_i =
+  if expected_i = got_i
+  then Log.log 3 ("  - " ^ msg ^ " [OK]")
+  else (Log.log 2 ("  - " ^ msg ^ " [FAILED]");
+        raise assertion_failed_exp ("Assertion '" ^ msg ^
+          "' failed (expected " ^ Int.toString expected_i ^ " got " ^ Int.toString got_i ^ ")"))
     
 end;
 

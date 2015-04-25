@@ -2210,10 +2210,10 @@ functor Bang_Graph_Interface_Tests(
         |> add_dir_eunit1 "e1" "v1" "v2"
         |> add_bbox "b1" ["v1","v2"]
     val g' = G.minimise g
-    val _ = Testing.assert "minimise 1: correct no. verts"
-            (V.NSet.cardinality (G.get_vertices g') = 2)
-    val _ = Testing.assert "minimise 1: b1 correct size"
-            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 2)
+    val _ = Testing.assert_int_eq "minimise 1: correct no. verts"
+            3 (V.NSet.cardinality (G.get_vertices g'))
+    val _ = Testing.assert_int_eq "minimise 1: b1 correct size"
+            3 (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")))
 
     val g = G.empty
         |> add_vunit1 "v1"
@@ -2223,10 +2223,10 @@ functor Bang_Graph_Interface_Tests(
         |> add_dir_eunit1 "e2" "w1" "v2"
         |> add_bbox "b1" ["v1","w1","v2"]
     val g' = G.minimise g
-    val _ = Testing.assert "minimise 1: correct no. verts"
-            (V.NSet.cardinality (G.get_vertices g') = 2)
-    val _ = Testing.assert "minimise 1: b1 correct size"
-            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 2)
+    val _ = Testing.assert_int_eq "minimise 2: correct no. verts"
+            3 (V.NSet.cardinality (G.get_vertices g'))
+    val _ = Testing.assert_int_eq "minimise 2: b1 correct size"
+            3 (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")))
 
     val g = G.empty
         |> add_vunit1 "v1"
@@ -2236,10 +2236,10 @@ functor Bang_Graph_Interface_Tests(
         |> add_dir_eunit1 "e2" "w1" "v2"
         |> add_bbox "b1" ["v1","w1"]
     val g' = G.minimise g
-    val _ = Testing.assert "minimise 1: correct no. verts"
-            (V.NSet.cardinality (G.get_vertices g') = 2)
-    val _ = Testing.assert "minimise 1: b1 correct size"
-            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 1)
+    val _ = Testing.assert_int_eq "minimise 3: correct no. verts"
+            3 (V.NSet.cardinality (G.get_vertices g'))
+    val _ = Testing.assert_int_eq "minimise 3: b1 correct size"
+            2 (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")))
 
     val g = G.empty
         |> add_vunit1 "v1"
@@ -2249,10 +2249,10 @@ functor Bang_Graph_Interface_Tests(
         |> add_dir_eunit1 "e2" "w1" "v2"
         |> add_bbox "b1" ["w1"]
     val g' = G.minimise g
-    val _ = Testing.assert "minimise 1: correct no. verts"
-            (V.NSet.cardinality (G.get_vertices g') = 3)
-    val _ = Testing.assert "minimise 1: b1 correct size"
-            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 1)
+    val _ = Testing.assert_int_eq "minimise 4: correct no. verts"
+            3 (V.NSet.cardinality (G.get_vertices g'))
+    val _ = Testing.assert_int_eq "minimise 4: b1 correct size"
+            1 (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")))
 
     val g = G.empty
         |> add_vunit1 "v1"
@@ -2262,10 +2262,10 @@ functor Bang_Graph_Interface_Tests(
         |> add_dir_eunit1 "e2" "w1" "w2"
         |> add_bbox "b1" ["w1","w2"]
     val g' = G.minimise g
-    val _ = Testing.assert "minimise 1: correct no. verts"
-            (V.NSet.cardinality (G.get_vertices g') = 2)
-    val _ = Testing.assert "minimise 1: b1 correct size"
-            (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")) = 1)
+    val _ = Testing.assert_int_eq "minimise 5: correct no. verts"
+            2 (V.NSet.cardinality (G.get_vertices g'))
+    val _ = Testing.assert_int_eq "minimise 5: b1 correct size"
+            1 (V.NSet.cardinality (G.get_vertices_in_bbox g' (B.mk "b1")))
     in () end) ()
   (* TODO: tests for !-box openness preservation:
    * merge_by_vertices
