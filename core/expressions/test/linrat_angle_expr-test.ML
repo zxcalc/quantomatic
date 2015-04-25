@@ -66,6 +66,7 @@ local
   fun test_parse_fail str =
     Testing.test ("Parse (fail) "^str) parse_fail str
 in
+  val _ = 1
   val _ = test_reparse zero
   val _ = test_parse "0" zero
   val _ = test_parse "" zero

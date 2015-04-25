@@ -23,7 +23,7 @@ sig
   (* Should we run tests? *)
   val run_tests_ref : bool Unsynchronized.ref;
   (* if (!run_tests_ref) then loads the file. *)
-  (*val make_test : string -> unit;*)
+  val make_test : string -> unit;
 
   exception assertion_failed_exp of string;
 
@@ -95,8 +95,15 @@ fun assert_no_failed_tests () =
 (* *)
 val run_tests_ref = Unsynchronized.ref true;
 
-(*fun make_test path_to_file =
-    if !run_tests_ref then PolyML.Project.make path_to_file else ();*)
+fun use_with_path path_to_file =
+  let
+    val {dir, file} = OS.Path.splitDirFile path_to_file
+    val old_dir = OS.FileSys.getDir()
+  in (OS.FileSys.chDir dir; use file; OS.FileSys.chDir old_dir)
+  end
+
+fun make_test path_to_file =
+    if !run_tests_ref then use_with_path path_to_file else ();
 
 exception assertion_failed_exp of string;
 fun assert msg true = Log.log 3 ("  - " ^ msg ^ " [OK]")
