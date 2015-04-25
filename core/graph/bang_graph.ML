@@ -1087,15 +1087,16 @@ fun wire_needs_wvs g (s,t,wvs,_) =
             B.NSet.exists bbox_only_here bbs
           end
 
-fun is_wire_minimal g (wire as (_,_,wvs,_)) =
-  V.NSet.is_empty wvs orelse
-  (V.NSet.is_singleton wvs andalso wire_needs_wvs g wire)
+fun is_wire_minimal _ (_,_,wvs,_) = V.NSet.is_singleton wvs
+  (*V.NSet.is_empty wvs orelse
+  (V.NSet.is_singleton wvs andalso wire_needs_wvs g wire)*)
+
 
 fun minimise_wire' (wire as (s,t,wvs,es)) g = let
   val dir_and_data = get_edge_dir_and_data g ((the o E.NSet.get_local_bot) es)
 in
-  if wire_needs_wvs g wire
-  then
+  (*if wire_needs_wvs g wire
+  then*)
     let
       val any_wv = the (V.NSet.get_local_bot wvs)
       val bbs    = get_bboxes_containing_vertex g any_wv
@@ -1105,12 +1106,12 @@ in
       val (e1,g) = g |> add_edge' dir_and_data s wv
       val (e2,g) = g |> add_edge' dir_and_data wv t
     in ((s,t,V.NSet.single wv,E.NSet.of_list [e1,e2]), g) end
-  else
+  (*else
     let val (e,g') = g |> delete_wire wire
                        |> add_edge' dir_and_data s t
-    in ((s,t,V.NSet.empty,E.NSet.single e), g') end
+    in ((s,t,V.NSet.empty,E.NSet.single e), g') end*)
 end
-fun minimise_wire (wire as (_,_,wvs,_)) g = let
+fun minimise_wire wire g = let
   val _ = assert_wire_coherent g wire
 in
   if is_wire_minimal g wire then (wire,g)
