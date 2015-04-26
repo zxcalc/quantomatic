@@ -3,7 +3,8 @@ imports quanto
 begin
 
 ML {*
-V.NSet.cardinality
+signature S = GRAPHICAL_THEORY
+structure F = RG_Theory
 *}
 
 end
