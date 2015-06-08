@@ -97,16 +97,19 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
     }
   }
 
+  def clearSelectedRewrite() {
+    panel.ManualRewritePane.PreviousResultButton.enabled = false
+    panel.ManualRewritePane.NextResultButton.enabled = false
+    panel.ManualRewritePane.ApplyButton.enabled = false
+    panel.ManualRewritePane.Rewrites.selection.indices.clear()
+  }
 
   def refreshRewriteDisplay(clearSelection: Boolean = false) {
     Swing.onEDT {
       resultLock.acquire()
 
       if (clearSelection) {
-        panel.ManualRewritePane.PreviousResultButton.enabled = false
-        panel.ManualRewritePane.NextResultButton.enabled = false
-        panel.ManualRewritePane.ApplyButton.enabled = false
-        panel.ManualRewritePane.Rewrites.selection.indices.clear()
+        clearSelectedRewrite()
         panel.ManualRewritePane.Rewrites.listData = resultSet.resultLines
       } else {
         val sel = panel.ManualRewritePane.Rewrites.selection.items.seq.map(res => res.rule).toSet

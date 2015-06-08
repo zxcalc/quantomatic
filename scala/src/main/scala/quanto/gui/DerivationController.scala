@@ -32,6 +32,7 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
   def state_=(s: DeriveState) {
     if (_state != s) {
       val oldState = _state
+      panel.rewriteController.clearSelectedRewrite()
       panel.document.undoStack.register("Change proof step") { state = oldState }
     }
 
