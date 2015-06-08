@@ -22,6 +22,7 @@ class CyclicBBoxParentException(bb: BBName, bbp: BBName) extends
 Exception("Adding parent " + bbp + " to bbox " + bb + " introduces cycle.")
 
 case class GraphSearchContext(exploredV: Set[VName], exploredE: Set[EName])
+case class Wire(edges : Set[EName], src : VName, tgt : VName)
 
 class GraphLoadException(message: String, cause: Throwable = null)
 extends Exception(message, cause)
@@ -519,6 +520,40 @@ case class Graph(
 
     g
   }
+
+  def isLogicalVert(v: VName) : Boolean = !(vdata(v).isWireVertex && adjacentEdges(v).size == 2)
+  def logicalVerts : Set[VName] = verts.filter(isLogicalVert)
+
+  private def growWire(wire: Wire): Wire = {
+    if (wire.src == wire.tgt) {
+      wire
+    } else if (!isLogicalVert(wire.src)) { // grow src
+      val es = adjacentEdges(wire.src).toIndexedSeq
+      val otherEdge = if (wire.edges.contains(es(0))) es(1) else es(0)
+      val otherVert = if (source(otherEdge) == wire.src) target(otherEdge) else source(otherEdge)
+      growWire(Wire(wire.edges + otherEdge, otherVert, wire.tgt))
+    } else if (!isLogicalVert(wire.tgt)) { // grow tgt
+    val es = adjacentEdges(wire.src).toIndexedSeq
+      val otherEdge = if (wire.edges.contains(es(0))) es(1) else es(0)
+      val otherVert = if (source(otherEdge) == wire.src) target(otherEdge) else source(otherEdge)
+      growWire(Wire(wire.edges + otherEdge, wire.src, otherVert))
+    } else {
+      wire
+    }
+  }
+
+  def wireContainingEdge(e: EName) = growWire(Wire(Set(e), source(e), target(e)))
+
+  private def wiresForEdges(es : Set[EName]) : Set[Wire] =
+    es.headOption match {
+      case Some(e) =>
+        val w = wireContainingEdge(e)
+        wiresForEdges(es.diff(w.edges)) + w
+      case None => Set()
+    }
+
+  val wires : Set[Wire] = { wiresForEdges(edges) }
+
 }
 
 object Graph {
