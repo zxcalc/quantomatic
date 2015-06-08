@@ -19,7 +19,10 @@ fun num_boundary_red g = let
 in V.NSet.cardinality (V.NSet.filter (is_boundary_red gmin) (RG_Theory.Graph.get_vertices gmin))
 end
 
-fun is_interior_green g v = (is_green g v) andalso V.NSet.forall (is_red g) (RG_Theory.Graph.get_adj_vertices g v)
+fun is_interior_green g v =
+  (is_green g v) andalso
+  V.NSet.forall (not o (RG_Theory.Graph.is_boundary g))
+                (RG_Theory.Graph.get_adj_vertices g v)
 
 fun min_green_arity g = let
   fun min v (SOME a) = SOME (Int.min (Arity.get_undir (RG_Theory.Graph.get_arity g v), a))
