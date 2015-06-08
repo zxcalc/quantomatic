@@ -282,6 +282,13 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
       }
     }
 
+    for (w <- graph.wires) {
+      g.setColor(Color.RED)
+      val p1 = trans.toScreen(graph.vdata(w.src).coord)
+      val p2 = trans.toScreen(graph.vdata(w.tgt).coord)
+      g.draw(new Line2D.Double(p1._1, p1._2, p2._1, p2._2))
+    }
+
     g.setStroke(new BasicStroke(1))
     var a = g.getColor
     for ((v, VDisplay(shape,color,label)) <- vertexDisplay) {

@@ -533,9 +533,9 @@ case class Graph(
       val otherVert = if (source(otherEdge) == wire.src) target(otherEdge) else source(otherEdge)
       growWire(Wire(wire.edges + otherEdge, otherVert, wire.tgt))
     } else if (!isLogicalVert(wire.tgt)) { // grow tgt
-    val es = adjacentEdges(wire.src).toIndexedSeq
+      val es = adjacentEdges(wire.tgt).toIndexedSeq
       val otherEdge = if (wire.edges.contains(es(0))) es(1) else es(0)
-      val otherVert = if (source(otherEdge) == wire.src) target(otherEdge) else source(otherEdge)
+      val otherVert = if (target(otherEdge) == wire.tgt) source(otherEdge) else target(otherEdge)
       growWire(Wire(wire.edges + otherEdge, wire.src, otherVert))
     } else {
       wire
