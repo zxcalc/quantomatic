@@ -53,7 +53,10 @@ class CoreProcess {
       val sm = StreamMessage.compileMessage(0, "init", "use \"run_protocol.ML\";\n")
       consoleOutput.addListener(0) { _ => compileSignal() }
       sm.writeTo(consoleInput)
+
+      println("loading heap and protocol...")
       compileWait()
+      println("loading heap and protocol...done")
 
       var msgId = 1
       var port = 4321
