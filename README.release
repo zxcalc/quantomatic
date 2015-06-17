@@ -2,18 +2,8 @@
 Preparing a release for QuantoDerive
 ====================================
 
-Releases should be prepared on the target OS. First, ensure the heap is built
-for the version of poly that is going to be shipped with the bundle. This can be
-done on OS X or Linux by running:
-
-    make clean
-    make heap-(osx|linux)-dist
-
-...and on Windows, run the following at a DOS prompt:
-
-    buildheap
-
-Next, from the scala directory, run the appropriate command to build the bundle.
+Releases should be prepared on the target OS. To do this, go into the "scala/"
+subdirectory and run the appropriate command to build the bundle:
 
     dist/mk-osx.sh
     dist/mk-linux.sh
