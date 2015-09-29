@@ -442,9 +442,8 @@ val of_string = Parser.parse
 
 fun json_source instream =
   RawSource.source Symbol.stopper
-    (Parser.p_top_level >> single) NONE
+    (Parser.p_top_level >> single) 
       (RawSource.raw_stream (fn c => c = "}" orelse c = "]") instream)
-  |> RawSource.set_prompt ""
 
 fun read_file file = let
   val get_one_json = RawSource.get_single o json_source
