@@ -9,7 +9,10 @@ BUNDLE=$APP/Contents
 rm -rf $APP
 
 echo Rebuilding the core heap...
-(cd ../core; ../scala/dist/osx-dist/poly --use build_heap.ML)
+(cd ../core;
+  make theory_files;
+  cat build_heap.ML | ML_SYSTEM=polyml ML_PLATFORM=unknown ../scala/dist/osx-dist/poly
+)
 
 echo Running SBT...
 sbt appbundle
