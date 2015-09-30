@@ -1,10 +1,17 @@
 (* build the core *)
 
 use "isabelle_env.ML";
-use_thy "lib.thy";
+(*use_thy "lib.thy";
 use_thy "core.thy";
 use_thy "theories.thy";
-use_thy "controller.thy";
+use_thy "controller.thy";*)
+
+(* replaced isabelle-parser-based includes with
+ * sed-generated ML files *)
+use "lib.thy.ML";
+use "core.thy.ML";
+use "theories.thy.ML";
+use "controller.thy.ML";
 
 
 (* core tests *)

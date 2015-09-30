@@ -7,7 +7,18 @@ fun exit st =
   OS.Process.exit
   (if st = 0 then OS.Process.success else OS.Process.failure);
 
+(*use "General/exn.ML";
+use "ML-Systems/thread_dummy.ML";
+use "ML-Systems/multithreading.ML";
+use "ML-Systems/polyml.ML";*)
+
 use "ML-Systems/polyml.ML";
+exception Interrupt;
+use "General/exn.ML";
+datatype ref = datatype Unsynchronized.ref;
+use "ML-Systems/multithreading.ML";
+use "ML-Systems/multithreading_polyml.ML";
+fun tracing _ = ();
 
 (* from Isabelle/src/Pure/Generic *)
 use "General/basics.ML";
@@ -37,7 +48,7 @@ use "Concurrent/counter.ML";
 use "General/output.ML";
 use "PIDE/markup.ML";
 
-fun legacy_feature s = warning (Markup.markup Markup.legacy ("Legacy feature! " ^ s));
+(*fun legacy_feature s = warning (Markup.markup Markup.legacy ("Legacy feature! " ^ s));*)
 
 use "General/timing.ML";
 use "General/scan.ML";
@@ -71,6 +82,7 @@ val options = Options.empty |>
                    typ=Options.intT, value="200"};
 Options.set_default options;
 
+use "name.ML";
 use "General/completion.ML";
 (*use "General/json.ML";*)
 (*use "General/text_socket.ML";*)
@@ -87,32 +99,6 @@ type thm = unit;
 type indexname = string * int;
 
 
-(* a very minimal lex structure for inner syntax *)
-structure Lexicon =
-struct
-open Basic_Symbol_Pos;
-
-val err_prefix = "Inner lexical error: ";
-
-fun !!! msg = Symbol_Pos.!!! (fn () => err_prefix ^ msg);
-
-val scan_id = Symbol_Pos.scan_ident;
-val scan_longid = scan_id @@@ (Scan.repeat1 ($$$ "." @@@ scan_id) >> flat);
-val scan_tid = $$$ "'" @@@ scan_id;
-
-val scan_nat = Scan.many1 (Symbol.is_digit o Symbol_Pos.symbol);
-val scan_int = $$$ "-" @@@ scan_nat || scan_nat;
-val scan_natdot = scan_nat @@@ $$$ "." @@@ scan_nat;
-val scan_float = $$$ "-" @@@ scan_natdot || scan_natdot;
-val scan_hex = $$$ "0" @@@ $$$ "x" @@@ Scan.many1 (Symbol.is_ascii_hex o Symbol_Pos.symbol);
-val scan_bin = $$$ "0" @@@ $$$ "b" @@@ Scan.many1 (fn (s, _) => s = "0" orelse s = "1");
-
-val scan_id_nat = scan_id @@@ Scan.optional ($$$ "." @@@ scan_nat) [];
-val scan_var = $$$ "?" @@@ scan_id_nat;
-val scan_tvar = $$$ "?" @@@ $$$ "'" @@@ scan_id_nat;
-end;
-
-use "Isar/token.ML";
 
 
 (* from Isabelle/src/Pure/Concurrent; this is the main stuff loaded in
@@ -159,27 +145,7 @@ use "Concurrent/mailbox.ML";
 use "Concurrent/cache.ML";
 
 
-(*use "General/stopwatch.ML";
-use "Concurrent/future_wrapper.ML";
-use "Concurrent/par_seq.ML";
-use "Concurrent/compactor.ML";
-use "Concurrent/par_tree.ML";*)
-
-(* Other IsapLib Special stuff: names and graphs *)
-(*PolyML.Project.use_root "names/ROOT.ML";
-PolyML.Project.use_root "unif/ROOT.ML";
-PolyML.Project.use_root "graph/ROOT.ML";
-PolyML.Project.use_root "maps/ROOT.ML";
-*)
-
-(* Other basic top level things *)
-(*use "basics/collection.ML";*)
-(*use "basics/polym_table.ML";*)
-
-
-(*use "basics/toplevel.ML";*)
-
 
 OS.FileSys.chDir "..";
 
-use "use_thy.ML";
+
