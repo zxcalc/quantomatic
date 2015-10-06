@@ -186,7 +186,7 @@ let
   end
 in (
     Log.log 2 "(core) forking output loop"; Thread.fork (output_loop,[]);
-    input_loop (Json.json_source instream)
+    input_loop (Json.mk_json_instream instream) (*(Json.json_source instream)*)
    )
 end
 handle protocol_exn msg => 
