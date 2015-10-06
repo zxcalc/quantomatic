@@ -9,3 +9,6 @@ theory_files : $(THEORY_FILES)
 
 %.thy.ML : %.thy
 	sed -n 's/ML_file "\(.*\)"/use "\1";/p' $< > $@
+
+console:
+	ML_SYSTEM=polyml ML_PLATFORM=unknown rlwrap poly --use ROOT.ML

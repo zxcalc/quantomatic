@@ -38,6 +38,7 @@ sig
                 | Array of json list
                 | Object of jobj
   
+
   (** An empty JSON Object *)
   val empty_obj : jobj
 
@@ -151,6 +152,12 @@ sig
    *)
   val json_source : TextIO.instream -> (json, (string, unit) RawSource.source) RawSource.source
   
+  (** Stores an instream, and buffers text occurring after the end of a full
+    * JSON object/array **)
+  type json_instream
+  val mk_json_instream : TextIO.instream -> json_instream
+  val read_json_instream : json_instream -> json * json_instream
+
   (**
    * Read in a file containing JSON
    *)
@@ -162,7 +169,7 @@ sig
   val write_file : string -> json -> unit
 end
 
-structure Json : JSON =
+structure JsonDbg =
 struct
 
 (* JObj stores the order in which keys are added, so that it can be
@@ -445,6 +452,30 @@ fun json_source instream =
     (Parser.p_top_level >> single) 
       (RawSource.raw_stream (fn c => c = "}" orelse c = "]") instream)
 
+val eof = (Scan.stopper (K Symbol.eof) (fn s => s = Symbol.eof))
+fun getter instream =
+  case TextIO.input1 instream
+    of SOME ch => 
+        (if ch = #"}" orelse ch = #"]"
+         then ([String.implode [ch]], instream)
+         else (apfst (fn x => String.implode [ch] :: x))
+                     (getter instream))
+     | NONE => ([],instream);
+
+type json_instream = string list * TextIO.instream
+
+fun mk_json_instream instream = ([], instream)
+
+fun read_json_instream (rest, instream) =
+  let
+    val ((json, ((), rest')), instream') =
+      Scan.drain getter eof
+        (Scan.lift Parser.p_top_level)
+        (((),rest),instream)
+  in (json, (rest', instream'))
+  end
+
+
 fun read_file file = let
   val get_one_json = RawSource.get_single o json_source
   fun catch f s = (Scan.catch f s)
@@ -479,3 +510,5 @@ and encode (String x) = "\"" ^ escape x ^ "\""
 fun fold f = (JObj.fold (fn ((k,_),v) => f (k,v))) o fst
 
 end
+
+structure Json : JSON = JsonDbg

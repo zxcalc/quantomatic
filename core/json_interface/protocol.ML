@@ -83,16 +83,16 @@ let
     | system _ _ = raise user_exn ("Unrecognized system function. (options: help, version)")
   fun protocol_loop src =
   let
-    val (json_list, src') = RawSource.get src
-    val json = case json_list of [x] => x | _ =>
-      raise protocol_exn "Expected: exactly one JSON object"
+    val (json, src') = Json.read_json_instream src (*RawSource.get src*)
+    (*val json = case json_list of [x] => x | _ =>
+      raise protocol_exn "Expected: exactly one JSON object"*)
     val rid = arg_int json "request_id"
     val json_output = dispatch system rid json
   in (TextIO.output (outstream, Json.encode json_output);
       TextIO.flushOut outstream;
       protocol_loop src')
   end
-in protocol_loop (Json.json_source instream)
+in protocol_loop (Json.mk_json_instream instream) (*Json.json_source instream*)
 end
 handle protocol_exn msg => 
   (TextIO.output (outstream,
@@ -155,10 +155,10 @@ let
   fun input_loop src =
   let
     val _ = Log.log 2 "(core) waiting for request on input loop"
-    val (json_list, src') = RawSource.get src
+    val (json, src') = Json.read_json_instream src (*RawSource.get src*)
     val _ = Log.log 2 "(core) got request"
-    val json = case json_list of [x] => x | _ =>
-      raise protocol_exn "Expected: exactly one JSON object"
+    (*val json = case json_list of [x] => x | _ =>
+      raise protocol_exn "Expected: exactly one JSON object"*)
     val rid = arg_int json "request_id"
     val _ = Log.log 2 "(core) preparing to update job table"
     val _ = Synchronized.change job_table (fn tab => (
