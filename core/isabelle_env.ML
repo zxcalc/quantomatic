@@ -18,7 +18,7 @@ use "General/exn.ML";
 datatype ref = datatype Unsynchronized.ref;
 use "ML-Systems/multithreading.ML";
 use "ML-Systems/multithreading_polyml.ML";
-fun tracing _ = ();
+fun tracing s = TextIO.print s;
 
 (* from Isabelle/src/Pure/Generic *)
 use "General/basics.ML";
