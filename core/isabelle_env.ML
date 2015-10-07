@@ -35,11 +35,10 @@ use "General/table.ML";
 use "General/properties.ML";
 
 (* from Isabelle/src/Pure/Concurrent *)
-(*use "Concurrent/simple_thread.ML";
-use "Concurrent/synchronized.ML";*)
-use "Concurrent/simple_thread.ML";
 
+use "Concurrent/simple_thread.ML";
 use "Concurrent/synchronized.ML";
+
 if Multithreading.available then ()
 else use "Concurrent/synchronized_sequential.ML";
 use "Concurrent/counter.ML";
@@ -47,8 +46,6 @@ use "Concurrent/counter.ML";
 (* from Isabelle/src/Pure/Generic *)
 use "General/output.ML";
 use "PIDE/markup.ML";
-
-(*fun legacy_feature s = warning (Markup.markup Markup.legacy ("Legacy feature! " ^ s));*)
 
 use "General/timing.ML";
 use "General/scan.ML";
@@ -84,39 +81,14 @@ Options.set_default options;
 
 use "name.ML";
 use "General/completion.ML";
-(*use "General/json.ML";*)
-(*use "General/text_socket.ML";*)
-
-
-(* Isar lexer, for use_thy *)
-
-(* all proof-related types are stubs  *)
-type typ = unit;
-type term = unit;
-type attribute = unit;
-type morphism = unit;
-type thm = unit;
-type indexname = string * int;
-
-
-
 
 (* from Isabelle/src/Pure/Concurrent; this is the main stuff loaded in
    Pure/ROOT.ML *)
 use "ML/exn_properties_polyml.ML";
 use "ML/ml_statistics_polyml-5.5.0.ML";
-(*use "Concurrent/ROOT.ML";*)
+
 val rootDir = OS.FileSys.getDir();
 
-(* Include isaplib *)
-(*OS.FileSys.chDir "Concurrent";
-use "ROOT.ML";
-OS.FileSys.chDir "..";*)
-
-(*MJB: simplification of the future calls.
-It needs to be made here to use Synchronized and Future at the same time*)
-(*use "Concurrent/task_queue.ML";
-use "Concurrent/future.ML";*)
 
 use "Concurrent/single_assignment.ML";
 if Multithreading.available then ()
