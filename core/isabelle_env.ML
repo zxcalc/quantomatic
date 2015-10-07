@@ -1,3 +1,6 @@
+(* Global version variable *)
+val version = "Isabelle/IsaPlanner Library";
+
 (*
  * Emulate the Isabelle toplevel environment
  *)
@@ -7,88 +10,69 @@ fun exit st =
   OS.Process.exit
   (if st = 0 then OS.Process.success else OS.Process.failure);
 
-(*use "General/exn.ML";
-use "ML-Systems/thread_dummy.ML";
-use "ML-Systems/multithreading.ML";
-use "ML-Systems/polyml.ML";*)
-
-use "ML-Systems/polyml.ML";
-exception Interrupt;
-use "General/exn.ML";
+use "ML-Systems/polyml-5.5.2.ML";
 datatype ref = datatype Unsynchronized.ref;
-use "ML-Systems/multithreading.ML";
-use "ML-Systems/multithreading_polyml.ML";
-fun tracing s = TextIO.print s;
 
-(* from Isabelle/src/Pure/Generic *)
 use "General/basics.ML";
-(* from Isabelle/src/Pure *)
 use "library.ML";
-
-(* Global version variable *)
-val version = "Isabelle/IsaPlanner Library";
-
-(* from Isabelle/src/Pure/Generic *)
 use "General/print_mode.ML";
 use "General/alist.ML";
 use "General/table.ML";
-use "General/properties.ML";
 
-(* from Isabelle/src/Pure/Concurrent *)
-
-use "Concurrent/simple_thread.ML";
 use "Concurrent/synchronized.ML";
-
 if Multithreading.available then ()
 else use "Concurrent/synchronized_sequential.ML";
 use "Concurrent/counter.ML";
 
-(* from Isabelle/src/Pure/Generic *)
+use "General/properties.ML";
 use "General/output.ML";
 use "PIDE/markup.ML";
-
-use "General/timing.ML";
 use "General/scan.ML";
 use "General/source.ML";
 use "General/symbol.ML";
-use "General/seq.ML";
 use "General/position.ML";
 use "General/symbol_pos.ML";
+
 use "General/integer.ML";
 use "General/stack.ML";
 use "General/queue.ML";
 use "General/heap.ML";
 use "General/ord_list.ML";
 use "General/balanced_tree.ML";
-use "General/long_name.ML";
 use "General/buffer.ML";
 use "General/pretty.ML";
 use "PIDE/xml.ML";
-use "General/graph.ML";
-use "General/binding.ML";
 use "General/path.ML";
 use "General/url.ML";
 use "General/file.ML";
+use "General/long_name.ML";
+use "General/binding.ML";
+use "General/seq.ML";
+use "General/timing.ML";
+
 use "General/sha1.ML";
+
 use "PIDE/yxml.ML";
+
+use "General/graph.ML";
+
 use "System/options.ML";
 
 (* hard-coded options *)
-val options = Options.empty |>
-  Options.declare {pos=Position.none, name="completion_limit",
-                   typ=Options.intT, value="200"};
+val options =
+  Options.empty
+  |> Options.declare
+      {pos = Position.none, name = "completion_limit", typ = Options.intT, value = "200"}
+  |> Options.declare
+      {pos = Position.none, name = "threads_stack_limit", typ = Options.realT, value = "0.25"};
+
 Options.set_default options;
 
-use "name.ML";
-use "General/completion.ML";
 
-(* from Isabelle/src/Pure/Concurrent; this is the main stuff loaded in
-   Pure/ROOT.ML *)
 use "ML/exn_properties_polyml.ML";
 use "ML/ml_statistics_polyml-5.5.0.ML";
 
-val rootDir = OS.FileSys.getDir();
-
+use "Concurrent/simple_thread.ML";
 
 use "Concurrent/single_assignment.ML";
 if Multithreading.available then ()
@@ -117,7 +101,9 @@ use "Concurrent/mailbox.ML";
 use "Concurrent/cache.ML";
 
 
+use "name.ML";
+use "General/completion.ML";
+
+val rootDir = OS.FileSys.getDir ();
 
 OS.FileSys.chDir "..";
-
-
