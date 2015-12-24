@@ -136,5 +136,11 @@ structure GHZW_Enum = FastGraphEnum(
 )
 
 structure GHZW_Spiders = SpiderRewrites(structure Theory = GHZW_Theory)
-structure GHZW_Synth = SynthUtil(structure Enum = GHZW_Enum)
+structure GHZW_Synth = 
+struct
+  structure SU = SynthUtil(structure Enum = GHZW_Enum)
+  open SU
+  val GHZ = GHZW_Theory.Graph.NVert GHZW_Data.GHZ
+  val W = GHZW_Theory.Graph.NVert GHZW_Data.W
+end
 
