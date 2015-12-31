@@ -53,6 +53,9 @@ sig
   val get_initial_rs    : T -> Theory.Ruleset.T
   val set_initial_rs    : Theory.Ruleset.T -> T -> T
 
+  (* also adds to DNET *)
+  val set_initial_ruleset    : Theory.Ruleset.T -> T -> T
+
   val get_ruleset : T -> Theory.Ruleset.T
   
   val get_graph_entry : T -> GraphName.name -> GraphEntry.T
@@ -165,17 +168,38 @@ struct
     tab : (EqClass.T list) ClassIndex.table,
     initial_rs : Theory.Ruleset.T,
     dnet : DNet.T,
-    graph_tab : GE.T GraphName.NTab.T
+    graph_tab : GE.T GraphName.NTab.T,
+    graph_tab' : GE.Graph.T GraphName.NTab.T
   }
   
   val empty = EQT {
     tab=ClassIndex.empty,
     initial_rs=Theory.Ruleset.empty,
     dnet=DNet.empty,
-    graph_tab=GraphName.NTab.empty
+    graph_tab=GraphName.NTab.empty,
+    graph_tab'=GraphName.NTab.empty
   }
+
+  fun update_tab f (EQT r) = EQT {tab=f(#tab r),initial_rs= #initial_rs r,dnet= #dnet r,graph_tab= #graph_tab r,graph_tab'= #graph_tab' r}
+  fun update_initial_rs f (EQT r) = EQT {tab= #tab r,initial_rs=f(#initial_rs r),dnet= #dnet r,graph_tab= #graph_tab r,graph_tab'= #graph_tab' r}
+  fun update_dnet f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet=f(#dnet r),graph_tab= #graph_tab r,graph_tab'= #graph_tab' r}
+  fun update_graph_tab f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet= #dnet r,graph_tab=f(#graph_tab r),graph_tab'= #graph_tab' r}
+  fun update_graph_tab' f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet= #dnet r,graph_tab= #graph_tab r,graph_tab'=f(#graph_tab' r)}
+
+  fun get_tab        (EQT r) = #tab r
+  fun get_initial_rs (EQT r) = #initial_rs r
+  fun get_dnet       (EQT r) = #dnet r
+  fun get_graph_tab  (EQT r) = #graph_tab r
+  fun get_graph_tab' (EQT r) = #graph_tab' r
+
+  fun set_tab        x  = update_tab        (fn _ => x)
+  fun set_initial_rs x  = update_initial_rs (fn _ => x)
+  fun set_dnet       x  = update_dnet       (fn _ => x)
+  fun set_graph_tab  x  = update_graph_tab  (fn _ => x)
+  fun set_graph_tab' x  = update_graph_tab' (fn _ => x)
+
   
-  fun update_tab f (EQT r) = EQT {tab=f(#tab r),initial_rs= #initial_rs r,dnet= #dnet r,graph_tab= #graph_tab r}
+  (*fun update_tab f (EQT r) = EQT {tab=f(#tab r),initial_rs= #initial_rs r,dnet= #dnet r,graph_tab= #graph_tab r}
   fun update_initial_rs f (EQT r) = EQT {tab= #tab r,initial_rs=f(#initial_rs r),dnet= #dnet r,graph_tab= #graph_tab r}
   fun update_dnet f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet=f(#dnet r),graph_tab= #graph_tab r}
   fun update_graph_tab f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet= #dnet r,graph_tab=f(#graph_tab r)}
@@ -188,11 +212,32 @@ struct
   val set_tab            = update_tab         o K
   val set_initial_rs     = update_initial_rs  o K
   val set_dnet           = update_dnet        o K
-  val set_graph_tab      = update_graph_tab   o K
+  val set_graph_tab      = update_graph_tab   o K*)
 
+
+  fun set_initial_ruleset rs eqt = 
+    let
+      val eqt =  eqt |> set_initial_rs rs
+      fun addr (rn,rule) eqt =
+      let
+        val gn = GraphName.mk ("g-" ^ R.dest rn)
+        val g = Ruleset.Rule.get_lhs rule
+      in
+        eqt |> update_graph_tab' (GraphName.NTab.doadd (gn,g))
+            |> update_dnet (DNet.add_graph (gn,g))
+      end
+    in
+      RTab.fold addr (Ruleset.get_allrules rs) eqt
+    end
+  
   
   fun get_graph_entry eqt g =
     GraphName.NTab.get (get_graph_tab eqt) g
+
+  fun get_graph eqt g =
+    case GraphName.NTab.lookup (get_graph_tab eqt) g
+      of SOME ge => (GraphEntry.get_graph ge)
+       | NONE => (GraphName.NTab.get (get_graph_tab' eqt) g)
     
   fun set_as_redex gn eqt =
     eqt |> update_dnet (DNet.add_graph (gn, GE.get_graph (get_graph_entry eqt gn)))
@@ -314,9 +359,9 @@ struct
   
   fun has_match_in_dnet eqt tgt = let
     fun has_match pat_n = let
-      val pat = get_graph_entry eqt pat_n
+      val pat = get_graph eqt pat_n
     in is_some (Seq.pull (
-         Theory.MatchSearch.match (GE.get_graph pat) (GE.get_graph tgt)
+         Theory.MatchSearch.match pat (GE.get_graph tgt)
        ))
     end
   in GraphName.NSet.exists has_match

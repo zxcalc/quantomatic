@@ -17,6 +17,13 @@ struct
 
 structure Theory = Enum.Theory
 
+fun esc s =
+  let
+    fun f #"/" = "--"
+      | f c = String.str c
+    in String.translate f s
+  end
+
 fun load_rule s = (R.mk s, Theory.RuleJSON.input (Json.read_file (s^".qrule")))
 fun save_rule s r =  Json.write_file (s^".qrule") (Theory.RuleJSON.output r)
 fun load_graph s = Theory.GraphJSON.input (Json.read_file (s^".qgraph"))
@@ -32,7 +39,7 @@ fun load_ruleset rule_list = ruleset (map load_rule rule_list)
 fun save_ruleset output_dir rs =
   RTab.fold
   (fn (rn,r) => fn () =>
-    (save_rule (output_dir ^ "/" ^ R.dest rn) r))
+    (save_rule (output_dir ^ "/" ^ esc (R.dest rn)) r))
   (Theory.Ruleset.get_allrules rs) ()
 
 
@@ -50,12 +57,13 @@ fun mk_output_dir () = let
 in frdir 0
 end
 
-fun synth gens (sz as (i,j,k,l)) = let
+fun synth gens rs0 (sz as (i,j,k,l)) = let
   val _ = TextIO.print ("Starting enumeration for ("^
-            Int.toString i ^ Int.toString j ^
-            Int.toString k ^ Int.toString l ^
+            Int.toString i ^ "," ^ Int.toString j ^ "," ^
+            Int.toString k ^ "," ^ Int.toString l ^
           ")\n")
-  val tab = Enum.tab_enum gens sz
+  val tab = Enum.EqClassTab.empty |> Enum.EqClassTab.set_initial_ruleset rs0
+  val tab = tab |> Enum.tab_update gens sz
   val _ = TextIO.print "done\n"
   val rs = Enum.EqClassTab.get_ruleset tab
   val dir = mk_output_dir ()
