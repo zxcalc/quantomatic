@@ -57,7 +57,7 @@ fun mk_output_dir () = let
 in frdir 0
 end
 
-fun synth gens rs0 (sz as (i,j,k,l)) = let
+(*fun synth gens rs0 (sz as (i,j,k,l)) = let
   val _ = TextIO.print ("Starting enumeration for ("^
             Int.toString i ^ "," ^ Int.toString j ^ "," ^
             Int.toString k ^ "," ^ Int.toString l ^
@@ -70,6 +70,30 @@ fun synth gens rs0 (sz as (i,j,k,l)) = let
   val _ = TextIO.print ("saving output to: " ^ dir ^ "\n")
 in
   save_ruleset dir rs
+end*)
+
+fun synth_run gens (sz as (i,j,k,l)) tab = let
+  val _ = TextIO.print ("Starting enumeration run for ("^
+            Int.toString i ^ "," ^ Int.toString j ^ "," ^
+            Int.toString k ^ "," ^ Int.toString l ^
+          ")\n")
+  val tab = tab |> Enum.tab_update gens sz
+  val _ = TextIO.print "done\n"
+in
+  tab
 end
+
+fun synth gens rs0 runs = let
+  val _ = TextIO.print ("Initialising synthesis\n")
+  val tab = Enum.EqClassTab.empty |> Enum.EqClassTab.set_initial_ruleset rs0
+  val _ = TextIO.print "done\n"
+  val tab = fold (synth_run gens) runs tab
+  val rs = Enum.EqClassTab.get_ruleset tab
+  val dir = mk_output_dir ()
+  val _ = TextIO.print ("saving output to: " ^ dir ^ "\n")
+in
+  save_ruleset dir rs
+end
+
 
 end
