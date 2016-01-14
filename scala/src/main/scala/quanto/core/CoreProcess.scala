@@ -47,16 +47,28 @@ class CoreProcess {
       // synchronous ML compilation using a condition variable
       val compileLock = new ReentrantLock
       val compileDone = compileLock.newCondition()
-      def compileWait() { compileLock.lock(); compileDone.await(); compileLock.unlock(); Thread.sleep(100) }
-      def compileSignal() { compileLock.lock(); compileDone.signal(); compileLock.unlock() }
+      var bCompileDone = true
+      def compileReset() { bCompileDone = false }
+      def compileWait() { while(!bCompileDone) Thread.sleep(30); } //{ println(s); compileLock.lock(); compileDone.await(); compileLock.unlock(); Thread.sleep(100) }
+      def compileSignal() { bCompileDone = true } //{ println(s); compileLock.lock(); compileDone.signal(); compileLock.unlock() }
 
+
+      compileReset()
       val sm = StreamMessage.compileMessage(0, "init", "use \"run_protocol.ML\";\n")
+      //val sm = StreamMessage.compileMessage(0, "init", "val p = 1;\n")
       consoleOutput.addListener(0) { _ => compileSignal() }
       sm.writeTo(consoleInput)
 
       println("loading heap and protocol...")
       compileWait()
       println("loading heap and protocol...done")
+
+//      val sm1 = StreamMessage.compileMessage(1, "init", "val p = 2;\n")
+//      consoleOutput.addListener(1) { _ => compileSignal("sig:test") }
+//      sm1.writeTo(consoleInput)
+//      println("loading heap and test...")
+//      compileWait("wait:test")
+//      println("loading heap and test...done")
 
       var msgId = 1
       var port = 4321
@@ -65,7 +77,9 @@ class CoreProcess {
 
       // start with 4321, then try random ports until we get a sucessful connection
       while (!success && msgId < 10) {
+        compileReset()
         val code = "poll_future (Future.fork (run_protocol " + port + "));\n"
+        //val code = "val p = 4;\n"
         val sm1 = StreamMessage.compileMessage(msgId, "init", code)
         consoleOutput.addListener(msgId) { msg =>
           if (msg.stripCodes(2) == StringPart("S")) {
@@ -80,7 +94,11 @@ class CoreProcess {
         }
 
         sm1.writeTo(consoleInput)
+
+        println("starting protocol...")
         compileWait()
+        println("starting protocol...done")
+
 
         msgId += 1
       }
