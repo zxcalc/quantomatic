@@ -234,14 +234,28 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
+    val NewMLAction = new Action("New ML Document") {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_M, CommandMask | Key.Modifier.Shift))
+      menu.contents += new MenuItem(this) { mnemonic = Key.M }
+      def apply() {
+        CurrentProject.map{ project =>
+          val page = new MLDocumentPage
+          MainTabbedPane += page
+          MainTabbedPane.selection.index = page.index
+        }
+      }
+    }
+
     def updateNewEnabled() {
       CurrentProject match {
         case Some(_) =>
           NewGraphAction.enabled = true
           NewAxiomAction.enabled = true
+          NewMLAction.enabled = true
         case None =>
           NewGraphAction.enabled = false
           NewAxiomAction.enabled = false
+          NewMLAction.enabled = false
       }
     }
 

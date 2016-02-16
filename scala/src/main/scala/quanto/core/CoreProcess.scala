@@ -153,7 +153,7 @@ class CoreProcess {
   object CoreProcess {
     val logger = Logger.getLogger("quanto.core")
     val quantoHome = new File("../").getCanonicalPath
-    //println("quanto home is " + quantoHome)
+    println("quanto home is " + quantoHome)
 
     // try to find poly in common locations
     val polyExe = if (new File("bin/poly").exists)

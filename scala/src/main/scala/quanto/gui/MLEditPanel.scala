@@ -21,7 +21,7 @@ class MLEditPanel extends BorderPanel with HasDocument {
   val mlModeXml = if (Globals.isBundle) new File("ml.xml").getAbsolutePath
                   else getClass.getResource("ml.xml").getPath
   sml.setProperty("file", mlModeXml)
-  println(sml.getProperty("file"))
+  //println(sml.getProperty("file"))
   val mlCode = StandaloneTextArea.createTextArea()
   //mlCode.setFont(new Font("Menlo", Font.PLAIN, 14))
 
