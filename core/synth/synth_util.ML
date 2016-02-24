@@ -42,6 +42,8 @@ fun save_ruleset output_dir rs =
     (save_rule (output_dir ^ "/" ^ esc (R.dest rn)) r))
   (Theory.Ruleset.get_allrules rs) ()
 
+fun save_synth s eqt =
+  Json.write_file (s ^ ".qsynth") (Enum.EqClassTab.to_json eqt)
 
 fun mk_output_dir () = let
   val _ = if not (OS.FileSys.access ("synth_output", []))
@@ -55,6 +57,20 @@ fun mk_output_dir () = let
     else frdir (i+1)
   end
 in frdir 0
+end
+
+fun fresh_output_file s ext = let
+  val _ = if not (OS.FileSys.access ("synth_output", []))
+          then OS.FileSys.mkDir "synth_output"
+          else ()
+  fun frfile i = let
+    val s' = "synth_output/" ^ s ^ "_" ^ (Int.toString i)
+  in
+    if not (OS.FileSys.access (s' ^ ext, []))
+    then s'
+    else frfile (i+1)
+  end
+in frfile 0
 end
 
 (*fun synth gens rs0 (sz as (i,j,k,l)) = let
@@ -88,11 +104,11 @@ fun synth gens rs0 runs = let
   val tab = Enum.EqClassTab.empty |> Enum.EqClassTab.set_initial_rs rs0
   val _ = TextIO.print "done\n"
   val tab = fold (synth_run gens) runs tab
-  val rs = Enum.EqClassTab.get_ruleset tab
-  val dir = mk_output_dir ()
-  val _ = TextIO.print ("saving output to: " ^ dir ^ "\n")
+  (*val rs = Enum.EqClassTab.get_ruleset tab*)
+  val file = fresh_output_file "synth" ".qsynth"
+  val _ = TextIO.print ("saving output to: " ^ file ^ "\n")
 in
-  save_ruleset dir rs
+  save_synth file tab
 end
 
 

@@ -82,6 +82,7 @@ sig
   
   val empty : T
   val mk : Theory.Ruleset.T -> T
+  val to_json : T -> Json.json
 end
 
 functor GraphEntry(
@@ -287,7 +288,7 @@ struct
   
   fun get_ruleset eqt =
   let
-    fun add_rule nm tag rhs lhs_n rs =
+    fun add_rule tag rhs lhs_n rs =
     let
       val lhs = GE.get_graph (GraphName.NTab.get (get_graph_tab eqt) lhs_n)
       val r = Theory.Rule.mk (lhs, rhs)
@@ -298,8 +299,8 @@ struct
     fun add_class class rs =
       let
         val rep = GE.get_graph (GraphName.NTab.get (get_graph_tab eqt) (EqClass.get_rep class))
-        val add_redex = add_rule "r_0" "redex" rep
-        val add_cong = add_rule "c_0" "cong" rep
+        val add_redex = add_rule "redex" rep
+        val add_cong = add_rule "cong" rep
       in
         fold add_redex (EqClass.get_redexes class)
         (fold add_cong (EqClass.get_congs class) rs)
@@ -430,6 +431,27 @@ struct
     in eqt |> set_graph_tab tab |> set_as_redex gn
     end
   in R.NSet.fold add_rule initial_redexes (empty |> set_initial_rs rs)
+  end
+
+
+  fun to_json eqt =
+  let
+    fun class_json c = let
+      val rep = get_graph_entry eqt (EqClass.get_rep c)
+      fun grtab gs =
+        Json.mk_object (map (fn n => (GraphName.dest n,
+          Theory.GraphJSON.output (get_graph eqt n))) gs)
+    in
+      Json.mk_object [
+        ("data", Json.String
+          (case GE.get_edata rep of SOME d => GE.Equiv.to_string d | NONE => "")),
+        ("rep", Theory.GraphJSON.output (GE.get_graph rep)),
+        ("redexes", grtab (EqClass.get_redexes c)),
+        ("congs", grtab (EqClass.get_congs c))
+      ]
+    end
+    val classes = fold_eqclasses (cons o class_json) eqt []
+  in Json.mk_object [("classes", Json.Array classes)]
   end
 end
 
