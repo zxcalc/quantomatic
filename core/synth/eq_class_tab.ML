@@ -54,7 +54,7 @@ sig
   val set_initial_rs    : Theory.Ruleset.T -> T -> T
 
   (* also adds to DNET *)
-  val set_initial_ruleset    : Theory.Ruleset.T -> T -> T
+  (*val set_initial_ruleset    : Theory.Ruleset.T -> T -> T*)
 
   val get_ruleset : T -> Theory.Ruleset.T
   
@@ -168,35 +168,31 @@ struct
     tab : (EqClass.T list) ClassIndex.table,
     initial_rs : Theory.Ruleset.T,
     dnet : DNet.T,
-    graph_tab : GE.T GraphName.NTab.T,
-    graph_tab' : GE.Graph.T GraphName.NTab.T
+    graph_tab : GE.T GraphName.NTab.T
   }
   
   val empty = EQT {
     tab=ClassIndex.empty,
     initial_rs=Theory.Ruleset.empty,
     dnet=DNet.empty,
-    graph_tab=GraphName.NTab.empty,
-    graph_tab'=GraphName.NTab.empty
+    graph_tab=GraphName.NTab.empty
   }
 
-  fun update_tab f (EQT r) = EQT {tab=f(#tab r),initial_rs= #initial_rs r,dnet= #dnet r,graph_tab= #graph_tab r,graph_tab'= #graph_tab' r}
-  fun update_initial_rs f (EQT r) = EQT {tab= #tab r,initial_rs=f(#initial_rs r),dnet= #dnet r,graph_tab= #graph_tab r,graph_tab'= #graph_tab' r}
-  fun update_dnet f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet=f(#dnet r),graph_tab= #graph_tab r,graph_tab'= #graph_tab' r}
-  fun update_graph_tab f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet= #dnet r,graph_tab=f(#graph_tab r),graph_tab'= #graph_tab' r}
-  fun update_graph_tab' f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet= #dnet r,graph_tab= #graph_tab r,graph_tab'=f(#graph_tab' r)}
+  fun update_tab f (EQT r) = EQT {tab=f(#tab r),initial_rs= #initial_rs r,dnet= #dnet r,graph_tab= #graph_tab r}
+  fun update_initial_rs f (EQT r) = EQT {tab= #tab r,initial_rs=f(#initial_rs r),dnet= #dnet r,graph_tab= #graph_tab r}
+  fun update_dnet f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet=f(#dnet r),graph_tab= #graph_tab r}
+  fun update_graph_tab f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet= #dnet r,graph_tab=f(#graph_tab r)}
 
   fun get_tab        (EQT r) = #tab r
   fun get_initial_rs (EQT r) = #initial_rs r
   fun get_dnet       (EQT r) = #dnet r
   fun get_graph_tab  (EQT r) = #graph_tab r
-  fun get_graph_tab' (EQT r) = #graph_tab' r
 
   fun set_tab        x  = update_tab        (fn _ => x)
   fun set_initial_rs x  = update_initial_rs (fn _ => x)
   fun set_dnet       x  = update_dnet       (fn _ => x)
   fun set_graph_tab  x  = update_graph_tab  (fn _ => x)
-  fun set_graph_tab' x  = update_graph_tab' (fn _ => x)
+
 
   
   (*fun update_tab f (EQT r) = EQT {tab=f(#tab r),initial_rs= #initial_rs r,dnet= #dnet r,graph_tab= #graph_tab r}
@@ -215,7 +211,7 @@ struct
   val set_graph_tab      = update_graph_tab   o K*)
 
 
-  fun set_initial_ruleset rs eqt = 
+  (*fun set_initial_ruleset rs eqt = 
     let
       val eqt =  eqt |> set_initial_rs rs
       fun addr (rn,rule) eqt =
@@ -228,16 +224,13 @@ struct
       end
     in
       RTab.fold addr (Ruleset.get_allrules rs) eqt
-    end
+    end*)
   
   
   fun get_graph_entry eqt g =
     GraphName.NTab.get (get_graph_tab eqt) g
 
-  fun get_graph eqt g =
-    case GraphName.NTab.lookup (get_graph_tab eqt) g
-      of SOME ge => (GraphEntry.get_graph ge)
-       | NONE => (GraphName.NTab.get (get_graph_tab' eqt) g)
+  fun get_graph eqt g = GraphEntry.get_graph (GraphName.NTab.get (get_graph_tab eqt) g)
     
   fun set_as_redex gn eqt =
     eqt |> update_dnet (DNet.add_graph (gn, GE.get_graph (get_graph_entry eqt gn)))
@@ -357,7 +350,7 @@ struct
       ))
     end*)
   
-  fun has_match_in_dnet eqt tgt = let
+  fun is_reducible eqt tgt = let
     fun has_match pat_n = let
       val pat = get_graph eqt pat_n
     in is_some (Seq.pull (
@@ -365,11 +358,12 @@ struct
        ))
     end
   in GraphName.NSet.exists has_match
-      (DNet.get_match_candidates (get_dnet eqt) (GE.get_graph tgt))
+      (DNet.get_match_candidates (get_dnet eqt) (GE.get_graph tgt)) orelse
+     is_some (Theory.RulesetRewriter.apply_first (get_initial_rs eqt) (GE.get_graph tgt))
   end
   
   fun update_one ge eqt =
-    if has_match_in_dnet eqt ge then NONE
+    if is_reducible eqt ge then NONE
     else let
       val (gn, gt) = get_graph_tab eqt |> GraphName.NTab.add (GraphName.mk "g0", ge)
       val eqt' = eqt |> set_graph_tab gt

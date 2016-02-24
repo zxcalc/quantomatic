@@ -62,7 +62,7 @@ end
             Int.toString i ^ "," ^ Int.toString j ^ "," ^
             Int.toString k ^ "," ^ Int.toString l ^
           ")\n")
-  val tab = Enum.EqClassTab.empty |> Enum.EqClassTab.set_initial_ruleset rs0
+  val tab = Enum.EqClassTab.empty |> Enum.EqClassTab.set_initial_rs rs0
   val tab = tab |> Enum.tab_update gens sz
   val _ = TextIO.print "done\n"
   val rs = Enum.EqClassTab.get_ruleset tab
@@ -85,7 +85,7 @@ end
 
 fun synth gens rs0 runs = let
   val _ = TextIO.print ("Initialising synthesis\n")
-  val tab = Enum.EqClassTab.empty |> Enum.EqClassTab.set_initial_ruleset rs0
+  val tab = Enum.EqClassTab.empty |> Enum.EqClassTab.set_initial_rs rs0
   val _ = TextIO.print "done\n"
   val tab = fold (synth_run gens) runs tab
   val rs = Enum.EqClassTab.get_ruleset tab
