@@ -39,3 +39,8 @@ class DerivationDocumentPage(val project: Project)
 extends DocumentPage(new DerivationPanel(project)) {
   val documentType = "Derivation"
 }
+
+class SynthDocumentPage(val theory: Theory)
+  extends DocumentPage(new SynthPanel(theory)) {
+  val documentType = "Synthesis"
+}
