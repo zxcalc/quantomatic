@@ -72,3 +72,62 @@ struct
   val total_ord = prod_ord int_ord int_ord
   fun is_real (_,i) = (i=0)
 end
+
+
+structure Pi4Integers : GCD_SEMIRING =
+struct
+  type T = int * int * int * int
+
+(*Considered as polynomials in Z[X]/(X^4+1) *)
+
+  fun plus ((r,t1,t2,t3),(s,u1,u2,u3)) = (r+s,t1+u1,t2+u2,t3+u3)
+  fun times ((r,t1,t2,t3),(s,u1,u2,u3)) =
+    ((r*s)-(t1*u3)-(t2*u2)-(t3*u1),(r*u1)+(t1*s)-(t2*u3)-(t3*u2),(r*u2)+(t1*u1)+(t2*s)-(t3*u3),(r*u3)+(t1*u2)+(t2*u1)+(t3*s))
+  fun neg a = times((~1,0,0,0),a)
+  fun minus (a,b) = plus(a,neg b)
+
+  fun conjugate (r,t1,t2,t3) = (r,~t3,~t2,~t1)
+
+(*Galois conjugates*)
+  fun g1 (a,b,c,d) = (a,d,~c,b)
+  fun g2 (a,b,c,d) = (a,~b,c,~d)
+  fun g3 (a,b,c,d) = (a,~d,~c,~b)
+
+
+  fun complement a = times ( times ( g1 a, g2 a), g3 a)
+
+(*Rounded division*)
+  fun rDiv (a,b) =
+    let
+      val d = a div b
+      val r = a mod b
+      val r2 = if r <= (b div 2) then 0 else 1
+    in
+      d + r2
+    end
+
+(*To be shown that this is indeed a Euclidean function!*)
+  fun divide ((r, t1, t2, t3),(s,0,0,0)) = (rDiv(r,s),rDiv(t1,s),rDiv(t2,s),rDiv(t3,s))
+    | divide (num, denom) = divide (times (num, complement denom), times (denom, complement denom))
+
+  val zero = (0,0,0,0)
+  val one = (1,0,0,0)
+
+  fun is_zero v = (v=zero)
+  fun is_one v = (v=one)
+
+  fun to_string (r,t1,t2,t3) = Pretty.string_of (Pretty.list "(" ")" (map (Pretty.str o Int.toString) [r,t1,t2,t3]))
+
+
+  val eq = (op=)     
+
+(*Euclid*)                       
+  fun gcd (a,(0,0,0,0)) = a
+    | gcd ((0,0,0,0),a) = a
+    | gcd (a,b) = gcd (b,minus(a,divide(a,b)))
+      
+fun total_ord ((r,t1,t2,t3), (s,u1,u2,u3)) =
+ list_ord int_ord ([r,t1,t2,t3], [s,u1,u2,u3]);
+
+  fun is_real (_,t1,t2,t3) = (t1=0 andalso t2=0 andalso t3=0)
+end
