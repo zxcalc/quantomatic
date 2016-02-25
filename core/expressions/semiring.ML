@@ -96,18 +96,14 @@ struct
 
   fun complement a = times ( times ( g1 a, g2 a), g3 a)
 
-(*Rounded division*)
-  fun rDiv (a,b) =
-    let
-      val d = a div b
-      val r = a mod b
-      val r2 = if r <= (b div 2) then 0 else 1
+  fun norm a = let
+      val (n,_,_,_) = times (a, complement a)
     in
-      d + r2
+      n
     end
 
-(*To be shown that this is indeed a Euclidean function!*)
-  fun divide ((r, t1, t2, t3),(s,0,0,0)) = (rDiv(r,s),rDiv(t1,s),rDiv(t2,s),rDiv(t3,s))
+(*To be shown that this is indeed a Euclidean domain!*)
+  fun divide ((r, t1, t2, t3),(s,0,0,0)) = (r div s,t1 div s,t2 div s,t3 div s)
     | divide (num, denom) = divide (times (num, complement denom), times (denom, complement denom))
 
   val zero = (0,0,0,0)
@@ -121,10 +117,12 @@ struct
 
   val eq = (op=)     
 
-(*Euclid*)                       
-  fun gcd (a,(0,0,0,0)) = a
-    | gcd ((0,0,0,0),a) = a
-    | gcd (a,b) = gcd (b,minus(a,divide(a,b)))
+  fun modulo (a,b) = minus(a,times(b,divide(a,b)))
+
+(*Euclid, but return one if we reach a unit*)                       
+  fun gcd (a,(0,0,0,0)) = if ((norm a) = 1) then one else a
+    | gcd ((0,0,0,0),a) = if ((norm a) = 1) then one else a
+    | gcd (a,b) = gcd (b,modulo(a,b))
       
 fun total_ord ((r,t1,t2,t3), (s,u1,u2,u3)) =
  list_ord int_ord ([r,t1,t2,t3], [s,u1,u2,u3]);
