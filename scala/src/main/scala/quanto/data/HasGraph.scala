@@ -19,3 +19,5 @@ trait HasGraph extends Publisher {
     publish(GraphChanged(this))
   }
 }
+
+class GraphRef(var gr : Graph) extends HasGraph

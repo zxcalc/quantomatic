@@ -75,6 +75,7 @@ abstract class Document extends Publisher {
       case e: JsonParseException => errorDialog("load", "mal-formed JSON: " + e.getMessage)
       case e: GraphLoadException => errorDialog("load", "invalid graph: " + e.getMessage)
       case e: RuleLoadException => errorDialog("load", "invalid rule: " + e.getMessage)
+      case e: SynthLoadException => errorDialog("load", "invalid synth: " + e.getMessage)
       case e: DerivationLoadException => errorDialog("load", "invalid derivation: " + e.getMessage)
       case e: FileNotFoundException => errorDialog("load", "file not found")
       case e: IOException => errorDialog("load", "file unreadable")
