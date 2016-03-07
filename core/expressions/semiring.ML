@@ -15,7 +15,9 @@ sig
   val gcd : T * T -> T             (* greatest common (real) divisor *)
   val total_ord : T * T -> order   (* any total order. plus and times need not be monotone *)
   val conjugate : T -> T           (* any involution *)
-  val is_real : T -> bool          (* is equal to conjugate *)
+  val complement : T -> T          (* the product of the Galois conjugates *)
+                                   (* used for reduction to scalar normal form *)
+  val is_real : T -> bool          (* is an integer! Needs to be in Z for tensor comparisons *)
 end
 
 structure IntSemiring : GCD_SEMIRING =
@@ -38,6 +40,7 @@ struct
 
   val total_ord = int_ord
   val conjugate = I
+  val complement = conjugate
   val is_real = K true
 end
 
@@ -49,6 +52,7 @@ struct
   fun plus ((r1,i1),(r2,i2)) = (r1+r2,i1+i2)
   fun times ((r1,i1),(r2,i2)) = (r1*r2 - i1*i2, r1*i2 + r2*i1)
   fun conjugate (r,i) = (r,~i)
+  fun complement a = conjugate a
   fun divide ((r1,i1),(r2,0)) = (r1 div r2, i1 div r2)
     | divide (num,denom) = divide (times (num, conjugate denom), times (denom, conjugate denom))
   val zero = (0,0)
@@ -86,7 +90,7 @@ struct
   fun neg a = times((~1,0,0,0),a)
   fun minus (a,b) = plus(a,neg b)
 
-  fun conjugate (r,t1,t2,t3) = (r,~t3,~t2,~t1)
+
 
 (*Galois conjugates*)
   fun g1 (a,b,c,d) = (a,d,~c,b)
@@ -95,6 +99,8 @@ struct
 
 
   fun complement a = times ( times ( g1 a, g2 a), g3 a)
+
+  fun conjugate (r,t1,t2,t3) = (r,~t3,~t2,~t1)
 
   fun norm a = let
       val (n,_,_,_) = times (a, complement a)

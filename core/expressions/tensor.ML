@@ -83,7 +83,7 @@ struct
   fun reduce (size, vect) = let
     val c = case Vector.find (not o Semiring.is_zero) vect
               of SOME v => if Semiring.is_real v then Semiring.one
-                           else Semiring.conjugate v
+                           else Semiring.complement v
                | NONE   => Semiring.one
     val vect' = if Semiring.is_one c then vect else Vector.map ((curry Semiring.times) c) vect
     val n = Vector.foldr (Semiring.gcd) Semiring.zero vect'
