@@ -225,8 +225,27 @@ struct
   in fold_product f (perms u) (perms l) (Tab.empty)
   end
   
+
+
+  fun fake_perm size = let
+    fun lst 0 = [] | lst n = (n-1)::(lst (n-1))
+  in [lst size]
+  end
+
+  fun fake_perms (t as ((d,l,u),_)) = let
+    fun f prow pcol tab = let
+      val (sc, tens) = reduce (tensorf (d,l,u) (permrowcol_get t prow pcol))
+    in tab |> Tab.update (tens, (sc,prow,pcol))
+    end
+  in fold_product f (fake_perm u) (fake_perm l) (Tab.empty)
+  end
+
+(* Normalisation via Permutation has been removed for now! *)
+(* To recover: change fake_perms to all_perms in fun normalise *)
+(* This is to combat interference between scalar normalisation and permutation normalisation *)
+
   fun normalise t = let
-    val perm_table = all_perms t
+    val perm_table = fake_perms t
     val (t',_) = the (Tab.min perm_table)
   in (the (Tab.lookup perm_table t'), t')
   end
