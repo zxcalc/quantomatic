@@ -94,7 +94,7 @@ fun synth_run gens (sz as (i,j,k,l)) tab = let
             Int.toString k ^ "," ^ Int.toString l ^
           ")\n")
   val tab = tab |> Enum.tab_update gens sz
-  val _ = TextIO.print "done\n"
+  val _ = TextIO.print "Finished enumeration run\n"
 in
   tab
 end
@@ -102,7 +102,7 @@ end
 fun synth gens rs0 runs = let
   val _ = TextIO.print ("Initialising synthesis\n")
   val tab = Enum.EqClassTab.empty |> Enum.EqClassTab.set_initial_rs rs0
-  val _ = TextIO.print "done\n"
+  val _ = TextIO.print "done initialising synthesis\n"
   val tab = fold (synth_run gens) runs tab
   (*val rs = Enum.EqClassTab.get_ruleset tab*)
   val file = fresh_output_file "synth" ".qsynth"
