@@ -4,6 +4,7 @@ sig
   (*exception DivisionByComplex*)
   val plus : T * T -> T
   val times : T * T -> T
+  val neg : T -> T
   val zero : T
   val one : T
   val divide : T * T -> T
@@ -26,6 +27,7 @@ struct
   val plus = op+
   val times = op*
   val divide = op div
+  fun neg v = ~v
   val zero = 0
   val one = 1
   fun is_zero v = (v=zero)
@@ -51,6 +53,7 @@ struct
   
   fun plus ((r1,i1),(r2,i2)) = (r1+r2,i1+i2)
   fun times ((r1,i1),(r2,i2)) = (r1*r2 - i1*i2, r1*i2 + r2*i1)
+  fun neg (r,i) = (~r,~i)
   fun conjugate (r,i) = (r,~i)
   fun complement a = conjugate a
   fun divide ((r1,i1),(r2,0)) = (r1 div r2, i1 div r2)
