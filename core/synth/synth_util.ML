@@ -101,12 +101,18 @@ end
 
 fun synth gens rs0 runs = let
   val _ = TextIO.print ("Initialising synthesis\n")
+  val start_time = Time.now ()
   val tab = Enum.EqClassTab.empty |> Enum.EqClassTab.set_initial_rs rs0
   val _ = TextIO.print "done initialising synthesis\n"
   val tab = fold (synth_run gens) runs tab
-  (*val rs = Enum.EqClassTab.get_ruleset tab*)
+  val rs = Enum.EqClassTab.get_ruleset tab 
+  val dir = mk_output_dir () 
+  val _ = TextIO.print ("saving output ruleset to: " ^ dir ^ "\n")
+  val _ = save_ruleset dir rs  (*Ruleset constructed here. *)
   val file = fresh_output_file "synth" ".qsynth"
-  val _ = TextIO.print ("saving output to: " ^ file ^ "\n")
+  val _ = TextIO.print ("saving output classes to: " ^ file ^ "\n")
+  val end_time = Time.now ()
+  val _ = TextIO.print("This took "^(Time.toString (end_time - start_time))^" seconds.\n")
 in
   save_synth file tab
 end
