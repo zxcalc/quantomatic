@@ -81,12 +81,22 @@ struct
   
   (* reduce to scalar-canonical form. reduce T = ((a,b), T') ==> a/b T = T' *)
   fun reduce (size, vect) = let
+  (*First remove any common divisors. Then ensure the first entry is real.*)
+    val gcd = Vector.foldr (Semiring.gcd) Semiring.zero vect
+    val gcd = if Semiring.is_zero gcd then Semiring.one
+      else gcd
     val c = case Vector.find (not o Semiring.is_zero) vect
-              of SOME v => if Semiring.is_real v then Semiring.one
-                           else Semiring.complement v
+              of SOME v => if Semiring.is_real (Semiring.divide (v, gcd)) then Semiring.one
+                           else Semiring.complement (Semiring.divide (v, gcd))
                | NONE   => Semiring.one
+    val m = case Vector.find (not o Semiring.is_zero) vect
+              of SOME v => if Semiring.total_ord(v,Semiring.zero) = LESS then
+                              (Semiring.neg Semiring.one)
+                           else Semiring.one
+               | NONE   => Semiring.one
+    val c = Semiring.times(c,m)
     val vect' = if Semiring.is_one c then vect else Vector.map ((curry Semiring.times) c) vect
-    val n = Vector.foldr (Semiring.gcd) Semiring.zero vect'
+    val n = gcd
   in if Semiring.is_zero n then ((Semiring.one, Semiring.one), (size,vect))
                            else ((c,n), (size, Vector.map (fn m =>Semiring.divide (m,n)) vect'))
   end
