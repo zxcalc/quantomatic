@@ -82,23 +82,27 @@ struct
   (* reduce to scalar-canonical form. reduce T = ((a,b), T') ==> a/b T = T' *)
   fun reduce (size, vect) = let
   (*First remove any common divisors. Then ensure the first entry is real.*)
-    val gcd = Vector.foldr (Semiring.gcd) Semiring.zero vect
-    val gcd = if Semiring.is_zero gcd then Semiring.one
-      else gcd
-    val c = case Vector.find (not o Semiring.is_zero) vect
-              of SOME v => if Semiring.is_real (Semiring.divide (v, gcd)) then Semiring.one
-                           else Semiring.complement (Semiring.divide (v, gcd))
+    val gcd_or_zero = Vector.foldr (Semiring.gcd) Semiring.zero vect
+    val gcd = if Semiring.is_zero gcd_or_zero then Semiring.one
+      else gcd_or_zero
+    fun swap f (a,b) = f (b,a)
+    val vect' = if Semiring.is_one gcd then vect else Vector.map ((curry (swap Semiring.divide)) gcd) vect
+   (*vect'  holds vect/gcd*)
+    val c = case Vector.find (not o Semiring.is_zero) vect'
+              of SOME v => if Semiring.is_real v then Semiring.one
+                           else Semiring.complement v
                | NONE   => Semiring.one
-    val m = case Vector.find (not o Semiring.is_zero) vect
+    val vect'' = if Semiring.is_one c then vect' else Vector.map ((curry Semiring.times) c) vect'
+    (*vect''  holds c*vect/gcd *)
+    val m = case Vector.find (not o Semiring.is_zero) vect''
               of SOME v => if Semiring.total_ord(v,Semiring.zero) = LESS then
                               (Semiring.neg Semiring.one)
                            else Semiring.one
                | NONE   => Semiring.one
-    val c = Semiring.times(c,m)
-    val vect' = if Semiring.is_one c then vect else Vector.map ((curry Semiring.times) c) vect
-    val n = gcd
-  in if Semiring.is_zero n then ((Semiring.one, Semiring.one), (size,vect))
-                           else ((c,n), (size, Vector.map (fn m =>Semiring.divide (m,n)) vect'))
+    val vect''' = if Semiring.is_one m then vect'' else Vector.map ((curry Semiring.times) m) vect''
+    (* vect''' is vect'' with the first entry positive i.e. (c*m*vect)/gcd *)
+  in
+    ((Semiring.times(m,c),gcd), (size, vect'''))
   end
   
   fun get_from_product t1 (t2 as ((d2, l2, u2), v2)) (row,col) = let
