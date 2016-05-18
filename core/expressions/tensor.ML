@@ -255,7 +255,7 @@ struct
 (* This is to combat interference between scalar normalisation and permutation normalisation *)
 
   fun normalise t = let
-    val perm_table = fake_perms t
+    val perm_table = all_perms t
     val (t',_) = the (Tab.min perm_table)
   in (the (Tab.lookup perm_table t'), t')
   end
