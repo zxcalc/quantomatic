@@ -80,6 +80,57 @@ struct
   fun is_real (_,i) = (i=0)
 end
 
+structure CubicIntegers : GCD_SEMIRING =
+struct
+type T = int * int * int
+
+(*Considered as polynomials in Z[X]/(X^2+X+1)*)
+
+  fun plus ((a,b,c),(d,e,f)) = (a+d,b+e,c+f)
+  fun times ((a,b,c),(d,e,f)) = (a*d+e*c+b*f,a*e+b*d+c*f,c*d+e*b+a*f)
+
+  fun neg ((a,b,c)) = (~a,~b,~c)
+  fun minus (a,b) = plus(a,neg b)
+
+(*Galois conjugates*)
+  fun g1 (a,b,c) = (a,c,b)
+  fun complement a = g1 a
+  fun conjugate a = complement a
+
+
+  fun norm a = let
+      val (n,_,_) = times (a, complement a)
+    in
+      n
+    end
+
+  fun divide ((a,b,c),(d,0,0)) = (a div d,b div d,c div d)
+    | divide (num, denom) = divide (times (num, complement denom), times (denom, complement denom))
+
+  val zero = (0,0,0)
+  val one = (1,0,0)
+
+  fun is_zero v = (v=zero)
+  fun is_one v = (v=one)
+
+  fun to_string (a,b,c) = Pretty.string_of (Pretty.list "(" ")" (map (Pretty.str o Int.toString) [a,b,c]))
+
+
+  val eq = (op=)     
+
+  fun modulo (a,b) = minus(a,times(b,divide(a,b)))
+
+(*Euclid, but return one if we reach a unit*)                       
+  fun gcd (a,(0,0,0)) = if ((norm a) = 1) then one else a
+    | gcd ((0,0,0),a) = if ((norm a) = 1) then one else a
+    | gcd (a,b) = gcd (b,modulo(a,b))
+      
+fun total_ord ((a,b,c), (d,e,f)) =
+ list_ord int_ord ([a,b,c], [d,e,f]);
+
+  fun is_real (_,b,c) = (b=0 andalso c=0) (*actually is_int*)
+end
+
 
 structure Pi4Integers : GCD_SEMIRING =
 struct

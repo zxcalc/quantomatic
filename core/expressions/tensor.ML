@@ -288,6 +288,7 @@ end
 structure IntTensor = Tensor(IntSemiring)
 structure CIntTensor = Tensor(CIntSemiring)
 structure Pi4Tensor = Tensor(Pi4Integers)
+structure CubicTensor = Tensor(CubicIntegers)
 
 (*val t1 = Tensor.tensor (2,2,1)
 [ 0, 4, 0,  8,
