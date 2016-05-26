@@ -187,5 +187,5 @@ struct
 fun total_ord ((r,t1,t2,t3), (s,u1,u2,u3)) =
  list_ord int_ord ([r,t1,t2,t3], [s,u1,u2,u3]);
 
-  fun is_real (_,t1,t2,t3) = (t1=0 andalso t2=0 andalso t3=0)
+  fun is_real (_,t1,t2,t3) = (t1=0 andalso t2=0 andalso t3=0) (*actually is_int*)
 end
