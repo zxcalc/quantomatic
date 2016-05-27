@@ -66,7 +66,7 @@ class SynthPanel(val theory: Theory, val readOnly: Boolean = false)
           SynthOutput.contents += new Label("congruences")
           val congs = new FlowPanel()
           for ((_,gr) <- c.congs)
-            congs.contents += new GraphView(theory, new GraphRef(lo.layout(gr)))
+            congs.contents += new GraphView(theory, new GraphRef(gr))
           SynthOutput.contents += congs
           SynthOutput.contents += new Separator
 
