@@ -65,6 +65,9 @@ sig
    * This will never fail. *)
   val extend_fresh : DomSet.T -> T -> T
 
+  (* the same, but also take a function which suggests a new name *)
+  val extend_fresh_suggest : (dom -> dom) -> DomSet.T -> T -> T  
+
   val get_cod_avoids : T -> CodSet.T
   val avoid_in_cod : cod -> T -> T
   val avoid_set_in_cod : CodSet.T -> T -> T
@@ -223,18 +226,21 @@ struct
   fun avoid_set_in_cod nset = CodSet.fold avoid_in_cod nset
   fun clear_avoids mp = mp |> set_cod_avoids CodSet.empty
 
-  fun add_fresh old_n mp = let
+  fun add_fresh_suggest suggest old_n mp = let
     val avoid = CodSet.union_merge (get_cod_avoids mp) (get_cod_set mp)
-    val new_n = CodSet.new avoid old_n
+    val new_n = CodSet.new avoid (suggest old_n)
   in (new_n, mp |> add (old_n, new_n))
   end
+
+  fun add_fresh old_n mp = add_fresh_suggest I old_n mp
   
   val add_fresh_anon = snd oo add_fresh
-  
-  fun extend_fresh nset mp =
-    DomSet.fold (fn n => if dom_contains mp n then I else add_fresh_anon n) nset mp
 
-  
+  fun extend_fresh_suggest suggest nset mp =
+    DomSet.fold (fn n => if dom_contains mp n then I else snd o (add_fresh_suggest suggest n)) nset mp
+
+  fun extend_fresh nset mp = extend_fresh_suggest I nset mp
+
   val empty_rep : rep = { tab = Tab.empty, itab = Tab.empty,
                           dom_set = DomSet.empty, cod_set = CodSet.empty,
                           cod_avoids = CodSet.empty }

@@ -254,6 +254,7 @@ fun set_bbox_annotation (bb,ann) g = g |> update_bb_anno (BTab.set (bb,ann))
 
 fun get_nvdata_tab g = VTab.fold (fn (k,v) => case v of NVert nv => VTab.add (k, nv) | _ => I) (get_vdata g) VTab.empty
 val get_vdata_tab    = get_vdata
+val get_v_anno_tab   = get_v_anno
 fun get_edata_tab  g = ETab.fold (fn (k,v) => ETab.add (k, snd v)) (get_edata g) ETab.empty
 val default_wv_vdata = WVert
 val default_nv_vdata = NVert default_nvdata
@@ -1365,7 +1366,10 @@ fun expand_bbox bb ((vsub,esub,bsub),g) = let
   val old_edges = V.NSet.fold (E.NSet.union_merge o get_adj_edges' g) old_vertices E.NSet.empty
   (* if this function is called by replay_bbox_op, vsub might have a bigger domain than
    * old_vertices *)
-  val vsub' = VSub.restrict_dom old_vertices (VSub.extend_fresh old_vertices vsub)
+  
+  fun new_vert_name v = V.mk (V.dest v ^ B.dest bb)
+
+  val vsub' = VSub.restrict_dom old_vertices (VSub.extend_fresh_suggest new_vert_name old_vertices vsub)
   val esub' = ESub.extend_fresh old_edges esub
   val bsub' = BSub.extend_fresh old_bb_children bsub
 

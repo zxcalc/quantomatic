@@ -130,6 +130,7 @@ val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
 
 
 val get_vdata_tab : T -> vdata VTab.T
+val get_v_anno_tab : T -> Json.jobj VTab.T
 val get_edata_tab : T -> edata ETab.T
 
 val get_vertex_data : T -> V.name -> vdata

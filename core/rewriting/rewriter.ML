@@ -102,8 +102,8 @@ struct
         (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
 
   val log_graph = log_p Graph.pretty
-  val log_vrnm = log_p V.Rnm.pretty
-  val log_ernm = log_p E.Rnm.pretty
+  (*val log_vrnm = log_p V.Rnm.pretty
+  val log_ernm = log_p E.Rnm.pretty*)
 
   fun find_matches rule graph = Matcher.match (Rule.get_lhs rule) graph
 
@@ -115,6 +115,15 @@ struct
     val pat = Match.get_pat m
     val (vmap,emap) = (Match.get_vmap m, Match.get_emap m)
     val rhs' = snd (rhs |> Graph.apply_data_subst (Match.get_subst m))
+
+    (* try, whenever possible, to inherit vertex annotations (e.g. coords) from the target graph *)
+    val v_anno = VTab.compose (Graph.get_v_anno_tab g, vmap)
+    val rhs' = V.NSet.fold
+      (fn v => fn g =>
+        case VTab.get_opt v_anno v
+          of SOME a => g |> Graph.set_vertex_annotation (v, a)
+           | NONE => g) 
+      (Graph.get_vertices rhs') rhs'
 
     val shared_boundary = Graph.get_boundary pat
     val lhs_interior = V.NSet.subtract (Graph.get_vertices pat) shared_boundary
