@@ -11,6 +11,8 @@ import quanto.util.json._
  * @author Aleks Kissinger
  */
 abstract class VData extends GraphElementData {
+  def annotation : JsonObject
+
   /**
    * Get coordinates of vertex
    * @throws JsonAccessException

@@ -43,7 +43,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
           if (simpId == sid) {
             val suggest = simproc + "-" + (json / "rule_name").stringValue.replaceFirst("^.*\\/", "") + "-0"
             val sname = panel.derivation.steps.freshWithSuggestion(DSName(suggest))
-            val step = DStep.fromJson(sname, json, theory) //.layout
+            val step = DStep.fromJson(sname, json, theory).layout
 
             Swing.onEDT {
               panel.document.derivation = panel.document.derivation.addStep(parentOpt, step)

@@ -70,7 +70,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
           ruleName = rd.name,
           rule = Rule.fromJson(obj / "rule", theory),
           variant = if (rd.inverse) RuleInverse else RuleNormal,
-          graph = Graph.fromJson(obj / "graph", theory)) //.layout
+          graph = Graph.fromJson(obj / "graph", theory)).layout
 
         //println("found nodes: " + (rule.rhs.verts intersect graph.verts))
 
