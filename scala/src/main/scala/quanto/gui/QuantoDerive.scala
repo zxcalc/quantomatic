@@ -246,6 +246,17 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
+    val NewScalaAction = new Action("New Scala Document") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.A }
+      def apply() {
+        CurrentProject.map{ project =>
+          val page = new ScalaDocumentPage
+          MainTabbedPane += page
+          MainTabbedPane.selection.index = page.index
+        }
+      }
+    }
+
     def updateNewEnabled() {
       CurrentProject match {
         case Some(_) =>
@@ -607,6 +618,7 @@ object QuantoDerive extends SimpleSwingApplication {
                 case "qrule"   => Some(new RuleDocumentPage(project.theory))
                 case "qderive" => Some(new DerivationDocumentPage(project))
                 case "ML"      => Some(new MLDocumentPage)
+                case "scala"      => Some(new ScalaDocumentPage)
                 case _         => None
               }
 

@@ -35,6 +35,11 @@ extends DocumentPage(new MLEditPanel) {
   val documentType = "ML Code"
 }
 
+class ScalaDocumentPage
+  extends DocumentPage(new ScalaEditPanel) {
+  val documentType = "Scala Code"
+}
+
 class DerivationDocumentPage(val project: Project)
 extends DocumentPage(new DerivationPanel(project)) {
   val documentType = "Derivation"
