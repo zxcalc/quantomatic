@@ -41,7 +41,7 @@ class MLEditPanel extends BorderPanel with HasDocument {
 //    }
 //  })
 
-  val document = new MLDocument(this, mlCode)
+  val document = new CodeDocument("ML Code", "ML", this, mlCode)
 
   val textPanel = new BorderPanel {
     peer.add(mlCode, BorderLayout.CENTER)

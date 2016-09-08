@@ -45,9 +45,10 @@ class JEditBuffer1 extends JEditBuffer {
 }
 
 
-class MLDocument(val parent: Component, textArea: StandaloneTextArea) extends Document { doc =>
-  val description = "ML Code"
-  val fileExtension = "ML"
+class CodeDocument(val description: String, val fileExtension: String,
+                   val parent: Component, textArea: StandaloneTextArea) extends Document { doc =>
+//  val description = "ML Code"
+//  val fileExtension = "ML"
   private val _jeditUndoStack = new JEditBufferUndoStack(textArea)
   override def undoStack = _jeditUndoStack
 
