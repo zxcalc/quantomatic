@@ -57,13 +57,32 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   qLayout.alpha0 = 0.005
   qLayout.alphaAdjust = 1.0
   qLayout.keepCentered = false
+  val q1Layout = new ForceLayout
+  q1Layout.gravity = 0
+  q1Layout.nodeCharge = 0
+  q1Layout.alpha0 = 0.005
+  q1Layout.alphaAdjust = 1.0
+  q1Layout.keepCentered = false
 
-  val layoutTimer = new javax.swing.Timer(10, new ActionListener {
+  val layoutTimer = new javax.swing.Timer(5, new ActionListener {
     def actionPerformed(e: ActionEvent) {
       if (qLayout.graph != null) {
         qLayout.step()
         qLayout.updateGraph()
         graph = qLayout.graph
+        graphRef.publish(GraphReplaced(graphRef, clearSelection = false))
+      } else {
+        println("null graph")
+      }
+    }
+  })
+
+  val layoutTimer1 = new javax.swing.Timer(5, new ActionListener {
+    def actionPerformed(e: ActionEvent) {
+      if (q1Layout.graph != null) {
+        q1Layout.step()
+        q1Layout.updateGraph()
+        graph = q1Layout.graph
         graphRef.publish(GraphReplaced(graphRef, clearSelection = false))
       } else {
         println("null graph")
@@ -154,6 +173,23 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
       addEdge(e, d, vs)
       if (selected) selectedEdges += e
     }
+  }
+
+  private def flipEdge(e: EName): Unit = {
+    graph = graph.deleteEdge(e).addEdge(e, graph.edata(e), (graph.target(e),graph.source(e)))
+    view.invalidateEdge(e)
+
+    undoStack.register("Flip edge direction") { flipEdge(e) }
+  }
+
+  private def toggleDirected(e: EName): Unit = {
+    val d = graph.edata(e)
+    val vs = (graph.source(e), graph.target(e))
+    if (d.isDirected) graph = graph.deleteEdge(e).addEdge(e, d.toUndirEdge, vs)
+    else graph = graph.deleteEdge(e).addEdge(e, d.toDirEdge, vs)
+    view.invalidateEdge(e)
+
+    undoStack.register("Toggle edge directed") { toggleDirected(e) }
   }
 
 
@@ -247,6 +283,18 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         view.invalidateVertex(v)
         graph.adjacentEdges(v).foreach { view.invalidateEdge }
         undoStack.register("Set Vertex Data") { setVertexValue(v, oldVal) }
+      case _ =>
+    }
+  }
+
+  private def setVertexTyp(v: VName, typ: String) {
+    graph.vdata(v) match {
+      case data: NodeV =>
+        val oldTyp = data.typ
+        graph = graph.updateVData(v) { _ => data.withTyp(typ) }
+        view.invalidateVertex(v)
+        graph.adjacentEdges(v).foreach { view.invalidateEdge }
+        undoStack.register("Set Vertex Type") { setVertexTyp(v, oldTyp) }
       case _ =>
     }
   }
@@ -346,10 +394,19 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
               vertexHit.map{v => (v,graph.vdata(v))} match {
                 case Some((v, data: NodeV)) =>
-                  Dialog.showInput(
-                    title = "Vertex data",
-                    message = "Vertex data",
-                    initial = data.value.stringValue).map { newVal => setVertexValue(v, newVal) }
+                  if ((modifiers & Modifier.Control) == Modifier.Control) {
+                    Dialog.showInput(
+                      title = "Vertex type",
+                      message = "Vertex type",
+                      initial = data.typ).map { newTyp => setVertexTyp(v, newTyp) }
+                  } else {
+                    Dialog.showInput(
+                      title = "Vertex data",
+                      message = "Vertex data",
+                      initial = data.value.stringValue).map { newVal => setVertexValue(v, newVal) }
+                  }
+                  view.repaint()
+
                 case _ =>
                   val edgeHit = view.edgeDisplay find { _._2.pointHit(pt) } map { _._1 }
                   edgeHit.map { e =>
@@ -605,22 +662,24 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         undoStack.commit()
         view.repaint()
       }
-    case KeyPressed(_, Key.R, _, _) =>
+    case KeyPressed(_, Key.R, m, _) =>
       if (!rDown) {
+        val layout = if ((m & Modifier.Shift) == Modifier.Shift) q1Layout else qLayout
         rDown = true
-        qLayout.initialize(graph, randomCoords = false)
-        qLayout.clearLockedVertices()
+        layout.initialize(graph, randomCoords = false)
+        layout.clearLockedVertices()
         if (!selectedVerts.isEmpty) {
-          graph.verts.foreach { v => if (!selectedVerts.contains(v)) qLayout.lockVertex(v) }
+          graph.verts.foreach { v => if (!selectedVerts.contains(v)) layout.lockVertex(v) }
         }
 
         undoStack.start("Relax layout")
         replaceGraph(graph, "")
-        layoutTimer.start()
+        if ((m & Modifier.Shift) == Modifier.Shift) layoutTimer1.start() else layoutTimer.start()
       }
     case KeyReleased(_, Key.R, _, _) =>
       rDown = false
       layoutTimer.stop()
+      layoutTimer1.stop()
 
       replaceGraph(graph, "")
       undoStack.commit()
@@ -668,5 +727,15 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
       if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) {
         snapToGrid()
       }
+    case KeyPressed(_, Key.F, _, _) =>
+      undoStack.start("Flip edge direction")
+      selectedEdges.foreach { flipEdge }
+      undoStack.commit()
+      view.repaint()
+    case KeyPressed(_, Key.D, _, _) =>
+      undoStack.start("Toggle edge directed")
+      selectedEdges.foreach { toggleDirected }
+      undoStack.commit()
+      view.repaint()
   }
 }

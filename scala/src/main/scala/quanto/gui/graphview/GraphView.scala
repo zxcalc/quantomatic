@@ -510,11 +510,12 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
         val coord = coordToString(trans_coord)
 
         val data = vd match {
-          case vertexData : NodeV => vertexData.value
-          case _ => JsonString("")
+          case vertexData : NodeV => if (vertexData.value.stringValue == "") ""
+                                     else "$" + vertexData.value.stringValue + "$"
+          case _ => ""
         }
 
-        p.println("\t\t\\node [style=" + style +"] (" + number + ") at " + coord + " {" + data.stringValue +"};")
+        p.println("\t\t\\node [style=" + style +"] (" + number + ") at " + coord + " {" + data +"};")
       }
 
       /* fill in corners of !-boxes */

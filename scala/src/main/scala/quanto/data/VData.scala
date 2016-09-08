@@ -78,6 +78,9 @@ case class NodeV(
   def withValue(s: String) =
     copy(data = data.setPath("$.value", s).asObject)
 
+  def withTyp(s: String) =
+    copy(data = data.setPath("$.type", s).asObject)
+
   def isWireVertex = false
   def isBoundary = false
 
