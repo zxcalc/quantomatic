@@ -34,7 +34,7 @@ seq(appbundle.settings: _*)
 
 appbundle.mainClass := Some("quanto.gui.QuantoDerive")
 
-appbundle.javaVersion := "1.6+"
+appbundle.javaVersion := "1.7+"
 
 appbundle.screenMenu := true
 

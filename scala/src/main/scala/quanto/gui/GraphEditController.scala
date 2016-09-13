@@ -432,6 +432,8 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
                 if (!selectedVerts.contains(v)) {
                   if ((modifiers & Modifier.Shift) != Modifier.Shift) {
                     selectedVerts = Set(v)
+                    selectedEdges = Set()
+                    selectedBBoxes = Set()
                   } else {
                     selectedVerts += v
                   }
@@ -523,15 +525,16 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
           view.computeDisplayData()
 
-          if (pt.getX == start.getX && pt.getY == start.getY) {
+          // add some wiggle room so moving by a few pixels still counts as a "click"
+          if (math.abs(pt.getX - start.getX) < 3 && math.abs(pt.getY - start.getY) < 3) {
             var selectionUpdated = false
-            view.vertexDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedVerts += x._1 }
+            view.vertexDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; selectedVerts += x._1 }
 
             if (!selectionUpdated)
-              view.edgeDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedEdges += x._1 }
+              view.edgeDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; selectedEdges += x._1 }
 
             if (!selectionUpdated)
-              view.bboxDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedBBoxes += x._1 }
+              view.bboxDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; selectedBBoxes += x._1 }
 
           } else {
             // box selection does not affect edges

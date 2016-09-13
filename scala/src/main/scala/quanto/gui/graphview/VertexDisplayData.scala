@@ -8,7 +8,13 @@ import quanto.gui._
 import quanto.core.data.TexConstants
 
 case class VDisplay(shape: Shape, color: Color, label: Option[LabelDisplayData]) {
-  def pointHit(pt: Point2D) = shape.contains(pt)
+  def pointHit(pt: Point2D) = {
+    val bnd = shape.getBounds2D
+    pt.getX >= bnd.getMinX - GraphView.VertexSelectionTolerence &&
+      pt.getX <= bnd.getMaxX + GraphView.VertexSelectionTolerence &&
+      pt.getY >= bnd.getMinY - GraphView.VertexSelectionTolerence &&
+      pt.getY <= bnd.getMaxY + GraphView.VertexSelectionTolerence
+  }
   def rectHit(r: Rectangle2D) = shape.intersects(r)
 }
 

@@ -662,7 +662,8 @@ object GraphView {
   final val WireRadius = 0.1
   final val ArrowheadLength = 0.15
   final val ArrowheadAngle = 0.2 * Pi
-  final val EdgeSelectionRadius = 3.0
+  final val EdgeSelectionRadius = 7.0
+  final val VertexSelectionTolerence = 3.0
   final val VertexLabelFont = new Font("Dialog", AWTFont.PLAIN, 8)
   final val EdgeLabelFont = new Font("Dialog", AWTFont.PLAIN, 8)
 

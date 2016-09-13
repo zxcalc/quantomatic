@@ -1,6 +1,8 @@
 package quanto.gui
 
 
+import org.python.util.PythonInterpreter
+
 import scala.swing._
 import scala.swing.event.{SelectionChanged, Key}
 import javax.swing.{UIManager, KeyStroke}
@@ -29,6 +31,8 @@ object QuantoDerive extends SimpleSwingApplication {
   val core = actorSystem.actorOf(Props { new Core }, "core")
   implicit val timeout = Timeout(1.day)
 
+  // pre-initialise jython, so its zippy when the user clicks "run" in a script
+  new Thread(new Runnable { def run() { new PythonInterpreter() }}).start()
 
   println(new File(".").getAbsolutePath)
 
@@ -63,7 +67,7 @@ object QuantoDerive extends SimpleSwingApplication {
   val ProjectFileTree = new FileTree
   ProjectFileTree.preferredSize = new Dimension(250,360)
   ProjectFileTree.filenameFilter = Some(new FilenameFilter {
-    val extns = Set("qgraph", "qrule", "qderive", "ML")
+    val extns = Set("qgraph", "qrule", "qderive", "ML", "py")
     def accept(parent: File, name: String) = {
       val extn = name.lastIndexOf('.') match {
         case i if i > 0 => name.substring(i+1) ; case _ => ""}
@@ -246,11 +250,12 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
-    val NewScalaAction = new Action("New Scala Document") {
-      menu.contents += new MenuItem(this) { mnemonic = Key.A }
+    val NewPythonAction = new Action("New Python Script") {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Y, CommandMask | Key.Modifier.Shift))
+      menu.contents += new MenuItem(this) { mnemonic = Key.Y }
       def apply() {
         CurrentProject.map{ project =>
-          val page = new ScalaDocumentPage
+          val page = new PythonDocumentPage
           MainTabbedPane += page
           MainTabbedPane.selection.index = page.index
         }
@@ -618,7 +623,7 @@ object QuantoDerive extends SimpleSwingApplication {
                 case "qrule"   => Some(new RuleDocumentPage(project.theory))
                 case "qderive" => Some(new DerivationDocumentPage(project))
                 case "ML"      => Some(new MLDocumentPage)
-                case "scala"      => Some(new ScalaDocumentPage)
+                case "py"      => Some(new PythonDocumentPage)
                 case _         => None
               }
 

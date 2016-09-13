@@ -40,6 +40,11 @@ class ScalaDocumentPage
   val documentType = "Scala Code"
 }
 
+class PythonDocumentPage
+  extends DocumentPage(new PythonEditPanel) {
+  val documentType = "Python Script"
+}
+
 class DerivationDocumentPage(val project: Project)
 extends DocumentPage(new DerivationPanel(project)) {
   val documentType = "Derivation"
