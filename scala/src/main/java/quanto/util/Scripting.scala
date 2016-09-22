@@ -3,6 +3,7 @@ package quanto.util
 import java.io.File
 
 import akka.util.Timeout
+import org.python.core.{PyList, PyArray}
 import quanto.core._
 import quanto.data._
 import quanto.data.Names._
@@ -96,6 +97,16 @@ object Scripting {
         true
       } else {
         false
+      }
+    }
+
+    def normalise(rules: PyList) {
+      val n = rules.__len__()
+      var i = 0
+      while (i < n) {
+        val r = rules.get(i).asInstanceOf[(String,Rule)]
+        if (rewrite(r)) i = 0
+        else i += 1
       }
     }
 
