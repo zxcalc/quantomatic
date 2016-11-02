@@ -115,5 +115,7 @@ object Scripting {
       val json = Derivation.toJson(d, theory)
       json.writeTo(new File(path))
     }
+
+    def copy() : derivation = { val d1 = new derivation(start); d1.d = d; d1 }
   }
 }
