@@ -100,6 +100,9 @@ object Scripting {
       }
     }
 
+    def start_graph = d.root
+    def current_graph = d.firstHead.map(d.steps(_).graph).getOrElse(d.root)
+
     def normalise(rules: PyList) {
       val n = rules.__len__()
       var i = 0
