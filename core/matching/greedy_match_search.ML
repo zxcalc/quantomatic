@@ -1,4 +1,4 @@
-(* A wrapper for matching bang graphs against concrete graphs
+(* A wrapper for matching bang graphs against bang graphs
  * see docs/matching_algo for details
  *
  * This implements the "Lazy !-Box Expansion" algorithm
@@ -266,14 +266,13 @@ struct
   val log_e_nset = log_p E.NSet.pretty
   val log_b_nset = log_p B.NSet.pretty
 
-  fun init_with_fixed pat tgt pat_fix_tags tgt_fix_tags = let
+  fun init' pat tgt pat_fix_tags tgt_fix_tags prematch = let
     val toplevel_bbs = B.NSet.filter (not o (Graph.bbox_has_parents pat))
                                      (Graph.get_bboxes pat)
     val all_tags = F.NSet.union_merge (BFFn.get_cod_set pat_fix_tags)
                                       (BFFn.get_cod_set tgt_fix_tags)
     val pat_fixed = BFFn.get_dom_set pat_fix_tags
-  in
-    MatchState {
+    val init_state = MatchState {
       init_pat        = pat,
       bbox_ops        = [],
       wild_bboxes     = B.NSet.empty,
@@ -285,9 +284,20 @@ struct
       tgt_fix_tags    = tgt_fix_tags,
       inner_state     = InnerMatchState.init pat tgt
     }
+  in
+    VVInj.fold (fn pair => fn ms =>
+      update_inner_state (fn ims =>
+        case InnerMatchSearch.match_new_nv ms pair ims
+          of SOME ims' => ims'
+           | NONE => ims) ms) prematch init_state
   end
 
-  fun init pat tgt = init_with_fixed pat tgt BFFn.empty BFFn.empty
+  (*fun init_with_fixed pat tgt pat_fix_tags tgt_fix_tags =
+    init' pat tgt pat_fix_tags tgt_fix_tags []*)
+
+  fun init_with_prematch pat tgt prematch = init' pat tgt BFFn.empty BFFn.empty prematch
+
+  fun init pat tgt = init' pat tgt BFFn.empty BFFn.empty VVInj.empty
 
   fun schedule_new lvl bms = let
     val ms = get_inner_state bms
@@ -613,7 +623,11 @@ struct
   fun match pat tgt =
     match_normalised (Graph.normalise pat) (Graph.normalise tgt)
 
-  fun match_with_initial_nodes pat tgt nmap = match pat tgt
+  fun match_with_initial_nodes pat tgt prematch = let
+    val ms = init_with_prematch (Graph.normalise pat) (Graph.normalise tgt) prematch
+  in
+    find_matches (schedule_all_concrete (Graph.get_vertices tgt) ms)
+  end
 
   fun match_subgraph_normalised pat tgt tgt_verts = let
     val _ = log_graph 3 0 "GreedyMatchSearch: normalised pattern" pat
