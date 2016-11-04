@@ -266,13 +266,12 @@ struct
   val log_e_nset = log_p E.NSet.pretty
   val log_b_nset = log_p B.NSet.pretty
 
-  fun init' pat tgt pat_fix_tags tgt_fix_tags prematch = let
+  fun init' pat tgt pat_fix_tags tgt_fix_tags = let
     val toplevel_bbs = B.NSet.filter (not o (Graph.bbox_has_parents pat))
                                      (Graph.get_bboxes pat)
-    val all_tags = F.NSet.union_merge (BFFn.get_cod_set pat_fix_tags)
-                                      (BFFn.get_cod_set tgt_fix_tags)
     val pat_fixed = BFFn.get_dom_set pat_fix_tags
-    val init_state = MatchState {
+    in
+     MatchState {
       init_pat        = pat,
       bbox_ops        = [],
       wild_bboxes     = B.NSet.empty,
@@ -284,20 +283,12 @@ struct
       tgt_fix_tags    = tgt_fix_tags,
       inner_state     = InnerMatchState.init pat tgt
     }
-  in
-    VVInj.fold (fn pair => fn ms =>
-      update_inner_state (fn ims =>
-        case InnerMatchSearch.match_new_nv ms pair ims
-          of SOME ims' => ims'
-           | NONE => ims) ms) prematch init_state
   end
 
   (*fun init_with_fixed pat tgt pat_fix_tags tgt_fix_tags =
     init' pat tgt pat_fix_tags tgt_fix_tags []*)
 
-  fun init_with_prematch pat tgt prematch = init' pat tgt BFFn.empty BFFn.empty prematch
-
-  fun init pat tgt = init' pat tgt BFFn.empty BFFn.empty VVInj.empty
+  fun init pat tgt = init' pat tgt BFFn.empty BFFn.empty
 
   fun schedule_new lvl bms = let
     val ms = get_inner_state bms
@@ -624,9 +615,15 @@ struct
     match_normalised (Graph.normalise pat) (Graph.normalise tgt)
 
   fun match_with_prematch pat tgt prematch = let
-    val ms = init_with_prematch (Graph.normalise pat) (Graph.normalise tgt) prematch
+    val (pat',tgt') = (Graph.normalise pat, Graph.normalise tgt)
+    val ms = schedule_all_concrete (Graph.get_vertices tgt') (init pat' tgt')
+    val ms' = VVInj.fold (fn pair => fn ms =>
+      update_inner_state (fn ims =>
+        case InnerMatchSearch.match_new_nv ms pair ims
+          of SOME ims' => ims'
+           | NONE => ims) ms) prematch ms
   in
-    find_matches (schedule_all_concrete (Graph.get_vertices tgt) ms)
+    find_matches ms'
   end
 
   fun match_subgraph_normalised pat tgt tgt_verts = let
