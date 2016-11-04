@@ -623,7 +623,7 @@ struct
   fun match pat tgt =
     match_normalised (Graph.normalise pat) (Graph.normalise tgt)
 
-  fun match_with_initial_nodes pat tgt prematch = let
+  fun match_with_prematch pat tgt prematch = let
     val ms = init_with_prematch (Graph.normalise pat) (Graph.normalise tgt) prematch
   in
     find_matches (schedule_all_concrete (Graph.get_vertices tgt) ms)

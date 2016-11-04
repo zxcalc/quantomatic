@@ -69,7 +69,7 @@ sig
 
   (* Searches for matches that complete the given node map. If the
      given node map is already invalid, returns no matches. *)
-  val match_with_initial_nodes
+  val match_with_prematch
      : Graph.T              (* pattern graph *)
     -> Graph.T              (* target graph *)
     -> VVInj.T              (* an initial node map *)

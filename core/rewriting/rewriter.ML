@@ -30,21 +30,25 @@ sig
 
   (**
    * Find all matches of a rule's LHS in a graph
-   *
-   * As well as the matches, a prepared version of the rule is returned.
-   * This is the version that must be used for rewriting.
    *)
   val find_matches : Rule.T
                   -> Graph.T
                   -> match Seq.seq
 
   (**
+   * Find all matchings of a rule's LHS, given an initial mapping
+   * of vertices to try matching
+   *)
+  val find_matches_with_prematch : Rule.T
+                                 -> Graph.T
+                                 -> VVInj.T
+                                 -> match Seq.seq
+
+  (**
    * Find all matches of a rule's LHS in a subgraph of a graph
    *
-   * As well as the matches, a prepared version of the rule is returned.
-   * This is the version that must be used for rewriting.
    *
-   * The subgraph is defined by the vertex list given in the third argument.
+   * The subgraph is defined by the vertex set given in the third argument.
    *)
   val find_matches_in_subgraph : Rule.T
                               -> Graph.T
@@ -53,10 +57,21 @@ sig
 
   (**
    * Find all rewrites for a rule in a graph
+   *
+   * As well as the rewritten graph, a prepared version of the rule is returned.
    *)
   val find_rewrites : Rule.T
                    -> Graph.T
                    -> (Rule.T * Graph.T) Seq.seq
+
+  (**
+   * Find all rewrites for a rule in a graph, given an initial
+   * mapping of vertices to try matching
+   *)
+  val find_rewrites_with_prematch : Rule.T
+                                 -> Graph.T
+                                 -> VVInj.T
+                                 -> (Rule.T * Graph.T) Seq.seq
 
   (**
    * Find all rewrites for a rule in a subgraph of a graph
@@ -106,6 +121,9 @@ struct
   val log_ernm = log_p E.Rnm.pretty*)
 
   fun find_matches rule graph = Matcher.match (Rule.get_lhs rule) graph
+
+  fun find_matches_with_prematch rule graph prematch =
+    Matcher.match_with_prematch (Rule.get_lhs rule) graph prematch
 
   fun find_matches_in_subgraph rule graph vset =
     Matcher.match_subgraph (Rule.get_lhs rule) graph vset
@@ -169,6 +187,12 @@ struct
 
   fun find_rewrites r g = let
     val mseq = find_matches r g
+  in
+    Seq.map (rewrite_at r) mseq
+  end
+
+  fun find_rewrites_with_prematch r g prematch = let
+    val mseq = find_matches_with_prematch r g prematch
   in
     Seq.map (rewrite_at r) mseq
   end
