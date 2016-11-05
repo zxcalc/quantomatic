@@ -562,8 +562,8 @@ struct
         match_loop' (lvl+1,ms |> expand_pat_bbox lvl b
                               |> schedule_new lvl)
     in
-      Seq.append (Seq.maps do_kill (Seq.single ms))
-                 (Seq.maps do_expand (Seq.single ms))
+      Seq.append (Seq.maps do_expand (Seq.single ms))
+                 (Seq.maps do_kill (Seq.single ms))
     end
   and bbox_copy_branch b (lvl,ms) =
     let
