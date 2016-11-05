@@ -42,6 +42,12 @@ sig
   val get_local_top : T -> name option (* random middle name - constant time *)
   val get_first : T -> name option (* smallest name - log time *)
   val get_last : T -> name option (* largest name - log time *)
+
+  (* get element that maximizes the given function *)
+  val maximize : (name -> int) -> T -> name option
+  
+  (* get element that minimizes the given function *)
+  val minimize : (name -> int) -> T -> name option
   
   (* number of elements *)
   val cardinality : T -> int
@@ -262,6 +268,7 @@ fun get_min (Br (_, (b,t),Empty,r)) = SOME b
 fun get_max (Br (_, (b,t),l,Empty)) = SOME t
   | get_max (Br (_, (b,t),l,r)) = get_max r
   | get_max Empty = NONE;
+
 
 (* (local) check if a tree is balanced - according to it's stored depths at
 the top level. *)
@@ -1005,6 +1012,26 @@ fun fold_2obj_names f (obj1,obj2) a =
     obj1 (list_of obj2, a)
     handle stop_exp _ => NONE
 *)
+
+fun maximize f xs = let
+  fun max x' current = let
+    val i' = f x'
+  in case current
+       of SOME (i,x) => if (i' > i) then SOME (i',x') else SOME (i,x)
+        | NONE => SOME (i',x')
+  end
+in case fold max xs NONE of SOME (_,x) => SOME x | NONE => NONE
+end
+
+fun minimize f xs = let
+  fun min x' current = let
+    val i' = f x'
+  in case current
+       of SOME (i,x) => if (i' < i) then SOME (i',x') else SOME (i,x)
+        | NONE => SOME (i',x')
+  end
+in case fold min xs NONE of SOME (_,x) => SOME x | NONE => NONE
+end
 
 end; (* structure *)
 

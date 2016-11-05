@@ -545,6 +545,14 @@ struct
              Seq.maps do_bb_match (Seq.of_list (B.NSet.list_of candidates))
            end
 
+  (* number of concrete vertices adjacent to bbox. We always choose the bbox with
+   * the most concrete nodes adjacent to expand next. *)
+  fun concrete_nhd_size g bb = 
+    V.NSet.cardinality (V.NSet.filter
+      (not o Graph.is_bboxed g)
+      (Graph.get_adj_vertices_to_set g
+        (Graph.get_vertices_in_bbox g bb)))
+
   fun bbox_expand_branch b (lvl,ms) =
     let
       fun do_kill ms =
@@ -572,9 +580,9 @@ struct
                  (Seq.maps do_cfix (Seq.single ms))
     end
   and choose_next_bbox (lvl,ms) =
-    case B.NSet.get_local_bot (get_expandable_bbs ms)
+    case B.NSet.maximize (concrete_nhd_size (get_pat ms)) (get_expandable_bbs ms)
       of SOME b => bbox_expand_branch b (lvl,ms)
-       | NONE => (case B.NSet.get_local_bot (get_copyable_bbs ms)
+       | NONE => (case B.NSet.maximize (concrete_nhd_size (get_pat ms)) (get_copyable_bbs ms)
                     of SOME b => bbox_copy_branch b (lvl,ms)
                      | NONE => finish_match (lvl,ms))
   and match_loop' x =
