@@ -33,16 +33,16 @@ class PythonEditPanel extends BorderPanel with HasDocument {
 
   code.setBuffer(buf)
 
-  //  mlCode.addKeyListener(new KeyAdapter {
-  //    override def keyPressed(e: KeyEvent) {
-  //      if (e.getModifiers == CommandMask) e.getKeyChar match {
-  //        case 'x' => Registers.cut(mlCode, '$')
-  //        case 'c' => Registers.copy(mlCode, '$')
-  //        case 'v' => Registers.paste(mlCode, '$')
-  //        case _ =>
-  //      }
-  //    }
-  //  })
+  code.addKeyListener(new KeyAdapter {
+    override def keyPressed(e: KeyEvent) {
+      if (e.getModifiers == CommandMask) e.getKeyChar match {
+        case 'x' => Registers.cut(code, '$')
+        case 'c' => Registers.copy(code, '$')
+        case 'v' => Registers.paste(code, '$')
+        case _ =>
+      }
+    }
+  })
 
   val document = new CodeDocument("Python Script", "py", this, code)
 

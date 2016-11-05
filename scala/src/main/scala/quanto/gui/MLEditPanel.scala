@@ -30,16 +30,16 @@ class MLEditPanel extends BorderPanel with HasDocument {
 
   mlCode.setBuffer(buf)
 
-//  mlCode.addKeyListener(new KeyAdapter {
-//    override def keyPressed(e: KeyEvent) {
-//      if (e.getModifiers == CommandMask) e.getKeyChar match {
-//        case 'x' => Registers.cut(mlCode, '$')
-//        case 'c' => Registers.copy(mlCode, '$')
-//        case 'v' => Registers.paste(mlCode, '$')
-//        case _ =>
-//      }
-//    }
-//  })
+  mlCode.addKeyListener(new KeyAdapter {
+    override def keyPressed(e: KeyEvent) {
+      if (e.getModifiers == CommandMask) e.getKeyChar match {
+        case 'x' => Registers.cut(mlCode, '$')
+        case 'c' => Registers.copy(mlCode, '$')
+        case 'v' => Registers.paste(mlCode, '$')
+        case _ =>
+      }
+    }
+  })
 
   val document = new CodeDocument("ML Code", "ML", this, mlCode)
 
