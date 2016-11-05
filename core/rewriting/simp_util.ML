@@ -7,11 +7,13 @@ sig
   type simproc = Theory.Graph.T -> dstep Seq.seq
   val ruleset : (R.name * Theory.Rule.T) list -> Theory.Ruleset.T
   val REDUCE_ALL : Theory.Ruleset.T -> simproc
-  val REDUCE : (R.name * Theory.Rule.T) -> simproc
-  val REDUCE_TARGETED : { PATTERN : Theory.Graph.T -> V.name option,
+  val REWRITE : (R.name * Theory.Rule.T) -> simproc
+  val REWRITE_TARGETED : { PATTERN : Theory.Graph.T -> V.name option,
                            TARGET : Theory.Graph.T -> V.name option}
                       -> (R.name * Theory.Rule.T)
                       -> simproc
+
+  val REDUCE : (R.name * Theory.Rule.T) -> simproc
   val REDUCE_WITH : { PRE  : Theory.Graph.T -> bool ,
                       POST : Theory.Graph.T * Theory.Graph.T -> bool }
                     -> (R.name * Theory.Rule.T)
@@ -30,6 +32,7 @@ sig
 
   val ++ : simproc * simproc -> simproc
   val LOOP : simproc -> simproc
+  val LOOP_WHILE : (Theory.Graph.T -> bool) -> simproc -> simproc
 
   val normalise : simproc -> Theory.Graph.T -> Theory.Graph.T option
 
@@ -73,6 +76,13 @@ fun REDUCE_ALL ruleset graph =
        | NONE => NONE
   ))
 
+fun REWRITE rule graph =
+  Seq.make (fn () => (
+    case Seq.pull (Theory.Rewriter.find_rewrites (snd rule) graph)
+      of SOME ((r,g'), _) => SOME (((fst rule, r),g'), Seq.empty)
+       | NONE => NONE
+  ))
+
 fun REDUCE rule graph =
   Seq.make (fn () => (
     case Seq.pull (Theory.Rewriter.find_rewrites (snd rule) graph)
@@ -80,16 +90,16 @@ fun REDUCE rule graph =
        | NONE => NONE
   ))
 
-fun REDUCE_TARGETED {PATTERN=patternf, TARGET=targetf} rule graph =
+fun REWRITE_TARGETED {PATTERN=patternf, TARGET=targetf} rule graph =
   Seq.make (fn () => (
     case (patternf (Theory.Rule.get_lhs (snd rule)), targetf graph)
       of (SOME pv, SOME tv) => (
         let
-          val _ = TextIO.print (V.dest pv ^ " -> " ^ V.dest tv)
+          val _ = TextIO.print (V.dest pv ^ " -> " ^ V.dest tv ^ "\n")
           val prematch = VVInj.empty |> VVInj.add (pv,tv)
         in
           case Seq.pull (Theory.Rewriter.find_rewrites_with_prematch (snd rule) graph prematch)
-            of SOME ((r,g'), _) => SOME (((fst rule, r),g'), REDUCE_TARGETED {PATTERN=patternf, TARGET=targetf} rule g')
+            of SOME ((r,g'), _) => SOME (((fst rule, r),g'), Seq.empty)
              | NONE => NONE
         end)
       | _ => NONE
@@ -186,11 +196,15 @@ fun op++ (seqf1, seqf2) graph = let
 in chain NONE (seqf1 graph)
 end
 
-fun LOOP seqf graph =
-  Seq.make (fn () => (
-    case Seq.pull (seqf graph)
-      of SOME ((r,g'), s1) => SOME ((r,g'), g' |> ((fn _ => s1) ++ (LOOP seqf)))
-       | NONE => NONE
-  ))
+fun LOOP_WHILE f seqf graph =
+  if (not (f graph)) then Seq.empty
+  else
+    Seq.make (fn () => (
+      case Seq.pull (seqf graph)
+        of SOME ((r,g'), s1) => SOME ((r,g'), g' |> ((fn _ => s1) ++ (LOOP_WHILE f seqf)))
+         | NONE => NONE
+    ))
+
+val LOOP = LOOP_WHILE (K true)
 
 end

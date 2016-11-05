@@ -32,6 +32,9 @@ in
      | NONE => 0
 end
 
+fun vertex_where f g =
+  V.NSet.get_exists (f g) (RG_Theory.Graph.get_vertices g)
+
 fun min_arity_vertex_where f g = let
   fun min v' (SOME v) = if (arity g v' < arity g v andalso f g v')
                         then SOME v' else SOME v
