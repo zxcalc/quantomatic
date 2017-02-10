@@ -81,18 +81,19 @@ object Document
     /* header and name */
 
     sealed case class Header(
-      imports: List[Name],
-      keywords: Thy_Header.Keywords,
-      errors: List[String])
+      imports: List[(Name, Position.T)] = Nil,
+      keywords: Thy_Header.Keywords = Nil,
+      abbrevs: Thy_Header.Abbrevs = Nil,
+      errors: List[String] = Nil)
     {
       def error(msg: String): Header = copy(errors = errors ::: List(msg))
 
       def cat_errors(msg2: String): Header =
-        copy(errors = errors.map(msg1 => Library.cat_message(msg1, msg2)))
+        copy(errors = errors.map(msg1 => Exn.cat_message(msg1, msg2)))
     }
 
-    val no_header = Header(Nil, Nil, Nil)
-    def bad_header(msg: String): Header = Header(Nil, Nil, List(msg))
+    val no_header = Header()
+    def bad_header(msg: String): Header = Header(errors = List(msg))
 
     object Name
     {
@@ -113,7 +114,7 @@ object Document
           case _ => false
         }
 
-      def is_theory: Boolean = !theory.isEmpty
+      def is_theory: Boolean = theory.nonEmpty
       override def toString: String = if (is_theory) theory else node
 
       def map(f: String => String): Name = copy(f(node), f(master_dir), theory)
@@ -208,7 +209,7 @@ object Document
     final class Commands private(val commands: Linear_Set[Command])
     {
       lazy val load_commands: List[Command] =
-        commands.iterator.filter(cmd => !cmd.blobs.isEmpty).toList
+        commands.iterator.filter(cmd => cmd.blobs.nonEmpty).toList
 
       private lazy val full_index: (Array[(Command, Text.Offset)], Text.Range) =
       {
@@ -229,7 +230,7 @@ object Document
 
       def iterator(i: Text.Offset = 0): Iterator[(Command, Text.Offset)] =
       {
-        if (!commands.isEmpty && full_range.contains(i)) {
+        if (commands.nonEmpty && full_range.contains(i)) {
           val (cmd0, start0) = full_index._1(i / Commands.block_size)
           Node.Commands.starts(commands.iterator(cmd0), start0) dropWhile {
             case (cmd, start) => start + cmd.length <= i }
@@ -244,36 +245,54 @@ object Document
   final class Node private(
     val get_blob: Option[Document.Blob] = None,
     val header: Node.Header = Node.no_header,
+    val syntax: Option[Outer_Syntax] = None,
+    val text_perspective: Text.Perspective = Text.Perspective.empty,
     val perspective: Node.Perspective_Command = Node.no_perspective_command,
     _commands: Node.Commands = Node.Commands.empty)
   {
     def is_empty: Boolean =
       get_blob.isEmpty &&
       header == Node.no_header &&
+      text_perspective.is_empty &&
       Node.is_no_perspective_command(perspective) &&
       commands.isEmpty
+
+    def has_header: Boolean = header != Node.no_header
 
     def commands: Linear_Set[Command] = _commands.commands
     def load_commands: List[Command] = _commands.load_commands
 
-    def clear: Node = new Node(header = header)
+    def clear: Node = new Node(header = header, syntax = syntax)
 
-    def init_blob(blob: Document.Blob): Node = new Node(Some(blob.unchanged))
+    def init_blob(blob: Document.Blob): Node = new Node(get_blob = Some(blob.unchanged))
 
     def update_header(new_header: Node.Header): Node =
-      new Node(get_blob, new_header, perspective, _commands)
+      new Node(get_blob, new_header, syntax, text_perspective, perspective, _commands)
 
-    def update_perspective(new_perspective: Node.Perspective_Command): Node =
-      new Node(get_blob, header, new_perspective, _commands)
+    def update_syntax(new_syntax: Option[Outer_Syntax]): Node =
+      new Node(get_blob, header, new_syntax, text_perspective, perspective, _commands)
 
-    def same_perspective(other_perspective: Node.Perspective_Command): Boolean =
+    def update_perspective(
+        new_text_perspective: Text.Perspective,
+        new_perspective: Node.Perspective_Command): Node =
+      new Node(get_blob, header, syntax, new_text_perspective, new_perspective, _commands)
+
+    def edit_perspective: Node.Edit[Text.Edit, Text.Perspective] =
+      Node.Perspective(perspective.required, text_perspective, perspective.overlays)
+
+    def same_perspective(
+        other_text_perspective: Text.Perspective,
+        other_perspective: Node.Perspective_Command): Boolean =
+      text_perspective == other_text_perspective &&
       perspective.required == other_perspective.required &&
       perspective.visible.same(other_perspective.visible) &&
       perspective.overlays == other_perspective.overlays
 
     def update_commands(new_commands: Linear_Set[Command]): Node =
       if (new_commands eq _commands.commands) this
-      else new Node(get_blob, header, perspective, Node.Commands(new_commands))
+      else
+        new Node(get_blob, header, syntax, text_perspective, perspective,
+          Node.Commands(new_commands))
 
     def command_iterator(i: Text.Offset = 0): Iterator[(Command, Text.Offset)] =
       _commands.iterator(i)
@@ -307,7 +326,7 @@ object Document
     def + (entry: (Node.Name, Node)): Nodes =
     {
       val (name, node) = entry
-      val imports = node.header.imports
+      val imports = node.header.imports.map(_._1)
       val graph1 =
         (graph.default_node(name, Node.empty) /: imports)((g, p) => g.default_node(p, Node.empty))
       val graph2 = (graph1 /: graph1.imm_preds(name))((g, dep) => g.del_edge(dep, name))
@@ -329,6 +348,14 @@ object Document
         if name == file_name
       } yield cmd).toList
 
+    def undefined_blobs(pred: Node.Name => Boolean): List[Node.Name] =
+      (for {
+        (node_name, node) <- iterator
+        if pred(node_name)
+        cmd <- node.load_commands.iterator
+        name <- cmd.blobs_undefined.iterator
+      } yield name).toList
+
     def descendants(names: List[Node.Name]): List[Node.Name] = graph.all_succs(names)
     def topological_order: List[Node.Name] = graph.topological_order
 
@@ -344,14 +371,11 @@ object Document
   object Version
   {
     val init: Version = new Version()
-
-    def make(syntax: Option[Prover.Syntax], nodes: Nodes): Version =
-      new Version(Document_ID.make(), syntax, nodes)
+    def make(nodes: Nodes): Version = new Version(Document_ID.make(), nodes)
   }
 
   final class Version private(
     val id: Document_ID.Version = Document_ID.none,
-    val syntax: Option[Prover.Syntax] = None,
     val nodes: Nodes = Nodes.empty)
   {
     override def toString: String = "Version(" + id + ")"
@@ -429,7 +453,6 @@ object Document
     val node: Node
     val load_commands: List[Command]
     def is_loaded: Boolean
-    def eq_content(other: Snapshot): Boolean
 
     def cumulate[A](
       range: Text.Range,
@@ -487,21 +510,21 @@ object Document
 
   final case class State private(
     /*reachable versions*/
-    val versions: Map[Document_ID.Version, Version] = Map.empty,
+    versions: Map[Document_ID.Version, Version] = Map.empty,
     /*inlined auxiliary files*/
-    val blobs: Set[SHA1.Digest] = Set.empty,
+    blobs: Set[SHA1.Digest] = Set.empty,
     /*static markup from define_command*/
-    val commands: Map[Document_ID.Command, Command.State] = Map.empty,
+    commands: Map[Document_ID.Command, Command.State] = Map.empty,
     /*dynamic markup from execution*/
-    val execs: Map[Document_ID.Exec, Command.State] = Map.empty,
+    execs: Map[Document_ID.Exec, Command.State] = Map.empty,
     /*command-exec assignment for each version*/
-    val assignments: Map[Document_ID.Version, State.Assignment] = Map.empty,
+    assignments: Map[Document_ID.Version, State.Assignment] = Map.empty,
     /*commands with markup produced by other commands (imm_succs)*/
-    val commands_redirection: Graph[Document_ID.Command, Unit] = Graph.long,
+    commands_redirection: Graph[Document_ID.Command, Unit] = Graph.long,
     /*explicit (linear) history*/
-    val history: History = History.init,
+    history: History = History.init,
     /*intermediate state between remove_versions/removed_versions*/
-    val removing_versions: Boolean = false)
+    removing_versions: Boolean = false)
   {
     private def fail[A]: A = throw new State.Fail(this)
 
@@ -542,11 +565,9 @@ object Document
       (execs.get(id) match { case Some(st1) => st1.command.id == st.command.id case None => false })
 
     private def other_id(id: Document_ID.Generic)
-      : Option[(Symbol.Text_Chunk.Id, Symbol.Text_Chunk)] = None
-    /* FIXME
+      : Option[(Symbol.Text_Chunk.Id, Symbol.Text_Chunk)] =
       (execs.get(id) orElse commands.get(id)).map(st =>
         ((Symbol.Text_Chunk.Id(st.command.id), st.command.chunk)))
-    */
 
     private def redirection(st: Command.State): Graph[Document_ID.Command, Unit] =
       (commands_redirection /: st.markups.redirection_iterator)({ case (graph, id) =>
@@ -610,8 +631,8 @@ object Document
 
     def recent_finished: Change = history.undo_list.find(_.is_finished) getOrElse fail
     def recent_stable: Change = history.undo_list.find(is_stable) getOrElse fail
-    def tip_stable: Boolean = is_stable(history.tip)
-    def tip_version: Version = history.tip.version.get_finished
+    def stable_tip_version: Option[Version] =
+      if (is_stable(history.tip)) Some(history.tip.version.get_finished) else None
 
     def continue_history(
       previous: Future[Version],
@@ -627,7 +648,7 @@ object Document
       history.prune(is_stable, retain) match {
         case Some((dropped, history1)) =>
           val old_versions = dropped.map(change => change.version.get_finished)
-          val removing = !old_versions.isEmpty
+          val removing = old_versions.nonEmpty
           val state1 = copy(history = history1, removing_versions = removing)
           (old_versions, state1)
         case None => fail
@@ -749,7 +770,7 @@ object Document
 
         val state = State.this
         val version = stable.version.get_finished
-        val is_outdated = !(pending_edits.isEmpty && latest == stable)
+        val is_outdated = pending_edits.nonEmpty || latest != stable
 
 
         /* local node content */
@@ -769,24 +790,7 @@ object Document
           if (node_name.is_theory) Nil
           else version.nodes.load_commands(node_name)
 
-        val is_loaded: Boolean = node_name.is_theory || !load_commands.isEmpty
-
-        def eq_content(other: Snapshot): Boolean =
-        {
-          def eq_commands(commands: (Command, Command)): Boolean =
-          {
-            val states1 = state.command_states(version, commands._1)
-            val states2 = other.state.command_states(other.version, commands._2)
-            states1.length == states2.length &&
-            (states1 zip states2).forall({ case (st1, st2) => st1 eq_content st2 })
-          }
-
-          !is_outdated && !other.is_outdated &&
-          node.commands.size == other.node.commands.size &&
-          (node.commands.iterator zip other.node.commands.iterator).forall(eq_commands) &&
-          load_commands.length == other.load_commands.length &&
-          (load_commands zip other.load_commands).forall(eq_commands)
-        }
+        val is_loaded: Boolean = node_name.is_theory || load_commands.nonEmpty
 
 
         /* cumulate markup */

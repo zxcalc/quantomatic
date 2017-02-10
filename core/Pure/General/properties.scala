@@ -1,5 +1,4 @@
 /*  Title:      Pure/General/properties.scala
-    Module:     PIDE
     Author:     Makarius
 
 Property lists.
@@ -10,51 +9,29 @@ package isabelle
 
 object Properties
 {
-  /* plain values */
+  type Entry = (java.lang.String, java.lang.String)
+  type T = List[Entry]
 
-  object Value
+  def defined(props: T, name: java.lang.String): java.lang.Boolean =
+    props.exists({ case (x, _) => x == name })
+
+  def get(props: T, name: java.lang.String): Option[java.lang.String] =
+    props.collectFirst({ case (x, y) if x == name => y })
+
+  def put(props: T, entry: Entry): T =
   {
-    object Boolean
-    {
-      def apply(x: scala.Boolean): java.lang.String = x.toString
-      def unapply(s: java.lang.String): Option[scala.Boolean] =
-        s match {
-          case "true" => Some(true)
-          case "false" => Some(false)
-          case _ => None
-        }
-    }
-
-    object Int
-    {
-      def apply(x: scala.Int): java.lang.String = x.toString
-      def unapply(s: java.lang.String): Option[scala.Int] =
-        try { Some(Integer.parseInt(s)) }
-        catch { case _: NumberFormatException => None }
-    }
-
-    object Long
-    {
-      def apply(x: scala.Long): java.lang.String = x.toString
-      def unapply(s: java.lang.String): Option[scala.Long] =
-        try { Some(java.lang.Long.parseLong(s)) }
-        catch { case _: NumberFormatException => None }
-    }
-
-    object Double
-    {
-      def apply(x: scala.Double): java.lang.String = x.toString
-      def unapply(s: java.lang.String): Option[scala.Double] =
-        try { Some(java.lang.Double.parseDouble(s)) }
-        catch { case _: NumberFormatException => None }
-    }
+    val (x, y) = entry
+    def update(ps: T): T =
+      ps match {
+        case (p @ (x1, _)) :: rest =>
+          if (x1 == x) (x1, y) :: rest else p :: update(rest)
+        case Nil => Nil
+      }
+    if (defined(props, x)) update(props) else entry :: props
   }
 
 
   /* named entries */
-
-  type Entry = (java.lang.String, java.lang.String)
-  type T = List[Entry]
 
   class String(val name: java.lang.String)
   {

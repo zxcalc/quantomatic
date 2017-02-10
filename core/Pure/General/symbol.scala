@@ -21,6 +21,20 @@ object Symbol
   type Range = Text.Range
 
 
+  /* spaces */
+
+  val space = " "
+
+  private val static_spaces = space * 4000
+
+  def spaces(n: Int): String =
+  {
+    require(n >= 0)
+    if (n < static_spaces.length) static_spaces.substring(0, n)
+    else space * n
+  }
+
+
   /* ASCII characters */
 
   def is_ascii_letter(c: Char): Boolean = 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z'
@@ -40,13 +54,17 @@ object Symbol
   def is_ascii_identifier(s: String): Boolean =
     s.length > 0 && is_ascii_letter(s(0)) && s.forall(is_ascii_letdig)
 
+  def ascii(c: Char): Symbol =
+  {
+    if (c > 127) error("Non-ASCII character: " + quote(c.toString))
+    else char_symbols(c.toInt)
+  }
+
 
   /* symbol matching */
 
   private val symbol_total = new Regex("""(?xs)
-    [\ud800-\udbff][\udc00-\udfff] | \r\n |
-    \\ < (?: \^raw: [\x20-\x7e\u0100-\uffff && [^.>]]* | \^? ([A-Za-z][A-Za-z0-9_']*)? ) >? |
-    .""")
+    [\ud800-\udbff][\udc00-\udfff] | \r\n | \\ < \^? ([A-Za-z][A-Za-z0-9_']*)? >? | .""")
 
   private def is_plain(c: Char): Boolean =
     !(c == '\r' || c == '\\' || Character.isHighSurrogate(c))
@@ -179,7 +197,7 @@ object Symbol
   }
 
 
-  /* text chunks */
+  /* symbolic text chunks -- without actual text */
 
   object Text_Chunk
   {
@@ -241,7 +259,7 @@ object Symbol
         tab.get(x) match {
           case None => tab += (x -> y)
           case Some(z) =>
-            error("Duplicate mapping of " + quote(x) + " to " + quote(y) + " vs. " + quote(z))
+            error("Duplicate symbol mapping of " + quote(x) + " to " + quote(y) + " vs. " + quote(z))
         }
       }
       tab
@@ -271,7 +289,12 @@ object Symbol
   /** symbol interpretation **/
 
   private lazy val symbols =
-    new Interpretation(File.try_read(Path.split(Isabelle_System.getenv("ISABELLE_SYMBOLS"))))
+  {
+    val contents =
+      for (path <- Path.split(Isabelle_System.getenv("ISABELLE_SYMBOLS")) if path.is_file)
+        yield (File.read(path))
+    new Interpretation(cat_lines(contents))
+  }
 
   private class Interpretation(symbols_spec: String)
   {
@@ -289,7 +312,7 @@ object Symbol
         props match {
           case Nil => Nil
           case _ :: Nil => err()
-          case Key(x) :: y :: rest => (x -> y) :: read_props(rest)
+          case Key(x) :: y :: rest => (x -> y.replace('\u2423', ' ')) :: read_props(rest)
           case _ => err()
         }
       }
@@ -318,7 +341,7 @@ object Symbol
     val names: Map[Symbol, String] =
     {
       val name = new Regex("""\\<\^?([A-Za-z][A-Za-z0-9_']*)>""")
-      Map((for ((sym @ name(a), _) <- symbols) yield (sym -> a)): _*)
+      Map((for ((sym @ name(a), _) <- symbols) yield sym -> a): _*)
     }
 
     val groups: List[(String, List[Symbol])] =
@@ -334,31 +357,34 @@ object Symbol
         for {
           (sym, props) <- symbols
           ("abbrev", a) <- props.reverse
-        } yield (sym -> a)): _*)
+        } yield sym -> a): _*)
+
+    val codes: List[(String, Int)] =
+    {
+      val Code = new Properties.String("code")
+      for {
+        (sym, props) <- symbols
+        code =
+          props match {
+            case Code(s) =>
+              try { Integer.decode(s).intValue }
+              catch { case _: NumberFormatException => error("Bad code for symbol " + sym) }
+            case _ => error("Missing code for symbol " + sym)
+          }
+      } yield {
+        if (code < 128) error("Illegal ASCII code for symbol " + sym)
+        else (sym, code)
+      }
+    }
 
 
     /* recoding */
 
-    private val Code = new Properties.String("code")
     private val (decoder, encoder) =
     {
       val mapping =
-        for {
-          (sym, props) <- symbols
-          code =
-            props match {
-              case Code(s) =>
-                try { Integer.decode(s).intValue }
-                catch { case _: NumberFormatException => error("Bad code for symbol " + sym) }
-              case _ => error("Missing code for symbol " + sym)
-            }
-          ch = new String(Character.toChars(code))
-        } yield {
-          if (code < 128) error("Illegal ASCII code for symbol " + sym)
-          else (sym, ch)
-        }
-      (new Recoder(mapping),
-       new Recoder(mapping map { case (x, y) => (y, x) }))
+        for ((sym, code) <- codes) yield (sym, new String(Character.toChars(code)))
+      (new Recoder(mapping), new Recoder(for ((x, y) <- mapping) yield (y, x)))
     }
 
     def decode(text: String): String = decoder.recode(text)
@@ -381,7 +407,7 @@ object Symbol
 
     private val Font = new Properties.String("font")
     val fonts: Map[Symbol, String] =
-      recode_map((for ((sym, Font(font)) <- symbols) yield (sym -> font)): _*)
+      recode_map((for ((sym, Font(font)) <- symbols) yield sym -> font): _*)
 
     val font_names: List[String] = Set(fonts.toList.map(_._2): _*).toList
     val font_index: Map[String, Int] = Map((font_names zip (0 until font_names.length).toList): _*)
@@ -422,12 +448,18 @@ object Symbol
       "\\<Xi>", "\\<Pi>", "\\<Sigma>", "\\<Upsilon>", "\\<Phi>",
       "\\<Psi>", "\\<Omega>")
 
-    val blanks = recode_set(" ", "\t", "\n", "\u000B", "\f", "\r", "\r\n")
+    val blanks = recode_set(space, "\t", "\n", "\u000B", "\f", "\r", "\r\n")
 
     val sym_chars =
       Set("!", "#", "$", "%", "&", "*", "+", "-", "/", "<", "=", ">", "?", "@", "^", "_", "|", "~")
 
     val symbolic = recode_set((for { (sym, _) <- symbols; if raw_symbolic(sym) } yield sym): _*)
+
+
+    /* misc symbols */
+
+    val newline_decoded = decode(newline)
+    val comment_decoded = decode(comment)
 
 
     /* cartouches */
@@ -438,16 +470,17 @@ object Symbol
 
     /* control symbols */
 
-    val ctrl_decoded: Set[Symbol] =
+    val control_decoded: Set[Symbol] =
       Set((for ((sym, _) <- symbols if sym.startsWith("\\<^")) yield decode(sym)): _*)
 
-    val sub_decoded = decode("\\<^sub>")
-    val sup_decoded = decode("\\<^sup>")
+    val sub_decoded = decode(sub)
+    val sup_decoded = decode(sup)
+    val bold_decoded = decode(bold)
+    val emph_decoded = decode(emph)
     val bsub_decoded = decode("\\<^bsub>")
     val esub_decoded = decode("\\<^esub>")
     val bsup_decoded = decode("\\<^bsup>")
     val esup_decoded = decode("\\<^esup>")
-    val bold_decoded = decode("\\<^bold>")
   }
 
 
@@ -457,6 +490,7 @@ object Symbol
   def names: Map[Symbol, String] = symbols.names
   def groups: List[(String, List[Symbol])] = symbols.groups
   def abbrevs: Multi_Map[Symbol, String] = symbols.abbrevs
+  def codes: List[(String, Int)] = symbols.codes
 
   def decode(text: String): String = symbols.decode(text)
   def encode(text: String): String = symbols.encode(text)
@@ -491,10 +525,24 @@ object Symbol
   def is_blank(sym: Symbol): Boolean = symbols.blanks.contains(sym)
 
 
+  /* misc symbols */
+
+  val newline: Symbol = "\\<newline>"
+  def newline_decoded: Symbol = symbols.newline_decoded
+
+  def print_newlines(str: String): String =
+    if (str.contains('\n'))
+      (for (s <- iterator(str)) yield { if (s == "\n") newline_decoded else s }).mkString
+    else str
+
+  val comment: Symbol = "\\<comment>"
+  def comment_decoded: Symbol = symbols.comment_decoded
+
+
   /* cartouches */
 
-  val open = "\\<open>"
-  val close = "\\<close>"
+  val open: Symbol = "\\<open>"
+  val close: Symbol = "\\<close>"
 
   def open_decoded: Symbol = symbols.open_decoded
   def close_decoded: Symbol = symbols.close_decoded
@@ -516,17 +564,23 @@ object Symbol
 
   /* control symbols */
 
-  def is_ctrl(sym: Symbol): Boolean =
-    sym.startsWith("\\<^") || symbols.ctrl_decoded.contains(sym)
+  def is_control(sym: Symbol): Boolean =
+    (sym.startsWith("\\<^") && sym.endsWith(">")) || symbols.control_decoded.contains(sym)
 
   def is_controllable(sym: Symbol): Boolean =
-    !is_blank(sym) && !is_ctrl(sym) && !is_open(sym) && !is_close(sym) && !is_malformed(sym)
+    !is_blank(sym) && !is_control(sym) && !is_open(sym) && !is_close(sym) && !is_malformed(sym)
+
+  val sub = "\\<^sub>"
+  val sup = "\\<^sup>"
+  val bold = "\\<^bold>"
+  val emph = "\\<^emph>"
 
   def sub_decoded: Symbol = symbols.sub_decoded
   def sup_decoded: Symbol = symbols.sup_decoded
+  def bold_decoded: Symbol = symbols.bold_decoded
+  def emph_decoded: Symbol = symbols.emph_decoded
   def bsub_decoded: Symbol = symbols.bsub_decoded
   def esub_decoded: Symbol = symbols.esub_decoded
   def bsup_decoded: Symbol = symbols.bsup_decoded
   def esup_decoded: Symbol = symbols.esup_decoded
-  def bold_decoded: Symbol = symbols.bold_decoded
 }

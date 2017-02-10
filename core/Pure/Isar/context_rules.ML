@@ -11,8 +11,8 @@ sig
   val netpair_bang: Proof.context -> netpair
   val netpair: Proof.context -> netpair
   val orderlist: ((int * int) * 'a) list -> 'a list
-  val find_rules_netpair: bool -> thm list -> term -> netpair -> thm list
-  val find_rules: bool -> thm list -> term -> Proof.context -> thm list list
+  val find_rules_netpair: Proof.context -> bool -> thm list -> term -> netpair -> thm list
+  val find_rules: Proof.context -> bool -> thm list -> term -> thm list list
   val print_rules: Proof.context -> unit
   val addSWrapper: (Proof.context -> (int -> tactic) -> int -> tactic) -> theory -> theory
   val addWrapper: (Proof.context -> (int -> tactic) -> int -> tactic) -> theory -> theory
@@ -76,9 +76,12 @@ fun make_rules next rules netpairs wrappers =
   Rules {next = next, rules = rules, netpairs = netpairs, wrappers = wrappers};
 
 fun add_rule (i, b) opt_w th (Rules {next, rules, netpairs, wrappers}) =
-  let val w = (case opt_w of SOME w => w | NONE => Tactic.subgoals_of_brl (b, th)) in
-    make_rules (next - 1) ((w, ((i, b), th)) :: rules)
-      (nth_map i (Tactic.insert_tagged_brl ((w, next), (b, th))) netpairs) wrappers
+  let
+    val w = (case opt_w of SOME w => w | NONE => Tactic.subgoals_of_brl (b, th));
+    val th' = Thm.trim_context th;
+  in
+    make_rules (next - 1) ((w, ((i, b), th')) :: rules)
+      (nth_map i (Tactic.insert_tagged_brl ((w, next), (b, th'))) netpairs) wrappers
   end;
 
 fun del_rule0 th (rs as Rules {next, rules, netpairs, wrappers}) =
@@ -118,8 +121,8 @@ fun print_rules ctxt =
     fun prt_kind (i, b) =
       Pretty.big_list ((the o AList.lookup (op =) kind_names) (i, b) ^ ":")
         (map_filter (fn (_, (k, th)) =>
-            if k = (i, b) then SOME (Display.pretty_thm_item ctxt th) else NONE)
-          (sort (int_ord o pairself fst) rules));
+            if k = (i, b) then SOME (Thm.pretty_thm_item ctxt th) else NONE)
+          (sort (int_ord o apply2 fst) rules));
   in Pretty.writeln_chunks (map prt_kind rule_kinds) end;
 
 
@@ -139,10 +142,12 @@ fun untaglist [] = []
       else x :: untaglist rest;
 
 fun orderlist brls =
-  untaglist (sort (prod_ord int_ord int_ord o pairself fst) brls);
+  untaglist (sort (prod_ord int_ord int_ord o apply2 fst) brls);
 
 fun orderlist_no_weight brls =
-  untaglist (sort (int_ord o pairself (snd o fst)) brls);
+  untaglist (sort (int_ord o apply2 (snd o fst)) brls);
+
+local
 
 fun may_unify weighted t net =
   map snd ((if weighted then orderlist else orderlist_no_weight) (Net.unify_term net t));
@@ -152,11 +157,16 @@ fun find_erules _ [] = K []
 
 fun find_irules w goal = may_unify w (Logic.strip_assums_concl goal);
 
-fun find_rules_netpair weighted facts goal (inet, enet) =
-  find_erules weighted facts enet @ find_irules weighted goal inet;
+in
 
-fun find_rules weighted facts goals =
-  map (find_rules_netpair weighted facts goals) o netpairs;
+fun find_rules_netpair ctxt weighted facts goal (inet, enet) =
+  find_erules weighted facts enet @ find_irules weighted goal inet
+  |> map (Thm.transfer (Proof_Context.theory_of ctxt));
+
+fun find_rules ctxt weighted facts goal =
+  map (find_rules_netpair ctxt weighted facts goal) (netpairs ctxt);
+
+end;
 
 
 (* wrappers *)

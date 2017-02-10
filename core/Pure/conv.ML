@@ -158,7 +158,7 @@ fun implies_concl_conv cv ct =
 
 fun rewr_conv rule ct =
   let
-    val rule1 = Thm.incr_indexes (#maxidx (Thm.rep_cterm ct) + 1) rule;
+    val rule1 = Thm.incr_indexes (Thm.maxidx_of_cterm ct + 1) rule;
     val lhs = Thm.lhs_of rule1;
     val rule2 = Thm.rename_boundvars (Thm.term_of lhs) (Thm.term_of ct) rule1;
     val rule3 =

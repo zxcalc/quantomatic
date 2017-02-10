@@ -6,15 +6,20 @@ Static theory header information.
 
 signature THY_HEADER =
 sig
-  type keywords = (string * Keyword.spec option) list
+  type keywords = ((string * Position.T) * Keyword.spec) list
   type header =
    {name: string * Position.T,
     imports: (string * Position.T) list,
     keywords: keywords}
   val make: string * Position.T -> (string * Position.T) list -> keywords -> header
-  val define_keywords: header -> unit
-  val declare_keyword: string * Keyword.spec option -> theory -> theory
-  val the_keyword: theory -> string -> Keyword.spec option
+  val theoryN: string
+  val bootstrap_keywords: Keyword.keywords
+  val add_keywords: keywords -> theory -> theory
+  val get_keywords: theory -> Keyword.keywords
+  val get_keywords': Proof.context -> Keyword.keywords
+  val ml_bootstrapN: string
+  val ml_roots: string list
+  val bootstrap_thys: string list
   val args: header parser
   val read: Position.T -> string -> header
   val read_tokens: Token.T list -> header
@@ -23,7 +28,11 @@ end;
 structure Thy_Header: THY_HEADER =
 struct
 
-type keywords = (string * Keyword.spec option) list;
+(** keyword declarations **)
+
+(* header *)
+
+type keywords = ((string * Position.T) * Keyword.spec) list;
 
 type header =
  {name: string * Position.T,
@@ -34,58 +43,85 @@ fun make name imports keywords : header =
   {name = name, imports = imports, keywords = keywords};
 
 
+(* bootstrap keywords *)
 
-(** keyword declarations **)
+val chapterN = "chapter";
+val sectionN = "section";
+val subsectionN = "subsection";
+val subsubsectionN = "subsubsection";
+val paragraphN = "paragraph";
+val subparagraphN = "subparagraph";
+val textN = "text";
+val txtN = "txt";
+val text_rawN = "text_raw";
 
-fun define_keywords ({keywords, ...}: header) =
-  List.app (Keyword.define o apsnd (Option.map Keyword.spec)) keywords;
+val theoryN = "theory";
+val importsN = "imports";
+val keywordsN = "keywords";
+val abbrevsN = "abbrevs";
+val beginN = "begin";
 
-fun err_dup name = error ("Duplicate declaration of outer syntax keyword " ^ quote name);
+val bootstrap_keywords =
+  Keyword.empty_keywords
+  |> Keyword.add_keywords
+    [(("%", @{here}), Keyword.no_spec),
+     (("(", @{here}), Keyword.no_spec),
+     ((")", @{here}), Keyword.no_spec),
+     ((",", @{here}), Keyword.no_spec),
+     (("::", @{here}), Keyword.no_spec),
+     (("=", @{here}), Keyword.no_spec),
+     (("and", @{here}), Keyword.no_spec),
+     ((beginN, @{here}), Keyword.quasi_command_spec),
+     ((importsN, @{here}), Keyword.quasi_command_spec),
+     ((keywordsN, @{here}), Keyword.quasi_command_spec),
+     ((abbrevsN, @{here}), Keyword.quasi_command_spec),
+     ((chapterN, @{here}), ((Keyword.document_heading, []), [])),
+     ((sectionN, @{here}), ((Keyword.document_heading, []), [])),
+     ((subsectionN, @{here}), ((Keyword.document_heading, []), [])),
+     ((subsubsectionN, @{here}), ((Keyword.document_heading, []), [])),
+     ((paragraphN, @{here}), ((Keyword.document_heading, []), [])),
+     ((subparagraphN, @{here}), ((Keyword.document_heading, []), [])),
+     ((textN, @{here}), ((Keyword.document_body, []), [])),
+     ((txtN, @{here}), ((Keyword.document_body, []), [])),
+     ((text_rawN, @{here}), ((Keyword.document_raw, []), [])),
+     ((theoryN, @{here}), ((Keyword.thy_begin, []), ["theory"])),
+     (("ML", @{here}), ((Keyword.thy_decl, []), ["ML"]))];
+
+
+(* theory data *)
 
 structure Data = Theory_Data
 (
-  type T = Keyword.spec option Symtab.table;
-  val empty = Symtab.empty;
+  type T = Keyword.keywords;
+  val empty = bootstrap_keywords;
   val extend = I;
-  fun merge data : T = Symtab.merge (op =) data handle Symtab.DUP name => err_dup name;
+  val merge = Keyword.merge_keywords;
 );
 
-fun declare_keyword (name, spec) =
-  Data.map (fn data =>
-    (Option.map Keyword.spec spec;
-      Symtab.update_new (name, spec) data handle Symtab.DUP dup => err_dup dup));
+val add_keywords = Data.map o Keyword.add_keywords;
 
-fun the_keyword thy name =
-  (case Symtab.lookup (Data.get thy) name of
-    SOME spec => spec
-  | NONE => error ("Undeclared outer syntax keyword " ^ quote name));
+val get_keywords = Data.get;
+val get_keywords' = get_keywords o Proof_Context.theory_of;
 
 
 
 (** concrete syntax **)
 
-(* header keywords *)
+(* names *)
 
-val headerN = "header";
-val theoryN = "theory";
-val importsN = "imports";
-val keywordsN = "keywords";
-val beginN = "begin";
+val ml_bootstrapN = "ML_Bootstrap";
+val ml_roots = ["ML_Root0", "ML_Root"];
+val bootstrap_thys = ["Bootstrap_Pure", "Bootstrap_ML_Bootstrap"];
 
-val header_lexicons =
-  pairself (Scan.make_lexicon o map Symbol.explode)
-   (["%", "(", ")", ",", "::", ";", "==", "and", beginN, importsN, keywordsN],
-    [headerN, theoryN]);
 
 
 (* header args *)
 
 local
 
-val theory_name = Parse.group (fn () => "theory name") (Parse.position Parse.name);
-val theory_xname = Parse.group (fn () => "theory name reference") (Parse.position Parse.xname);
-
-val imports = Parse.$$$ importsN |-- Parse.!!! (Scan.repeat1 theory_xname);
+fun imports name =
+  if name = Context.PureN then Scan.succeed []
+  else Parse.$$$ importsN |-- Parse.!!! (Scan.repeat1 (Parse.position Parse.theory_name));
 
 val opt_files =
   Scan.optional (Parse.$$$ "(" |-- Parse.!!! (Parse.list1 Parse.name) --| Parse.$$$ ")") [];
@@ -94,47 +130,54 @@ val keyword_spec =
   Parse.group (fn () => "outer syntax keyword specification")
     (Parse.name -- opt_files -- Parse.tags);
 
-val keyword_compl =
-  Parse.group (fn () => "outer syntax keyword completion") Parse.name;
-
 val keyword_decl =
-  Scan.repeat1 Parse.string --
-  Scan.option (Parse.$$$ "::" |-- Parse.!!! keyword_spec) --
-  Scan.option (Parse.$$$ "==" |-- Parse.!!! keyword_compl)
-  >> (fn ((names, spec), _) => map (rpair spec) names);
+  Scan.repeat1 (Parse.position Parse.string) --
+  Scan.optional (Parse.$$$ "::" |-- Parse.!!! keyword_spec) Keyword.no_spec
+  >> (fn (names, spec) => map (rpair spec) names);
+
+val abbrevs = Scan.repeat1 (Parse.text -- (Parse.$$$ "=" |-- Parse.!!! Parse.text));
 
 val keyword_decls = Parse.and_list1 keyword_decl >> flat;
 
 in
 
 val args =
-  theory_name :|-- (fn (name, pos) =>
-    (if name = Context.PureN then Scan.succeed [] else imports) --
+  Parse.position Parse.theory_name :|-- (fn (name, pos) =>
+    imports name --
     Scan.optional (Parse.$$$ keywordsN |-- Parse.!!! keyword_decls) [] --|
-    Parse.$$$ beginN >> (fn (imports, keywords) => make (name, pos) imports keywords));
+    (Scan.optional (Parse.$$$ abbrevsN |-- Parse.!!! abbrevs) [] -- Parse.$$$ beginN)
+    >> (fn (imports, keywords) => make (name, pos) imports keywords));
 
 end;
 
 
 (* read header *)
 
-val header =
-  (Parse.command_name headerN -- Parse.tags) |--
-    (Parse.!!! (Parse.document_source -- Scan.repeat Parse.semicolon --
-      (Parse.command_name theoryN -- Parse.tags) |-- args)) ||
-  (Parse.command_name theoryN -- Parse.tags) |-- Parse.!!! args;
+val heading =
+  (Parse.command chapterN ||
+    Parse.command sectionN ||
+    Parse.command subsectionN ||
+    Parse.command subsubsectionN ||
+    Parse.command paragraphN ||
+    Parse.command subparagraphN ||
+    Parse.command textN ||
+    Parse.command txtN ||
+    Parse.command text_rawN) --
+  Parse.tags -- Parse.!!! Parse.document_source;
 
-fun token_source pos str =
-  str
-  |> Source.of_string_limited 8000
-  |> Symbol.source
-  |> Token.source {do_recover = NONE} (K header_lexicons) pos;
+val header =
+  (Scan.repeat heading -- Parse.command theoryN -- Parse.tags) |-- Parse.!!! args;
+
+fun token_source pos =
+  Symbol.explode
+  #> Source.of_list
+  #> Token.source_strict bootstrap_keywords pos;
 
 fun read_source pos source =
   let val res =
     source
     |> Token.source_proper
-    |> Source.source Token.stopper (Scan.single (Scan.error (Parse.!!! header))) NONE
+    |> Source.source Token.stopper (Scan.single (Scan.error (Parse.!!! header)))
     |> Source.get_single;
   in
     (case res of

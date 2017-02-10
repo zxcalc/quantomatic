@@ -1,5 +1,4 @@
 /*  Title:      Pure/library.scala
-    Module:     PIDE
     Author:     Makarius
 
 Basic library.
@@ -8,28 +7,49 @@ Basic library.
 package isabelle
 
 
+import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.util.matching.Regex
 
 
 object Library
 {
-  /* user errors */
+  /* resource management */
 
-  object ERROR
+  def using[A <: { def close() }, B](x: A)(f: A => B): B =
   {
-    def apply(message: String): Throwable = new RuntimeException(message)
-    def unapply(exn: Throwable): Option[String] = Exn.user_message(exn)
+    import scala.language.reflectiveCalls
+
+    try { f(x) }
+    finally { if (x != null) x.close() }
   }
 
-  def error(message: String): Nothing = throw ERROR(message)
 
-  def cat_message(msg1: String, msg2: String): String =
-    if (msg1 == "") msg2
-    else if (msg2 == "") msg1
-    else msg1 + "\n" + msg2
+  /* integers */
 
-  def cat_error(msg1: String, msg2: String): Nothing =
-    error(cat_message(msg1, msg2))
+  private val small_int = 10000
+  private lazy val small_int_table =
+  {
+    val array = new Array[String](small_int)
+    for (i <- 0 until small_int) array(i) = i.toString
+    array
+  }
+
+  def is_small_int(s: String): Boolean =
+  {
+    val len = s.length
+    1 <= len && len <= 4 &&
+    s.forall(c => '0' <= c && c <= '9') &&
+    (len == 1 || s(0) != '0')
+  }
+
+  def signed_string_of_long(i: Long): String =
+    if (0 <= i && i < small_int) small_int_table(i.toInt)
+    else i.toString
+
+  def signed_string_of_int(i: Int): String =
+    if (0 <= i && i < small_int) small_int_table(i)
+    else i.toString
 
 
   /* separated chunks */
@@ -67,7 +87,7 @@ object Library
       def hasNext(): Boolean = state.isDefined
       def next(): CharSequence =
         state match {
-          case Some((s, i)) => { state = next_chunk(i); s }
+          case Some((s, i)) => state = next_chunk(i); s
           case None => Iterator.empty.next()
         }
     }
@@ -78,15 +98,15 @@ object Library
 
   /* lines */
 
-  def terminate_lines(lines: Iterable[CharSequence]): Iterable[CharSequence] =
-    new Iterable[CharSequence] {
-      def iterator: Iterator[CharSequence] =
-        lines.iterator.map(line => new Line_Termination(line))
-    }
+  def terminate_lines(lines: TraversableOnce[String]): String = lines.mkString("", "\n", "\n")
 
   def cat_lines(lines: TraversableOnce[String]): String = lines.mkString("\n")
 
   def split_lines(str: String): List[String] = space_explode('\n', str)
+
+  def prefix_lines(prfx: String, str: String): String =
+    if (str == "") str
+    else cat_lines(split_lines(str).map(s => prfx + s))
 
   def first_line(source: CharSequence): String =
   {
@@ -97,6 +117,13 @@ object Library
 
 
   /* strings */
+
+  def make_string(f: StringBuilder => Unit): String =
+  {
+    val s = new StringBuilder
+    f(s)
+    s.toString
+  }
 
   def try_unprefix(prfx: String, s: String): Option[String] =
     if (s.startsWith(prfx)) Some(s.substring(prfx.length)) else None
@@ -109,6 +136,9 @@ object Library
     else if (s.endsWith("\r") || s.endsWith("\n")) s.substring(0, s.length - 1)
     else s
 
+  def trim_split_lines(s: String): List[String] =
+    split_lines(trim_line(s)).map(trim_line(_))
+
 
   /* quote */
 
@@ -117,6 +147,8 @@ object Library
   def try_unquote(s: String): Option[String] =
     if (s.startsWith("\"") && s.endsWith("\"")) Some(s.substring(1, s.length - 1))
     else None
+
+  def perhaps_unquote(s: String): String = try_unquote(s) getOrElse s
 
   def commas(ss: Iterable[String]): String = ss.iterator.mkString(", ")
   def commas_quote(ss: Iterable[String]): String = ss.iterator.map(quote).mkString(", ")
@@ -157,25 +189,45 @@ object Library
   }
 
 
-  /* canonical list operations */
+  /* regular expressions */
 
-  def member[A, B](xs: List[A])(x: B): Boolean = xs.exists(_ == x)
+  def make_regex(s: String): Option[Regex] =
+    try { Some(new Regex(s)) } catch { case ERROR(_) => None }
+
+
+  /* lists */
+
+  def take_prefix[A](pred: A => Boolean, xs: List[A]): (List[A], List[A]) =
+    (xs.takeWhile(pred), xs.dropWhile(pred))
+
+  def member[A, B](xs: List[A])(x: B): Boolean = xs.contains(x)
   def insert[A](x: A)(xs: List[A]): List[A] = if (xs.contains(x)) xs else x :: xs
   def remove[A, B](x: B)(xs: List[A]): List[A] = if (member(xs)(x)) xs.filterNot(_ == x) else xs
   def update[A](x: A)(xs: List[A]): List[A] = x :: remove(x)(xs)
-}
 
+  def merge[A](xs: List[A], ys: List[A]): List[A] =
+    if (xs.eq(ys)) xs
+    else if (xs.isEmpty) ys
+    else ys.foldRight(xs)(Library.insert(_)(_))
 
-class Basic_Library
-{
-  val ERROR = Library.ERROR
-  val error = Library.error _
-  val cat_error = Library.cat_error _
+  def distinct[A](xs: List[A], eq: (A, A) => Boolean = (x: A, y: A) => x == y): List[A] =
+  {
+    val result = new mutable.ListBuffer[A]
+    xs.foreach(x => if (!result.exists(y => eq(x, y))) result += x)
+    result.toList
+  }
 
-  val space_explode = Library.space_explode _
-  val split_lines = Library.split_lines _
-  val cat_lines = Library.cat_lines _
-  val quote = Library.quote _
-  val commas = Library.commas _
-  val commas_quote = Library.commas_quote _
+  def duplicates[A](lst: List[A], eq: (A, A) => Boolean = (x: A, y: A) => x == y): List[A] =
+  {
+    val result = new mutable.ListBuffer[A]
+    @tailrec def dups(rest: List[A]): Unit =
+      rest match {
+        case Nil =>
+        case x :: xs =>
+          if (!result.exists(y => eq(x, y)) && xs.exists(y => eq(x, y))) result += x
+          dups(xs)
+      }
+    dups(lst)
+    result.toList
+  }
 }

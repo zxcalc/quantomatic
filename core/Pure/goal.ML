@@ -6,13 +6,12 @@ Goals in tactical theorem proving, with support for forked proofs.
 
 signature BASIC_GOAL =
 sig
+  val quick_and_dirty: bool Config.T
   val parallel_proofs: int Unsynchronized.ref
   val SELECT_GOAL: tactic -> int -> tactic
   val PREFER_GOAL: tactic -> int -> tactic
   val CONJUNCTS: tactic -> int -> tactic
   val PRECISE_CONJUNCTS: int -> tactic -> int -> tactic
-  val PARALLEL_CHOICE: tactic list -> tactic
-  val PARALLEL_GOALS: tactic -> tactic
 end;
 
 signature GOAL =
@@ -30,7 +29,7 @@ sig
   val future_result: Proof.context -> thm future -> term -> thm
   val prove_internal: Proof.context -> cterm list -> cterm -> (thm list -> tactic) -> thm
   val is_schematic: term -> bool
-  val prove_multi: Proof.context -> string list -> term list -> term list ->
+  val prove_common: Proof.context -> int option -> string list -> term list -> term list ->
     ({prems: thm list, context: Proof.context} -> tactic) -> thm list
   val prove_future: Proof.context -> string list -> term list -> term ->
     ({prems: thm list, context: Proof.context} -> tactic) -> thm
@@ -40,6 +39,7 @@ sig
     ({prems: thm list, context: Proof.context} -> tactic) -> thm
   val prove_global: theory -> string list -> term list -> term ->
     ({prems: thm list, context: Proof.context} -> tactic) -> thm
+  val quick_and_dirty_raw: Config.raw
   val prove_sorry: Proof.context -> string list -> term list -> term ->
     ({prems: thm list, context: Proof.context} -> tactic) -> thm
   val prove_sorry_global: theory -> string list -> term list -> term ->
@@ -62,9 +62,7 @@ struct
   -------- (init)
   C ==> #C
 *)
-val init =
-  let val A = #1 (Thm.dest_implies (Thm.cprop_of Drule.protectI))
-  in fn C => Thm.instantiate ([], [(A, C)]) Drule.protectI end;
+fun init C = Thm.instantiate ([], [((("A", 0), propT), C)]) Drule.protectI;
 
 (*
   A1 ==> ... ==> An ==> C
@@ -99,7 +97,7 @@ fun finish ctxt = check_finished ctxt #> conclude;
 (* normal form *)
 
 fun norm_result ctxt =
-  Drule.flexflex_unique
+  Drule.flexflex_unique (SOME ctxt)
   #> Raw_Simplifier.norm_hhf_protect ctxt
   #> Thm.strip_shyps
   #> Drule.zero_var_indexes;
@@ -129,24 +127,21 @@ fun future_enabled_timing t =
 
 fun future_result ctxt result prop =
   let
-    val thy = Proof_Context.theory_of ctxt;
-    val cert = Thm.cterm_of thy;
-    val certT = Thm.ctyp_of thy;
-
     val assms = Assumption.all_assms_of ctxt;
     val As = map Thm.term_of assms;
 
     val xs = map Free (fold Term.add_frees (prop :: As) []);
-    val fixes = map cert xs;
+    val fixes = map (Thm.cterm_of ctxt) xs;
 
     val tfrees = fold Term.add_tfrees (prop :: As) [];
-    val instT = map (fn (a, S) => (certT (TVar ((a, 0), S)), certT (TFree (a, S)))) tfrees;
+    val instT = map (fn (a, S) => (((a, 0), S), Thm.ctyp_of ctxt (TFree (a, S)))) tfrees;
 
     val global_prop =
-      cert (Logic.varify_types_global (fold_rev Logic.all xs (Logic.list_implies (As, prop))))
-      |> Thm.weaken_sorts (Variable.sorts_of ctxt);
+      Logic.varify_types_global (fold_rev Logic.all xs (Logic.list_implies (As, prop)))
+      |> Thm.cterm_of ctxt
+      |> Thm.weaken_sorts' ctxt;
     val global_result = result |> Future.map
-      (Drule.flexflex_unique #>
+      (Drule.flexflex_unique (SOME ctxt) #>
         Thm.adjust_maxidx_thm ~1 #>
         Drule.implies_intr_list assms #>
         Drule.forall_intr_list fixes #>
@@ -178,11 +173,12 @@ fun is_schematic t =
   Term.exists_subterm Term.is_Var t orelse
   Term.exists_type (Term.exists_subtype Term.is_TVar) t;
 
-fun prove_common immediate pri ctxt xs asms props tac =
+fun prove_common ctxt fork_pri xs asms props tac =
   let
     val thy = Proof_Context.theory_of ctxt;
 
     val schematic = exists is_schematic props;
+    val immediate = is_none fork_pri;
     val future = future_enabled 1;
     val skip = not immediate andalso not schematic andalso future andalso skip_proofs_enabled ();
 
@@ -192,7 +188,7 @@ fun prove_common immediate pri ctxt xs asms props tac =
         ("The error(s) above occurred for the goal statement" ^ Position.here pos ^ ":\n" ^
           Syntax.string_of_term ctxt (Logic.list_implies (asms, Logic.mk_conjunction_list props)));
 
-    fun cert_safe t = Thm.cterm_of thy (Envir.beta_norm (Term.no_dummy_patterns t))
+    fun cert_safe t = Thm.cterm_of ctxt (Envir.beta_norm (Term.no_dummy_patterns t))
       handle TERM (msg, _) => err msg | TYPE (msg, _, _) => err msg;
     val casms = map cert_safe asms;
     val cprops = map cert_safe props;
@@ -202,12 +198,11 @@ fun prove_common immediate pri ctxt xs asms props tac =
       |> fold Variable.declare_term (asms @ props)
       |> Assumption.add_assumes casms
       ||> Variable.set_body true;
-    val sorts = Variable.sorts_of ctxt';
 
-    val stmt = Thm.weaken_sorts sorts (Conjunction.mk_conjunction_balanced cprops);
+    val stmt = Thm.weaken_sorts' ctxt' (Conjunction.mk_conjunction_balanced cprops);
 
     fun tac' args st =
-      if skip then ALLGOALS Skip_Proof.cheat_tac st before Skip_Proof.report ctxt
+      if skip then ALLGOALS (Skip_Proof.cheat_tac ctxt) st before Skip_Proof.report ctxt
       else tac args st;
     fun result () =
       (case SINGLE (tac' {prems = prems, context = ctxt'}) (init stmt) of
@@ -215,38 +210,41 @@ fun prove_common immediate pri ctxt xs asms props tac =
       | SOME st =>
           let
             val _ =
-              Theory.subthy (theory_of_thm st, thy) orelse err "Bad background theory of goal state";
+              Context.subthy_id (Thm.theory_id_of_thm st, Context.theory_id thy) orelse
+                err "Bad background theory of goal state";
             val res =
               (finish ctxt' st
-                |> Drule.flexflex_unique
-                |> Thm.check_shyps sorts
+                |> Drule.flexflex_unique (SOME ctxt')
+                |> Thm.check_shyps ctxt'
                 |> Thm.check_hyps (Context.Proof ctxt'))
               handle THM (msg, _, _) => err msg | ERROR msg => err msg;
           in
-            if Unify.matches_list thy [Thm.term_of stmt] [Thm.prop_of res] then res
+            if Unify.matches_list (Context.Proof ctxt') [Thm.term_of stmt] [Thm.prop_of res]
+            then res
             else err ("Proved a different theorem: " ^ Syntax.string_of_term ctxt' (Thm.prop_of res))
           end);
     val res =
       if immediate orelse schematic orelse not future orelse skip then result ()
       else
         future_result ctxt'
-          (Execution.fork {name = "Goal.prove", pos = Position.thread_data (), pri = pri} result)
+          (Execution.fork {name = "Goal.prove", pos = Position.thread_data (), pri = the fork_pri}
+            result)
           (Thm.term_of stmt);
   in
-    Conjunction.elim_balanced (length props) res
+    res
+    |> length props > 1 ? Thm.close_derivation
+    |> Conjunction.elim_balanced (length props)
     |> map (Assumption.export false ctxt' ctxt)
     |> Variable.export ctxt' ctxt
     |> map Drule.zero_var_indexes
   end;
 
-val prove_multi = prove_common true 0;
+fun prove_future_pri ctxt pri xs asms prop tac =
+  hd (prove_common ctxt (SOME pri) xs asms [prop] tac);
 
-fun prove_future_pri pri ctxt xs asms prop tac =
-  hd (prove_common false pri ctxt xs asms [prop] tac);
+fun prove_future ctxt = prove_future_pri ctxt ~1;
 
-val prove_future = prove_future_pri ~1;
-
-fun prove ctxt xs asms prop tac = hd (prove_multi ctxt xs asms [prop] tac);
+fun prove ctxt xs asms prop tac = hd (prove_common ctxt NONE xs asms [prop] tac);
 
 fun prove_global_future thy xs asms prop tac =
   Drule.export_without_context (prove_future (Proof_Context.init_global thy) xs asms prop tac);
@@ -254,10 +252,16 @@ fun prove_global_future thy xs asms prop tac =
 fun prove_global thy xs asms prop tac =
   Drule.export_without_context (prove (Proof_Context.init_global thy) xs asms prop tac);
 
+
+(* skip proofs *)
+
+val quick_and_dirty_raw = Config.declare_option ("quick_and_dirty", @{here});
+val quick_and_dirty = Config.bool quick_and_dirty_raw;
+
 fun prove_sorry ctxt xs asms prop tac =
   if Config.get ctxt quick_and_dirty then
-    prove ctxt xs asms prop (fn _ => ALLGOALS Skip_Proof.cheat_tac)
-  else (if future_enabled 1 then prove_future_pri ~2 else prove) ctxt xs asms prop tac;
+    prove ctxt xs asms prop (fn _ => ALLGOALS (Skip_Proof.cheat_tac ctxt))
+  else (if future_enabled 1 then prove_future_pri ctxt ~2 else prove ctxt) xs asms prop tac;
 
 fun prove_sorry_global thy xs asms prop tac =
   Drule.export_without_context
@@ -295,7 +299,7 @@ fun precise_conjunction_tac 0 i = eq_assume_tac i
 
 val adhoc_conjunction_tac = REPEAT_ALL_NEW
   (SUBGOAL (fn (goal, i) =>
-    if can Logic.dest_conjunction goal then rtac Conjunction.conjunctionI i
+    if can Logic.dest_conjunction goal then resolve0_tac [Conjunction.conjunctionI] i
     else no_tac));
 
 val conjunction_tac = SUBGOAL (fn (goal, i) =>
@@ -319,7 +323,7 @@ fun CONJUNCTS tac =
 (* hhf normal form *)
 
 fun norm_hhf_tac ctxt =
-  rtac Drule.asm_rl  (*cheap approximation -- thanks to builtin Logic.flatten_params*)
+  resolve_tac ctxt [Drule.asm_rl]  (*cheap approximation -- thanks to builtin Logic.flatten_params*)
   THEN' SUBGOAL (fn (t, i) =>
     if Drule.is_norm_hhf t then all_tac
     else rewrite_goal_tac ctxt Drule.norm_hhf_eqs i);
@@ -333,56 +337,12 @@ fun non_atomic (Const ("Pure.imp", _) $ _ $ _) = true
 
 fun assume_rule_tac ctxt = norm_hhf_tac ctxt THEN' CSUBGOAL (fn (goal, i) =>
   let
-    val ((_, goal'), ctxt') = Variable.focus_cterm goal ctxt;
+    val ((_, goal'), ctxt') = Variable.focus_cterm NONE goal ctxt;
     val goal'' = Drule.cterm_rule (singleton (Variable.export ctxt' ctxt)) goal';
     val Rs = filter (non_atomic o Thm.term_of) (Drule.strip_imp_prems goal'');
     val tacs = Rs |> map (fn R =>
-      etac (Raw_Simplifier.norm_hhf ctxt (Thm.trivial R)) THEN_ALL_NEW assume_tac);
+      eresolve_tac ctxt [Raw_Simplifier.norm_hhf ctxt (Thm.trivial R)] THEN_ALL_NEW assume_tac ctxt);
   in fold_rev (curry op APPEND') tacs (K no_tac) i end);
-
-
-
-(** parallel tacticals **)
-
-(* parallel choice of single results *)
-
-fun PARALLEL_CHOICE tacs st =
-  (case Par_List.get_some (fn tac => SINGLE tac st) tacs of
-    NONE => Seq.empty
-  | SOME st' => Seq.single st');
-
-
-(* parallel refinement of non-schematic goal by single results *)
-
-local
-
-exception FAILED of unit;
-
-fun retrofit st' =
-  rotate_prems ~1 #>
-  Thm.bicompose {flatten = false, match = false, incremented = false}
-      (false, conclude st', Thm.nprems_of st') 1;
-
-in
-
-fun PARALLEL_GOALS tac =
-  Thm.adjust_maxidx_thm ~1 #>
-  (fn st =>
-    if not (Multithreading.enabled ()) orelse Thm.maxidx_of st >= 0 orelse Thm.nprems_of st <= 1
-    then DETERM tac st
-    else
-      let
-        fun try_tac g =
-          (case SINGLE tac g of
-            NONE => raise FAILED ()
-          | SOME g' => g');
-
-        val goals = Drule.strip_imp_prems (Thm.cprop_of st);
-        val results = Par_List.map (try_tac o init) goals;
-      in EVERY (map retrofit (rev results)) st end
-      handle FAILED () => Seq.empty);
-
-end;
 
 end;
 

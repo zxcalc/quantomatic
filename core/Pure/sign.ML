@@ -24,7 +24,7 @@ sig
   val of_sort: theory -> typ * sort -> bool
   val inter_sort: theory -> sort * sort -> sort
   val witness_sorts: theory -> (typ * sort) list -> sort list -> (typ * sort) list
-  val is_logtype: theory -> string -> bool
+  val logical_types: theory -> string list
   val typ_instance: theory -> typ * typ -> bool
   val typ_equiv: theory -> typ * typ -> bool
   val typ_match: theory -> typ * typ -> Type.tyenv -> Type.tyenv
@@ -62,7 +62,7 @@ sig
   val certify_sort: theory -> sort -> sort
   val certify_typ: theory -> typ -> typ
   val certify_typ_mode: Type.mode -> theory -> typ -> typ
-  val certify': bool -> Context.pretty -> bool -> Consts.T -> theory -> term -> term * typ * int
+  val certify': bool -> Context.generic -> bool -> Consts.T -> theory -> term -> term * typ * int
   val certify_term: theory -> term -> term * typ * int
   val cert_term: theory -> term -> term
   val cert_prop: theory -> term -> term
@@ -101,6 +101,8 @@ sig
     (string * (Proof.context -> Ast.ast list -> Ast.ast)) list -> theory -> theory
   val add_trrules: Ast.ast Syntax.trrule list -> theory -> theory
   val del_trrules: Ast.ast Syntax.trrule list -> theory -> theory
+  val get_scope: theory -> Binding.scope option
+  val new_scope: theory -> Binding.scope * theory
   val new_group: theory -> theory
   val reset_group: theory -> theory
   val add_path: string -> theory -> theory
@@ -109,6 +111,11 @@ sig
   val mandatory_path: string -> theory -> theory
   val qualified_path: bool -> binding -> theory -> theory
   val local_path: theory -> theory
+  val private_scope: Binding.scope -> theory -> theory
+  val private: Position.T -> theory -> theory
+  val qualified_scope: Binding.scope -> theory -> theory
+  val qualified: Position.T -> theory -> theory
+  val concealed: theory -> theory
   val hide_class: bool -> string -> theory -> theory
   val hide_type: bool -> string -> theory -> theory
   val hide_const: bool -> string -> theory -> theory
@@ -126,20 +133,20 @@ datatype sign = Sign of
 
 fun make_sign (syn, tsig, consts) = Sign {syn = syn, tsig = tsig, consts = consts};
 
-structure Data = Theory_Data_PP
+structure Data = Theory_Data'
 (
   type T = sign;
   fun extend (Sign {syn, tsig, consts, ...}) = make_sign (syn, tsig, consts);
 
   val empty = make_sign (Syntax.empty_syntax, Type.empty_tsig, Consts.empty);
 
-  fun merge pp (sign1, sign2) =
+  fun merge old_thys (sign1, sign2) =
     let
       val Sign {syn = syn1, tsig = tsig1, consts = consts1} = sign1;
       val Sign {syn = syn2, tsig = tsig2, consts = consts2} = sign2;
 
       val syn = Syntax.merge_syntax (syn1, syn2);
-      val tsig = Type.merge_tsig pp (tsig1, tsig2);
+      val tsig = Type.merge_tsig (Context.Theory (fst old_thys)) (tsig1, tsig2);
       val consts = Consts.merge (consts1, consts2);
     in make_sign (syn, tsig, consts) end;
 );
@@ -190,7 +197,7 @@ val subsort = Type.subsort o tsig_of;
 val of_sort = Type.of_sort o tsig_of;
 val inter_sort = Type.inter_sort o tsig_of;
 val witness_sorts = Type.witness_sorts o tsig_of;
-val is_logtype = member (op =) o Type.logical_types o tsig_of;
+val logical_types = Type.logical_types o tsig_of;
 
 val typ_instance = Type.typ_instance o tsig_of;
 fun typ_equiv thy (T, U) = typ_instance thy (T, U) andalso typ_instance thy (U, T);
@@ -250,7 +257,7 @@ fun const_alias b c thy = map_consts (Consts.alias (naming_of thy) b c) thy;
 (* certify wrt. type signature *)
 
 val arity_number = Type.arity_number o tsig_of;
-fun arity_sorts thy = Type.arity_sorts (Context.pretty_global thy) (tsig_of thy);
+fun arity_sorts thy = Type.arity_sorts (Context.Theory thy) (tsig_of thy);
 
 val certify_class = Type.cert_class o tsig_of;
 val certify_sort = Type.cert_sort o tsig_of;
@@ -262,14 +269,14 @@ fun certify_typ_mode mode = Type.cert_typ_mode mode o tsig_of;
 
 local
 
-fun type_check pp tm =
+fun type_check context tm =
   let
     fun err_appl bs t T u U =
       let
         val xs = map Free bs;           (*we do not rename here*)
         val t' = subst_bounds (xs, t);
         val u' = subst_bounds (xs, u);
-        val msg = Type.appl_error (Syntax.init_pretty pp) t' T u' U;
+        val msg = Type.appl_error (Syntax.init_pretty context) t' T u' U;
       in raise TYPE (msg, [T, U], [t', u']) end;
 
     fun typ_of (_, Const (_, T)) = T
@@ -299,20 +306,19 @@ fun check_vars (t $ u) = (check_vars t; check_vars u)
 
 in
 
-fun certify' prop pp do_expand consts thy tm =
+fun certify' prop context do_expand consts thy tm =
   let
     val _ = check_vars tm;
     val tm' = Term.map_types (certify_typ thy) tm;
-    val T = type_check pp tm';
+    val T = type_check context tm';
     val _ = if prop andalso T <> propT then err "Term not of type prop" else ();
-    val tm'' = Consts.certify pp (tsig_of thy) do_expand consts tm';
+    val tm'' = Consts.certify context (tsig_of thy) do_expand consts tm';
   in (if tm = tm'' then tm else tm'', T, Term.maxidx_of_term tm'') end;
 
-fun certify_term thy = certify' false (Context.pretty_global thy) true (consts_of thy) thy;
-fun cert_term_abbrev thy =
-  #1 o certify' false (Context.pretty_global thy) false (consts_of thy) thy;
+fun certify_term thy = certify' false (Context.Theory thy) true (consts_of thy) thy;
+fun cert_term_abbrev thy = #1 o certify' false (Context.Theory thy) false (consts_of thy) thy;
 val cert_term = #1 oo certify_term;
-fun cert_prop thy = #1 o certify' true (Context.pretty_global thy) true (consts_of thy) thy;
+fun cert_prop thy = #1 o certify' true (Context.Theory thy) true (consts_of thy) thy;
 
 end;
 
@@ -369,7 +375,7 @@ fun gen_syntax change_gram parse_typ mode args thy =
     val ctxt = Type.set_mode Type.mode_syntax (Proof_Context.init_global thy);
     fun prep (c, T, mx) = (c, certify_typ_mode Type.mode_syntax thy (parse_typ ctxt T), mx)
       handle ERROR msg => cat_error msg ("in syntax declaration " ^ quote c);
-  in thy |> map_syn (change_gram (is_logtype thy) mode (map prep args)) end;
+  in thy |> map_syn (change_gram (logical_types thy) mode (map prep args)) end;
 
 fun gen_add_syntax x = gen_syntax (Syntax.update_const_gram true) x;
 
@@ -467,10 +473,10 @@ fun primitive_class (bclass, classes) thy =
   |> add_consts [(Binding.map_name Logic.const_of_class bclass, Term.a_itselfT --> propT, NoSyn)];
 
 fun primitive_classrel arg thy =
-  thy |> map_tsig (Type.add_classrel (Context.pretty_global thy) arg);
+  thy |> map_tsig (Type.add_classrel (Context.Theory thy) arg);
 
 fun primitive_arity arg thy =
-  thy |> map_tsig (Type.add_arity (Context.pretty_global thy) arg);
+  thy |> map_tsig (Type.add_arity (Context.Theory thy) arg);
 
 
 (* add translation functions *)
@@ -499,6 +505,14 @@ val del_trrules = map_syn o Syntax.remove_trrules;
 
 (* naming *)
 
+val get_scope = Name_Space.get_scope o naming_of;
+
+fun new_scope thy =
+  let
+    val (scope, naming') = Name_Space.new_scope (naming_of thy);
+    val thy' = map_naming (K naming') thy;
+  in (scope, thy') end;
+
 val new_group = map_naming Name_Space.new_group;
 val reset_group = map_naming Name_Space.reset_group;
 
@@ -509,6 +523,12 @@ val mandatory_path = map_naming o Name_Space.mandatory_path;
 val qualified_path = map_naming oo Name_Space.qualified_path;
 
 fun local_path thy = thy |> root_path |> add_path (Context.theory_name thy);
+
+val private_scope = map_naming o Name_Space.private_scope;
+val private = map_naming o Name_Space.private;
+val qualified_scope = map_naming o Name_Space.qualified_scope;
+val qualified = map_naming o Name_Space.qualified;
+val concealed = map_naming Name_Space.concealed;
 
 
 (* hide names *)

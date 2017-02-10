@@ -1,380 +1,332 @@
-(*** Isabelle/Pure bootstrap from "RAW" environment ***)
+chapter "Isabelle/Pure bootstrap";
 
-(** bootstrap phase 0: towards secure ML barrier *)
-
-structure Distribution =     (*filled-in by makedist*)
-struct
-  val version = "Isabelle2014: August 2014";
-  val is_identified = true;
-  val is_official = true;
-end;
+ML_file "ML/ml_name_space.ML";
 
 
-(* library of general tools *)
+section "Bootstrap phase 0: Poly/ML setup";
 
-use "General/basics.ML";
-use "library.ML";
-use "General/print_mode.ML";
-use "General/alist.ML";
-use "General/table.ML";
+ML_file "ML/ml_pervasive.ML";
+ML_file "ML/ml_system.ML";
+ML_file "System/distribution.ML";
 
-use "Concurrent/simple_thread.ML";
+ML_file "General/basics.ML";
+ML_file "General/symbol_explode.ML";
 
-use "Concurrent/synchronized.ML";
-if Multithreading.available then ()
-else use "Concurrent/synchronized_sequential.ML";
-use "Concurrent/counter.ML";
+ML_file "Concurrent/multithreading.ML";
+ML_file "Concurrent/unsynchronized.ML";
+ML_file "Concurrent/synchronized.ML";
+ML_file "Concurrent/counter.ML";
 
-use "General/properties.ML";
-use "General/output.ML";
-use "PIDE/markup.ML";
-fun legacy_feature s = warning (Markup.markup Markup.legacy ("Legacy feature! " ^ s));
-use "General/scan.ML";
-use "General/source.ML";
-use "General/symbol.ML";
-use "General/position.ML";
-use "General/symbol_pos.ML";
-use "General/antiquote.ML";
-use "ML/ml_lex.ML";
-use "ML/ml_parse.ML";
-use "General/secure.ML";
-
-val use_text = Secure.use_text;
-val use_file = Secure.use_file;
-
-fun use s =
-  Position.setmp_thread_data (Position.file_only s)
-    (fn () =>
-      Secure.use_file ML_Parse.global_context true s
-        handle ERROR msg => (writeln msg; error "ML error")) ();
-
-val toplevel_pp = Secure.toplevel_pp;
+ML_file "ML/ml_heap.ML";
+ML_file "ML/ml_profiling.ML";
+ML_file "ML/ml_print_depth0.ML";
+ML_file "ML/ml_pretty.ML";
+ML_file "ML/ml_compiler0.ML";
 
 
-(** bootstrap phase 1: towards ML within Isar context *)
+section "Bootstrap phase 1: towards ML within position context";
 
-(* library of general tools *)
+subsection "Library of general tools";
 
-use "General/integer.ML";
-use "General/stack.ML";
-use "General/queue.ML";
-use "General/heap.ML";
-use "General/same.ML";
-use "General/ord_list.ML";
-use "General/balanced_tree.ML";
-use "General/linear_set.ML";
-use "General/buffer.ML";
-use "General/pretty.ML";
-use "General/path.ML";
-use "General/url.ML";
-use "General/file.ML";
-use "General/long_name.ML";
-use "General/binding.ML";
-use "General/socket_io.ML";
-use "General/seq.ML";
-use "General/timing.ML";
+ML_file "library.ML";
+ML_file "General/print_mode.ML";
+ML_file "General/alist.ML";
+ML_file "General/table.ML";
 
-use "General/sha1.ML";
-if ML_System.is_polyml then use "General/sha1_polyml.ML" else ();
-use "General/sha1_samples.ML";
-
-use "PIDE/xml.ML";
-use "PIDE/yxml.ML";
-use "PIDE/document_id.ML";
-
-use "General/change_table.ML";
-use "General/graph.ML";
-
-use "System/options.ML";
+ML_file "General/random.ML";
+ML_file "General/value.ML";
+ML_file "General/properties.ML";
+ML_file "General/output.ML";
+ML_file "PIDE/markup.ML";
+ML_file "General/scan.ML";
+ML_file "General/source.ML";
+ML_file "General/symbol.ML";
+ML_file "General/position.ML";
+ML_file "General/symbol_pos.ML";
+ML_file "General/input.ML";
+ML_file "General/antiquote.ML";
+ML_file "ML/ml_lex.ML";
+ML_file "ML/ml_compiler1.ML";
 
 
-(* concurrency within the ML runtime *)
+section "Bootstrap phase 2: towards ML within Isar context";
 
-if ML_System.is_polyml
-then use "ML/exn_properties_polyml.ML"
-else use "ML/exn_properties_dummy.ML";
+subsection "Library of general tools";
 
-if ML_System.name = "polyml-5.5.1"
-  orelse ML_System.name = "polyml-5.5.2"
-then use "ML/exn_trace_polyml-5.5.1.ML"
-else ();
+ML_file "General/integer.ML";
+ML_file "General/stack.ML";
+ML_file "General/queue.ML";
+ML_file "General/heap.ML";
+ML_file "General/same.ML";
+ML_file "General/ord_list.ML";
+ML_file "General/balanced_tree.ML";
+ML_file "General/linear_set.ML";
+ML_file "General/buffer.ML";
+ML_file "General/pretty.ML";
+ML_file "General/rat.ML";
+ML_file "PIDE/xml.ML";
+ML_file "General/path.ML";
+ML_file "General/url.ML";
+ML_file "System/bash_syntax.ML";
+ML_file "General/file.ML";
+ML_file "General/long_name.ML";
+ML_file "General/binding.ML";
+ML_file "General/socket_io.ML";
+ML_file "General/seq.ML";
+ML_file "General/timing.ML";
+ML_file "General/sha1.ML";
 
-if ML_System.name = "polyml-5.5.0"
-  orelse ML_System.name = "polyml-5.5.1"
-  orelse ML_System.name = "polyml-5.5.2"
-then use "ML/ml_statistics_polyml-5.5.0.ML"
-else use "ML/ml_statistics_dummy.ML";
+ML_file "PIDE/yxml.ML";
+ML_file "PIDE/document_id.ML";
 
-use "Concurrent/single_assignment.ML";
-if Multithreading.available then ()
-else use "Concurrent/single_assignment_sequential.ML";
-
-if Multithreading.available
-then use "Concurrent/bash.ML"
-else use "Concurrent/bash_sequential.ML";
-
-use "Concurrent/par_exn.ML";
-use "Concurrent/task_queue.ML";
-use "Concurrent/future.ML";
-use "Concurrent/event_timer.ML";
-
-if ML_System.is_polyml then use "Concurrent/time_limit.ML" else ();
-
-use "Concurrent/lazy.ML";
-if Multithreading.available then ()
-else use "Concurrent/lazy_sequential.ML";
-
-use "Concurrent/par_list.ML";
-if Multithreading.available then ()
-else use "Concurrent/par_list_sequential.ML";
-
-use "Concurrent/mailbox.ML";
-use "Concurrent/cache.ML";
-
-use "PIDE/active.ML";
+ML_file "General/change_table.ML";
+ML_file "General/graph.ML";
 
 
-(* fundamental structures *)
+subsection "Fundamental structures";
 
-use "name.ML";
-use "term.ML";
-use "context.ML";
-use "context_position.ML";
-use "config.ML";
-
-
-(* inner syntax *)
-
-use "Syntax/type_annotation.ML";
-use "Syntax/term_position.ML";
-use "Syntax/lexicon.ML";
-use "Syntax/ast.ML";
-use "Syntax/syntax_ext.ML";
-use "Syntax/parser.ML";
-use "Syntax/syntax_trans.ML";
-use "Syntax/mixfix.ML";
-use "Syntax/printer.ML";
-use "Syntax/syntax.ML";
+ML_file "name.ML";
+ML_file "term.ML";
+ML_file "context.ML";
+ML_file "context_position.ML";
+ML_file "System/options.ML";
+ML_file "config.ML";
 
 
-(* core of tactical proof system *)
+subsection "Concurrency within the ML runtime";
 
-use "term_ord.ML";
-use "term_subst.ML";
-use "term_xml.ML";
-use "General/completion.ML";
-use "General/name_space.ML";
-use "sorts.ML";
-use "type.ML";
-use "logic.ML";
-use "Syntax/simple_syntax.ML";
-use "net.ML";
-use "item_net.ML";
-use "envir.ML";
-use "consts.ML";
-use "primitive_defs.ML";
-use "defs.ML";
-use "sign.ML";
-use "term_sharing.ML";
-use "pattern.ML";
-use "unify.ML";
-use "theory.ML";
-use "interpretation.ML";
-use "proofterm.ML";
-use "thm.ML";
-use "more_thm.ML";
-use "facts.ML";
-use "global_theory.ML";
-use "pure_thy.ML";
-use "drule.ML";
-use "morphism.ML";
-use "variable.ML";
-use "conv.ML";
-use "goal_display.ML";
-use "tactical.ML";
-use "search.ML";
-use "tactic.ML";
-use "raw_simplifier.ML";
-use "conjunction.ML";
-use "assumption.ML";
-use "display.ML";
+ML_file "ML/exn_properties.ML";
+
+ML_file "ML/ml_statistics.ML";
+
+ML_file "Concurrent/thread_data_virtual.ML";
+ML_file "Concurrent/standard_thread.ML";
+ML_file "Concurrent/single_assignment.ML";
+
+ML_file "Concurrent/par_exn.ML";
+ML_file "Concurrent/task_queue.ML";
+ML_file "Concurrent/future.ML";
+ML_file "Concurrent/event_timer.ML";
+ML_file "Concurrent/timeout.ML";
+ML_file "Concurrent/lazy.ML";
+ML_file "Concurrent/par_list.ML";
+
+ML_file "Concurrent/mailbox.ML";
+ML_file "Concurrent/cache.ML";
+
+ML_file "PIDE/active.ML";
 
 
-(* Isar -- Intelligible Semi-Automated Reasoning *)
+subsection "Inner syntax";
+
+ML_file "Syntax/type_annotation.ML";
+ML_file "Syntax/term_position.ML";
+ML_file "Syntax/lexicon.ML";
+ML_file "Syntax/ast.ML";
+ML_file "Syntax/syntax_ext.ML";
+ML_file "Syntax/parser.ML";
+ML_file "Syntax/syntax_trans.ML";
+ML_file "Syntax/mixfix.ML";
+ML_file "Syntax/printer.ML";
+ML_file "Syntax/syntax.ML";
+
+
+subsection "Core of tactical proof system";
+
+ML_file "term_ord.ML";
+ML_file "term_subst.ML";
+ML_file "term_xml.ML";
+ML_file "General/completion.ML";
+ML_file "General/name_space.ML";
+ML_file "sorts.ML";
+ML_file "type.ML";
+ML_file "logic.ML";
+ML_file "Syntax/simple_syntax.ML";
+ML_file "net.ML";
+ML_file "item_net.ML";
+ML_file "envir.ML";
+ML_file "consts.ML";
+ML_file "primitive_defs.ML";
+ML_file "sign.ML";
+ML_file "defs.ML";
+ML_file "term_sharing.ML";
+ML_file "pattern.ML";
+ML_file "unify.ML";
+ML_file "theory.ML";
+ML_file "proofterm.ML";
+ML_file "thm.ML";
+ML_file "more_pattern.ML";
+ML_file "more_unify.ML";
+ML_file "more_thm.ML";
+ML_file "facts.ML";
+ML_file "global_theory.ML";
+ML_file "pure_thy.ML";
+ML_file "drule.ML";
+ML_file "morphism.ML";
+ML_file "variable.ML";
+ML_file "conv.ML";
+ML_file "goal_display.ML";
+ML_file "tactical.ML";
+ML_file "search.ML";
+ML_file "tactic.ML";
+ML_file "raw_simplifier.ML";
+ML_file "conjunction.ML";
+ML_file "assumption.ML";
+
+
+subsection "Isar -- Intelligible Semi-Automated Reasoning";
 
 (*ML support and global execution*)
-use "ML/ml_syntax.ML";
-use "ML/ml_env.ML";
-use "ML/ml_options.ML";
-use "ML/exn_output.ML";
-if ML_System.is_polyml then use "ML/exn_output_polyml.ML" else ();
-use "ML/ml_options.ML";
-use "Isar/runtime.ML";
-use "PIDE/execution.ML";
-use "ML/ml_compiler.ML";
-if ML_System.is_polyml then use "ML/ml_compiler_polyml.ML" else ();
+ML_file "ML/ml_syntax.ML";
+ML_file "ML/ml_env.ML";
+ML_file "ML/ml_options.ML";
+ML_file "ML/ml_print_depth.ML";
+ML_file_no_debug "ML/exn_debugger.ML";
+ML_file_no_debug "Isar/runtime.ML";
+ML_file "PIDE/execution.ML";
+ML_file "ML/ml_compiler.ML";
 
-use "skip_proof.ML";
-use "goal.ML";
-
-(*proof context*)
-use "Isar/object_logic.ML";
-use "Isar/rule_cases.ML";
-use "Isar/auto_bind.ML";
-use "type_infer.ML";
-use "Syntax/local_syntax.ML";
-use "Isar/proof_context.ML";
-use "type_infer_context.ML";
-use "Syntax/syntax_phases.ML";
-use "Isar/local_defs.ML";
+ML_file "skip_proof.ML";
+ML_file "goal.ML";
 
 (*outer syntax*)
-use "Isar/token.ML";
-use "Isar/keyword.ML";
-use "Isar/parse.ML";
-use "Isar/args.ML";
+ML_file "Isar/keyword.ML";
+ML_file "Isar/token.ML";
+ML_file "Isar/parse.ML";
+ML_file "Thy/thy_header.ML";
 
-(*theory sources*)
-use "Thy/thy_header.ML";
-use "Thy/thy_syntax.ML";
-use "Thy/html.ML";
-use "Thy/latex.ML";
+(*proof context*)
+ML_file "Isar/object_logic.ML";
+ML_file "Isar/rule_cases.ML";
+ML_file "Isar/auto_bind.ML";
+ML_file "type_infer.ML";
+ML_file "Syntax/local_syntax.ML";
+ML_file "Isar/proof_context.ML";
+ML_file "type_infer_context.ML";
+ML_file "Syntax/syntax_phases.ML";
+ML_file "Isar/args.ML";
+
+(*theory specifications*)
+ML_file "Isar/local_defs.ML";
+ML_file "Isar/local_theory.ML";
+ML_file "Isar/entity.ML";
+ML_file "PIDE/command_span.ML";
+ML_file "Thy/thy_syntax.ML";
+ML_file "Thy/markdown.ML";
+ML_file "Thy/html.ML";
+ML_file "Thy/latex.ML";
 
 (*ML with context and antiquotations*)
-use "ML/ml_context.ML";
-use "ML/ml_antiquotation.ML";
-
-fun use s =
-  ML_Context.eval_file (ML_Compiler.verbose true ML_Compiler.flags) (Path.explode s)
-    handle ERROR msg => (writeln msg; error "ML error");
+ML_file "ML/ml_context.ML";
+ML_file "ML/ml_antiquotation.ML";
+ML_file "ML/ml_compiler2.ML";
 
 
-
-(** bootstrap phase 2: towards Pure.thy and final ML toplevel setup *)
+section "Bootstrap phase 3: towards theory Pure and final ML toplevel setup";
 
 (*basic proof engine*)
-use "Isar/proof_display.ML";
-use "Isar/attrib.ML";
-use "Isar/context_rules.ML";
-use "Isar/method.ML";
-use "Isar/proof.ML";
-use "Isar/element.ML";
-use "Isar/obtain.ML";
+ML_file "par_tactical.ML";
+ML_file "Isar/proof_display.ML";
+ML_file "Isar/attrib.ML";
+ML_file "Isar/context_rules.ML";
+ML_file "Isar/method.ML";
+ML_file "Isar/proof.ML";
+ML_file "Isar/element.ML";
+ML_file "Isar/obtain.ML";
+ML_file "Isar/subgoal.ML";
+ML_file "Isar/calculation.ML";
 
 (*local theories and targets*)
-use "Isar/locale.ML";
-use "Isar/local_theory.ML";
-use "Isar/generic_target.ML";
-use "Isar/overloading.ML";
-use "axclass.ML";
-use "Isar/class.ML";
-use "Isar/named_target.ML";
-use "Isar/expression.ML";
-use "Isar/class_declaration.ML";
-use "Isar/bundle.ML";
+ML_file "Isar/locale.ML";
+ML_file "Isar/generic_target.ML";
+ML_file "Isar/overloading.ML";
+ML_file "axclass.ML";
+ML_file "Isar/class.ML";
+ML_file "Isar/named_target.ML";
+ML_file "Isar/expression.ML";
+ML_file "Isar/interpretation.ML";
+ML_file "Isar/class_declaration.ML";
+ML_file "Isar/bundle.ML";
+ML_file "Isar/experiment.ML";
 
-use "simplifier.ML";
+ML_file "simplifier.ML";
+ML_file "Tools/plugin.ML";
 
 (*executable theory content*)
-use "Isar/code.ML";
+ML_file "Isar/code.ML";
 
 (*specifications*)
-use "Isar/parse_spec.ML";
-use "Isar/spec_rules.ML";
-use "Isar/specification.ML";
-use "Isar/typedecl.ML";
+ML_file "Isar/spec_rules.ML";
+ML_file "Isar/specification.ML";
+ML_file "Isar/parse_spec.ML";
+ML_file "Isar/typedecl.ML";
 
 (*toplevel transactions*)
-use "Isar/proof_node.ML";
-use "Isar/toplevel.ML";
+ML_file "Isar/proof_node.ML";
+ML_file "Isar/toplevel.ML";
 
 (*proof term operations*)
-use "Proof/reconstruct.ML";
-use "Proof/proof_syntax.ML";
-use "Proof/proof_rewrite_rules.ML";
-use "Proof/proof_checker.ML";
-use "Proof/extraction.ML";
+ML_file "Proof/reconstruct.ML";
+ML_file "Proof/proof_syntax.ML";
+ML_file "Proof/proof_rewrite_rules.ML";
+ML_file "Proof/proof_checker.ML";
+ML_file "Proof/extraction.ML";
+
+(*Isabelle system*)
+ML_file "System/bash.ML";
+ML_file "System/isabelle_system.ML";
+
 
 (*theory documents*)
-use "System/isabelle_system.ML";
-use "Thy/term_style.ML";
-use "Thy/thy_output.ML";
-use "Isar/outer_syntax.ML";
-use "General/graph_display.ML";
-use "Thy/present.ML";
-use "PIDE/command.ML";
-use "PIDE/query_operation.ML";
-use "PIDE/resources.ML";
-use "Thy/thy_info.ML";
-use "PIDE/document.ML";
+ML_file "Thy/term_style.ML";
+ML_file "Isar/outer_syntax.ML";
+ML_file "Thy/thy_output.ML";
+ML_file "Thy/document_antiquotations.ML";
+ML_file "General/graph_display.ML";
+ML_file "Thy/present.ML";
+ML_file "pure_syn.ML";
+ML_file "PIDE/command.ML";
+ML_file "PIDE/query_operation.ML";
+ML_file "PIDE/resources.ML";
+ML_file "Thy/thy_info.ML";
+ML_file "PIDE/session.ML";
+ML_file "PIDE/protocol_message.ML";
+ML_file "PIDE/document.ML";
 
 (*theory and proof operations*)
-use "Thy/thm_deps.ML";
-use "Isar/isar_cmd.ML";
-
-use "subgoal.ML";
+ML_file "Isar/isar_cmd.ML";
 
 
-(* Isabelle/Isar system *)
+subsection "Isabelle/Isar system";
 
-use "PIDE/session.ML";
-use "System/command_line.ML";
-use "System/system_channel.ML";
-use "System/message_channel.ML";
-use "System/isabelle_process.ML";
-use "System/invoke_scala.ML";
-use "PIDE/protocol.ML";
-use "System/isar.ML";
-
-
-(* miscellaneous tools and packages for Pure Isabelle *)
-
-use "Tools/build.ML";
-use "Tools/named_thms.ML";
-use "Tools/proof_general.ML";
-
-structure Output: OUTPUT = Output;  (*seal system channels!*)
+ML_file "System/command_line.ML";
+ML_file "System/system_channel.ML";
+ML_file "System/message_channel.ML";
+ML_file "System/isabelle_process.ML";
+ML_file "System/invoke_scala.ML";
+ML_file "PIDE/protocol.ML";
+ML_file "General/output_primitives_virtual.ML";
 
 
-(* ML toplevel pretty printing *)
+subsection "Miscellaneous tools and packages for Pure Isabelle";
 
-toplevel_pp ["Pretty", "T"] "(fn _: Pretty.T => Pretty.str \"<pretty>\")";
-toplevel_pp ["Task_Queue", "task"] "Pretty.str o Task_Queue.str_of_task";
-toplevel_pp ["Task_Queue", "group"] "Pretty.str o Task_Queue.str_of_group";
-toplevel_pp ["Position", "T"] "Pretty.position";
-toplevel_pp ["Binding", "binding"] "Pretty.str o Binding.print";
-toplevel_pp ["Thm", "thm"] "Proof_Display.pp_thm";
-toplevel_pp ["Thm", "cterm"] "Proof_Display.pp_cterm";
-toplevel_pp ["Thm", "ctyp"] "Proof_Display.pp_ctyp";
-toplevel_pp ["Context", "theory"] "Context.pretty_thy";
-toplevel_pp ["Context", "Proof", "context"] "Proof_Display.pp_context";
-toplevel_pp ["Ast", "ast"] "Ast.pretty_ast";
-toplevel_pp ["Path", "T"] "Path.pretty";
-toplevel_pp ["SHA1", "digest"] "Pretty.str o quote o SHA1.rep";
-toplevel_pp ["Proof", "state"] "(fn _: Proof.state => Pretty.str \"<Proof.state>\")";
-toplevel_pp ["Toplevel", "state"] "Toplevel.pretty_abstract";
-toplevel_pp ["Morphism", "morphism"] "Morphism.pretty";
+ML_file "ML/ml_pp.ML";
+ML_file "ML/ml_antiquotations.ML";
+ML_file "ML/ml_thms.ML";
+ML_file "ML/ml_file.ML";
 
-if ML_System.is_polyml then use "ML/install_pp_polyml.ML" else ();
-
-
-(* the Pure theory *)
-
-use "pure_syn.ML";
-Runtime.toplevel_program (fn () => Thy_Info.use_thy ("Pure", Position.none));
-Context.set_thread_data NONE;
-structure Pure = struct val thy = Thy_Info.get_theory "Pure" end;
-
-toplevel_pp ["typ"] "Proof_Display.pp_typ Pure.thy";
-
-
-(* ML toplevel commands *)
-
-fun use_thys args =
-  Runtime.toplevel_program (fn () => Thy_Info.use_thys (map (rpair Position.none) args));
-val use_thy = use_thys o single;
-
-val cd = File.cd o Path.explode;
-
-Proofterm.proofs := 0;
-
+ML_file "Tools/build.ML";
+ML_file "Tools/named_thms.ML";
+ML_file "Tools/print_operation.ML";
+ML_file "Tools/bibtex.ML";
+ML_file "Tools/rail.ML";
+ML_file "Tools/rule_insts.ML";
+ML_file "Tools/thm_deps.ML";
+ML_file "Tools/thy_deps.ML";
+ML_file "Tools/class_deps.ML";
+ML_file "Tools/find_theorems.ML";
+ML_file "Tools/find_consts.ML";
+ML_file "Tools/simplifier_trace.ML";
+ML_file_no_debug "Tools/debugger.ML";
+ML_file "Tools/named_theorems.ML";
+ML_file "Tools/jedit.ML";

@@ -7,12 +7,17 @@ Outer token syntax for Isabelle/Isar.
 package isabelle
 
 
+import scala.collection.mutable
+import scala.util.parsing.input
+
+
 object Token
 {
   /* tokens */
 
   object Kind extends Enumeration
   {
+    /*immediate source*/
     val COMMAND = Value("command")
     val KEYWORD = Value("keyword")
     val IDENT = Value("identifier")
@@ -23,12 +28,14 @@ object Token
     val TYPE_VAR = Value("schematic type variable")
     val NAT = Value("natural number")
     val FLOAT = Value("floating-point number")
+    val SPACE = Value("white space")
+    /*delimited content*/
     val STRING = Value("string")
     val ALT_STRING = Value("back-quoted string")
     val VERBATIM = Value("verbatim text")
     val CARTOUCHE = Value("text cartouche")
-    val SPACE = Value("white space")
     val COMMENT = Value("comment text")
+    /*special content*/
     val ERROR = Value("bad input")
     val UNPARSED = Value("unparsed input")
   }
@@ -51,11 +58,10 @@ object Token
       string | (alt_string | (verb | (cart | cmt)))
     }
 
-    private def other_token(lexicon: Scan.Lexicon, is_command: String => Boolean)
-      : Parser[Token] =
+    private def other_token(keywords: Keyword.Keywords): Parser[Token] =
     {
       val letdigs1 = many1(Symbol.is_letdig)
-      val sub = one(s => s == Symbol.sub_decoded || s == "\\<^sub>")
+      val sub = one(s => s == Symbol.sub_decoded || s == Symbol.sub)
       val id =
         one(Symbol.is_letter) ~
           (rep(letdigs1 | (sub ~ letdigs1 ^^ { case x ~ y => x + y })) ^^ (_.mkString)) ^^
@@ -80,9 +86,9 @@ object Token
         (many1(Symbol.is_symbolic_char) | one(sym => Symbol.is_symbolic(sym))) ^^
         (x => Token(Token.Kind.SYM_IDENT, x))
 
-      val command_keyword =
-        literal(lexicon) ^^
-          (x => Token(if (is_command(x)) Token.Kind.COMMAND else Token.Kind.KEYWORD, x))
+      val keyword =
+        literal(keywords.minor) ^^ (x => Token(Token.Kind.KEYWORD, x)) |||
+        literal(keywords.major) ^^ (x => Token(Token.Kind.COMMAND, x))
 
       val space = many1(Symbol.is_blank) ^^ (x => Token(Token.Kind.SPACE, x))
 
@@ -96,13 +102,13 @@ object Token
 
       space | (recover_delimited |
         (((ident | (var_ | (type_ident | (type_var | (float | (nat_ | sym_ident)))))) |||
-          command_keyword) | bad))
+          keyword) | bad))
     }
 
-    def token(lexicon: Scan.Lexicon, is_command: String => Boolean): Parser[Token] =
-      delimited_token | other_token(lexicon, is_command)
+    def token(keywords: Keyword.Keywords): Parser[Token] =
+      delimited_token | other_token(keywords)
 
-    def token_line(lexicon: Scan.Lexicon, is_command: String => Boolean, ctxt: Scan.Line_Context)
+    def token_line(keywords: Keyword.Keywords, ctxt: Scan.Line_Context)
       : Parser[(Token, Scan.Line_Context)] =
     {
       val string =
@@ -112,21 +118,66 @@ object Token
       val verb = verbatim_line(ctxt) ^^ { case (x, c) => (Token(Token.Kind.VERBATIM, x), c) }
       val cart = cartouche_line(ctxt) ^^ { case (x, c) => (Token(Token.Kind.CARTOUCHE, x), c) }
       val cmt = comment_line(ctxt) ^^ { case (x, c) => (Token(Token.Kind.COMMENT, x), c) }
-      val other = other_token(lexicon, is_command) ^^ { case x => (x, Scan.Finished) }
+      val other = other_token(keywords) ^^ { case x => (x, Scan.Finished) }
 
       string | (alt_string | (verb | (cart | (cmt | other))))
     }
   }
 
 
+  /* explode */
+
+  def explode(keywords: Keyword.Keywords, inp: CharSequence): List[Token] =
+  {
+    val in: input.Reader[Char] = new input.CharSequenceReader(inp)
+    Parsers.parseAll(Parsers.rep(Parsers.token(keywords)), in) match {
+      case Parsers.Success(tokens, _) => tokens
+      case _ => error("Unexpected failure of tokenizing input:\n" + inp.toString)
+    }
+  }
+
+  def explode_line(keywords: Keyword.Keywords, inp: CharSequence, context: Scan.Line_Context)
+    : (List[Token], Scan.Line_Context) =
+  {
+    var in: input.Reader[Char] = new input.CharSequenceReader(inp)
+    val toks = new mutable.ListBuffer[Token]
+    var ctxt = context
+    while (!in.atEnd) {
+      Parsers.parse(Parsers.token_line(keywords, ctxt), in) match {
+        case Parsers.Success((x, c), rest) => toks += x; ctxt = c; in = rest
+        case Parsers.NoSuccess(_, rest) =>
+          error("Unexpected failure of tokenizing input:\n" + rest.source.toString)
+      }
+    }
+    (toks.toList, ctxt)
+  }
+
+
+  /* implode */
+
+  def implode(toks: List[Token]): String =
+    toks match {
+      case List(tok) => tok.source
+      case _ => toks.map(_.source).mkString
+    }
+
+
   /* token reader */
 
   object Pos
   {
-    val none: Pos = new Pos(0, "")
+    val none: Pos = new Pos(0, 0, "", "")
+    val start: Pos = new Pos(1, 1, "", "")
+    def file(file: String): Pos = new Pos(1, 1, file, "")
+    def id(id: String): Pos = new Pos(0, 1, "", id)
+    val command: Pos = id(Markup.COMMAND)
   }
 
-  final class Pos private[Token](val line: Int, val file: String)
+  final class Pos private[Token](
+      val line: Int,
+      val offset: Symbol.Offset,
+      val file: String,
+      val id: String)
     extends scala.util.parsing.input.Position
   {
     def column = 0
@@ -134,13 +185,27 @@ object Token
 
     def advance(token: Token): Pos =
     {
-      var n = 0
-      for (c <- token.content if c == '\n') n += 1
-      if (n == 0) this else new Pos(line + n, file)
+      var line1 = line
+      var offset1 = offset
+      for (s <- Symbol.iterator(token.source)) {
+        if (line1 > 0 && Symbol.is_newline(s)) line1 += 1
+        if (offset1 > 0) offset1 += 1
+      }
+      if (line1 == line && offset1 == offset) this
+      else new Pos(line1, offset1, file, id)
     }
 
-    def position: Position.T = Position.Line_File(line, file)
-    override def toString: String = Position.here_undelimited(position)
+    private def position(end_offset: Symbol.Offset): Position.T =
+      (if (line > 0) Position.Line(line) else Nil) :::
+      (if (offset > 0) Position.Offset(offset) else Nil) :::
+      (if (end_offset > 0) Position.End_Offset(end_offset) else Nil) :::
+      (if (file != "") Position.File(file) else Nil) :::
+      (if (id != "") Position.Id_String(id) else Nil)
+
+    def position(): Position.T = position(0)
+    def position(token: Token): Position.T = position(advance(token).offset)
+
+    override def toString: String = Position.here_undelimited(position())
   }
 
   abstract class Reader extends scala.util.parsing.input.Reader[Token]
@@ -152,15 +217,19 @@ object Token
     def atEnd = tokens.isEmpty
   }
 
-  def reader(tokens: List[Token], file: String = ""): Reader =
-    new Token_Reader(tokens, new Pos(1, file))
+  def reader(tokens: List[Token], start: Token.Pos): Reader =
+    new Token_Reader(tokens, start)
 }
 
 
-sealed case class Token(val kind: Token.Kind.Value, val source: String)
+sealed case class Token(kind: Token.Kind.Value, source: String)
 {
   def is_command: Boolean = kind == Token.Kind.COMMAND
+  def is_command(name: String): Boolean = kind == Token.Kind.COMMAND && source == name
   def is_keyword: Boolean = kind == Token.Kind.KEYWORD
+  def is_keyword(name: String): Boolean = kind == Token.Kind.KEYWORD && source == name
+  def is_keyword(name: Char): Boolean =
+    kind == Token.Kind.KEYWORD && source.length == 1 && source(0) == name
   def is_delimiter: Boolean = is_keyword && !Symbol.is_ascii_identifier(source)
   def is_ident: Boolean = kind == Token.Kind.IDENT
   def is_sym_ident: Boolean = kind == Token.Kind.SYM_IDENT
@@ -169,11 +238,16 @@ sealed case class Token(val kind: Token.Kind.Value, val source: String)
   def is_float: Boolean = kind == Token.Kind.FLOAT
   def is_name: Boolean =
     kind == Token.Kind.IDENT ||
+    kind == Token.Kind.LONG_IDENT ||
     kind == Token.Kind.SYM_IDENT ||
     kind == Token.Kind.STRING ||
     kind == Token.Kind.NAT
-  def is_xname: Boolean = is_name || kind == Token.Kind.LONG_IDENT
-  def is_text: Boolean = is_xname || kind == Token.Kind.VERBATIM || kind == Token.Kind.CARTOUCHE
+  def is_embedded: Boolean = is_name ||
+    kind == Token.Kind.CARTOUCHE ||
+    kind == Token.Kind.VAR ||
+    kind == Token.Kind.TYPE_IDENT ||
+    kind == Token.Kind.TYPE_VAR
+  def is_text: Boolean = is_name || kind == Token.Kind.VERBATIM || kind == Token.Kind.CARTOUCHE
   def is_space: Boolean = kind == Token.Kind.SPACE
   def is_comment: Boolean = kind == Token.Kind.COMMENT
   def is_improper: Boolean = is_space || is_comment
@@ -189,8 +263,12 @@ sealed case class Token(val kind: Token.Kind.Value, val source: String)
     source.startsWith(Symbol.open) ||
     source.startsWith(Symbol.open_decoded))
 
-  def is_begin: Boolean = is_keyword && source == "begin"
-  def is_end: Boolean = is_keyword && source == "end"
+  def is_open_bracket: Boolean = is_keyword && Word.open_brackets.exists(is_keyword(_))
+  def is_close_bracket: Boolean = is_keyword && Word.close_brackets.exists(is_keyword(_))
+
+  def is_begin: Boolean = is_keyword("begin")
+  def is_end: Boolean = is_command("end")
+  def is_begin_or_command: Boolean = is_begin || is_command
 
   def content: String =
     if (kind == Token.Kind.STRING) Scan.Parsers.quoted_content("\"", source)
@@ -199,9 +277,4 @@ sealed case class Token(val kind: Token.Kind.Value, val source: String)
     else if (kind == Token.Kind.CARTOUCHE) Scan.Parsers.cartouche_content(source)
     else if (kind == Token.Kind.COMMENT) Scan.Parsers.comment_content(source)
     else source
-
-  def text: (String, String) =
-    if (is_keyword && source == ";") ("terminator", "")
-    else (kind.toString, source)
 }
-

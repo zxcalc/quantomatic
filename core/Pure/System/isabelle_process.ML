@@ -1,8 +1,7 @@
 (*  Title:      Pure/System/isabelle_process.ML
     Author:     Makarius
 
-Isabelle process wrapper, based on private fifos for maximum
-robustness and performance, or local socket for maximum portability.
+Isabelle process wrapper.
 *)
 
 signature ISABELLE_PROCESS =
@@ -11,8 +10,9 @@ sig
   val protocol_command: string -> (string list -> unit) -> unit
   val reset_tracing: Document_ID.exec -> unit
   val crashes: exn list Synchronized.var
-  val init_fifos: string -> string -> unit
-  val init_socket: string -> unit
+  val init_protocol: string -> unit
+  val init_options: unit -> unit
+  val init_protocol_options: Options.T -> unit
 end;
 
 structure Isabelle_Process: ISABELLE_PROCESS =
@@ -48,9 +48,8 @@ fun run_command name args =
   (case Symtab.lookup (Synchronized.value commands) name of
     NONE => error ("Undefined Isabelle protocol command " ^ quote name)
   | SOME cmd =>
-      (Runtime.debugging NONE cmd args handle exn =>
-        error ("Isabelle protocol command failure: " ^ quote name ^ "\n" ^
-          Runtime.exn_message exn)));
+      (Runtime.exn_trace_system (fn () => cmd args)
+        handle _ (*sic!*) => error ("Isabelle protocol command failure: " ^ quote name)));
 
 end;
 
@@ -82,7 +81,7 @@ fun update_tracing () =
             val _ =
               writeln ("Tracing paused.  " ^ text "Stop" ^ ", or continue with next " ^
                 text "100" ^ ", " ^ text "1000" ^ ", " ^ text "10000" ^ " messages?")
-            val m = Markup.parse_int (Future.join promise)
+            val m = Value.parse_int (Future.join promise)
               handle Fail _ => error "Stopped";
           in
             Synchronized.change tracing_messages
@@ -108,23 +107,29 @@ fun init_channels channel =
     fun standard_message props name body =
       if forall (fn s => s = "") body then ()
       else
-        message name
-          (fold_rev Properties.put props (Position.properties_of (Position.thread_data ()))) body;
+        let
+          val props' =
+            (case (Properties.defined props Markup.idN, Position.get_id (Position.thread_data ())) of
+              (false, SOME id') => props @ [(Markup.idN, id')]
+            | _ => props);
+        in message name props' body end;
   in
-    Output.status_fn := standard_message [] Markup.statusN;
-    Output.report_fn := standard_message [] Markup.reportN;
-    Output.result_fn :=
+    Private_Output.status_fn := standard_message [] Markup.statusN;
+    Private_Output.report_fn := standard_message [] Markup.reportN;
+    Private_Output.result_fn :=
       (fn props => fn s => standard_message (props @ serial_props ()) Markup.resultN s);
-    Output.writeln_fn := (fn s => standard_message (serial_props ()) Markup.writelnN s);
-    Output.tracing_fn :=
+    Private_Output.writeln_fn := (fn s => standard_message (serial_props ()) Markup.writelnN s);
+    Private_Output.state_fn := (fn s => standard_message (serial_props ()) Markup.stateN s);
+    Private_Output.information_fn :=
+      (fn s => standard_message (serial_props ()) Markup.informationN s);
+    Private_Output.tracing_fn :=
       (fn s => (update_tracing (); standard_message (serial_props ()) Markup.tracingN s));
-    Output.warning_fn := (fn s => standard_message (serial_props ()) Markup.warningN s);
-    Output.error_message_fn :=
+    Private_Output.warning_fn := (fn s => standard_message (serial_props ()) Markup.warningN s);
+    Private_Output.legacy_fn := (fn s => standard_message (serial_props ()) Markup.legacyN s);
+    Private_Output.error_message_fn :=
       (fn (i, s) => standard_message (Markup.serial_properties i) Markup.errorN s);
-    Output.system_message_fn := message Markup.systemN [];
-    Output.protocol_message_fn := message Markup.protocolN;
-    Output.urgent_message_fn := ! Output.writeln_fn;
-    Output.prompt_fn := ignore;
+    Private_Output.system_message_fn := message Markup.systemN [];
+    Private_Output.protocol_message_fn := message Markup.protocolN;
     message Markup.initN [] [Session.welcome ()];
     msg_channel
   end;
@@ -157,22 +162,19 @@ fun read_chunk channel len =
   end;
 
 fun read_command channel =
-  (case System_Channel.input_line channel of
-    NONE => raise Runtime.TERMINATE
-  | SOME line => map (read_chunk channel) (space_explode "," line));
-
-fun task_context e =
-  Future.task_context "Isabelle_Process.loop" (Future.new_group NONE) e ();
+  System_Channel.input_line channel
+  |> Option.map (fn line => map (read_chunk channel) (space_explode "," line));
 
 in
 
 fun loop channel =
-  let val continue =
-    (case read_command channel of
-      [] => (Output.system_message "Isabelle process: no input"; true)
-    | name :: args => (task_context (fn () => run_command name args); true))
-    handle Runtime.TERMINATE => false
-      | exn => (Runtime.exn_system_message exn handle crash => recover crash; true);
+  let
+    val continue =
+      (case read_command channel of
+        NONE => false
+      | SOME [] => (Output.system_message "Isabelle process: no input"; true)
+      | SOME (name :: args) => (run_command name args; true))
+      handle exn => (Runtime.exn_system_message exn handle crash => recover crash; true);
   in
     if continue then loop channel
     else (Future.shutdown (); Execution.reset (); ())
@@ -181,32 +183,42 @@ fun loop channel =
 end;
 
 
-(* init *)
+(* init protocol *)
 
-val default_modes1 =
-  [Syntax_Trans.no_bracketsN, Syntax_Trans.no_type_bracketsN, Graph_Display.active_graphN];
+val default_modes1 = [Syntax_Trans.no_bracketsN, Syntax_Trans.no_type_bracketsN];
 val default_modes2 = [Symbol.xsymbolsN, isabelle_processN, Pretty.symbolicN];
 
-val init = uninterruptible (fn _ => fn rendezvous =>
+val init_protocol = Thread_Attributes.uninterruptible (fn _ => fn socket =>
   let
-    val _ = SHA1_Samples.test ()
-      handle exn as Fail msg => (Output.physical_stderr (msg ^ "\n"); reraise exn);
+    val _ = SHA1.test_samples ()
+      handle exn as Fail msg => (Output.physical_stderr (msg ^ "\n"); Exn.reraise exn);
     val _ = Output.physical_stderr Symbol.STX;
 
     val _ = Printer.show_markup_default := true;
-    val _ = Context.set_thread_data NONE;
+    val _ = Context.put_generic_context NONE;
     val _ =
       Unsynchronized.change print_mode
         (fn mode => (mode @ default_modes1) |> fold (update op =) default_modes2);
 
-    val channel = rendezvous ();
+    val channel = System_Channel.rendezvous socket;
     val msg_channel = init_channels channel;
     val _ = Session.init_protocol_handlers ();
-    val _ = (loop |> Unsynchronized.setmp Toplevel.quiet true) channel;
+    val _ = loop channel;
   in Message_Channel.shutdown msg_channel end);
 
-fun init_fifos fifo1 fifo2 = init (fn () => System_Channel.fifo_rendezvous fifo1 fifo2);
-fun init_socket name = init (fn () => System_Channel.socket_rendezvous name);
+
+(* init options *)
+
+fun init_options () =
+ (ML_Print_Depth.set_print_depth (Options.default_int "ML_print_depth");
+  Future.ML_statistics := Options.default_bool "ML_statistics";
+  Multithreading.trace := Options.default_int "threads_trace";
+  Multithreading.max_threads_update (Options.default_int "threads");
+  Goal.parallel_proofs := Options.default_int "parallel_proofs");
+
+fun init_protocol_options options =
+ (Options.set_default options;
+  init_options ();
+  Goal.parallel_proofs := (if Options.int options "parallel_proofs" > 0 then 3 else 0));
 
 end;
-

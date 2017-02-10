@@ -10,8 +10,9 @@ sig
   val is_qualified: string -> bool
   val hidden: string -> string
   val is_hidden: string -> bool
+  val dest_hidden: string -> string option
   val localN: string
-  val is_local: string -> bool
+  val dest_local: string -> string option
   val implode: string list -> string
   val explode: string -> string list
   val append: string -> string -> string
@@ -29,11 +30,13 @@ val separator = ".";
 
 val is_qualified = exists_string (fn s => s = separator);
 
-fun hidden name = "??." ^ name;
-val is_hidden = String.isPrefix "??.";
+val hidden_prefix = "??."
+val hidden = prefix hidden_prefix;
+val is_hidden = String.isPrefix hidden_prefix;
+val dest_hidden = try (unprefix hidden_prefix);
 
 val localN = "local";
-val is_local = String.isPrefix "local.";
+val dest_local = try (unprefix "local.");
 
 val implode = space_implode separator;
 val explode = space_explode separator;

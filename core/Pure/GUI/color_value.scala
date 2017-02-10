@@ -1,5 +1,4 @@
 /*  Title:      Pure/GUI/color_value.scala
-    Module:     PIDE-GUI
     Author:     Makarius
 
 Cached color values.
@@ -9,6 +8,7 @@ package isabelle
 
 
 import java.awt.Color
+import java.util.Locale
 
 
 object Color_Value
@@ -31,7 +31,7 @@ object Color_Value
     val g = new java.lang.Integer(c.getGreen)
     val b = new java.lang.Integer(c.getBlue)
     val a = new java.lang.Integer(c.getAlpha)
-    Word.uppercase(String.format("%02x%02x%02x%02x", r, g, b, a))
+    Word.uppercase(String.format(Locale.ROOT, "%02x%02x%02x%02x", r, g, b, a))
   }
 
   def apply(s: String): Color =

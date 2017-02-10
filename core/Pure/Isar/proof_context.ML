@@ -13,7 +13,6 @@ sig
   val get_global: theory -> string -> Proof.context
   type mode
   val mode_default: mode
-  val mode_stmt: mode
   val mode_pattern: mode
   val mode_schematic: mode
   val mode_abbrev: mode
@@ -21,12 +20,11 @@ sig
   val get_mode: Proof.context -> mode
   val restore_mode: Proof.context -> Proof.context -> Proof.context
   val abbrev_mode: Proof.context -> bool
-  val set_stmt: bool -> Proof.context -> Proof.context
-  val syntax_of: Proof.context -> Local_Syntax.T
   val syn_of: Proof.context -> Syntax.syntax
   val tsig_of: Proof.context -> Type.tsig
   val set_defsort: sort -> Proof.context -> Proof.context
   val default_sort: Proof.context -> indexname -> sort
+  val arity_sorts: Proof.context -> string -> sort -> sort list
   val consts_of: Proof.context -> Consts.T
   val set_syntax_mode: Syntax.mode -> Proof.context -> Proof.context
   val restore_syntax_mode: Proof.context -> Proof.context -> Proof.context
@@ -34,9 +32,17 @@ sig
   val naming_of: Proof.context -> Name_Space.naming
   val restore_naming: Proof.context -> Proof.context -> Proof.context
   val full_name: Proof.context -> binding -> string
+  val get_scope: Proof.context -> Binding.scope option
+  val new_scope: Proof.context -> Binding.scope * Proof.context
+  val private_scope: Binding.scope -> Proof.context -> Proof.context
+  val private: Position.T -> Proof.context -> Proof.context
+  val qualified_scope: Binding.scope -> Proof.context -> Proof.context
+  val qualified: Position.T -> Proof.context -> Proof.context
+  val concealed: Proof.context -> Proof.context
   val class_space: Proof.context -> Name_Space.T
   val type_space: Proof.context -> Name_Space.T
   val const_space: Proof.context -> Name_Space.T
+  val defs_context: Proof.context -> Defs.context
   val intern_class: Proof.context -> xstring -> string
   val intern_type: Proof.context -> xstring -> string
   val intern_const: Proof.context -> xstring -> string
@@ -50,11 +56,14 @@ sig
   val markup_const: Proof.context -> string -> string
   val pretty_const: Proof.context -> string -> Pretty.T
   val transfer: theory -> Proof.context -> Proof.context
+  val transfer_facts: theory -> Proof.context -> Proof.context
   val background_theory: (theory -> theory) -> Proof.context -> Proof.context
   val background_theory_result: (theory -> 'a * theory) -> Proof.context -> 'a * Proof.context
   val facts_of: Proof.context -> Facts.T
   val facts_of_fact: Proof.context -> string -> Facts.T
-  val markup_extern_fact: Proof.context -> string -> Markup.T * xstring
+  val markup_extern_fact: Proof.context -> string -> Markup.T list * xstring
+  val print_name: Proof.context -> string -> string
+  val pretty_name: Proof.context -> string -> Pretty.T
   val pretty_term_abbrev: Proof.context -> term -> Pretty.T
   val pretty_fact: Proof.context -> string * thm list -> Pretty.T
   val check_class: Proof.context -> xstring * Position.T -> class * Position.report list
@@ -66,7 +75,7 @@ sig
   val cert_typ_syntax: Proof.context -> typ -> typ
   val cert_typ_abbrev: Proof.context -> typ -> typ
   val infer_type: Proof.context -> string * typ -> typ
-  val inferred_param: string -> Proof.context -> typ * Proof.context
+  val inferred_param: string -> Proof.context -> (string * typ) * Proof.context
   val inferred_fixes: Proof.context -> (string * typ) list * Proof.context
   val check_type_name: {proper: bool, strict: bool} -> Proof.context ->
     xstring * Position.T -> typ * Position.report list
@@ -97,52 +106,50 @@ sig
   val export: Proof.context -> Proof.context -> thm list -> thm list
   val export_morphism: Proof.context -> Proof.context -> morphism
   val norm_export_morphism: Proof.context -> Proof.context -> morphism
-  val bind_terms: (indexname * term option) list -> Proof.context -> Proof.context
   val auto_bind_goal: term list -> Proof.context -> Proof.context
   val auto_bind_facts: term list -> Proof.context -> Proof.context
-  val match_bind: bool -> (string list * string) list -> Proof.context -> term list * Proof.context
-  val match_bind_i: bool -> (term list * term) list -> Proof.context -> term list * Proof.context
-  val read_propp: (string * string list) list list -> Proof.context ->
-    (term * term list) list list * Proof.context
-  val cert_propp: (term * term list) list list -> Proof.context ->
-    (term * term list) list list * Proof.context
-  val read_propp_schematic: (string * string list) list list -> Proof.context ->
-    (term * term list) list list * Proof.context
-  val cert_propp_schematic: (term * term list) list list -> Proof.context ->
-    (term * term list) list list * Proof.context
-  val bind_propp: (string * string list) list list -> Proof.context ->
-    (term list list * (Proof.context -> Proof.context)) * Proof.context
-  val bind_propp_i: (term * term list) list list -> Proof.context ->
-    (term list list * (Proof.context -> Proof.context)) * Proof.context
-  val bind_propp_schematic: (string * string list) list list -> Proof.context ->
-    (term list list * (Proof.context -> Proof.context)) * Proof.context
-  val bind_propp_schematic_i: (term * term list) list list -> Proof.context ->
-    (term list list * (Proof.context -> Proof.context)) * Proof.context
+  val match_bind: bool -> (term list * term) list -> Proof.context ->
+    term list * Proof.context
+  val match_bind_cmd: bool -> (string list * string) list -> Proof.context ->
+    term list * Proof.context
+  val cert_propp: Proof.context -> (term * term list) list list ->
+    (term list list * (indexname * term) list)
+  val read_propp: Proof.context -> (string * string list) list list ->
+    (term list list * (indexname * term) list)
   val fact_tac: Proof.context -> thm list -> int -> tactic
   val some_fact_tac: Proof.context -> int -> tactic
-  val get_fact_generic: Context.generic -> Facts.ref -> thm list
+  val lookup_fact: Proof.context -> string -> {dynamic: bool, thms: thm list} option
+  val dynamic_facts_dummy: bool Config.T
+  val get_fact_generic: Context.generic -> Facts.ref -> string option * thm list
   val get_fact: Proof.context -> Facts.ref -> thm list
   val get_fact_single: Proof.context -> Facts.ref -> thm
   val get_thms: Proof.context -> xstring -> thm list
   val get_thm: Proof.context -> xstring -> thm
+  val set_stmt: bool -> Proof.context -> Proof.context
+  val restore_stmt: Proof.context -> Proof.context -> Proof.context
+  val add_thms_dynamic: binding * (Context.generic -> thm list) ->
+    Proof.context -> string * Proof.context
   val note_thmss: string -> (Thm.binding * (thm list * attribute list) list) list ->
     Proof.context -> (string * thm list) list * Proof.context
   val put_thms: bool -> string * thm list option -> Proof.context -> Proof.context
-  val read_vars: (binding * string option * mixfix) list -> Proof.context ->
-    (binding * typ option * mixfix) list * Proof.context
-  val cert_vars: (binding * typ option * mixfix) list -> Proof.context ->
-    (binding * typ option * mixfix) list * Proof.context
+  val read_var: binding * string option * mixfix -> Proof.context ->
+    (binding * typ option * mixfix) * Proof.context
+  val cert_var: binding * typ option * mixfix -> Proof.context ->
+    (binding * typ option * mixfix) * Proof.context
   val add_fixes: (binding * typ option * mixfix) list -> Proof.context ->
     string list * Proof.context
+  val add_fixes_cmd: (binding * string option * mixfix) list -> Proof.context ->
+    string list * Proof.context
   val add_assms: Assumption.export ->
-    (Thm.binding * (string * string list) list) list ->
-    Proof.context -> (string * thm list) list * Proof.context
-  val add_assms_i: Assumption.export ->
     (Thm.binding * (term * term list) list) list ->
     Proof.context -> (string * thm list) list * Proof.context
-  val dest_cases: Proof.context -> (string * (Rule_Cases.T * bool)) list
-  val update_cases: bool -> (string * Rule_Cases.T option) list -> Proof.context -> Proof.context
-  val apply_case: Rule_Cases.T -> Proof.context -> (binding * term list) list * Proof.context
+  val add_assms_cmd: Assumption.export ->
+    (Thm.binding * (string * string list) list) list ->
+    Proof.context -> (string * thm list) list * Proof.context
+  val dest_cases: Proof.context option -> Proof.context -> (string * (Rule_Cases.T * {legacy: bool})) list
+  val update_cases: (string * Rule_Cases.T option) list -> Proof.context -> Proof.context
+  val update_cases_legacy: (string * Rule_Cases.T option) list -> Proof.context -> Proof.context
+  val apply_case: Rule_Cases.T -> Proof.context -> (string * term list) list * Proof.context
   val check_case: Proof.context -> bool ->
     string * Position.T -> binding option list -> Rule_Cases.T
   val type_notation: bool -> Syntax.mode -> (typ * mixfix) list -> Proof.context -> Proof.context
@@ -154,18 +161,36 @@ sig
   val class_alias: binding -> class -> Proof.context -> Proof.context
   val type_alias: binding -> string -> Proof.context -> Proof.context
   val const_alias: binding -> string -> Proof.context -> Proof.context
+  val fact_alias: binding -> string -> Proof.context -> Proof.context
   val add_const_constraint: string * typ option -> Proof.context -> Proof.context
   val add_abbrev: string -> binding * term -> Proof.context -> (term * term) * Proof.context
   val revert_abbrev: string -> string -> Proof.context -> Proof.context
   val generic_add_abbrev: string -> binding * term -> Context.generic ->
     (term * term) * Context.generic
   val generic_revert_abbrev: string -> string -> Context.generic -> Context.generic
+  val cert_stmt:
+    (binding * typ option * mixfix) list -> (term * term list) list list -> Proof.context ->
+    (((binding * typ option * mixfix) * (string * term)) list * term list list *
+      (indexname * term) list * (indexname * term) list) * Proof.context
+  val read_stmt:
+    (binding * string option * mixfix) list -> (string * string list) list list -> Proof.context ->
+    (((binding * typ option * mixfix) * (string * term)) list * term list list *
+      (indexname * term) list * (indexname * term) list) * Proof.context
+  val cert_statement: (binding * typ option * mixfix) list ->
+    (term * term list) list list -> (term * term list) list list -> Proof.context ->
+    ((string * term) list * term list list * term list list * (indexname * term option) list) *
+      Proof.context
+  val read_statement: (binding * string option * mixfix) list ->
+    (string * string list) list list -> (string * string list) list list -> Proof.context ->
+    ((string * term) list * term list list * term list list * (indexname * term option) list) *
+      Proof.context
   val print_syntax: Proof.context -> unit
-  val print_abbrevs: Proof.context -> unit
+  val print_abbrevs: bool -> Proof.context -> unit
   val pretty_term_bindings: Proof.context -> Pretty.T list
-  val pretty_local_facts: Proof.context -> bool -> Pretty.T list
-  val print_local_facts: Proof.context -> bool -> unit
+  val pretty_local_facts: bool -> Proof.context -> Pretty.T list
+  val print_local_facts: bool -> Proof.context -> unit
   val pretty_cases: Proof.context -> Pretty.T list
+  val print_cases_proof: Proof.context -> Proof.context -> string
   val debug: bool Config.T
   val verbose: bool Config.T
   val pretty_ctxt: Proof.context -> Pretty.T list
@@ -185,25 +210,22 @@ val get_global = Proof_Context.get_global;
 
 datatype mode =
   Mode of
-   {stmt: bool,                (*inner statement mode*)
-    pattern: bool,             (*pattern binding schematic variables*)
+   {pattern: bool,             (*pattern binding schematic variables*)
     schematic: bool,           (*term referencing loose schematic variables*)
     abbrev: bool};             (*abbrev mode -- no normalization*)
 
-fun make_mode (stmt, pattern, schematic, abbrev) =
-  Mode {stmt = stmt, pattern = pattern, schematic = schematic, abbrev = abbrev};
+fun make_mode (pattern, schematic, abbrev) =
+  Mode {pattern = pattern, schematic = schematic, abbrev = abbrev};
 
-val mode_default   = make_mode (false, false, false, false);
-val mode_stmt      = make_mode (true, false, false, false);
-val mode_pattern   = make_mode (false, true, false, false);
-val mode_schematic = make_mode (false, false, true, false);
-val mode_abbrev    = make_mode (false, false, false, true);
-
+val mode_default   = make_mode (false, false, false);
+val mode_pattern   = make_mode (true, false, false);
+val mode_schematic = make_mode (false, true, false);
+val mode_abbrev    = make_mode (false, false, true);
 
 
 (** Isar proof context information **)
 
-type cases = ((Rule_Cases.T * bool) * int) Name_Space.table;
+type cases = (Rule_Cases.T * {legacy: bool}) Name_Space.table;
 val empty_cases: cases = Name_Space.empty_table Markup.caseN;
 
 datatype data =
@@ -213,7 +235,7 @@ datatype data =
     tsig: Type.tsig * Type.tsig, (*local/global type signature -- local name space / defsort only*)
     consts: Consts.T * Consts.T, (*local/global consts -- local name space / abbrevs only*)
     facts: Facts.T,              (*local facts, based on initial global facts*)
-    cases: cases};               (*named case contexts: case, is_proper, running index*)
+    cases: cases};               (*named case contexts: case, legacy, running index*)
 
 fun make_data (mode, syntax, tsig, consts, facts, cases) =
   Data {mode = mode, syntax = syntax, tsig = tsig, consts = consts, facts = facts, cases = cases};
@@ -232,20 +254,27 @@ structure Data = Proof_Data
 
 fun rep_data ctxt = Data.get ctxt |> (fn Data rep => rep);
 
-fun map_data f =
-  Data.map (fn Data {mode, syntax, tsig, consts, facts, cases} =>
-    make_data (f (mode, syntax, tsig, consts, facts, cases)));
+fun map_data_result f ctxt =
+  let
+    val Data {mode, syntax, tsig, consts, facts, cases} = Data.get ctxt;
+    val (res, data') = f (mode, syntax, tsig, consts, facts, cases) ||> make_data;
+  in (res, Data.put data' ctxt) end;
+
+fun map_data f = snd o map_data_result (pair () o f);
 
 fun set_mode mode = map_data (fn (_, syntax, tsig, consts, facts, cases) =>
   (mode, syntax, tsig, consts, facts, cases));
 
-fun map_mode f =
-  map_data (fn (Mode {stmt, pattern, schematic, abbrev}, syntax, tsig, consts, facts, cases) =>
-    (make_mode (f (stmt, pattern, schematic, abbrev)), syntax, tsig, consts, facts, cases));
-
 fun map_syntax f =
   map_data (fn (mode, syntax, tsig, consts, facts, cases) =>
     (mode, f syntax, tsig, consts, facts, cases));
+
+fun map_syntax_idents f ctxt =
+  let val (opt_idents', syntax') = f (#syntax (rep_data ctxt)) in
+    ctxt
+    |> map_syntax (K syntax')
+    |> (case opt_idents' of NONE => I | SOME idents' => Syntax_Trans.put_idents idents')
+  end;
 
 fun map_tsig f =
   map_data (fn (mode, syntax, tsig, consts, facts, cases) =>
@@ -255,9 +284,12 @@ fun map_consts f =
   map_data (fn (mode, syntax, tsig, consts, facts, cases) =>
     (mode, syntax, tsig, f consts, facts, cases));
 
-fun map_facts f =
-  map_data (fn (mode, syntax, tsig, consts, facts, cases) =>
-    (mode, syntax, tsig, consts, f facts, cases));
+fun map_facts_result f =
+  map_data_result (fn (mode, syntax, tsig, consts, facts, cases) =>
+    let val (res, facts') = f facts
+    in (res, (mode, syntax, tsig, consts, facts', cases)) end);
+
+fun map_facts f = snd o map_facts_result (pair () o f);
 
 fun map_cases f =
   map_data (fn (mode, syntax, tsig, consts, facts, cases) =>
@@ -267,9 +299,6 @@ val get_mode = #mode o rep_data;
 val restore_mode = set_mode o get_mode;
 val abbrev_mode = get_mode #> (fn Mode {abbrev, ...} => abbrev);
 
-fun set_stmt stmt =
-  map_mode (fn (_, pattern, schematic, abbrev) => (stmt, pattern, schematic, abbrev));
-
 val syntax_of = #syntax o rep_data;
 val syn_of = Local_Syntax.syn_of o syntax_of;
 val set_syntax_mode = map_syntax o Local_Syntax.set_mode;
@@ -278,6 +307,7 @@ val restore_syntax_mode = map_syntax o Local_Syntax.restore_mode o syntax_of;
 val tsig_of = #1 o #tsig o rep_data;
 val set_defsort = map_tsig o apfst o Type.set_defsort;
 fun default_sort ctxt = the_default (Type.defaultS (tsig_of ctxt)) o Variable.def_sort ctxt;
+fun arity_sorts ctxt = Type.arity_sorts (Context.Proof ctxt) (tsig_of ctxt);
 
 val consts_of = #1 o #consts o rep_data;
 val cases_of = #cases o rep_data;
@@ -291,12 +321,29 @@ val restore_naming = map_naming o K o naming_of;
 
 val full_name = Name_Space.full_name o naming_of;
 
+val get_scope = Name_Space.get_scope o naming_of;
+
+fun new_scope ctxt =
+  let
+    val (scope, naming') = Name_Space.new_scope (naming_of ctxt);
+    val ctxt' = map_naming (K naming') ctxt;
+  in (scope, ctxt') end;
+
+val private_scope = map_naming o Name_Space.private_scope;
+val private = map_naming o Name_Space.private;
+val qualified_scope = map_naming o Name_Space.qualified_scope;
+val qualified = map_naming o Name_Space.qualified;
+
+val concealed = map_naming Name_Space.concealed;
+
 
 (* name spaces *)
 
 val class_space = Type.class_space o tsig_of;
 val type_space = Type.type_space o tsig_of;
 val const_space = Consts.space_of o consts_of;
+
+fun defs_context ctxt = (ctxt, (const_space ctxt, type_space ctxt));
 
 val intern_class = Name_Space.intern o class_space;
 val intern_type = Name_Space.intern o type_space;
@@ -322,15 +369,18 @@ fun transfer_syntax thy ctxt = ctxt |>
   map_tsig (fn tsig as (local_tsig, global_tsig) =>
     let val thy_tsig = Sign.tsig_of thy in
       if Type.eq_tsig (thy_tsig, global_tsig) then tsig
-      else (Type.merge_tsig (Context.pretty ctxt) (local_tsig, thy_tsig), thy_tsig)
+      else (Type.merge_tsig (Context.Proof ctxt) (local_tsig, thy_tsig), thy_tsig)  (*historic merge order*)
     end) |>
   map_consts (fn consts as (local_consts, global_consts) =>
     let val thy_consts = Sign.consts_of thy in
       if Consts.eq_consts (thy_consts, global_consts) then consts
-      else (Consts.merge (local_consts, thy_consts), thy_consts)
+      else (Consts.merge (local_consts, thy_consts), thy_consts)  (*historic merge order*)
     end);
 
 fun transfer thy = Context.raw_transfer thy #> transfer_syntax thy;
+
+fun transfer_facts thy =
+  map_facts (fn local_facts => Facts.merge (Global_Theory.facts_of thy, local_facts));
 
 fun background_theory f ctxt = transfer (f (theory_of ctxt)) ctxt;
 
@@ -353,21 +403,30 @@ fun facts_of_fact ctxt name =
   end;
 
 fun markup_extern_fact ctxt name =
-  Facts.markup_extern ctxt (facts_of_fact ctxt name) name;
+  let
+    val facts = facts_of_fact ctxt name;
+    val (markup, xname) = Facts.markup_extern ctxt facts name;
+    val markups =
+      if Facts.is_dynamic facts name then [markup, Markup.dynamic_fact name]
+      else [markup];
+  in (markups, xname) end;
 
 
 
 (** pretty printing **)
 
+val print_name = Token.print_name o Thy_Header.get_keywords';
+val pretty_name = Pretty.str oo print_name;
+
 fun pretty_term_abbrev ctxt = Syntax.pretty_term (set_mode mode_abbrev ctxt);
 
 fun pretty_fact_name ctxt a =
-  Pretty.block [Pretty.mark_str (markup_extern_fact ctxt a), Pretty.str ":"];
+  Pretty.block [Pretty.marks_str (markup_extern_fact ctxt a), Pretty.str ":"];
 
 fun pretty_fact ctxt =
   let
-    val pretty_thm = Display.pretty_thm ctxt;
-    val pretty_thms = map (Display.pretty_thm_item ctxt);
+    val pretty_thm = Thm.pretty_thm ctxt;
+    val pretty_thms = map (Thm.pretty_thm_item ctxt);
   in
     fn ("", [th]) => pretty_thm th
      | ("", ths) => Pretty.blk (0, Pretty.fbreaks (pretty_thms ths))
@@ -398,7 +457,8 @@ fun check_class ctxt (xname, pos) =
 
 fun read_class ctxt text =
   let
-    val (c, reports) = check_class ctxt (Symbol_Pos.source_content (Syntax.read_token text));
+    val source = Syntax.read_input text;
+    val (c, reports) = check_class ctxt (Input.source_content source, Input.pos_of source);
     val _ = Position.reports reports;
   in c end;
 
@@ -431,14 +491,11 @@ fun infer_type ctxt x =
   Term.fastype_of (singleton (Syntax.check_terms (set_mode mode_schematic ctxt)) (Free x));
 
 fun inferred_param x ctxt =
-  let val T = infer_type ctxt (x, dummyT)
-  in (T, ctxt |> Variable.declare_term (Free (x, T))) end;
+  let val p = (x, infer_type ctxt (x, dummyT))
+  in (p, ctxt |> Variable.declare_term (Free p)) end;
 
 fun inferred_fixes ctxt =
-  let
-    val xs = map #2 (Variable.dest_fixes ctxt);
-    val (Ts, ctxt') = fold_map inferred_param xs ctxt;
-  in (xs ~~ Ts, ctxt') end;
+  fold_map inferred_param (map #2 (Variable.dest_fixes ctxt)) ctxt;
 
 
 (* type names *)
@@ -465,8 +522,9 @@ fun check_type_name {proper, strict} ctxt (c, pos) =
 
 fun read_type_name ctxt flags text =
   let
+    val source = Syntax.read_input text;
     val (T, reports) =
-      check_type_name ctxt flags (Symbol_Pos.source_content (Syntax.read_token text));
+      check_type_name ctxt flags (Input.source_content source, Input.pos_of source);
     val _ = Position.reports reports;
   in T end;
 
@@ -514,8 +572,8 @@ fun check_const {proper, strict} ctxt (c, ps) =
 
 fun read_const ctxt flags text =
   let
-    val (xname, pos) = Symbol_Pos.source_content (Syntax.read_token text);
-    val (t, reports) = check_const ctxt flags (xname, [pos]);
+    val source = Syntax.read_input text;
+    val (t, reports) = check_const ctxt flags (Input.source_content source, [Input.pos_of source]);
     val _ = Position.reports reports;
   in t end;
 
@@ -526,7 +584,7 @@ local
 
 fun prep_arity prep_tycon prep_sort ctxt (t, Ss, S) =
   let val arity = (prep_tycon ctxt t, map (prep_sort ctxt) Ss, prep_sort ctxt S)
-  in Type.add_arity (Context.pretty ctxt) arity (tsig_of ctxt); arity end;
+  in Type.add_arity (Context.Proof ctxt) arity (tsig_of ctxt); arity end;
 
 in
 
@@ -551,8 +609,9 @@ val read_term_abbrev    = read_term_mode mode_abbrev;
 
 local
 
-fun certify_consts ctxt = Consts.certify (Context.pretty ctxt) (tsig_of ctxt)
-  (not (abbrev_mode ctxt)) (consts_of ctxt);
+fun certify_consts ctxt =
+  Consts.certify (Context.Proof ctxt) (tsig_of ctxt)
+    (not (abbrev_mode ctxt)) (consts_of ctxt);
 
 fun expand_binds ctxt =
   let
@@ -622,7 +681,7 @@ val allow_dummies = Config.put dummies true;
 
 fun prepare_patterns ctxt =
   let val Mode {pattern, ...} = get_mode ctxt in
-    Type_Infer.fixate ctxt #>
+    Type_Infer.fixate ctxt pattern #>
     pattern ? Variable.polymorphic ctxt #>
     (map o Term.map_types) (prepare_patternT ctxt) #>
     (if pattern then prepare_dummies else map (check_dummies ctxt))
@@ -735,7 +794,7 @@ fun gen_cert prop ctxt t =
   t
   |> expand_abbrevs ctxt
   |> (fn t' =>
-      #1 (Sign.certify' prop (Context.pretty ctxt) false (consts_of ctxt) (theory_of ctxt) t')
+      #1 (Sign.certify' prop (Context.Proof ctxt) false (consts_of ctxt) (theory_of ctxt) t')
         handle TYPE (msg, _, _) => error msg | TERM (msg, _) => error msg);
 
 in
@@ -785,30 +844,29 @@ fun norm_export_morphism inner outer =
 (* simult_matches *)
 
 fun simult_matches ctxt (t, pats) =
-  (case Seq.pull (Unify.matchers (theory_of ctxt) (map (rpair t) pats)) of
+  (case Seq.pull (Unify.matchers (Context.Proof ctxt) (map (rpair t) pats)) of
     NONE => error "Pattern match failed!"
   | SOME (env, _) => Vartab.fold (fn (v, (_, t)) => cons (v, t)) (Envir.term_env env) []);
 
 
-(* bind_terms *)
-
-val bind_terms = fold (fn (xi, t) => fn ctxt =>
-  ctxt
-  |> Variable.bind_term (xi, Option.map (cert_term (set_mode mode_default ctxt)) t));
-
-
 (* auto_bind *)
 
-fun drop_schematic (b as (xi, SOME t)) = if Term.exists_subterm is_Var t then (xi, NONE) else b
-  | drop_schematic b = b;
-
-fun auto_bind f ts ctxt = ctxt |> bind_terms (map drop_schematic (f (theory_of ctxt) ts));
+fun auto_bind f props ctxt = fold Variable.maybe_bind_term (f ctxt props) ctxt;
 
 val auto_bind_goal = auto_bind Auto_Bind.goal;
 val auto_bind_facts = auto_bind Auto_Bind.facts;
 
 
-(* match_bind(_i) *)
+(* bind terms (non-schematic) *)
+
+fun cert_maybe_bind_term (xi, t) ctxt =
+  ctxt
+  |> Variable.maybe_bind_term (xi, Option.map (cert_term (set_mode mode_default ctxt)) t);
+
+val cert_bind_term = cert_maybe_bind_term o apsnd SOME;
+
+
+(* match_bind *)
 
 local
 
@@ -827,12 +885,13 @@ fun gen_bind prep_terms gen raw_binds ctxt =
     val binds' =
       if gen then map #1 binds ~~ Variable.exportT_terms ctxt' ctxt (map #2 binds)
       else binds;
-    val binds'' = map (apsnd SOME) binds';
     val ctxt'' =
       tap (Variable.warn_extra_tfrees ctxt)
        (if gen then
-          ctxt (*sic!*) |> fold Variable.declare_term (map #2 binds') |> bind_terms binds''
-        else ctxt' |> bind_terms binds'');
+          ctxt (*sic!*)
+          |> fold Variable.declare_term (map #2 binds')
+          |> fold cert_bind_term binds'
+        else ctxt' |> fold cert_bind_term binds');
   in (ts, ctxt'') end;
 
 in
@@ -840,8 +899,8 @@ in
 fun read_terms ctxt T =
   map (Syntax.parse_term ctxt #> Type.constraint T) #> Syntax.check_terms ctxt;
 
-val match_bind = gen_bind read_terms;
-val match_bind_i = gen_bind (fn ctxt => fn _ => map (cert_term ctxt));
+val match_bind = gen_bind (fn ctxt => fn _ => map (cert_term ctxt));
+val match_bind_cmd = gen_bind read_terms;
 
 end;
 
@@ -850,38 +909,20 @@ end;
 
 local
 
-fun prep_propp mode prep_props args context =
+fun prep_propp prep_props ctxt raw_args =
   let
-    fun prep (_, raw_pats) (ctxt, prop :: props) =
-      let val ctxt' = Variable.declare_term prop ctxt
-      in ((prop, prep_props (set_mode mode_pattern ctxt') raw_pats), (ctxt', props)) end;
+    val props = prep_props ctxt (maps (map fst) raw_args);
+    val props_ctxt = fold Variable.declare_term props ctxt;
+    val patss = maps (map (prep_props (set_mode mode_pattern props_ctxt) o snd)) raw_args;
 
-    val (propp, (context', _)) =
-      (fold_map o fold_map) prep args
-        (context, prep_props (set_mode mode context) (maps (map fst) args));
-  in (propp, context') end;
-
-fun gen_bind_propp mode parse_prop raw_args ctxt =
-  let
-    val (args, ctxt') = prep_propp mode parse_prop raw_args ctxt;
-    val binds = flat (flat (map (map (simult_matches ctxt')) args));
-    val propss = map (map #1) args;
-    fun gen_binds ctxt0 = ctxt0
-      |> bind_terms (map #1 binds ~~
-          map (SOME o Term.close_schematic_term) (Variable.export_terms ctxt' ctxt0 (map #2 binds)));
-  in ((propss, gen_binds), ctxt' |> bind_terms (map (apsnd SOME) binds)) end;
+    val propps = unflat raw_args (props ~~ patss);
+    val binds = (maps o maps) (simult_matches props_ctxt) propps;
+  in (map (map fst) propps, binds) end;
 
 in
 
-val read_propp           = prep_propp mode_default Syntax.read_props;
-val cert_propp           = prep_propp mode_default (map o cert_prop);
-val read_propp_schematic = prep_propp mode_schematic Syntax.read_props;
-val cert_propp_schematic = prep_propp mode_schematic (map o cert_prop);
-
-val bind_propp             = gen_bind_propp mode_default Syntax.read_props;
-val bind_propp_i           = gen_bind_propp mode_default (map o cert_prop);
-val bind_propp_schematic   = gen_bind_propp mode_schematic Syntax.read_props;
-val bind_propp_schematic_i = gen_bind_propp mode_schematic (map o cert_prop);
+val cert_propp = prep_propp (map o cert_prop);
+val read_propp = prep_propp Syntax.read_props;
 
 end;
 
@@ -893,27 +934,52 @@ end;
 
 local
 
-fun comp_hhf_tac th i st =
-  PRIMSEQ (Thm.bicompose {flatten = true, match = false, incremented = true}
-    (false, Drule.lift_all (Thm.cprem_of st i) th, 0) i) st;
+fun comp_hhf_tac ctxt th i st =
+  PRIMSEQ (Thm.bicompose (SOME ctxt) {flatten = true, match = false, incremented = true}
+    (false, Drule.lift_all ctxt (Thm.cprem_of st i) th, 0) i) st;
 
-fun comp_incr_tac [] _ = no_tac
-  | comp_incr_tac (th :: ths) i =
-      (fn st => comp_hhf_tac (Drule.incr_indexes st th) i st) APPEND comp_incr_tac ths i;
+fun comp_incr_tac _ [] _ = no_tac
+  | comp_incr_tac ctxt (th :: ths) i =
+      (fn st => comp_hhf_tac ctxt (Drule.incr_indexes st th) i st) APPEND
+      comp_incr_tac ctxt ths i;
+
+val vacuous_facts = [Drule.termI];
 
 in
 
-fun fact_tac ctxt facts = Goal.norm_hhf_tac ctxt THEN' comp_incr_tac facts;
-
 fun potential_facts ctxt prop =
-  Facts.could_unify (facts_of ctxt) (Term.strip_all_body prop);
+  let
+    val body = Term.strip_all_body prop;
+    val vacuous =
+      filter (fn th => Term.could_unify (body, Thm.concl_of th)) vacuous_facts
+      |> map (rpair Position.none);
+  in Facts.could_unify (facts_of ctxt) body @ vacuous end;
 
-fun some_fact_tac ctxt = SUBGOAL (fn (goal, i) => fact_tac ctxt (potential_facts ctxt goal) i);
+fun fact_tac ctxt facts = Goal.norm_hhf_tac ctxt THEN' comp_incr_tac ctxt facts;
+
+fun some_fact_tac ctxt =
+  SUBGOAL (fn (goal, i) => fact_tac ctxt (map #1 (potential_facts ctxt goal)) i);
 
 end;
 
 
-(* get facts *)
+(* lookup facts *)
+
+fun lookup_fact ctxt name =
+  let
+    val context = Context.Proof ctxt;
+    val thy = Proof_Context.theory_of ctxt;
+  in
+    (case Facts.lookup context (facts_of ctxt) name of
+      NONE => Facts.lookup context (Global_Theory.facts_of thy) name
+    | some => some)
+  end;
+
+
+(* retrieve facts *)
+
+val dynamic_facts_dummy =
+  Config.bool (Config.declare ("dynamic_facts_dummy_", @{here}) (fn _ => Config.Bool false));
 
 local
 
@@ -928,37 +994,51 @@ fun retrieve_generic (context as Context.Proof ctxt) arg =
 fun retrieve pick context (Facts.Fact s) =
       let
         val ctxt = Context.the_proof context;
-        val pos = Syntax.read_token_pos s;
+        val pos = Syntax.read_input_pos s;
         val prop =
           Syntax.read_prop (ctxt |> set_mode mode_default |> allow_dummies) s
           |> singleton (Variable.polymorphic ctxt);
-        fun err msg = error (msg ^ Position.here pos ^ ":\n" ^ Syntax.string_of_term ctxt prop);
+        fun err ps msg =
+          error (msg ^ Position.here_list (pos :: ps) ^ ":\n" ^ Syntax.string_of_term ctxt prop);
 
         val (prop', _) = Term.replace_dummy_patterns prop (Variable.maxidx_of ctxt + 1);
-        fun prove_fact th =
-          Goal.prove ctxt [] [] prop' (K (ALLGOALS (fact_tac ctxt [th])));
-        val results = map_filter (try prove_fact) (potential_facts ctxt prop');
-        val thm =
-          (case distinct Thm.eq_thm_prop results of
-            [thm] => thm
-          | [] => err "Failed to retrieve literal fact"
-          | _ => err "Ambiguous specification of literal fact");
-      in pick ("", Position.none) [thm] end
-  | retrieve pick context (Facts.Named ((xname, pos), ivs)) =
+        fun prove th = Goal.prove ctxt [] [] prop' (K (ALLGOALS (fact_tac ctxt [th])));
+        val results = map_filter (try (apfst prove)) (potential_facts ctxt prop');
+        val (thm, thm_pos) =
+          (case distinct (eq_fst Thm.eq_thm_prop) results of
+            [res] => res
+          | [] => err [] "Failed to retrieve literal fact"
+          | dups => err (distinct (op =) (map #2 dups)) "Ambiguous specification of literal fact");
+
+        val markup =
+          Markup.entity Markup.literal_factN ""
+          |> Markup.properties (Position.def_properties_of thm_pos);
+        val _ = Context_Position.report_generic context pos markup;
+      in pick true ("", thm_pos) [thm] end
+  | retrieve pick context (Facts.Named ((xname, pos), sel)) =
       let
         val thy = Context.theory_of context;
-        val (name, thms) =
+        fun immediate thms = {name = xname, dynamic = false, thms = map (Thm.transfer thy) thms};
+        val {name, dynamic, thms} =
           (case xname of
-            "" => (xname, [Thm.transfer thy Drule.dummy_thm])
-          | "_" => (xname, [Thm.transfer thy Drule.asm_rl])
+            "" => immediate [Drule.dummy_thm]
+          | "_" => immediate [Drule.asm_rl]
+          | "nothing" => immediate []
           | _ => retrieve_generic context (xname, pos));
-      in pick (name, pos) (Facts.select (Facts.Named ((name, pos), ivs)) thms) end;
+        val thms' =
+          if dynamic andalso Config.get_generic context dynamic_facts_dummy
+          then [Drule.free_dummy_thm]
+          else Facts.select (Facts.Named ((name, pos), sel)) thms;
+      in pick (dynamic andalso is_none sel) (name, pos) thms' end;
 
 in
 
-val get_fact_generic = retrieve (K I);
-val get_fact = retrieve (K I) o Context.Proof;
-val get_fact_single = retrieve Facts.the_single o Context.Proof;
+val get_fact_generic =
+  retrieve (fn dynamic => fn (name, _) => fn thms =>
+    (if dynamic then SOME name else NONE, thms));
+
+val get_fact = retrieve (K (K I)) o Context.Proof;
+val get_fact_single = retrieve (K Facts.the_single) o Context.Proof;
 
 fun get_thms ctxt = get_fact ctxt o Facts.named;
 fun get_thm ctxt = get_fact_single ctxt o Facts.named;
@@ -966,7 +1046,20 @@ fun get_thm ctxt = get_fact_single ctxt o Facts.named;
 end;
 
 
+(* inner statement mode *)
+
+val inner_stmt =
+  Config.bool (Config.declare ("inner_stmt", @{here}) (K (Config.Bool false)));
+
+fun is_stmt ctxt = Config.get ctxt inner_stmt;
+val set_stmt = Config.put inner_stmt;
+val restore_stmt = set_stmt o is_stmt;
+
+
 (* facts *)
+
+fun add_thms_dynamic arg ctxt =
+  ctxt |> map_facts_result (Facts.add_dynamic (Context.Proof ctxt) arg);
 
 local
 
@@ -984,8 +1077,8 @@ fun note_thmss kind = fold_map (fn ((b, more_atts), raw_facts) => fn ctxt =>
       fold_map (Thm.proof_attributes (surround (Thm.kind kind) (atts @ more_atts))) ths;
     val (res, ctxt') = fold_map app facts ctxt;
     val thms = Global_Theory.name_thms false false name (flat res);
-    val Mode {stmt, ...} = get_mode ctxt;
-  in ((name, thms), ctxt' |> update_thms {strict = false, index = stmt} (b, SOME thms)) end);
+    val index = is_stmt ctxt;
+  in ((name, thms), ctxt' |> update_thms {strict = false, index = index} (b, SOME thms)) end);
 
 fun put_thms index thms ctxt = ctxt
   |> map_naming (K Name_Space.local_naming)
@@ -1003,8 +1096,11 @@ end;
 (* variables *)
 
 fun declare_var (x, opt_T, mx) ctxt =
-  let val T = (case opt_T of SOME T => T | NONE => Mixfix.mixfixT mx)
-  in ((x, T, mx), ctxt |> Variable.declare_constraints (Free (x, T))) end;
+  let val T = (case opt_T of SOME T => T | NONE => Mixfix.default_constraint mx)
+  in (T, ctxt |> Variable.declare_constraints (Free (x, T))) end;
+
+fun add_syntax vars ctxt =
+  map_syntax_idents (Local_Syntax.add_syntax ctxt (map (pair Local_Syntax.Fixed) vars)) ctxt;
 
 fun check_var internal b =
   let
@@ -1017,21 +1113,28 @@ fun check_var internal b =
 
 local
 
-fun prep_vars prep_typ internal =
-  fold_map (fn (b, raw_T, mx) => fn ctxt =>
-    let
-      val x = check_var internal b;
-      fun cond_tvars T =
-        if internal then T
-        else Type.no_tvars T handle TYPE (msg, _, _) => error msg;
-      val opt_T = Option.map (cond_tvars o cert_typ ctxt o prep_typ ctxt) raw_T;
-      val (_, ctxt') = ctxt |> declare_var (x, opt_T, mx);
-    in ((b, opt_T, mx), ctxt') end);
+fun check_mixfix ctxt (b, T, mx) =
+  let
+    val ([x], ctxt') = Variable.add_fixes_binding [Binding.reset_pos b] ctxt;
+    val mx' = Mixfix.reset_pos mx;
+    val _ = add_syntax [(x, T, if Context_Position.is_visible ctxt then mx else mx')] ctxt';
+  in mx' end;
+
+fun prep_var prep_typ internal (b, raw_T, mx) ctxt =
+  let
+    val x = check_var internal b;
+    fun cond_tvars T =
+      if internal then T
+      else Type.no_tvars T handle TYPE (msg, _, _) => error msg;
+    val opt_T = Option.map (cond_tvars o prep_typ ctxt) raw_T;
+    val (T, ctxt') = ctxt |> declare_var (x, opt_T, mx);
+    val mx' = if Mixfix.is_empty mx then mx else check_mixfix ctxt' (b, T, mx);
+  in ((b, SOME T, mx'), ctxt') end;
 
 in
 
-val read_vars = prep_vars Syntax.read_typ false;
-val cert_vars = prep_vars (K I) true;
+val read_var = prep_var Syntax.read_typ false;
+val cert_var = prep_var cert_typ true;
 
 end;
 
@@ -1052,8 +1155,8 @@ fun const_syntax _ (Free (x, T), mx) = SOME (Local_Syntax.Fixed, (x, T, mx))
   | const_syntax _ _ = NONE;
 
 fun gen_notation syntax add mode args ctxt =
-  ctxt |> map_syntax
-    (Local_Syntax.update_modesyntax (theory_of ctxt) add mode (map_filter (syntax ctxt) args));
+  ctxt |> map_syntax_idents
+    (Local_Syntax.update_modesyntax ctxt add mode (map_filter (syntax ctxt) args));
 
 in
 
@@ -1084,6 +1187,7 @@ end;
 fun class_alias b c ctxt = (map_tsig o apfst) (Type.class_alias (naming_of ctxt) b c) ctxt;
 fun type_alias b c ctxt = (map_tsig o apfst) (Type.type_alias (naming_of ctxt) b c) ctxt;
 fun const_alias b c ctxt = (map_consts o apfst) (Consts.alias (naming_of ctxt) b c) ctxt;
+fun fact_alias b c ctxt = map_facts (Facts.alias (naming_of ctxt) b c) ctxt;
 
 
 (* local constants *)
@@ -1120,18 +1224,28 @@ fun generic_revert_abbrev mode arg =
 
 (* fixes *)
 
-fun add_fixes raw_vars ctxt =
+local
+
+fun gen_fixes prep_var raw_vars ctxt =
   let
-    val thy = theory_of ctxt;
-    val vars = #1 (cert_vars raw_vars ctxt);
-  in
-    ctxt
-    |> Variable.add_fixes_binding (map #1 vars)
-    |-> (fn xs =>
-      fold_map declare_var (map2 (fn x => fn (_, T, mx) => (x, T, mx)) xs vars)
-      #-> (map_syntax o Local_Syntax.add_syntax thy o map (pair Local_Syntax.Fixed))
-      #> pair xs)
-  end;
+    val (vars, _) = fold_map prep_var raw_vars ctxt;
+    val (xs, ctxt') = Variable.add_fixes_binding (map #1 vars) ctxt;
+    val _ =
+      Context_Position.reports ctxt'
+        (flat (map2 (fn x => fn pos =>
+          [(pos, Variable.markup ctxt' x), (pos, Variable.markup_entity_def ctxt' x)])
+            xs (map (Binding.pos_of o #1) vars)));
+    val vars' = map2 (fn x => fn (_, opt_T, mx) => (x, opt_T, mx)) xs vars;
+    val (Ts, ctxt'') = fold_map declare_var vars' ctxt';
+    val vars'' = map2 (fn T => fn (x, _, mx) => (x, T, mx)) Ts vars';
+  in (xs, add_syntax vars'' ctxt'') end;
+
+in
+
+val add_fixes = gen_fixes cert_var;
+val add_fixes_cmd = gen_fixes read_var;
+
+end;
 
 
 
@@ -1139,22 +1253,25 @@ fun add_fixes raw_vars ctxt =
 
 local
 
-fun gen_assms prepp exp args ctxt =
+fun gen_assms prep_propp exp args ctxt =
   let
-    val cert = Thm.cterm_of (theory_of ctxt);
-    val ((propss, _), ctxt1) = prepp (map snd args) ctxt;
-    val _ = Variable.warn_extra_tfrees ctxt ctxt1;
-    val (premss, ctxt2) = fold_burrow (Assumption.add_assms exp o map cert) propss ctxt1;
+    val (propss, binds) = prep_propp ctxt (map snd args);
+    val props = flat propss;
   in
-    ctxt2
-    |> auto_bind_facts (flat propss)
-    |> note_thmss "" (map fst args ~~ map (map (fn th => ([th], []))) premss)
+    ctxt
+    |> fold Variable.declare_term props
+    |> tap (Variable.warn_extra_tfrees ctxt)
+    |> fold_burrow (Assumption.add_assms exp o map (Thm.cterm_of ctxt)) propss
+    |-> (fn premss =>
+      auto_bind_facts props
+      #> fold Variable.bind_term binds
+      #> note_thmss "" (map fst args ~~ map (map (fn th => ([th], []))) premss))
   end;
 
 in
 
-val add_assms = gen_assms bind_propp;
-val add_assms_i = gen_assms bind_propp_i;
+val add_assms = gen_assms cert_propp;
+val add_assms_cmd = gen_assms read_propp;
 
 end;
 
@@ -1162,24 +1279,41 @@ end;
 
 (** cases **)
 
-fun dest_cases ctxt =
-  Name_Space.fold_table (fn (a, (c, i)) => cons (i, (a, c))) (cases_of ctxt) []
-  |> sort (int_ord o pairself #1) |> map #2;
+fun dest_cases prev_ctxt ctxt =
+  let
+    val serial_of = #serial oo (Name_Space.the_entry o Name_Space.space_of_table);
+    val ignored =
+      (case prev_ctxt of
+        NONE => Inttab.empty
+      | SOME ctxt0 =>
+          let val cases0 = cases_of ctxt0 in
+            Name_Space.fold_table (fn (a, _) => Inttab.insert_set (serial_of cases0 a))
+              cases0 Inttab.empty
+          end);
+     val cases = cases_of ctxt;
+  in
+    Name_Space.fold_table (fn (a, c) =>
+      let val i = serial_of cases a
+      in not (Inttab.defined ignored i) ? cons (i, (a, c)) end) cases []
+    |> sort (int_ord o apply2 #1) |> map #2
+  end;
 
 local
 
-fun update_case _ _ ("", _) res = res
-  | update_case _ _ (name, NONE) (cases, index) =
-      (Name_Space.del_table name cases, index)
-  | update_case context is_proper (name, SOME c) (cases, index) =
+fun drop_schematic (b as (xi, SOME t)) = if Term.exists_subterm is_Var t then (xi, NONE) else b
+  | drop_schematic b = b;
+
+fun update_case _ _ ("", _) cases = cases
+  | update_case _ _ (name, NONE) cases = Name_Space.del_table name cases
+  | update_case context legacy (name, SOME c) cases =
       let
-        val binding =
-          Binding.make (name, Position.none)
-          |> not is_proper ? Binding.conceal;
-        val (_, cases') = cases
-          |> Name_Space.define context false (binding, ((c, is_proper), index));
-        val index' = index + 1;
-      in (cases', index') end;
+        val binding = Binding.name name |> legacy ? Binding.concealed;
+        val (_, cases') = Name_Space.define context false (binding, (c, {legacy = legacy})) cases;
+      in cases' end;
+
+fun update_cases' legacy args ctxt =
+  let val context = Context.Proof ctxt |> Name_Space.map_naming (K Name_Space.global_naming);
+  in map_cases (fold (update_case context legacy) args) ctxt end;
 
 fun fix (b, T) ctxt =
   let val ([x], ctxt') = add_fixes [(b, SOME T, NoSyn)] ctxt
@@ -1187,13 +1321,8 @@ fun fix (b, T) ctxt =
 
 in
 
-fun update_cases is_proper args ctxt =
-  let
-    val context = Context.Proof ctxt |> Name_Space.map_naming (K Name_Space.default_naming);
-    val cases = cases_of ctxt;
-    val index = Name_Space.fold_table (fn _ => Integer.add 1) cases 0;
-    val (cases', _) = fold (update_case context is_proper) args (cases, index);
-  in map_cases (K cases') ctxt end;
+val update_cases = update_cases' false;
+val update_cases_legacy = update_cases' true;
 
 fun case_result c ctxt =
   let
@@ -1202,25 +1331,29 @@ fun case_result c ctxt =
     val Rule_Cases.Case {assumes, binds, cases, ...} = Rule_Cases.apply ts c;
   in
     ctxt'
-    |> bind_terms (map drop_schematic binds)
-    |> update_cases true (map (apsnd SOME) cases)
+    |> fold (cert_maybe_bind_term o drop_schematic) binds
+    |> update_cases (map (apsnd SOME) cases)
     |> pair (assumes, (binds, cases))
   end;
 
 val apply_case = apfst fst oo case_result;
 
-fun check_case ctxt internal (name, pos) fxs =
+fun check_case ctxt internal (name, pos) param_specs =
   let
-    val (_, ((Rule_Cases.Case {fixes, assumes, binds, cases}, is_proper), _)) =
+    val (_, (Rule_Cases.Case {fixes, assumes, binds, cases}, {legacy})) =
       Name_Space.check (Context.Proof ctxt) (cases_of ctxt) (name, pos);
-    val _ = if is_proper then () else Context_Position.report ctxt pos Markup.improper;
+    val _ =
+      if legacy then
+        legacy_feature ("Bad case " ^ quote name ^ Position.here pos ^
+          " -- use proof method \"goal_cases\" instead")
+      else ();
 
-    val _ = List.app (fn NONE => () | SOME b => ignore (check_var internal b)) fxs;
+    val _ = List.app (fn NONE => () | SOME b => ignore (check_var internal b)) param_specs;
     fun replace (opt_x :: xs) ((y, T) :: ys) = (the_default y opt_x, T) :: replace xs ys
       | replace [] ys = ys
       | replace (_ :: _) [] =
           error ("Too many parameters for case " ^ quote name ^ Position.here pos);
-    val fixes' = replace fxs fixes;
+    val fixes' = replace param_specs fixes;
     val binds' = map drop_schematic binds;
   in
     if null (fold (Term.add_tvarsT o snd) fixes []) andalso
@@ -1228,6 +1361,64 @@ fun check_case ctxt internal (name, pos) fxs =
         Rule_Cases.Case {fixes = fixes', assumes = assumes, binds = binds', cases = cases}
     else error ("Illegal schematic variable(s) in case " ^ quote name ^ Position.here pos)
   end;
+
+end;
+
+
+(* structured statements *)
+
+local
+
+fun export_binds ctxt' ctxt params binds =
+  let
+    val rhss =
+      map (the_list o Option.map (Logic.close_term params) o snd) binds
+      |> burrow (Variable.export_terms ctxt' ctxt)
+      |> map (try the_single);
+  in map fst binds ~~ rhss end;
+
+fun prep_stmt prep_var prep_propp raw_vars raw_propps ctxt =
+  let
+    val (vars, vars_ctxt) = fold_map prep_var raw_vars ctxt;
+    val xs = map (Variable.check_name o #1) vars;
+    val (xs', fixes_ctxt) = add_fixes vars vars_ctxt;
+
+    val (propss, binds) = prep_propp fixes_ctxt raw_propps;
+    val (ps, params_ctxt) = fixes_ctxt
+      |> (fold o fold) Variable.declare_term propss
+      |> fold_map inferred_param xs';
+    val params = xs ~~ map Free ps;
+
+    val vars' = map2 (fn (b, _, mx) => fn (_, T) => (b, SOME T, mx)) vars ps;
+    val binds' = binds
+      |> map (apsnd SOME)
+      |> export_binds params_ctxt ctxt params
+      |> map (apsnd the);
+
+    val _ = Variable.warn_extra_tfrees fixes_ctxt params_ctxt;
+  in ((vars' ~~ params, propss, binds, binds'), params_ctxt) end;
+
+fun prep_statement prep_var prep_propp raw_fixes raw_assumes raw_shows ctxt =
+  let
+    val ((fixes, (assumes, shows), binds), ctxt') = ctxt
+      |> prep_stmt prep_var prep_propp raw_fixes (raw_assumes @ raw_shows)
+      |-> (fn (vars, propss, binds, _) =>
+        fold Variable.bind_term binds #>
+        pair (map #2 vars, chop (length raw_assumes) propss, binds));
+    val binds' =
+      (Auto_Bind.facts ctxt' (flat shows) @
+        (case try List.last (flat shows) of
+          NONE => []
+        | SOME prop => map (apsnd (SOME o Auto_Bind.abs_params prop)) binds))
+      |> export_binds ctxt' ctxt fixes;
+  in ((fixes, assumes, shows, binds'), ctxt') end;
+
+in
+
+val cert_stmt = prep_stmt cert_var cert_propp;
+val read_stmt = prep_stmt read_var read_propp;
+val cert_statement = prep_statement cert_var cert_propp;
+val read_statement = prep_statement read_var read_propp;
 
 end;
 
@@ -1242,23 +1433,23 @@ val print_syntax = Syntax.print_syntax o syn_of;
 
 (* abbreviations *)
 
-fun pretty_abbrevs show_globals ctxt =
+fun pretty_abbrevs verbose show_globals ctxt =
   let
     val space = const_space ctxt;
     val (constants, global_constants) =
-      pairself (#constants o Consts.dest) (#consts (rep_data ctxt));
+      apply2 (#constants o Consts.dest) (#consts (rep_data ctxt));
     val globals = Symtab.make global_constants;
     fun add_abbr (_, (_, NONE)) = I
       | add_abbr (c, (T, SOME t)) =
           if not show_globals andalso Symtab.defined globals c then I
           else cons (c, Logic.mk_equals (Const (c, T), t));
-    val abbrevs = Name_Space.markup_entries ctxt space (fold add_abbr constants []);
+    val abbrevs = Name_Space.markup_entries verbose ctxt space (fold add_abbr constants []);
   in
     if null abbrevs then []
     else [Pretty.big_list "abbreviations:" (map (pretty_term_abbrev ctxt o #2) abbrevs)]
   end;
 
-val print_abbrevs = Pretty.writeln_chunks o pretty_abbrevs true;
+fun print_abbrevs verbose = Pretty.writeln_chunks o pretty_abbrevs verbose true;
 
 
 (* term bindings *)
@@ -1275,10 +1466,10 @@ fun pretty_term_bindings ctxt =
 
 (* local facts *)
 
-fun pretty_local_facts ctxt verbose =
+fun pretty_local_facts verbose ctxt =
   let
     val facts = facts_of ctxt;
-    val props = Facts.props facts;
+    val props = map #1 (Facts.props facts);
     val local_facts =
       (if null props then [] else [("<unnamed>", props)]) @
       Facts.dest_static verbose [Global_Theory.facts_of (theory_of ctxt)] facts;
@@ -1286,28 +1477,30 @@ fun pretty_local_facts ctxt verbose =
     if null local_facts then []
     else
       [Pretty.big_list "local facts:"
-        (map #1 (sort_wrt (#1 o #2) (map (`(pretty_fact ctxt)) local_facts)))]
+        (map #1 (sort_by (#1 o #2) (map (`(pretty_fact ctxt)) local_facts)))]
   end;
 
-fun print_local_facts ctxt verbose =
-  Pretty.writeln_chunks (pretty_local_facts ctxt verbose);
+fun print_local_facts verbose ctxt =
+  Pretty.writeln_chunks (pretty_local_facts verbose ctxt);
 
 
-(* local contexts *)
+(* named local contexts *)
 
 local
 
 fun pretty_case (name, (fixes, ((asms, (lets, cs)), ctxt))) =
   let
+    val prt_name = pretty_name ctxt;
     val prt_term = Syntax.pretty_term ctxt;
 
     fun prt_let (xi, t) = Pretty.block
       [Pretty.quote (prt_term (Var (xi, Term.fastype_of t))), Pretty.str " =", Pretty.brk 1,
         Pretty.quote (prt_term t)];
 
-    fun prt_asm (b, ts) = Pretty.block (Pretty.breaks
-      ((if Binding.is_empty b then []
-        else [Binding.pretty b, Pretty.str ":"]) @ map (Pretty.quote o prt_term) ts));
+    fun prt_asm (a, ts) =
+      Pretty.block (Pretty.breaks
+        ((if a = "" then [] else [prt_name a, Pretty.str ":"]) @
+          map (Pretty.quote o prt_term) ts));
 
     fun prt_sect _ _ _ [] = []
       | prt_sect head sep prt xs =
@@ -1315,29 +1508,64 @@ fun pretty_case (name, (fixes, ((asms, (lets, cs)), ctxt))) =
             flat (separate sep (map (single o prt) xs))))];
   in
     Pretty.block (Pretty.fbreaks
-      (Pretty.str (name ^ ":") ::
-        prt_sect (Pretty.keyword1 "fix") [] (Pretty.str o Binding.name_of o fst) fixes @
+      (prt_name name :: Pretty.str ":" ::
+        prt_sect (Pretty.keyword1 "fix") [] (prt_name o Binding.name_of o fst) fixes @
         prt_sect (Pretty.keyword1 "let") [Pretty.keyword2 "and"] prt_let
           (map_filter (fn (xi, SOME t) => SOME (xi, t) | _ => NONE) lets) @
         (if forall (null o #2) asms then []
           else prt_sect (Pretty.keyword1 "assume") [Pretty.keyword2 "and"] prt_asm asms) @
-        prt_sect (Pretty.str "subcases:") [] (Pretty.str o fst) cs))
+        prt_sect (Pretty.str "subcases:") [] (prt_name o fst) cs))
   end;
 
 in
 
 fun pretty_cases ctxt =
   let
-    fun mk_case (_, (_, false)) = NONE
-      | mk_case (name, (c as Rule_Cases.Case {fixes, ...}, true)) =
+    fun mk_case (_, (_, {legacy = true})) = NONE
+      | mk_case (name, (c as Rule_Cases.Case {fixes, ...}, {legacy = false})) =
           SOME (name, (fixes, case_result c ctxt));
-    val cases = dest_cases ctxt |> map_filter mk_case;
+    val cases = dest_cases NONE ctxt |> map_filter mk_case;
   in
     if null cases then []
     else [Pretty.big_list "cases:" (map pretty_case cases)]
   end;
 
 end;
+
+fun print_cases_proof ctxt0 ctxt =
+  let
+    val print_name = Token.print_name (Thy_Header.get_keywords' ctxt);
+
+    fun trim_name x = if Name.is_internal x then Name.clean x else "_";
+    val trim_names = map trim_name #> take_suffix (equal "_") #> #1;
+
+    fun print_case name xs =
+      (case trim_names xs of
+        [] => print_name name
+      | xs' => enclose "(" ")" (space_implode " " (map print_name (name :: xs'))));
+
+    fun is_case x t =
+      x = Rule_Cases.case_conclN andalso not (Term.exists_subterm Term.is_Var t);
+
+    fun print_proof (name, (Rule_Cases.Case {fixes, binds, ...}, {legacy})) =
+      if legacy then NONE
+      else
+        let
+          val concl =
+            if exists (fn ((x, _), SOME t) => is_case x t | _ => false) binds
+            then Rule_Cases.case_conclN else Auto_Bind.thesisN;
+        in
+          SOME (cat_lines
+            ["  case " ^ print_case name (map (Binding.name_of o #1) fixes),
+             "  then show ?" ^ concl ^ " sorry"])
+        end;
+  in
+    (case map_filter print_proof (dest_cases (SOME ctxt0) ctxt) of
+      [] => ""
+    | proofs =>
+        "Proof outline with cases:\n" ^
+        Active.sendback_markup_command (space_implode "\nnext\n" proofs ^ "\nqed"))
+  end;
 
 
 (* core context *)
@@ -1355,7 +1583,7 @@ fun pretty_ctxt ctxt =
       val prt_term = Syntax.pretty_term ctxt;
 
       (*structures*)
-      val {structs, ...} = Local_Syntax.idents_of (syntax_of ctxt);
+      val {structs, ...} = Syntax_Trans.get_idents ctxt;
       val prt_structs =
         if null structs then []
         else [Pretty.block (Pretty.str "structures:" :: Pretty.brk 1 ::
@@ -1373,12 +1601,12 @@ fun pretty_ctxt ctxt =
         else [Pretty.block (Pretty.str "fixed variables:" :: Pretty.brk 1 ::
           Pretty.commas (map prt_fix fixes))];
 
-      (*prems*)
-      val prt_prems =
+      (*assumptions*)
+      val prt_assms =
         (case Assumption.all_prems_of ctxt of
           [] => []
-        | prems => [Pretty.big_list "prems:" [pretty_fact ctxt ("", prems)]]);
-    in prt_structs @ prt_fixes @ prt_prems end;
+        | prems => [Pretty.big_list "assumptions:" [pretty_fact ctxt ("", prems)]]);
+    in prt_structs @ prt_fixes @ prt_assms end;
 
 
 (* main context *)
@@ -1413,9 +1641,9 @@ fun pretty_context ctxt =
   in
     verb single (K pretty_thy) @
     pretty_ctxt ctxt @
-    verb (pretty_abbrevs false) (K ctxt) @
+    verb (pretty_abbrevs true false) (K ctxt) @
     verb pretty_term_bindings (K ctxt) @
-    verb (pretty_local_facts ctxt) (K true) @
+    verb (pretty_local_facts true) (K ctxt) @
     verb pretty_cases (K ctxt) @
     verb single (fn () => Pretty.big_list "type constraints:" (map prt_defT (Vartab.dest types))) @
     verb single (fn () => Pretty.big_list "default sorts:" (map prt_defS (Vartab.dest sorts)))
@@ -1424,4 +1652,3 @@ fun pretty_context ctxt =
 end;
 
 val show_abbrevs = Proof_Context.show_abbrevs;
-

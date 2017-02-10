@@ -6,17 +6,13 @@ Logical theory content: axioms, definitions, and begin/end wrappers.
 
 signature THEORY =
 sig
-  val eq_thy: theory * theory -> bool
-  val subthy: theory * theory -> bool
-  val assert_super: theory -> theory -> theory
   val parents_of: theory -> theory list
   val ancestors_of: theory -> theory list
   val nodes_of: theory -> theory list
-  val merge: theory * theory -> theory
-  val merge_list: theory list -> theory
-  val requires: theory -> string -> string -> unit
   val setup: (theory -> theory) -> unit
+  val local_setup: (Proof.context -> Proof.context) -> unit
   val get_markup: theory -> Markup.T
+  val check: Proof.context -> string * Position.T -> theory
   val axiom_table: theory -> term Name_Space.table
   val axiom_space: theory -> Name_Space.T
   val axioms_of: theory -> (string * term) list
@@ -27,9 +23,11 @@ sig
   val begin_theory: string * Position.T -> theory list -> theory
   val end_theory: theory -> theory
   val add_axiom: Proof.context -> binding * term -> theory -> theory
-  val add_deps: Proof.context -> string -> string * typ -> (string * typ) list -> theory -> theory
-  val add_deps_global: string -> string * typ -> (string * typ) list -> theory -> theory
-  val add_def: Proof.context -> bool -> bool -> binding * term -> theory -> theory
+  val const_dep: theory -> string * typ -> Defs.entry
+  val type_dep: string * typ list -> Defs.entry
+  val add_deps: Defs.context -> string -> Defs.entry -> Defs.entry list -> theory -> theory
+  val add_deps_global: string -> Defs.entry -> Defs.entry list -> theory -> theory
+  val add_def: Defs.context -> bool -> bool -> binding * term -> theory -> theory
   val specify_const: (binding * typ) * mixfix -> theory -> term * theory
   val check_overloading: Proof.context -> bool -> string * typ -> unit
 end
@@ -40,27 +38,12 @@ struct
 
 (** theory context operations **)
 
-val eq_thy = Context.eq_thy;
-val subthy = Context.subthy;
-
-fun assert_super thy1 thy2 =
-  if subthy (thy1, thy2) then thy2
-  else raise THEORY ("Not a super theory", [thy1, thy2]);
-
 val parents_of = Context.parents_of;
 val ancestors_of = Context.ancestors_of;
 fun nodes_of thy = thy :: ancestors_of thy;
 
-val merge = Context.merge;
-
-fun merge_list [] = raise THEORY ("Empty merge of theories", [])
-  | merge_list (thy :: thys) = Library.foldl merge (thy, thys);
-
-fun requires thy name what =
-  if exists (fn thy' => Context.theory_name thy' = name) (nodes_of thy) then ()
-  else error ("Require theory " ^ quote name ^ " as an ancestor for " ^ what);
-
 fun setup f = Context.>> (Context.map_theory f);
+fun local_setup f = Context.>> (Context.map_proof f);
 
 
 
@@ -81,7 +64,7 @@ datatype thy = Thy of
 fun make_thy (pos, id, axioms, defs, wrappers) =
   Thy {pos = pos, id = id, axioms = axioms, defs = defs, wrappers = wrappers};
 
-structure Thy = Theory_Data_PP
+structure Thy = Theory_Data'
 (
   type T = thy;
   val empty_axioms = Name_Space.empty_table "axiom" : term Name_Space.table;
@@ -90,14 +73,13 @@ structure Thy = Theory_Data_PP
   fun extend (Thy {pos = _, id = _, axioms = _, defs, wrappers}) =
     make_thy (Position.none, 0, empty_axioms, defs, wrappers);
 
-  fun merge pp (thy1, thy2) =
+  fun merge old_thys (thy1, thy2) =
     let
-      val ctxt = Syntax.init_pretty pp;
       val Thy {pos = _, id = _, axioms = _, defs = defs1, wrappers = (bgs1, ens1)} = thy1;
       val Thy {pos = _, id = _, axioms = _, defs = defs2, wrappers = (bgs2, ens2)} = thy2;
 
       val axioms' = empty_axioms;
-      val defs' = Defs.merge ctxt (defs1, defs2);
+      val defs' = Defs.merge (Defs.global_context (fst old_thys)) (defs1, defs2);
       val bgs' = Library.merge (eq_snd op =) (bgs1, bgs2);
       val ens' = Library.merge (eq_snd op =) (ens1, ens2);
     in make_thy (Position.none, 0, axioms', defs', (bgs', ens')) end;
@@ -136,6 +118,25 @@ fun get_markup thy =
   let val {pos, id, ...} = rep_theory thy
   in theory_markup false (Context.theory_name thy) id pos end;
 
+fun check ctxt (name, pos) =
+  let
+    val thy = Proof_Context.theory_of ctxt;
+    val thy' =
+      Context.get_theory thy name
+        handle ERROR msg =>
+          let
+            val completion =
+              Completion.make (name, pos)
+                (fn completed =>
+                  map Context.theory_name (ancestors_of thy)
+                  |> filter completed
+                  |> sort_strings
+                  |> map (fn a => (a, (Markup.theoryN, a))));
+            val report = Markup.markup_report (Completion.reported_text completion);
+          in error (msg ^ Position.here pos ^ report) end;
+    val _ = Context_Position.report ctxt pos (get_markup thy');
+  in thy' end;
+
 
 (* basic operations *)
 
@@ -163,7 +164,7 @@ fun begin_theory (name, pos) imports =
     | _ => error "Bad bootstrapping of theory Pure")
   else
     let
-      val thy = Context.begin_thy Context.pretty_global name imports;
+      val thy = Context.begin_thy name imports;
       val wrappers = begin_wrappers thy;
     in
       thy
@@ -205,41 +206,54 @@ fun cert_axm ctxt (b, raw_tm) =
 fun add_axiom ctxt raw_axm thy = thy |> map_axioms (fn axioms =>
   let
     val axm = apsnd Logic.varify_global (cert_axm ctxt raw_axm);
-    val (_, axioms') = Name_Space.define (Sign.inherit_naming thy ctxt) true axm axioms;
+    val context = ctxt
+      |> Sign.inherit_naming thy
+      |> Context_Position.set_visible_generic false;
+    val (_, axioms') = Name_Space.define context true axm axioms;
   in axioms' end);
 
 
 (* dependencies *)
 
-fun dependencies ctxt unchecked def description lhs rhs =
-  let
-    val thy = Proof_Context.theory_of ctxt;
-    val consts = Sign.consts_of thy;
-    fun prep const =
-      let val Const (c, T) = Sign.no_vars ctxt (Const const)
-      in (c, Consts.typargs consts (c, Logic.varifyT_global T)) end;
+fun const_dep thy (c, T) = ((Defs.Const, c), Sign.const_typargs thy (c, T));
+fun type_dep (c, args) = ((Defs.Type, c), args);
 
-    val lhs_vars = Term.add_tfreesT (#2 lhs) [];
-    val rhs_extras = fold (#2 #> Term.fold_atyps (fn TFree v =>
-      if member (op =) lhs_vars v then I else insert (op =) v | _ => I)) rhs [];
+fun dependencies (context as (ctxt, _)) unchecked def description lhs rhs =
+  let
+    fun prep (item, args) =
+      (case fold Term.add_tvarsT args [] of
+        [] => (item, map Logic.varifyT_global args)
+      | vs => raise TYPE ("Illegal schematic type variable(s)", map TVar vs, []));
+
+    val lhs_vars = fold Term.add_tfreesT (snd lhs) [];
+    val rhs_extras =
+      fold (fn (_, args) => args |> (fold o Term.fold_atyps) (fn TFree v =>
+        if member (op =) lhs_vars v then I else insert (op =) v)) rhs [];
     val _ =
       if null rhs_extras then ()
       else error ("Specification depends on extra type variables: " ^
         commas_quote (map (Syntax.string_of_typ ctxt o TFree) rhs_extras) ^
         "\nThe error(s) above occurred in " ^ quote description);
-  in Defs.define ctxt unchecked def description (prep lhs) (map prep rhs) end;
+  in Defs.define context unchecked def description (prep lhs) (map prep rhs) end;
 
-fun add_deps ctxt a raw_lhs raw_rhs thy =
+fun cert_entry thy ((Defs.Const, c), args) =
+      Sign.cert_term thy (Const (c, Sign.const_instance thy (c, args)))
+      |> dest_Const |> const_dep thy
+  | cert_entry thy ((Defs.Type, c), args) =
+      Sign.certify_typ thy (Type (c, args)) |> dest_Type |> type_dep;
+
+fun add_deps context a raw_lhs raw_rhs thy =
   let
-    val lhs :: rhs = map (dest_Const o Sign.cert_term thy o Const) (raw_lhs :: raw_rhs);
-    val description = if a = "" then #1 lhs ^ " axiom" else a;
-  in thy |> map_defs (dependencies ctxt false NONE description lhs rhs) end;
+    val (lhs as ((_, lhs_name), _)) :: rhs = map (cert_entry thy) (raw_lhs :: raw_rhs);
+    val description = if a = "" then lhs_name ^ " axiom" else a;
+  in thy |> map_defs (dependencies context false NONE description lhs rhs) end;
 
-fun add_deps_global a x y thy = add_deps (Syntax.init_pretty_global thy) a x y thy;
+fun add_deps_global a x y thy =
+  add_deps (Defs.global_context thy) a x y thy;
 
 fun specify_const decl thy =
-  let val (t as Const const, thy') = Sign.declare_const_global decl thy;
-  in (t, add_deps_global "" const [] thy') end;
+  let val (t, thy') = Sign.declare_const_global decl thy;
+  in (t, add_deps_global "" (const_dep thy' (dest_Const t)) [] thy') end;
 
 
 (* overloading *)
@@ -271,25 +285,36 @@ fun check_overloading ctxt overloaded (c, T) =
 
 local
 
-fun check_def ctxt thy unchecked overloaded (b, tm) defs =
+fun check_def (context as (ctxt, _)) thy unchecked overloaded (b, tm) defs =
   let
     val name = Sign.full_name thy b;
-    val ((lhs, rhs), _) = Primitive_Defs.dest_def ctxt Term.is_Const (K false) (K false) tm
+    val ((lhs, rhs), _, _) =
+      Primitive_Defs.dest_def ctxt
+        {check_head = Term.is_Const,
+         check_free_lhs = K true,
+         check_free_rhs = K false,
+         check_tfree = K false} tm
       handle TERM (msg, _) => error msg;
     val lhs_const = Term.dest_Const (Term.head_of lhs);
-    val rhs_consts = fold_aterms (fn Const const => insert (op =) const | _ => I) rhs [];
+
+    val rhs_consts =
+      fold_aterms (fn Const const => insert (op =) (const_dep thy const) | _ => I) rhs [];
+    val rhs_types =
+      (fold_types o fold_subtypes) (fn Type t => insert (op =) (type_dep t) | _ => I) rhs [];
+    val rhs_deps = rhs_consts @ rhs_types;
+
     val _ = check_overloading ctxt overloaded lhs_const;
-  in defs |> dependencies ctxt unchecked (SOME name) name lhs_const rhs_consts end
+  in defs |> dependencies context unchecked (SOME name) name (const_dep thy lhs_const) rhs_deps end
   handle ERROR msg => cat_error msg (Pretty.string_of (Pretty.block
    [Pretty.str ("The error(s) above occurred in definition " ^ Binding.print b ^ ":"),
     Pretty.fbrk, Pretty.quote (Syntax.pretty_term ctxt tm)]));
 
 in
 
-fun add_def ctxt unchecked overloaded raw_axm thy =
+fun add_def (context as (ctxt, _)) unchecked overloaded raw_axm thy =
   let val axm = cert_axm ctxt raw_axm in
     thy
-    |> map_defs (check_def ctxt thy unchecked overloaded axm)
+    |> map_defs (check_def context thy unchecked overloaded axm)
     |> add_axiom ctxt axm
   end;
 

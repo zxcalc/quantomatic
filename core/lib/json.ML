@@ -149,7 +149,7 @@ sig
    * Accept an instream and return a Source.source, which will pull the next JSON
    * object/array from the stream
    *)
-  val json_source : TextIO.instream -> (json, (string, unit) RawSource.source) RawSource.source
+  val json_source : TextIO.instream -> (json, (string, unit) Source.source) Source.source
   
   (**
    * Read in a file containing JSON
@@ -162,7 +162,7 @@ sig
   val write_file : string -> json -> unit
 end
 
-structure Json : JSON =
+structure Json (*: JSON *) =
 struct
 
 (* JObj stores the order in which keys are added, so that it can be
@@ -434,17 +434,10 @@ val pretty = pretty_d 0
 val string_of = Pretty.string_of o pretty
 val of_string = Parser.parse
 
-(*fun json_source instream =
-  Source.source Symbol.stopper
-    (Parser.p_top_level >> single) NONE
-      (Source.tty' (fn c => c = "]" orelse c = "}") instream)
-  |> Source.set_prompt ""*)
-
 fun json_source instream =
   RawSource.source Symbol.stopper
-    (Parser.p_top_level >> single) NONE
+    (Parser.p_top_level >> single)
       (RawSource.raw_stream (fn c => c = "}" orelse c = "]") instream)
-  |> RawSource.set_prompt ""
 
 fun read_file file = let
   val get_one_json = RawSource.get_single o json_source

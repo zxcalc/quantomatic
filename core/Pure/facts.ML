@@ -22,18 +22,22 @@ sig
   type T
   val empty: T
   val space_of: T -> Name_Space.T
+  val alias: Name_Space.naming -> binding -> string -> T -> T
   val is_concealed: T -> string -> bool
   val check: Context.generic -> T -> xstring * Position.T -> string
   val intern: T -> xstring -> string
   val extern: Proof.context -> T -> string -> xstring
   val markup_extern: Proof.context -> T -> string -> Markup.T * xstring
-  val lookup: Context.generic -> T -> string -> (bool * thm list) option
-  val retrieve: Context.generic -> T -> xstring * Position.T -> string * thm list
   val defined: T -> string -> bool
+  val is_dynamic: T -> string -> bool
+  val lookup: Context.generic -> T -> string -> {dynamic: bool, thms: thm list} option
+  val retrieve: Context.generic -> T -> xstring * Position.T ->
+    {name: string, dynamic: bool, thms: thm list}
   val fold_static: (string * thm list -> 'a -> 'a) -> T -> 'a -> 'a
   val dest_static: bool -> T list -> T -> (string * thm list) list
-  val props: T -> thm list
-  val could_unify: T -> term -> thm list
+  val dest_all: Context.generic -> bool -> T list -> T -> (string * thm list) list
+  val props: T -> (thm * Position.T) list
+  val could_unify: T -> term -> (thm * Position.T) list
   val merge: T * T -> T
   val add_static: Context.generic -> {strict: bool, index: bool} ->
     binding * thm list -> T -> string * T
@@ -130,7 +134,7 @@ datatype fact = Static of thm list | Dynamic of Context.generic -> thm list;
 
 datatype T = Facts of
  {facts: fact Name_Space.table,
-  props: thm Net.net};
+  props: (thm * Position.T) Net.net};
 
 fun make_facts facts props = Facts {facts = facts, props = props};
 
@@ -142,6 +146,9 @@ val empty = make_facts (Name_Space.empty_table "fact") Net.empty;
 fun facts_of (Facts {facts, ...}) = facts;
 
 val space_of = Name_Space.space_of_table o facts_of;
+
+fun alias naming binding name (Facts {facts, props}) =
+  make_facts (Name_Space.alias_table naming binding name facts) props;
 
 val is_concealed = Name_Space.is_concealed o space_of;
 
@@ -156,48 +163,71 @@ fun check context facts (xname, pos) =
 
 val intern = Name_Space.intern o space_of;
 fun extern ctxt = Name_Space.extern ctxt o space_of;
-fun markup_extern ctxt = Name_Space.markup_extern ctxt o space_of
+fun markup_extern ctxt = Name_Space.markup_extern ctxt o space_of;
 
 
 (* retrieve *)
 
-val defined = is_some oo (Name_Space.lookup_key o facts_of);
+val defined = Name_Space.defined o facts_of;
+
+fun is_dynamic facts name =
+  (case Name_Space.lookup (facts_of facts) name of
+    SOME (Dynamic _) => true
+  | _ => false);
 
 fun lookup context facts name =
-  (case Name_Space.lookup_key (facts_of facts) name of
+  (case Name_Space.lookup (facts_of facts) name of
     NONE => NONE
-  | SOME (_, Static ths) => SOME (true, ths)
-  | SOME (_, Dynamic f) => SOME (false, f context));
+  | SOME (Static ths) => SOME {dynamic = false, thms = ths}
+  | SOME (Dynamic f) => SOME {dynamic = true, thms = f context});
 
 fun retrieve context facts (xname, pos) =
   let
     val name = check context facts (xname, pos);
-    val thms =
+    val {dynamic, thms} =
       (case lookup context facts name of
-        SOME (static, thms) =>
-          (if static then ()
-           else Context_Position.report_generic context pos (Markup.dynamic_fact name);
-           thms)
+        SOME res =>
+          (if #dynamic res
+           then Context_Position.report_generic context pos (Markup.dynamic_fact name)
+           else ();
+           res)
       | NONE => error ("Unknown fact " ^ quote name ^ Position.here pos));
-  in (name, map (Thm.transfer (Context.theory_of context)) thms) end;
+  in
+   {name = name,
+    dynamic = dynamic,
+    thms = map (Thm.transfer (Context.theory_of context)) thms}
+  end;
 
 
-(* static content *)
+(* content *)
+
+local
+
+fun included verbose prev_facts facts name =
+  not (exists (fn prev => defined prev name) prev_facts orelse
+    not verbose andalso is_concealed facts name);
+
+in
 
 fun fold_static f =
-  Name_Space.fold_table (fn (name, Static ths) => f (name, ths) | _ => I) o facts_of;
+  Name_Space.fold_table (fn (a, Static ths) => f (a, ths) | _ => I) o facts_of;
 
 fun dest_static verbose prev_facts facts =
-  fold_static (fn (name, ths) =>
-    if exists (fn prev => defined prev name) prev_facts orelse
-      not verbose andalso is_concealed facts name then I
-    else cons (name, ths)) facts []
-  |> sort_wrt #1;
+  fold_static (fn (a, ths) => included verbose prev_facts facts a ? cons (a, ths)) facts []
+  |> sort_by #1;
+
+fun dest_all context verbose prev_facts facts =
+  Name_Space.fold_table (fn (a, fact) =>
+    let val ths = (case fact of Static ths => ths | Dynamic f => f context)
+    in included verbose prev_facts facts a ? cons (a, ths) end) (facts_of facts) []
+  |> sort_by #1;
+
+end;
 
 
 (* indexed props *)
 
-val prop_ord = Term_Ord.term_ord o pairself Thm.full_prop_of;
+val prop_ord = Term_Ord.term_ord o apply2 (Thm.full_prop_of o fst);
 
 fun props (Facts {props, ...}) = sort_distinct prop_ord (Net.content props);
 fun could_unify (Facts {props, ...}) = Net.unify_term props;
@@ -219,11 +249,15 @@ fun merge (Facts {facts = facts1, props = props1}, Facts {facts = facts2, props 
 
 fun add_static context {strict, index} (b, ths) (Facts {facts, props}) =
   let
+    val ths' = map Thm.trim_context ths;
+    val pos = Binding.pos_of (Binding.default_pos b);
+
     val (name, facts') =
       if Binding.is_empty b then ("", facts)
-      else Name_Space.define context strict (b, Static ths) facts;
+      else Name_Space.define context strict (b, Static ths') facts;
+
     val props' = props
-      |> index ? fold (fn th => Net.insert_term (K false) (Thm.full_prop_of th, th)) ths;
+      |> index ? fold (fn th => Net.insert_term (K false) (Thm.full_prop_of th, (th, pos))) ths';
   in (name, make_facts facts' props') end;
 
 

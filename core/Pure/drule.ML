@@ -13,16 +13,17 @@ sig
   val strip_imp_prems: cterm -> cterm list
   val strip_imp_concl: cterm -> cterm
   val cprems_of: thm -> cterm list
-  val cterm_fun: (term -> term) -> (cterm -> cterm)
-  val ctyp_fun: (typ -> typ) -> (ctyp -> ctyp)
   val forall_intr_list: cterm list -> thm -> thm
   val forall_intr_vars: thm -> thm
   val forall_elim_list: cterm list -> thm -> thm
-  val gen_all: thm -> thm
-  val lift_all: cterm -> thm -> thm
+  val lift_all: Proof.context -> cterm -> thm -> thm
   val implies_elim_list: thm -> thm list -> thm
   val implies_intr_list: cterm list -> thm -> thm
-  val instantiate_normalize: (ctyp * ctyp) list * (cterm * cterm) list -> thm -> thm
+  val instantiate_normalize: ((indexname * sort) * ctyp) list * ((indexname * typ) * cterm) list ->
+    thm -> thm
+  val infer_instantiate_types: Proof.context -> ((indexname * typ) * cterm) list -> thm -> thm
+  val infer_instantiate: Proof.context -> (indexname * cterm) list -> thm -> thm
+  val infer_instantiate': Proof.context -> cterm option list -> thm -> thm
   val zero_var_indexes_list: thm list -> thm list
   val zero_var_indexes: thm -> thm
   val implies_intr_hyps: thm -> thm
@@ -37,7 +38,6 @@ sig
   val COMP: thm * thm -> thm
   val INCR_COMP: thm * thm -> thm
   val COMP_INCR: thm * thm -> thm
-  val cterm_instantiate: (cterm * cterm) list -> thm -> thm
   val size_of_thm: thm -> int
   val reflexive_thm: thm
   val symmetric_thm: thm
@@ -47,27 +47,26 @@ sig
   val cut_rl: thm
   val revcut_rl: thm
   val thin_rl: thm
-  val instantiate': ctyp option list -> cterm option list -> thm -> thm
 end;
 
 signature DRULE =
 sig
   include BASIC_DRULE
+  val outer_params: term -> (string * typ) list
   val generalize: string list * string list -> thm -> thm
   val list_comb: cterm * cterm list -> cterm
   val strip_comb: cterm -> cterm * cterm list
   val strip_type: ctyp -> ctyp list * ctyp
   val beta_conv: cterm -> cterm -> cterm
-  val types_sorts: thm -> (indexname-> typ option) * (indexname-> sort option)
-  val flexflex_unique: thm -> thm
+  val flexflex_unique: Proof.context option -> thm -> thm
   val export_without_context: thm -> thm
   val export_without_context_open: thm -> thm
   val store_thm: binding -> thm -> thm
   val store_standard_thm: binding -> thm -> thm
   val store_thm_open: binding -> thm -> thm
   val store_standard_thm_open: binding -> thm -> thm
-  val multi_resolve: thm list -> thm -> thm Seq.seq
-  val multi_resolves: thm list -> thm list -> thm Seq.seq
+  val multi_resolve: Proof.context option -> thm list -> thm -> thm Seq.seq
+  val multi_resolves: Proof.context option -> thm list -> thm list -> thm Seq.seq
   val compose: thm * int * thm -> thm
   val equals_cong: thm
   val imp_cong: thm
@@ -77,13 +76,12 @@ sig
   val binop_cong_rule: cterm -> thm -> thm -> thm
   val fun_cong_rule: thm -> cterm -> thm
   val beta_eta_conversion: cterm -> thm
-  val eta_long_conversion: cterm -> thm
   val eta_contraction_rule: thm -> thm
   val norm_hhf_eq: thm
   val norm_hhf_eqs: thm list
   val is_norm_hhf: term -> bool
   val norm_hhf: theory -> term -> term
-  val norm_hhf_cterm: cterm -> cterm
+  val norm_hhf_cterm: Proof.context -> cterm -> cterm
   val protect: cterm -> cterm
   val protectI: thm
   val protectD: thm
@@ -93,7 +91,11 @@ sig
   val mk_term: cterm -> thm
   val dest_term: thm -> cterm
   val cterm_rule: (thm -> thm) -> cterm -> cterm
+  val cterm_add_frees: cterm -> cterm list -> cterm list
+  val cterm_add_vars: cterm -> cterm list -> cterm list
   val dummy_thm: thm
+  val free_dummy_thm: thm
+  val is_sort_constraint: term -> bool
   val sort_constraintI: thm
   val sort_constraint_eq: thm
   val with_subgoal: int -> (thm -> thm) -> thm -> thm
@@ -130,12 +132,9 @@ fun strip_imp_concl ct =
   | _ => ct);
 
 (*The premises of a theorem, as a cterm list*)
-val cprems_of = strip_imp_prems o cprop_of;
+val cprems_of = strip_imp_prems o Thm.cprop_of;
 
-fun cterm_fun f ct = Thm.cterm_of (Thm.theory_of_cterm ct) (f (Thm.term_of ct));
-fun ctyp_fun f cT = Thm.ctyp_of (Thm.theory_of_ctyp cT) (f (Thm.typ_of cT));
-
-fun certify t = Thm.cterm_of (Context.the_theory (Context.the_thread_data ())) t;
+fun certify t = Thm.global_cterm_of (Context.the_global_context ()) t;
 
 val implies = certify Logic.implies;
 fun mk_implies (A, B) = Thm.apply (Thm.apply implies A) B;
@@ -168,28 +167,7 @@ fun strip_type cT = (case Thm.typ_of cT of
 (*Beta-conversion for cterms, where x is an abstraction. Simply returns the rhs
   of the meta-equality returned by the beta_conversion rule.*)
 fun beta_conv x y =
-  Thm.dest_arg (cprop_of (Thm.beta_conversion false (Thm.apply x y)));
-
-
-
-(*** Find the type (sort) associated with a (T)Var or (T)Free in a term
-     Used for establishing default types (of variables) and sorts (of
-     type variables) when reading another term.
-     Index -1 indicates that a (T)Free rather than a (T)Var is wanted.
-***)
-
-fun types_sorts thm =
-  let
-    val vars = Thm.fold_terms Term.add_vars thm [];
-    val frees = Thm.fold_terms Term.add_frees thm [];
-    val tvars = Thm.fold_terms Term.add_tvars thm [];
-    val tfrees = Thm.fold_terms Term.add_tfrees thm [];
-    fun types (a, i) =
-      if i < 0 then AList.lookup (op =) frees a else AList.lookup (op =) vars (a, i);
-    fun sorts (a, i) =
-      if i < 0 then AList.lookup (op =) tfrees a else AList.lookup (op =) tvars (a, i);
-  in (types, sorts) end;
-
+  Thm.dest_arg (Thm.cprop_of (Thm.beta_conversion false (Thm.apply x y)));
 
 
 
@@ -199,38 +177,31 @@ fun types_sorts thm =
 val forall_intr_list = fold_rev Thm.forall_intr;
 
 (*Generalization over Vars -- canonical order*)
-fun forall_intr_vars th =
-  fold Thm.forall_intr
-    (map (Thm.cterm_of (Thm.theory_of_thm th) o Var) (Thm.fold_terms Term.add_vars th [])) th;
+fun forall_intr_vars th = fold Thm.forall_intr (Thm.add_vars th []) th;
 
 fun outer_params t =
   let val vs = Term.strip_all_vars t
   in Name.variant_list [] (map (Name.clean o #1) vs) ~~ map #2 vs end;
 
-(*generalize outermost parameters*)
-fun gen_all th =
-  let
-    val thy = Thm.theory_of_thm th;
-    val {prop, maxidx, ...} = Thm.rep_thm th;
-    val cert = Thm.cterm_of thy;
-    fun elim (x, T) = Thm.forall_elim (cert (Var ((x, maxidx + 1), T)));
-  in fold elim (outer_params prop) th end;
-
 (*lift vars wrt. outermost goal parameters
   -- reverses the effect of gen_all modulo higher-order unification*)
-fun lift_all goal th =
+fun lift_all ctxt raw_goal raw_th =
   let
-    val thy = Theory.merge (Thm.theory_of_cterm goal, Thm.theory_of_thm th);
-    val cert = Thm.cterm_of thy;
+    val thy = Proof_Context.theory_of ctxt;
+    val goal = Thm.transfer_cterm thy raw_goal;
+    val th = Thm.transfer thy raw_th;
+
     val maxidx = Thm.maxidx_of th;
     val ps = outer_params (Thm.term_of goal)
       |> map (fn (x, T) => Var ((x, maxidx + 1), Logic.incr_tvar (maxidx + 1) T));
     val Ts = map Term.fastype_of ps;
-    val inst = Thm.fold_terms Term.add_vars th [] |> map (fn (xi, T) =>
-      (cert (Var (xi, T)), cert (Term.list_comb (Var (xi, Ts ---> T), ps))));
+    val inst =
+      Thm.fold_terms Term.add_vars th []
+      |> map (fn (xi, T) => ((xi, T), Thm.cterm_of ctxt (Term.list_comb (Var (xi, Ts ---> T), ps))));
   in
-    th |> Thm.instantiate ([], inst)
-    |> fold_rev (Thm.forall_intr o cert) ps
+    th
+    |> Thm.instantiate ([], inst)
+    |> fold_rev (Thm.forall_intr o Thm.cterm_of ctxt) ps
   end;
 
 (*direct generalization*)
@@ -249,12 +220,16 @@ fun implies_elim_list impth ths = fold Thm.elim_implies ths impth;
 fun zero_var_indexes_list [] = []
   | zero_var_indexes_list ths =
       let
-        val thy = Theory.merge_list (map Thm.theory_of_thm ths);
-        val certT = Thm.ctyp_of thy and cert = Thm.cterm_of thy;
         val (instT, inst) = Term_Subst.zero_var_indexes_inst (map Thm.full_prop_of ths);
-        val cinstT = map (fn (v, T) => (certT (TVar v), certT T)) instT;
-        val cinst = map (fn (v, t) => (cert (Var v), cert t)) inst;
-      in map (Thm.adjust_maxidx_thm ~1 o Thm.instantiate (cinstT, cinst)) ths end;
+
+        val tvars = fold Thm.add_tvars ths [];
+        fun the_tvar v = the (find_first (fn cT => v = dest_TVar (Thm.typ_of cT)) tvars);
+        val instT' = map (fn (v, TVar (b, _)) => (v, Thm.rename_tvar b (the_tvar v))) instT;
+
+        val vars = fold (Thm.add_vars o Thm.instantiate (instT', [])) ths [];
+        fun the_var v = the (find_first (fn ct => v = dest_Var (Thm.term_of ct)) vars);
+        val inst' = map (fn (v, Var (b, _)) => (v, Thm.var (b, Thm.ctyp_of_cterm (the_var v)))) inst;
+      in map (Thm.adjust_maxidx_thm ~1 o Thm.instantiate (instT', inst')) ths end;
 
 val zero_var_indexes = singleton zero_var_indexes_list;
 
@@ -263,17 +238,17 @@ val zero_var_indexes = singleton zero_var_indexes_list;
     Frees, or outer quantifiers; all generality expressed by Vars of index 0.**)
 
 (*Discharge all hypotheses.*)
-fun implies_intr_hyps th =
-  fold Thm.implies_intr (#hyps (Thm.crep_thm th)) th;
+fun implies_intr_hyps th = fold Thm.implies_intr (Thm.chyps_of th) th;
 
 (*Squash a theorem's flexflex constraints provided it can be done uniquely.
   This step can lose information.*)
-fun flexflex_unique th =
-  if null (Thm.tpairs_of th) then th else
-    case distinct Thm.eq_thm (Seq.list_of (Thm.flexflex_rule th)) of
+fun flexflex_unique opt_ctxt th =
+  if null (Thm.tpairs_of th) then th
+  else
+    (case distinct Thm.eq_thm (Seq.list_of (Thm.flexflex_rule opt_ctxt th)) of
       [th] => th
-    | []   => raise THM("flexflex_unique: impossible constraints", 0, [th])
-    |  _   => raise THM("flexflex_unique: multiple unifiers", 0, [th]);
+    | [] => raise THM ("flexflex_unique: impossible constraints", 0, [th])
+    | _ => raise THM ("flexflex_unique: multiple unifiers", 0, [th]));
 
 
 (* old-style export without context *)
@@ -289,7 +264,7 @@ val export_without_context_open =
     #> Thm.varifyT_global);
 
 val export_without_context =
-  flexflex_unique
+  flexflex_unique NONE
   #> export_without_context_open
   #> Thm.close_derivation;
 
@@ -315,19 +290,21 @@ val rearrange_prems =
 
 (*Resolution: multiple arguments, multiple results*)
 local
-  fun res th i rule =
-    Thm.biresolution false [(false, th)] i rule handle THM _ => Seq.empty;
+  fun res opt_ctxt th i rule =
+    Thm.biresolution opt_ctxt false [(false, th)] i rule handle THM _ => Seq.empty;
 
-  fun multi_res _ [] rule = Seq.single rule
-    | multi_res i (th :: ths) rule = Seq.maps (res th i) (multi_res (i + 1) ths rule);
+  fun multi_res _ _ [] rule = Seq.single rule
+    | multi_res opt_ctxt i (th :: ths) rule =
+        Seq.maps (res opt_ctxt th i) (multi_res opt_ctxt (i + 1) ths rule);
 in
-  val multi_resolve = multi_res 1;
-  fun multi_resolves facts rules = Seq.maps (multi_resolve facts) (Seq.of_list rules);
+  fun multi_resolve opt_ctxt = multi_res opt_ctxt 1;
+  fun multi_resolves opt_ctxt facts rules =
+    Seq.maps (multi_resolve opt_ctxt facts) (Seq.of_list rules);
 end;
 
 (*Resolution: exactly one resolvent must be produced*)
 fun tha RSN (i, thb) =
-  (case Seq.chop 2 (Thm.biresolution false [(false, tha)] i thb) of
+  (case Seq.chop 2 (Thm.biresolution NONE false [(false, tha)] i thb) of
     ([th], _) => th
   | ([], _) => raise THM ("RSN: no unifiers", i, [tha, thb])
   | _ => raise THM ("RSN: multiple unifiers", i, [tha, thb]));
@@ -337,15 +314,16 @@ fun tha RS thb = tha RSN (1,thb);
 
 (*For joining lists of rules*)
 fun thas RLN (i, thbs) =
-  let val resolve = Thm.biresolution false (map (pair false) thas) i
-      fun resb thb = Seq.list_of (resolve thb) handle THM _ => []
+  let
+    val resolve = Thm.biresolution NONE false (map (pair false) thas) i
+    fun resb thb = Seq.list_of (resolve thb) handle THM _ => []
   in maps resb thbs end;
 
 fun thas RL thbs = thas RLN (1, thbs);
 
 (*Isar-style multi-resolution*)
 fun bottom_rl OF rls =
-  (case Seq.chop 2 (multi_resolve rls bottom_rl) of
+  (case Seq.chop 2 (multi_resolve NONE rls bottom_rl) of
     ([th], _) => th
   | ([], _) => raise THM ("OF: no unifiers", 0, bottom_rl :: rls)
   | _ => raise THM ("OF: multiple unifiers", 0, bottom_rl :: rls));
@@ -358,7 +336,7 @@ fun rls MRS bottom_rl = bottom_rl OF rls;
   with no lifting or renaming!  Q may contain ==> or meta-quants
   ALWAYS deletes premise i *)
 fun compose (tha, i, thb) =
-  Thm.bicompose {flatten = true, match = false, incremented = false} (false, tha, 0) i thb
+  Thm.bicompose NONE {flatten = true, match = false, incremented = false} (false, tha, 0) i thb
   |> Seq.list_of |> distinct Thm.eq_thm
   |> (fn [th] => th | _ => raise THM ("compose: unique result expected", i, [tha, thb]));
 
@@ -381,7 +359,7 @@ fun store_thm_open name th =
   Context.>>> (Context.map_theory_result (Global_Theory.store_thm_open (name, th)));
 
 fun store_standard_thm name th = store_thm name (export_without_context th);
-fun store_standard_thm_open name thm = store_thm_open name (export_without_context_open thm);
+fun store_standard_thm_open name th = store_thm_open name (export_without_context_open th);
 
 val reflexive_thm =
   let val cx = certify (Var(("x",0),TVar(("'a",0),[])))
@@ -404,8 +382,8 @@ val transitive_thm =
 
 fun extensional eq =
   let val eq' =
-    Thm.abstract_rule "x" (Thm.dest_arg (fst (Thm.dest_equals (cprop_of eq)))) eq
-  in Thm.equal_elim (Thm.eta_conversion (cprop_of eq')) eq' end;
+    Thm.abstract_rule "x" (Thm.dest_arg (fst (Thm.dest_equals (Thm.cprop_of eq)))) eq
+  in Thm.equal_elim (Thm.eta_conversion (Thm.cprop_of eq')) eq' end;
 
 val equals_cong =
   store_standard_thm_open (Binding.make ("equals_cong", @{here}))
@@ -449,23 +427,13 @@ fun arg_cong_rule ct th = Thm.combination (Thm.reflexive ct) th;    (*AP_TERM in
 fun fun_cong_rule th ct = Thm.combination th (Thm.reflexive ct);    (*AP_THM in LCF/HOL*)
 fun binop_cong_rule ct th1 th2 = Thm.combination (arg_cong_rule ct th1) th2;
 
-local
-  val dest_eq = Thm.dest_equals o cprop_of
-  val rhs_of = snd o dest_eq
-in
-fun beta_eta_conversion t =
-  let val thm = Thm.beta_conversion true t
-  in Thm.transitive thm (Thm.eta_conversion (rhs_of thm)) end
-end;
-
-fun eta_long_conversion ct =
-  Thm.transitive
-    (beta_eta_conversion ct)
-    (Thm.symmetric (beta_eta_conversion (cterm_fun (Envir.eta_long []) ct)));
+fun beta_eta_conversion ct =
+  let val thm = Thm.beta_conversion true ct
+  in Thm.transitive thm (Thm.eta_conversion (Thm.rhs_of thm)) end;
 
 (*Contract all eta-redexes in the theorem, lest they give rise to needless abstractions*)
 fun eta_contraction_rule th =
-  Thm.equal_elim (Thm.eta_conversion (cprop_of th)) th;
+  Thm.equal_elim (Thm.eta_conversion (Thm.cprop_of th)) th;
 
 
 (* abs_def *)
@@ -479,8 +447,7 @@ fun eta_contraction_rule th =
 local
 
 fun contract_lhs th =
-  Thm.transitive (Thm.symmetric (beta_eta_conversion
-    (fst (Thm.dest_equals (cprop_of th))))) th;
+  Thm.transitive (Thm.symmetric (beta_eta_conversion (#1 (Thm.dest_equals (Thm.cprop_of th))))) th;
 
 fun var_args ct =
   (case try Thm.dest_comb ct of
@@ -602,7 +569,7 @@ val remdups_rl =
 
 local
   val A = certify (Free ("A", propT));
-  val axiom = Thm.unvarify_global o Thm.axiom (Context.the_theory (Context.the_thread_data ()));
+  val axiom = Thm.unvarify_axiom (Context.the_global_context ());
   val prop_def = axiom "Pure.prop_def";
   val term_def = axiom "Pure.term_def";
   val sort_constraint_def = axiom "Pure.sort_constraint_def";
@@ -616,11 +583,11 @@ in
 val protect = Thm.apply (certify Logic.protectC);
 
 val protectI =
-  store_standard_thm (Binding.conceal (Binding.make ("protectI", @{here})))
+  store_standard_thm (Binding.concealed (Binding.make ("protectI", @{here})))
     (Thm.equal_elim (Thm.symmetric prop_def) (Thm.assume A));
 
 val protectD =
-  store_standard_thm (Binding.conceal (Binding.make ("protectD", @{here})))
+  store_standard_thm (Binding.concealed (Binding.make ("protectD", @{here})))
     (Thm.equal_elim prop_def (Thm.assume (protect A)));
 
 val protect_cong =
@@ -639,18 +606,14 @@ fun implies_intr_protected asms th =
 (* term *)
 
 val termI =
-  store_standard_thm (Binding.conceal (Binding.make ("termI", @{here})))
+  store_standard_thm (Binding.concealed (Binding.make ("termI", @{here})))
     (Thm.equal_elim (Thm.symmetric term_def) (Thm.forall_intr A (Thm.trivial A)));
 
 fun mk_term ct =
   let
-    val thy = Thm.theory_of_cterm ct;
-    val cert = Thm.cterm_of thy;
-    val certT = Thm.ctyp_of thy;
-    val T = Thm.typ_of (Thm.ctyp_of_term ct);
-    val a = certT (TVar (("'a", 0), []));
-    val x = cert (Var (("x", 0), T));
-  in Thm.instantiate ([(a, certT T)], [(x, ct)]) termI end;
+    val cT = Thm.ctyp_of_cterm ct;
+    val T = Thm.typ_of cT;
+  in Thm.instantiate ([((("'a", 0), []), cT)], [((("x", 0), T), ct)]) termI end;
 
 fun dest_term th =
   let val cprop = strip_imp_concl (Thm.cprop_of th) in
@@ -661,20 +624,27 @@ fun dest_term th =
 
 fun cterm_rule f = dest_term o f o mk_term;
 
+val cterm_add_frees = Thm.add_frees o mk_term;
+val cterm_add_vars = Thm.add_vars o mk_term;
+
 val dummy_thm = mk_term (certify Term.dummy_prop);
+val free_dummy_thm = Thm.tag_free_dummy dummy_thm;
 
 
 (* sort_constraint *)
 
+fun is_sort_constraint (Const ("Pure.sort_constraint", _) $ Const ("Pure.type", _)) = true
+  | is_sort_constraint _ = false;
+
 val sort_constraintI =
-  store_standard_thm (Binding.conceal (Binding.make ("sort_constraintI", @{here})))
+  store_standard_thm (Binding.concealed (Binding.make ("sort_constraintI", @{here})))
     (Thm.equal_elim (Thm.symmetric sort_constraint_def) (mk_term T));
 
 val sort_constraint_eq =
-  store_standard_thm (Binding.conceal (Binding.make ("sort_constraint_eq", @{here})))
+  store_standard_thm (Binding.concealed (Binding.make ("sort_constraint_eq", @{here})))
     (Thm.equal_intr
       (Thm.implies_intr CA (Thm.implies_elim (Thm.assume CA)
-        (Thm.unvarify_global sort_constraintI)))
+        (Thm.unvarify_global (Context.the_global_context ()) sort_constraintI)))
       (implies_intr_list [A, C] (Thm.assume A)));
 
 end;
@@ -723,9 +693,12 @@ fun norm_hhf thy t =
   if is_norm_hhf t then t
   else Pattern.rewrite_term thy [norm_hhf_prop] [] t;
 
-fun norm_hhf_cterm ct =
-  if is_norm_hhf (Thm.term_of ct) then ct
-  else cterm_fun (Pattern.rewrite_term (Thm.theory_of_cterm ct) [norm_hhf_prop] []) ct;
+fun norm_hhf_cterm ctxt raw_ct =
+  let
+    val thy = Proof_Context.theory_of ctxt;
+    val ct = Thm.transfer_cterm thy raw_ct;
+    val t = Thm.term_of ct;
+  in if is_norm_hhf t then ct else Thm.cterm_of ctxt (norm_hhf thy t) end;
 
 
 (* var indexes *)
@@ -739,7 +712,8 @@ local
 
 (*compose Q and [Q1,Q2,...,Qk]==>R to [Q2,...,Qk]==>R getting unique result*)
 fun comp incremented th1 th2 =
-  Thm.bicompose {flatten = true, match = false, incremented = incremented} (false, th1, 0) 1 th2
+  Thm.bicompose NONE {flatten = true, match = false, incremented = incremented}
+    (false, th1, 0) 1 th2
   |> Seq.list_of |> distinct Thm.eq_thm
   |> (fn [th] => th | _ => raise THM ("COMP", 1, [th1, th2]));
 
@@ -753,7 +727,7 @@ end;
 
 fun comp_no_flatten (th, n) i rule =
   (case distinct Thm.eq_thm (Seq.list_of
-      (Thm.bicompose {flatten = false, match = false, incremented = true}
+      (Thm.bicompose NONE {flatten = false, match = false, incremented = true}
         (false, th, n) i (incr_indexes th rule))) of
     [th'] => th'
   | [] => raise THM ("comp_no_flatten", i, [th, rule])
@@ -766,73 +740,70 @@ fun comp_no_flatten (th, n) i rule =
 fun instantiate_normalize instpair th =
   Thm.adjust_maxidx_thm ~1 (Thm.instantiate instpair th COMP_INCR asm_rl);
 
-(*Left-to-right replacements: tpairs = [..., (vi, ti), ...].
-  Instantiates distinct Vars by terms, inferring type instantiations.*)
-local
-  fun add_types (ct, cu) (thy, tye, maxidx) =
-    let
-      val {t, T, maxidx = maxt, ...} = Thm.rep_cterm ct;
-      val {t = u, T = U, maxidx = maxu, ...} = Thm.rep_cterm cu;
-      val maxi = Int.max (maxidx, Int.max (maxt, maxu));
-      val thy' = Theory.merge (thy, Theory.merge (Thm.theory_of_cterm ct, Thm.theory_of_cterm cu));
-      val (tye', maxi') = Sign.typ_unify thy' (T, U) (tye, maxi)
-        handle Type.TUNIFY => raise TYPE ("Ill-typed instantiation:\nType\n" ^
-          Syntax.string_of_typ_global thy' (Envir.norm_type tye T) ^
-          "\nof variable " ^
-          Syntax.string_of_term_global thy' (Term.map_types (Envir.norm_type tye) t) ^
-          "\ncannot be unified with type\n" ^
-          Syntax.string_of_typ_global thy' (Envir.norm_type tye U) ^ "\nof term " ^
-          Syntax.string_of_term_global thy' (Term.map_types (Envir.norm_type tye) u),
-          [T, U], [t, u])
-    in (thy', tye', maxi') end;
-in
-
-fun cterm_instantiate [] th = th
-  | cterm_instantiate ctpairs th =
+(*instantiation with type-inference for variables*)
+fun infer_instantiate_types _ [] th = th
+  | infer_instantiate_types ctxt args raw_th =
       let
-        val (thy, tye, _) = fold_rev add_types ctpairs (Thm.theory_of_thm th, Vartab.empty, 0);
-        val certT = ctyp_of thy;
+        val thy = Proof_Context.theory_of ctxt;
+        val th = Thm.transfer thy raw_th;
+
+        fun infer ((xi, T), cu) (tyenv, maxidx) =
+          let
+            val _ = Thm.ctyp_of ctxt T;
+            val _ = Thm.transfer_cterm thy cu;
+            val U = Thm.typ_of_cterm cu;
+            val maxidx' = maxidx
+              |> Integer.max (#2 xi)
+              |> Term.maxidx_typ T
+              |> Integer.max (Thm.maxidx_of_cterm cu);
+            val (tyenv', maxidx'') = Sign.typ_unify thy (T, U) (tyenv, maxidx')
+              handle Type.TUNIFY =>
+                let
+                  val t = Var (xi, T);
+                  val u = Thm.term_of cu;
+                in
+                  raise THM ("infer_instantiate_types: type " ^
+                    Syntax.string_of_typ ctxt (Envir.norm_type tyenv T) ^ " of variable " ^
+                    Syntax.string_of_term ctxt (Term.map_types (Envir.norm_type tyenv) t) ^
+                    "\ncannot be unified with type " ^
+                    Syntax.string_of_typ ctxt (Envir.norm_type tyenv U) ^ " of term " ^
+                    Syntax.string_of_term ctxt (Term.map_types (Envir.norm_type tyenv) u),
+                    0, [th])
+                end;
+          in (tyenv', maxidx'') end;
+
+        val (tyenv, _) = fold infer args (Vartab.empty, 0);
         val instT =
           Vartab.fold (fn (xi, (S, T)) =>
-            cons (certT (TVar (xi, S)), certT (Envir.norm_type tye T))) tye [];
-        val inst = map (pairself (Thm.instantiate_cterm (instT, []))) ctpairs;
+            cons ((xi, S), Thm.ctyp_of ctxt (Envir.norm_type tyenv T))) tyenv [];
+        val inst = args |> map (fn ((xi, T), cu) =>
+          ((xi, Envir.norm_type tyenv T),
+            Thm.instantiate_cterm (instT, []) (Thm.transfer_cterm thy cu)));
       in instantiate_normalize (instT, inst) th end
-      handle TERM (msg, _) => raise THM (msg, 0, [th])
-        | TYPE (msg, _, _) => raise THM (msg, 0, [th]);
-end;
+      handle CTERM (msg, _) => raise THM (msg, 0, [raw_th])
+        | TERM (msg, _) => raise THM (msg, 0, [raw_th])
+        | TYPE (msg, _, _) => raise THM (msg, 0, [raw_th]);
 
+fun infer_instantiate _ [] th = th
+  | infer_instantiate ctxt args th =
+      let
+        val vars = Term.add_vars (Thm.full_prop_of th) [];
+        val dups = duplicates (eq_fst op =) vars;
+        val _ = null dups orelse
+          raise THM ("infer_instantiate: inconsistent types for variables " ^
+            commas_quote (map (Syntax.string_of_term (Config.put show_types true ctxt) o Var) dups),
+            0, [th]);
+        val args' = args |> map_filter (fn (xi, cu) =>
+          AList.lookup (op =) vars xi |> Option.map (fn T => ((xi, T), cu)));
+      in infer_instantiate_types ctxt args' th end;
 
-(* instantiate by left-to-right occurrence of variables *)
-
-fun instantiate' cTs cts thm =
+fun infer_instantiate' ctxt args th =
   let
-    fun err msg =
-      raise TYPE ("instantiate': " ^ msg,
-        map_filter (Option.map Thm.typ_of) cTs,
-        map_filter (Option.map Thm.term_of) cts);
-
-    fun inst_of (v, ct) =
-      (Thm.cterm_of (Thm.theory_of_cterm ct) (Var v), ct)
-        handle TYPE (msg, _, _) => err msg;
-
-    fun tyinst_of (v, cT) =
-      (Thm.ctyp_of (Thm.theory_of_ctyp cT) (TVar v), cT)
-        handle TYPE (msg, _, _) => err msg;
-
-    fun zip_vars xs ys =
-      zip_options xs ys handle ListPair.UnequalLengths =>
-        err "more instantiations than variables in thm";
-
-    (*instantiate types first!*)
-    val thm' =
-      if forall is_none cTs then thm
-      else Thm.instantiate
-        (map tyinst_of (zip_vars (rev (Thm.fold_terms Term.add_tvars thm [])) cTs), []) thm;
-    val thm'' =
-      if forall is_none cts then thm'
-      else Thm.instantiate
-        ([], map inst_of (zip_vars (rev (Thm.fold_terms Term.add_vars thm' [])) cts)) thm';
-    in thm'' end;
+    val vars = rev (Term.add_vars (Thm.full_prop_of th) []);
+    val args' = zip_options vars args
+      handle ListPair.UnequalLengths =>
+        raise THM ("infer_instantiate': more instantiations than variables in thm", 0, [th]);
+  in infer_instantiate_types ctxt args' th end;
 
 
 
@@ -844,19 +815,16 @@ fun instantiate' cTs cts thm =
 fun rename_bvars [] thm = thm
   | rename_bvars vs thm =
       let
-        val cert = Thm.cterm_of (Thm.theory_of_thm thm);
-        fun ren (Abs (x, T, t)) = Abs (AList.lookup (op =) vs x |> the_default x, T, ren t)
-          | ren (t $ u) = ren t $ ren u
-          | ren t = t;
-      in Thm.equal_elim (Thm.reflexive (cert (ren (Thm.prop_of thm)))) thm end;
+        fun rename (Abs (x, T, t)) = Abs (AList.lookup (op =) vs x |> the_default x, T, rename t)
+          | rename (t $ u) = rename t $ rename u
+          | rename a = a;
+      in Thm.renamed_prop (rename (Thm.prop_of thm)) thm end;
 
 
 (* renaming in left-to-right order *)
 
 fun rename_bvars' xs thm =
   let
-    val cert = Thm.cterm_of (Thm.theory_of_thm thm);
-    val prop = Thm.prop_of thm;
     fun rename [] t = ([], t)
       | rename (x' :: xs) (Abs (x, T, t)) =
           let val (xs', t') = rename xs t
@@ -864,12 +832,13 @@ fun rename_bvars' xs thm =
       | rename xs (t $ u) =
           let
             val (xs', t') = rename xs t;
-            val (xs'', u') = rename xs' u
+            val (xs'', u') = rename xs' u;
           in (xs'', t' $ u') end
-      | rename xs t = (xs, t);
-  in case rename xs prop of
-      ([], prop') => Thm.equal_elim (Thm.reflexive (cert prop')) thm
-    | _ => error "More names than abstractions in theorem"
+      | rename xs a = (xs, a);
+  in
+    (case rename xs (Thm.prop_of thm) of
+      ([], prop') => Thm.renamed_prop prop' thm
+    | _ => error "More names than abstractions in theorem")
   end;
 
 end;

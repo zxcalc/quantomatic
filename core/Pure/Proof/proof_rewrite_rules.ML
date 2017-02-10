@@ -10,12 +10,12 @@ sig
   val rprocs : bool ->
     (typ list -> term option list -> Proofterm.proof -> (Proofterm.proof * Proofterm.proof) option) list
   val rewrite_terms : (term -> term) -> Proofterm.proof -> Proofterm.proof
-  val elim_defs : theory -> bool -> thm list -> Proofterm.proof -> Proofterm.proof
+  val elim_defs : Proof.context -> bool -> thm list -> Proofterm.proof -> Proofterm.proof
   val elim_vars : (typ -> term) -> Proofterm.proof -> Proofterm.proof
   val hhf_proof : term -> term -> Proofterm.proof -> Proofterm.proof
   val un_hhf_proof : term -> term -> Proofterm.proof -> Proofterm.proof
-  val mk_of_sort_proof : theory -> term option list -> typ * sort -> Proofterm.proof list
-  val expand_of_class : theory -> typ list -> term option list -> Proofterm.proof ->
+  val mk_of_sort_proof : Proof.context -> term option list -> typ * sort -> Proofterm.proof list
+  val expand_of_class : Proof.context -> typ list -> term option list -> Proofterm.proof ->
     (Proofterm.proof * Proofterm.proof) option
 end;
 
@@ -250,10 +250,10 @@ fun insert_refl defs Ts (prf1 %% prf2) =
       | (_, []) => (prf, false)
       | (prf', ts) => (Proofterm.proof_combt' (fst (insert_refl defs Ts prf'), ts), false));
 
-fun elim_defs thy r defs prf =
+fun elim_defs ctxt r defs prf =
   let
     val defs' = map (Logic.dest_equals o
-      map_types Type.strip_sorts o prop_of o Drule.abs_def) defs;
+      map_types Type.strip_sorts o Thm.prop_of o Drule.abs_def) defs;
     val defnames = map Thm.derivation_name defs;
     val f = if not r then I else
       let
@@ -265,9 +265,9 @@ fun elim_defs thy r defs prf =
               then I
               else cons (name, SOME prop)
             | _ => I) [prf] [];
-      in Reconstruct.expand_proof thy thms end;
+      in Reconstruct.expand_proof ctxt thms end;
   in
-    rewrite_terms (Pattern.rewrite_term thy defs' [])
+    rewrite_terms (Pattern.rewrite_term (Proof_Context.theory_of ctxt) defs' [])
       (fst (insert_refl defnames [] (f prf)))
   end;
 
@@ -340,7 +340,7 @@ and un_hhf_proof P Q prf =
 
 (**** expand OfClass proofs ****)
 
-fun mk_of_sort_proof thy hs (T, S) =
+fun mk_of_sort_proof ctxt hs (T, S) =
   let
     val hs' = map
       (fn SOME t => (SOME (Logic.dest_of_class t) handle TERM _ => NONE)
@@ -354,18 +354,19 @@ fun mk_of_sort_proof thy hs (T, S) =
         ~1 => error "expand_of_class: missing class hypothesis"
       | i => PBound i;
     fun reconstruct prf prop = prf |>
-      Reconstruct.reconstruct_proof thy prop |>
-      Reconstruct.expand_proof thy [("", NONE)] |>
+      Reconstruct.reconstruct_proof ctxt prop |>
+      Reconstruct.expand_proof ctxt [("", NONE)] |>
       Same.commit (Proofterm.map_proof_same Same.same Same.same hyp)
   in
     map2 reconstruct
-      (Proofterm.of_sort_proof thy (OfClass o apfst Type.strip_sorts) (subst T, S))
+      (Proofterm.of_sort_proof (Proof_Context.theory_of ctxt)
+        (OfClass o apfst Type.strip_sorts) (subst T, S))
       (Logic.mk_of_sort (T, S))
   end;
 
-fun expand_of_class thy Ts hs (OfClass (T, c)) =
-      mk_of_sort_proof thy hs (T, [c]) |>
+fun expand_of_class ctxt Ts hs (OfClass (T, c)) =
+      mk_of_sort_proof ctxt hs (T, [c]) |>
       hd |> rpair Proofterm.no_skel |> SOME
-  | expand_of_class thy Ts hs _ = NONE;
+  | expand_of_class ctxt Ts hs _ = NONE;
 
 end;

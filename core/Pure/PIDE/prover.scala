@@ -1,28 +1,33 @@
 /*  Title:      Pure/PIDE/prover.scala
     Author:     Makarius
+    Options:    :folding=explicit:
 
-General prover operations.
+Prover process wrapping.
 */
 
 package isabelle
 
 
+import java.io.{InputStream, OutputStream, BufferedReader, BufferedOutputStream, IOException}
+
+
 object Prover
 {
-  /* syntax */
+  /* underlying system process */
 
-  trait Syntax
+  trait System_Process
   {
-    def add_keywords(keywords: Thy_Header.Keywords): Syntax
-    def scan(input: CharSequence): List[Token]
-    def load(span: List[Token]): Option[List[String]]
-    def load_commands_in(text: String): Boolean
+    def stdout: BufferedReader
+    def stderr: BufferedReader
+    def terminate: Unit
+    def join: Int
   }
 
 
   /* messages */
 
   sealed abstract class Message
+  type Receiver = Message => Unit
 
   class Input(val name: String, val args: List[String]) extends Message
   {
@@ -68,44 +73,292 @@ object Prover
 }
 
 
-trait Prover
+abstract class Prover(
+  receiver: Prover.Receiver,
+  system_channel: System_Channel,
+  system_process: Prover.System_Process) extends Protocol
 {
-  /* text and tree data */
+  /** receiver output **/
 
-  def encode(s: String): String
-  def decode(s: String): String
+  val xml_cache: XML.Cache = new XML.Cache()
 
-  object Encode
+  private def system_output(text: String)
   {
-    val string: XML.Encode.T[String] = (s => XML.Encode.string(encode(s)))
+    receiver(new Prover.Output(XML.Elem(Markup(Markup.SYSTEM, Nil), List(XML.Text(text)))))
   }
 
-  def xml_cache: XML.Cache
+  private def protocol_output(props: Properties.T, bytes: Bytes)
+  {
+    receiver(new Prover.Protocol_Output(props, bytes))
+  }
+
+  private def output(kind: String, props: Properties.T, body: XML.Body)
+  {
+    if (kind == Markup.INIT) system_channel.accepted()
+
+    val main = XML.Elem(Markup(kind, props), Protocol_Message.clean_reports(body))
+    val reports = Protocol_Message.reports(props, body)
+    for (msg <- main :: reports) receiver(new Prover.Output(xml_cache.elem(msg)))
+  }
+
+  private def exit_message(rc: Int)
+  {
+    output(Markup.EXIT, Markup.Return_Code(rc), List(XML.Text("Return code: " + rc.toString)))
+  }
 
 
-  /* process management */
 
-  def join(): Unit
-  def terminate(): Unit
+  /** process manager **/
 
-  def protocol_command_bytes(name: String, args: Bytes*): Unit
-  def protocol_command(name: String, args: String*): Unit
+  private val process_result: Future[Int] =
+    Future.thread("process_result") { system_process.join }
+
+  private def terminate_process()
+  {
+    try { system_process.terminate }
+    catch {
+      case exn @ ERROR(_) => system_output("Failed to terminate prover process: " + exn.getMessage)
+    }
+  }
+
+  private val process_manager = Standard_Thread.fork("process_manager")
+  {
+    val (startup_failed, startup_errors) =
+    {
+      var finished: Option[Boolean] = None
+      val result = new StringBuilder(100)
+      while (finished.isEmpty && (system_process.stderr.ready || !process_result.is_finished)) {
+        while (finished.isEmpty && system_process.stderr.ready) {
+          try {
+            val c = system_process.stderr.read
+            if (c == 2) finished = Some(true)
+            else result += c.toChar
+          }
+          catch { case _: IOException => finished = Some(false) }
+        }
+        Thread.sleep(10)
+      }
+      (finished.isEmpty || !finished.get, result.toString.trim)
+    }
+    if (startup_errors != "") system_output(startup_errors)
+
+    if (startup_failed) {
+      terminate_process()
+      process_result.join
+      exit_message(127)
+    }
+    else {
+      val (command_stream, message_stream) = system_channel.rendezvous()
+
+      command_input_init(command_stream)
+      val stdout = physical_output(false)
+      val stderr = physical_output(true)
+      val message = message_output(message_stream)
+
+      val rc = process_result.join
+      system_output("process terminated")
+      command_input_close()
+      for (thread <- List(stdout, stderr, message)) thread.join
+      system_output("process_manager terminated")
+      exit_message(rc)
+    }
+    system_channel.accepted()
+  }
 
 
-  /* PIDE protocol commands */
+  /* management methods */
 
-  def options(opts: Options): Unit
+  def join() { process_manager.join() }
 
-  def define_blob(digest: SHA1.Digest, bytes: Bytes): Unit
-  def define_command(command: Command): Unit
+  def terminate()
+  {
+    system_output("Terminating prover process")
+    command_input_close()
 
-  def discontinue_execution(): Unit
-  def cancel_exec(id: Document_ID.Exec): Unit
+    var count = 10
+    while (!process_result.is_finished && count > 0) {
+      Thread.sleep(100)
+      count -= 1
+    }
+    if (!process_result.is_finished) terminate_process()
+  }
 
-  def update(old_id: Document_ID.Version, new_id: Document_ID.Version,
-    edits: List[Document.Edit_Command]): Unit
-  def remove_versions(versions: List[Document.Version]): Unit
 
-  def dialog_result(serial: Long, result: String): Unit
+
+  /** process streams **/
+
+  /* command input */
+
+  private var command_input: Option[Consumer_Thread[List[Bytes]]] = None
+
+  private def command_input_close(): Unit = command_input.foreach(_.shutdown)
+
+  private def command_input_init(raw_stream: OutputStream)
+  {
+    val name = "command_input"
+    val stream = new BufferedOutputStream(raw_stream)
+    command_input =
+      Some(
+        Consumer_Thread.fork(name)(
+          consume =
+            {
+              case chunks =>
+                try {
+                  Bytes(chunks.map(_.length).mkString("", ",", "\n")).write_stream(stream)
+                  chunks.foreach(_.write_stream(stream))
+                  stream.flush
+                  true
+                }
+                catch { case e: IOException => system_output(name + ": " + e.getMessage); false }
+            },
+          finish = { case () => stream.close; system_output(name + " terminated") }
+        )
+      )
+  }
+
+
+  /* physical output */
+
+  private def physical_output(err: Boolean): Thread =
+  {
+    val (name, reader, markup) =
+      if (err) ("standard_error", system_process.stderr, Markup.STDERR)
+      else ("standard_output", system_process.stdout, Markup.STDOUT)
+
+    Standard_Thread.fork(name) {
+      try {
+        var result = new StringBuilder(100)
+        var finished = false
+        while (!finished) {
+          //{{{
+          var c = -1
+          var done = false
+          while (!done && (result.length == 0 || reader.ready)) {
+            c = reader.read
+            if (c >= 0) result.append(c.asInstanceOf[Char])
+            else done = true
+          }
+          if (result.length > 0) {
+            output(markup, Nil, List(XML.Text(decode(result.toString))))
+            result.length = 0
+          }
+          else {
+            reader.close
+            finished = true
+          }
+          //}}}
+        }
+      }
+      catch { case e: IOException => system_output(name + ": " + e.getMessage) }
+      system_output(name + " terminated")
+    }
+  }
+
+
+  /* message output */
+
+  private def message_output(stream: InputStream): Thread =
+  {
+    class EOF extends Exception
+    class Protocol_Error(msg: String) extends Exception(msg)
+
+    val name = "message_output"
+    Standard_Thread.fork(name) {
+      val default_buffer = new Array[Byte](65536)
+      var c = -1
+
+      def read_int(): Int =
+      //{{{
+      {
+        var n = 0
+        c = stream.read
+        if (c == -1) throw new EOF
+        while (48 <= c && c <= 57) {
+          n = 10 * n + (c - 48)
+          c = stream.read
+        }
+        if (c != 10)
+          throw new Protocol_Error("malformed header: expected integer followed by newline")
+        else n
+      }
+      //}}}
+
+      def read_chunk_bytes(): (Array[Byte], Int) =
+      //{{{
+      {
+        val n = read_int()
+        val buf =
+          if (n <= default_buffer.length) default_buffer
+          else new Array[Byte](n)
+
+        var i = 0
+        var m = 0
+        do {
+          m = stream.read(buf, i, n - i)
+          if (m != -1) i += m
+        }
+        while (m != -1 && n > i)
+
+        if (i != n)
+          throw new Protocol_Error("bad chunk (unexpected EOF after " + i + " of " + n + " bytes)")
+
+        (buf, n)
+      }
+      //}}}
+
+      def read_chunk(): XML.Body =
+      {
+        val (buf, n) = read_chunk_bytes()
+        YXML.parse_body_failsafe(UTF8.decode_chars(decode, buf, 0, n))
+      }
+
+      try {
+        do {
+          try {
+            val header = read_chunk()
+            header match {
+              case List(XML.Elem(Markup(name, props), Nil)) =>
+                val kind = name.intern
+                if (kind == Markup.PROTOCOL) {
+                  val (buf, n) = read_chunk_bytes()
+                  protocol_output(props, Bytes(buf, 0, n))
+                }
+                else {
+                  val body = read_chunk()
+                  output(kind, props, body)
+                }
+              case _ =>
+                read_chunk()
+                throw new Protocol_Error("bad header: " + header.toString)
+            }
+          }
+          catch { case _: EOF => }
+        }
+        while (c != -1)
+      }
+      catch {
+        case e: IOException => system_output("Cannot read message:\n" + e.getMessage)
+        case e: Protocol_Error => system_output("Malformed message:\n" + e.getMessage)
+      }
+      stream.close
+
+      system_output(name + " terminated")
+    }
+  }
+
+
+
+  /** protocol commands **/
+
+  def protocol_command_bytes(name: String, args: Bytes*): Unit =
+    command_input match {
+      case Some(thread) => thread.send(Bytes(name) :: args.toList)
+      case None => error("Uninitialized command input thread")
+    }
+
+  def protocol_command(name: String, args: String*)
+  {
+    receiver(new Prover.Input(name, args.toList))
+    protocol_command_bytes(name, args.map(Bytes(_)): _*)
+  }
 }
-

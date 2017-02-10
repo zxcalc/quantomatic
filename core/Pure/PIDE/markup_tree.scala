@@ -1,5 +1,4 @@
 /*  Title:      Pure/PIDE/markup_tree.scala
-    Module:     PIDE
     Author:     Fabian Immler, TU Munich
     Author:     Makarius
 
@@ -57,7 +56,7 @@ object Markup_Tree
     def filter_markup(elements: Markup.Elements): List[XML.Elem] =
     {
       var result: List[XML.Elem] = Nil
-      for { elem <- rev_markup; if (elements(elem.name)) }
+      for (elem <- rev_markup if elements(elem.name))
         result ::= elem
       result.toList
     }
@@ -153,8 +152,8 @@ final class Markup_Tree private(val branches: Markup_Tree.Branches.T)
           if (body.forall(e => new_range.contains(e._1)))
             new Markup_Tree(branches -- body.keys, Entry(new_markup, new Markup_Tree(body)))
           else {
-            Output.warning("Ignored overlapping markup information: " + new_markup +
-              body.filter(e => !new_range.contains(e._1)).mkString("\n"))
+            Output.warning("Ignored overlapping markup information: " + new_markup + "\n" +
+              body.filter(e => !new_range.contains(e._1)).map(_._2).mkString("\n"))
             this
           }
         }
@@ -261,10 +260,9 @@ final class Markup_Tree private(val branches: Markup_Tree.Branches.T)
    make_body(root_range, Nil, overlapping(root_range))
   }
 
-  override def toString =
+  override def toString: String =
     branches.toList.map(_._2) match {
       case Nil => "Empty"
       case list => list.mkString("Tree(", ",", ")")
     }
 }
-

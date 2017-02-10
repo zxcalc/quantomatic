@@ -8,23 +8,27 @@ signature COMMAND =
 sig
   type blob = (string * (SHA1.digest * string list) option) Exn.result
   val read_file: Path.T -> Position.T -> Path.T -> Token.file
-  val read: (unit -> theory) -> Path.T -> blob list -> Token.T list -> Toplevel.transition
+  val read_thy: Toplevel.state -> theory
+  val read: Keyword.keywords -> theory -> Path.T-> (unit -> theory) ->
+    blob list * int -> Token.T list -> Toplevel.transition
   type eval
   val eval_eq: eval * eval -> bool
   val eval_running: eval -> bool
   val eval_finished: eval -> bool
   val eval_result_state: eval -> Toplevel.state
-  val eval: (unit -> theory) -> Path.T -> blob list -> Token.T list -> eval -> eval
+  val eval: Keyword.keywords -> Path.T -> (unit -> theory) ->
+    blob list * int -> Token.T list -> eval -> eval
   type print
-  val print: bool -> (string * string list) list -> string ->
+  val print: bool -> (string * string list) list -> Keyword.keywords -> string ->
     eval -> print list -> print list option
   type print_fn = Toplevel.transition -> Toplevel.state -> unit
   type print_function =
-    {command_name: string, args: string list, exec_id: Document_ID.exec} ->
+    {keywords: Keyword.keywords, command_name: string, args: string list, exec_id: Document_ID.exec} ->
       {delay: Time.time option, pri: int, persistent: bool, strict: bool, print_fn: print_fn} option
   val print_function: string -> print_function -> unit
   val no_print_function: string -> unit
   type exec = eval * print list
+  val init_exec: theory option -> exec
   val no_exec: exec
   val exec_ids: exec option -> Document_ID.exec list
   val exec: Document_ID.execution -> exec -> unit
@@ -33,56 +37,13 @@ end;
 structure Command: COMMAND =
 struct
 
-(** memo results **)
-
-datatype 'a expr =
-  Expr of Document_ID.exec * (unit -> 'a) |
-  Result of 'a Exn.result;
-
-abstype 'a memo = Memo of 'a expr Synchronized.var
-with
-
-fun memo exec_id e = Memo (Synchronized.var "Command.memo" (Expr (exec_id, e)));
-fun memo_value a = Memo (Synchronized.var "Command.memo" (Result (Exn.Res a)));
-
-fun memo_result (Memo v) =
-  (case Synchronized.value v of
-    Expr (exec_id, _) => error ("Unfinished execution result: " ^ Document_ID.print exec_id)
-  | Result res => Exn.release res);
-
-fun memo_finished (Memo v) =
-  (case Synchronized.value v of Expr _ => false | Result _ => true);
-
-fun memo_exec execution_id (Memo v) =
-  Synchronized.timed_access v (K (SOME Time.zeroTime))
-    (fn expr =>
-      (case expr of
-        Expr (exec_id, body) =>
-          uninterruptible (fn restore_attributes => fn () =>
-            let val group = Future.worker_subgroup () in
-              if Execution.running execution_id exec_id [group] then
-                let
-                  val res =
-                    (body
-                      |> restore_attributes
-                      |> Future.task_context "Command.memo_exec" group
-                      |> Exn.interruptible_capture) ();
-                in SOME ((), Result res) end
-              else SOME ((), expr)
-            end) ()
-      | Result _ => SOME ((), expr)))
-  |> (fn NONE => error "Conflicting command execution" | _ => ());
-
-fun memo_fork params execution_id (Memo v) =
-  (case Synchronized.value v of
-    Result _ => ()
-  | _ => ignore ((singleton o Future.forks) params (fn () => memo_exec execution_id (Memo v))));
-
-end;
-
-
-
 (** main phases of execution **)
+
+fun task_context group f =
+  f
+  |> Future.interruptible_task
+  |> Future.task_context "Command.run_process" group;
+
 
 (* read *)
 
@@ -97,15 +58,14 @@ fun read_file_node file_node master_dir pos src_path =
         NONE => ()
       | SOME (Url.File _) => ()
       | _ =>
-         (Position.report pos (Markup.path file_node);
           error ("Prover cannot load remote file " ^
-            Markup.markup (Markup.path file_node) (quote file_node) ^ Position.here pos)));
+            Markup.markup (Markup.path file_node) (quote file_node)));
     val full_path = File.check_file (File.full_path master_dir src_path);
-    val _ = Position.report pos (Markup.path (Path.implode full_path));
     val text = File.read full_path;
     val lines = split_lines text;
     val digest = SHA1.digest text;
-  in {src_path = src_path, lines = lines, digest = digest, pos = Path.position full_path} end;
+  in {src_path = src_path, lines = lines, digest = digest, pos = Path.position full_path} end
+  handle ERROR msg => error (msg ^ Position.here pos);
 
 val read_file = read_file_node "";
 
@@ -120,35 +80,55 @@ fun blob_file src_path lines digest file_node =
       | SOME exec_id => Position.put_id exec_id);
   in {src_path = src_path, lines = lines, digest = digest, pos = file_pos} end
 
-fun resolve_files master_dir blobs toks =
-  (case Thy_Syntax.parse_spans toks of
-    [span] => span
-      |> Thy_Syntax.resolve_files (fn cmd => fn (path, pos) =>
-        let
-          fun make_file src_path (Exn.Res (file_node, NONE)) =
-                Exn.interruptible_capture (fn () =>
-                  read_file_node file_node master_dir pos src_path) ()
-            | make_file src_path (Exn.Res (file_node, SOME (digest, lines))) =
-               (Position.reports [(pos, Markup.language_path), (pos, Markup.path file_node)];
-                Exn.Res (blob_file src_path lines digest file_node))
-            | make_file _ (Exn.Exn e) = Exn.Exn e;
-          val src_paths = Keyword.command_files cmd path;
-        in
-          if null blobs then
-            map2 make_file src_paths (map (K (Exn.Res ("", NONE))) src_paths)
-          else if length src_paths = length blobs then
-            map2 make_file src_paths blobs
-          else error ("Misalignment of inlined files" ^ Position.here pos)
-        end)
-      |> Thy_Syntax.span_content
+fun resolve_files keywords master_dir (blobs, blobs_index) toks =
+  (case Outer_Syntax.parse_spans toks of
+    [Command_Span.Span (Command_Span.Command_Span (cmd, _), _)] =>
+      (case try (nth toks) blobs_index of
+        SOME tok =>
+          let
+            val pos = Token.pos_of tok;
+            val path = Path.explode (Token.content_of tok)
+              handle ERROR msg => error (msg ^ Position.here pos);
+            fun make_file src_path (Exn.Res (file_node, NONE)) =
+                  Exn.interruptible_capture (fn () =>
+                    read_file_node file_node master_dir pos src_path) ()
+              | make_file src_path (Exn.Res (file_node, SOME (digest, lines))) =
+                  (Position.report pos Markup.language_path;
+                    Exn.Res (blob_file src_path lines digest file_node))
+              | make_file _ (Exn.Exn e) = Exn.Exn e;
+            val src_paths = Keyword.command_files keywords cmd path;
+            val files =
+              if null blobs then
+                map2 make_file src_paths (map (K (Exn.Res ("", NONE))) src_paths)
+              else if length src_paths = length blobs then
+                map2 make_file src_paths blobs
+              else error ("Misalignment of inlined files" ^ Position.here pos);
+          in
+            toks |> map_index (fn (i, tok) =>
+              if i = blobs_index then Token.put_files files tok else tok)
+          end
+      | NONE => toks)
   | _ => toks);
+
+fun reports_of_token keywords tok =
+  let
+    val malformed_symbols =
+      Input.source_explode (Token.input_of tok)
+      |> map_filter (fn (sym, pos) =>
+          if Symbol.is_malformed sym
+          then SOME ((pos, Markup.bad), "Malformed symbolic character") else NONE);
+    val is_malformed = Token.is_error tok orelse not (null malformed_symbols);
+    val reports = Token.reports keywords tok @ Token.completion_report tok @ malformed_symbols;
+  in (is_malformed, reports) end;
 
 in
 
-fun read init master_dir blobs span =
+fun read_thy st = Toplevel.theory_of st
+  handle Toplevel.UNDEF => Pure_Syn.bootstrap_thy;
+
+fun read keywords thy master_dir init blobs_info span =
   let
-    val outer_syntax = #2 (Outer_Syntax.get_syntax ());
-    val command_reports = Outer_Syntax.command_reports outer_syntax;
+    val command_reports = Outer_Syntax.command_reports thy;
 
     val proper_range = Token.range_of (#1 (take_suffix Token.is_improper span));
     val pos =
@@ -156,16 +136,13 @@ fun read init master_dir blobs span =
         SOME tok => Token.pos_of tok
       | NONE => #1 proper_range);
 
-    val (is_malformed, token_reports) = Thy_Syntax.reports_of_tokens span;
-    val _ = Position.reports_text (token_reports @ maps command_reports span);
+    val token_reports = map (reports_of_token keywords) span;
+    val _ = Position.reports_text (maps #2 token_reports @ maps command_reports span);
   in
-    if is_malformed then Toplevel.malformed pos "Malformed command syntax"
+    if exists #1 token_reports then Toplevel.malformed pos "Malformed command syntax"
     else
-      (case Outer_Syntax.read_spans outer_syntax (resolve_files master_dir blobs span) of
-        [tr] =>
-          if Keyword.is_control (Toplevel.name_of tr) then
-            Toplevel.malformed pos "Illegal control command"
-          else Toplevel.modify_init init tr
+      (case Outer_Syntax.parse_tokens thy (resolve_files keywords master_dir blobs_info span) of
+        [tr] => Toplevel.modify_init init tr
       | [] => Toplevel.ignored (#1 (Token.range_of span))
       | _ => Toplevel.malformed (#1 proper_range) "Exactly one command expected")
       handle ERROR msg => Toplevel.malformed (#1 proper_range) msg
@@ -176,39 +153,43 @@ end;
 
 (* eval *)
 
-type eval_state =
-  {failed: bool, malformed: bool, command: Toplevel.transition, state: Toplevel.state};
-val init_eval_state =
-  {failed = false, malformed = false, command = Toplevel.empty, state = Toplevel.toplevel};
+type eval_state = {failed: bool, command: Toplevel.transition, state: Toplevel.state};
 
-datatype eval = Eval of {exec_id: Document_ID.exec, eval_process: eval_state memo};
+fun init_eval_state opt_thy =
+ {failed = false,
+  command = Toplevel.empty,
+  state = (case opt_thy of NONE => Toplevel.toplevel | SOME thy => Toplevel.theory_toplevel thy)};
+
+datatype eval = Eval of {exec_id: Document_ID.exec, eval_process: eval_state lazy};
 
 fun eval_exec_id (Eval {exec_id, ...}) = exec_id;
-val eval_eq = op = o pairself eval_exec_id;
+val eval_eq = op = o apply2 eval_exec_id;
 
 val eval_running = Execution.is_running_exec o eval_exec_id;
-fun eval_finished (Eval {eval_process, ...}) = memo_finished eval_process;
+fun eval_finished (Eval {eval_process, ...}) = Lazy.is_finished eval_process;
 
-fun eval_result (Eval {eval_process, ...}) = memo_result eval_process;
+fun eval_result (Eval {eval_process, ...}) =
+  task_context (Future.worker_subgroup ()) Lazy.force eval_process;
+
 val eval_result_state = #state o eval_result;
 
 local
 
-fun reset_state tr st0 = Toplevel.setmp_thread_position tr (fn () =>
+fun reset_state keywords tr st0 = Toplevel.setmp_thread_position tr (fn () =>
   let
     val name = Toplevel.name_of tr;
     val res =
-      if Keyword.is_theory_body name then Toplevel.reset_theory st0
-      else if Keyword.is_proof name then Toplevel.reset_proof st0
+      if Keyword.is_theory_body keywords name then Toplevel.reset_theory st0
+      else if Keyword.is_proof keywords name then Toplevel.reset_proof st0
       else NONE;
   in
     (case res of
       NONE => st0
-    | SOME st => (Output.error_message (Toplevel.type_error tr st0 ^ " -- using reset state"); st))
+    | SOME st => (Output.error_message (Toplevel.type_error tr ^ " -- using reset state"); st))
   end) ();
 
-fun run int tr st =
-  if Goal.future_enabled 1 andalso Keyword.is_diag (Toplevel.name_of tr) then
+fun run keywords int tr st =
+  if Goal.future_enabled 1 andalso Keyword.is_diag keywords (Toplevel.name_of tr) then
     (Execution.fork {name = "Toplevel.diag", pos = Toplevel.pos_of tr, pri = ~1}
       (fn () => Toplevel.command_exception int tr st); ([], SOME st))
   else Toplevel.command_errors int tr st;
@@ -217,9 +198,9 @@ fun check_cmts span tr st' =
   Toplevel.setmp_thread_position tr
     (fn () =>
       Outer_Syntax.side_comments span |> maps (fn cmt =>
-        (Thy_Output.check_text (Token.source_position_of cmt) st'; [])
+        (Thy_Output.output_text st' {markdown = false} (Token.input_of cmt); [])
           handle exn =>
-            if Exn.is_interrupt exn then reraise exn
+            if Exn.is_interrupt exn then Exn.reraise exn
             else Runtime.exn_messages_ids exn)) ();
 
 fun report tr m =
@@ -228,53 +209,62 @@ fun report tr m =
 fun status tr m =
   Toplevel.setmp_thread_position tr (fn () => Output.status (Markup.markup_only m)) ();
 
-fun proof_status tr st =
+fun command_indent tr st =
   (case try Toplevel.proof_of st of
-    SOME prf => status tr (Proof.status_markup prf)
+    SOME prf =>
+      let val keywords = Thy_Header.get_keywords (Proof.theory_of prf) in
+        if Keyword.command_kind keywords (Toplevel.name_of tr) = SOME Keyword.prf_script then
+          (case try Proof.goal prf of
+            SOME {goal, ...} =>
+              let val n = Thm.nprems_of goal
+              in if n > 1 then report tr (Markup.command_indent (n - 1)) else () end
+          | NONE => ())
+        else ()
+      end
   | NONE => ());
 
-fun eval_state span tr ({malformed, state, ...}: eval_state) =
-  if malformed then
-    {failed = true, malformed = malformed, command = tr, state = Toplevel.toplevel}
-  else
-    let
-      val _ = Multithreading.interrupted ();
 
-      val malformed' = Toplevel.is_malformed tr;
-      val st = reset_state tr state;
+fun eval_state keywords span tr ({state, ...}: eval_state) =
+  let
+    val _ = Thread_Attributes.expose_interrupt ();
 
-      val _ = status tr Markup.running;
-      val (errs1, result) = run true tr st;
-      val errs2 = (case result of NONE => [] | SOME st' => check_cmts span tr st');
-      val errs = errs1 @ errs2;
-      val _ = List.app (Future.error_message (Toplevel.pos_of tr)) errs;
-    in
-      (case result of
-        NONE =>
-          let
-            val _ = status tr Markup.failed;
-            val _ = status tr Markup.finished;
-            val _ = if null errs then (report tr Markup.bad; Exn.interrupt ()) else ();
-          in {failed = true, malformed = malformed', command = tr, state = st} end
-      | SOME st' =>
-          let
-            val _ = proof_status tr st';
-            val _ = status tr Markup.finished;
-          in {failed = false, malformed = malformed', command = tr, state = st'} end)
-    end;
+    val st = reset_state keywords tr state;
+
+    val _ = command_indent tr st;
+    val _ = status tr Markup.running;
+    val (errs1, result) = run keywords true tr st;
+    val errs2 = (case result of NONE => [] | SOME st' => check_cmts span tr st');
+    val errs = errs1 @ errs2;
+    val _ = List.app (Future.error_message (Toplevel.pos_of tr)) errs;
+  in
+    (case result of
+      NONE =>
+        let
+          val _ = status tr Markup.failed;
+          val _ = status tr Markup.finished;
+          val _ = if null errs then (report tr Markup.bad; Exn.interrupt ()) else ();
+        in {failed = true, command = tr, state = st} end
+    | SOME st' =>
+        let
+          val _ = status tr Markup.finished;
+        in {failed = false, command = tr, state = st'} end)
+  end;
 
 in
 
-fun eval init master_dir blobs span eval0 =
+fun eval keywords master_dir init blobs_info span eval0 =
   let
     val exec_id = Document_ID.make ();
     fun process () =
       let
+        val eval_state0 = eval_result eval0;
+        val thy = read_thy (#state eval_state0);
         val tr =
           Position.setmp_thread_data (Position.id_only (Document_ID.print exec_id))
-            (fn () => read init master_dir blobs span |> Toplevel.exec_id exec_id) ();
-      in eval_state span tr (eval_result eval0) end;
-  in Eval {exec_id = exec_id, eval_process = memo exec_id process} end;
+            (fn () =>
+              read keywords thy master_dir init blobs_info span |> Toplevel.exec_id exec_id) ();
+      in eval_state keywords span tr eval_state0 end;
+  in Eval {exec_id = exec_id, eval_process = Lazy.lazy process} end;
 
 end;
 
@@ -283,15 +273,15 @@ end;
 
 datatype print = Print of
  {name: string, args: string list, delay: Time.time option, pri: int, persistent: bool,
-  exec_id: Document_ID.exec, print_process: unit memo};
+  exec_id: Document_ID.exec, print_process: unit lazy};
 
 fun print_exec_id (Print {exec_id, ...}) = exec_id;
-val print_eq = op = o pairself print_exec_id;
+val print_eq = op = o apply2 print_exec_id;
 
 type print_fn = Toplevel.transition -> Toplevel.state -> unit;
 
 type print_function =
-  {command_name: string, args: string list, exec_id: Document_ID.exec} ->
+  {keywords: Keyword.keywords, command_name: string, args: string list, exec_id: Document_ID.exec} ->
     {delay: Time.time option, pri: int, persistent: bool, strict: bool, print_fn: print_fn} option;
 
 local
@@ -302,10 +292,10 @@ val print_functions =
 fun print_error tr opt_context e =
   (Toplevel.setmp_thread_position tr o Runtime.controlled_execution opt_context) e ()
     handle exn =>
-      if Exn.is_interrupt exn then reraise exn
+      if Exn.is_interrupt exn then Exn.reraise exn
       else List.app (Future.error_message (Toplevel.pos_of tr)) (Runtime.exn_messages_ids exn);
 
-fun print_finished (Print {print_process, ...}) = memo_finished print_process;
+fun print_finished (Print {print_process, ...}) = Lazy.is_finished print_process;
 
 fun print_persistent (Print {persistent, ...}) = persistent;
 
@@ -313,7 +303,7 @@ val overlay_ord = prod_ord string_ord (list_ord string_ord);
 
 in
 
-fun print command_visible command_overlays command_name eval old_prints =
+fun print command_visible command_overlays keywords command_name eval old_prints =
   let
     val print_functions = Synchronized.value print_functions;
 
@@ -332,16 +322,20 @@ fun print command_visible command_overlays command_name eval old_prints =
       in
         Print {
           name = name, args = args, delay = delay, pri = pri, persistent = persistent,
-          exec_id = exec_id, print_process = memo exec_id process}
+          exec_id = exec_id, print_process = Lazy.lazy process}
       end;
 
     fun bad_print name args exn =
       make_print name args {delay = NONE, pri = 0, persistent = false,
-        strict = false, print_fn = fn _ => fn _ => reraise exn};
+        strict = false, print_fn = fn _ => fn _ => Exn.reraise exn};
 
     fun new_print name args get_pr =
       let
-        val params = {command_name = command_name, args = args, exec_id = eval_exec_id eval};
+        val params =
+         {keywords = keywords,
+          command_name = command_name,
+          args = args,
+          exec_id = eval_exec_id eval};
       in
         (case Exn.capture (Runtime.controlled_execution NONE get_pr) params of
           Exn.Res NONE => NONE
@@ -382,49 +376,73 @@ val _ =
   print_function "Execution.print"
     (fn {args, exec_id, ...} =>
       if null args then
-        SOME {delay = NONE, pri = 1, persistent = false, strict = false,
+        SOME {delay = NONE, pri = Task_Queue.urgent_pri + 2, persistent = false, strict = false,
           print_fn = fn _ => fn _ => Execution.fork_prints exec_id}
       else NONE);
 
 val _ =
   print_function "print_state"
-    (fn {command_name, ...} =>
-      if Keyword.is_printed command_name then
-        SOME {delay = NONE, pri = 1, persistent = false, strict = true,
-          print_fn = fn _ => fn st => if Toplevel.is_proof st then Toplevel.print_state st else ()}
+    (fn {keywords, command_name, ...} =>
+      if Options.default_bool "editor_output_state" andalso Keyword.is_printed keywords command_name
+      then
+        SOME {delay = NONE, pri = Task_Queue.urgent_pri + 1, persistent = false, strict = false,
+          print_fn = fn _ => fn st =>
+            if Toplevel.is_proof st then Output.state (Toplevel.string_of_state st)
+            else ()}
       else NONE);
 
 
 (* combined execution *)
 
 type exec = eval * print list;
-val no_exec: exec =
-  (Eval {exec_id = Document_ID.none, eval_process = memo_value init_eval_state}, []);
+
+fun init_exec opt_thy : exec =
+  (Eval {exec_id = Document_ID.none, eval_process = Lazy.value (init_eval_state opt_thy)}, []);
+
+val no_exec = init_exec NONE;
 
 fun exec_ids NONE = []
   | exec_ids (SOME (eval, prints)) = eval_exec_id eval :: map print_exec_id prints;
 
 local
 
-fun run_print execution_id (Print {name, delay, pri, print_process, ...}) =
-  if pri <= 0 orelse (Multithreading.enabled () andalso Options.default_bool "parallel_print")
+fun run_process execution_id exec_id process =
+  let val group = Future.worker_subgroup () in
+    if Execution.running execution_id exec_id [group] then
+      ignore (task_context group Lazy.force_result process)
+    else ()
+  end;
+
+fun ignore_process process =
+  Lazy.is_running process orelse Lazy.is_finished process;
+
+fun run_eval execution_id (Eval {exec_id, eval_process}) =
+  if Lazy.is_finished eval_process then ()
+  else run_process execution_id exec_id eval_process;
+
+fun run_print execution_id (Print {name, delay, pri, exec_id, print_process, ...}) =
+  if ignore_process print_process then ()
+  else if pri <= 0 orelse (Multithreading.enabled () andalso Options.default_bool "parallel_print")
   then
     let
       val group = Future.worker_subgroup ();
       fun fork () =
-        memo_fork {name = name, group = SOME group, deps = [], pri = pri, interrupts = true}
-          execution_id print_process;
+        ignore ((singleton o Future.forks)
+          {name = name, group = SOME group, deps = [], pri = pri, interrupts = true}
+          (fn () =>
+            if ignore_process print_process then ()
+            else run_process execution_id exec_id print_process));
     in
       (case delay of
         NONE => fork ()
-      | SOME d => ignore (Event_Timer.request (Time.+ (Time.now (), d)) fork))
+      | SOME d => ignore (Event_Timer.request (Time.now () + d) fork))
     end
-  else memo_exec execution_id print_process;
+  else run_process execution_id exec_id print_process;
 
 in
 
-fun exec execution_id (Eval {eval_process, ...}, prints) =
-  (memo_exec execution_id eval_process; List.app (run_print execution_id) prints);
+fun exec execution_id (eval, prints) =
+  (run_eval execution_id eval; List.app (run_print execution_id) prints);
 
 end;
 

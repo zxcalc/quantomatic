@@ -1,5 +1,4 @@
 /*  Title:      Pure/System/utf8.scala
-    Module:     PIDE
     Author:     Makarius
 
 Variations on UTF-8.
@@ -19,6 +18,8 @@ object UTF8
   val charset_name: String = "UTF-8"
   val charset: Charset = Charset.forName(charset_name)
   def codec(): Codec = Codec(charset)
+
+  def bytes(s: String): Array[Byte] = s.getBytes(charset)
 
 
   /* permissive UTF-8 decoding */

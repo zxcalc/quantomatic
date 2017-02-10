@@ -6,11 +6,9 @@ File system operations.
 
 signature FILE =
 sig
+  val standard_path: Path.T -> string
   val platform_path: Path.T -> string
-  val shell_quote: string -> string
-  val shell_path: Path.T -> string
-  val cd: Path.T -> unit
-  val pwd: unit -> Path.T
+  val bash_path: Path.T -> string
   val full_path: Path.T -> Path.T -> Path.T
   val tmp_path: Path.T -> Path.T
   val exists: Path.T -> bool
@@ -19,9 +17,9 @@ sig
   val check_dir: Path.T -> Path.T
   val check_file: Path.T -> Path.T
   val open_dir: (OS.FileSys.dirstream -> 'a) -> Path.T -> 'a
-  val open_input: (TextIO.instream -> 'a) -> Path.T -> 'a
-  val open_output: (TextIO.outstream -> 'a) -> Path.T -> 'a
-  val open_append: (TextIO.outstream -> 'a) -> Path.T -> 'a
+  val open_input: (BinIO.instream -> 'a) -> Path.T -> 'a
+  val open_output: (BinIO.outstream -> 'a) -> Path.T -> 'a
+  val open_append: (BinIO.outstream -> 'a) -> Path.T -> 'a
   val fold_dir: (string -> 'a -> 'a) -> Path.T -> 'a -> 'a
   val read_dir: Path.T -> string list
   val fold_lines: (string -> 'a -> 'a) -> Path.T -> 'a -> 'a
@@ -31,6 +29,7 @@ sig
   val read: Path.T -> string
   val write: Path.T -> string -> unit
   val append: Path.T -> string -> unit
+  val output: BinIO.outstream -> string -> unit
   val write_list: Path.T -> string list -> unit
   val append_list: Path.T -> string list -> unit
   val write_buffer: Path.T -> Buffer.T -> unit
@@ -42,16 +41,10 @@ struct
 
 (* system path representations *)
 
-val platform_path = Path.implode o Path.expand;
+val standard_path = Path.implode o Path.expand;
+val platform_path = ML_System.platform_path o standard_path;
 
-val shell_quote = enclose "'" "'";
-val shell_path = shell_quote o platform_path;
-
-
-(* current working directory *)
-
-val cd = cd o platform_path;
-val pwd = Path.explode o pwd;
+val bash_path = Bash_Syntax.string o standard_path;
 
 
 (* full_path *)
@@ -63,7 +56,7 @@ fun full_path dir path =
     val path'' = Path.append dir path';
   in
     if Path.is_absolute path'' then path''
-    else Path.append (pwd ()) path''
+    else Path.append (Path.explode (ML_System.standard_path (OS.FileSys.getDir ()))) path''
   end;
 
 
@@ -84,11 +77,11 @@ fun is_dir path =
 
 fun check_dir path =
   if exists path andalso is_dir path then path
-  else error ("No such directory: " ^ Path.print path);
+  else error ("No such directory: " ^ Path.print (Path.expand path));
 
 fun check_file path =
   if exists path andalso not (is_dir path) then path
-  else error ("No such file: " ^ Path.print path);
+  else error ("No such file: " ^ Path.print (Path.expand path));
 
 
 (* open streams *)
@@ -102,9 +95,9 @@ fun with_file open_file close_file f path =
 in
 
 fun open_dir f = with_file OS.FileSys.openDir OS.FileSys.closeDir f o platform_path;
-fun open_input f = with_file TextIO.openIn TextIO.closeIn f o platform_path;
-fun open_output f = with_file TextIO.openOut TextIO.closeOut f o platform_path;
-fun open_append f = with_file TextIO.openAppend TextIO.closeOut f o platform_path;
+fun open_input f = with_file BinIO.openIn BinIO.closeIn f o platform_path;
+fun open_output f = with_file BinIO.openOut BinIO.closeOut f o platform_path;
+fun open_append f = with_file BinIO.openAppend BinIO.closeOut f o platform_path;
 
 end;
 
@@ -132,7 +125,7 @@ fun read_dir path = rev (fold_dir cons path []);
 fun fold_chunks terminator f path a = open_input (fn file =>
   let
     fun read buf x =
-      (case TextIO.input file of
+      (case Byte.bytesToString (BinIO.input file) of
         "" => (case Buffer.content buf of "" => x | line => f line x)
       | input =>
           (case String.fields (fn c => c = terminator) input of
@@ -148,15 +141,16 @@ fun fold_pages f = fold_chunks #"\f" f;
 fun read_lines path = rev (fold_lines cons path []);
 fun read_pages path = rev (fold_pages cons path []);
 
-val read = open_input TextIO.inputAll;
+val read = open_input (Byte.bytesToString o BinIO.inputAll);
 
 
 (* output *)
 
-fun output txts file = List.app (fn txt => TextIO.output (file, txt)) txts;
+fun output file txt = BinIO.output (file, Byte.stringToBytes txt);
 
-fun write_list path txts = open_output (output txts) path;
-fun append_list path txts = open_append (output txts) path;
+fun output_list txts file = List.app (output file) txts;
+fun write_list path txts = open_output (output_list txts) path;
+fun append_list path txts = open_append (output_list txts) path;
 
 fun write path txt = write_list path [txt];
 fun append path txt = append_list path [txt];
@@ -167,7 +161,7 @@ fun write_buffer path buf = open_output (Buffer.output buf) path;
 (* eq *)
 
 fun eq paths =
-  (case try (pairself (OS.FileSys.fileId o platform_path)) paths of
+  (case try (apply2 (OS.FileSys.fileId o platform_path)) paths of
     SOME ids => is_equal (OS.FileSys.compare ids)
   | NONE => false);
 

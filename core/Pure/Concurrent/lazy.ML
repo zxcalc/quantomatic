@@ -9,10 +9,11 @@ multiple evaluation (unless interrupted).
 signature LAZY =
 sig
   type 'a lazy
-  val peek: 'a lazy -> 'a Exn.result option
-  val is_finished: 'a lazy -> bool
   val lazy: (unit -> 'a) -> 'a lazy
   val value: 'a -> 'a lazy
+  val peek: 'a lazy -> 'a Exn.result option
+  val is_running: 'a lazy -> bool
+  val is_finished: 'a lazy -> bool
   val force_result: 'a lazy -> 'a Exn.result
   val force: 'a lazy -> 'a
   val map: ('a -> 'b) -> 'a lazy -> 'b lazy
@@ -31,15 +32,27 @@ datatype 'a expr =
 abstype 'a lazy = Lazy of 'a expr Synchronized.var
 with
 
+fun lazy e = Lazy (Synchronized.var "lazy" (Expr e));
+fun value a = Lazy (Synchronized.var "lazy" (Result (Future.value a)));
+
 fun peek (Lazy var) =
   (case Synchronized.value var of
     Expr _ => NONE
   | Result res => Future.peek res);
 
-fun lazy e = Lazy (Synchronized.var "lazy" (Expr e));
-fun value a = Lazy (Synchronized.var "lazy" (Result (Future.value a)));
 
-fun is_finished x = is_some (peek x);
+(* status *)
+
+fun is_future pred (Lazy var) =
+  (case Synchronized.value var of
+    Expr _ => false
+  | Result res => pred res);
+
+fun is_running x = is_future (not o Future.is_finished) x;
+
+fun is_finished x =
+  is_future (fn res =>
+    Future.is_finished res andalso not (Exn.is_interrupt_exn (Future.join_result res))) x;
 
 
 (* force result *)
@@ -48,7 +61,7 @@ fun force_result (Lazy var) =
   (case peek (Lazy var) of
     SOME res => res
   | NONE =>
-      uninterruptible (fn restore_attributes => fn () =>
+      Thread_Attributes.uninterruptible (fn restore_attributes => fn () =>
         let
           val (expr, x) =
             Synchronized.change_result var
@@ -86,7 +99,16 @@ fun future params x =
   if is_finished x then Future.value_result (force_result x)
   else (singleton o Future.forks) params (fn () => force x);
 
+
+(* toplevel pretty printing *)
+
+val _ =
+  ML_system_pp (fn depth => fn pretty => fn x =>
+    (case peek x of
+      NONE => PolyML_Pretty.PrettyString "<lazy>"
+    | SOME (Exn.Exn _) => PolyML_Pretty.PrettyString "<failed>"
+    | SOME (Exn.Res y) => pretty (y, depth)));
+
 end;
 
 type 'a lazy = 'a Lazy.lazy;
-

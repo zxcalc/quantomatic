@@ -1,5 +1,4 @@
 /*  Title:      Pure/Concurrent/synchronized.scala
-    Module:     PIDE
     Author:     Makarius
 
 Synchronized variables.

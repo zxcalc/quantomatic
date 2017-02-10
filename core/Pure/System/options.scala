@@ -7,9 +7,6 @@ System options with external string representation.
 package isabelle
 
 
-import java.util.Calendar
-
-
 object Options
 {
   type Spec = (String, Option[String])
@@ -75,42 +72,50 @@ object Options
   private val PREFS = PREFS_DIR + Path.basic("preferences")
 
   lazy val options_syntax =
-    Outer_Syntax.init() + ":" + "=" + "--" +
-      (SECTION, Keyword.THY_HEADING2) + (PUBLIC, Keyword.THY_DECL) + (OPTION, Keyword.THY_DECL)
+    Outer_Syntax.init() + ":" + "=" + "--" + Symbol.comment + Symbol.comment_decoded +
+      (SECTION, Keyword.DOCUMENT_HEADING) +
+      (PUBLIC, Keyword.BEFORE_COMMAND) +
+      (OPTION, Keyword.THY_DECL)
 
   lazy val prefs_syntax = Outer_Syntax.init() + "="
 
-  object Parser extends Parse.Parser
+  trait Parser extends Parse.Parser
   {
-    val option_name = atom("option name", _.is_xname)
-    val option_type = atom("option type", _.is_ident)
+    val option_name = atom("option name", _.is_name)
+    val option_type = atom("option type", _.is_name)
     val option_value =
       opt(token("-", tok => tok.is_sym_ident && tok.content == "-")) ~ atom("nat", _.is_nat) ^^
         { case s ~ n => if (s.isDefined) "-" + n else n } |
       atom("option value", tok => tok.is_name || tok.is_float)
+  }
+
+  object Parser extends Parse.Parser with Parser
+  {
+    def comment_marker: Parser[String] =
+      $$$("--") | $$$(Symbol.comment) | $$$(Symbol.comment_decoded)
 
     val option_entry: Parser[Options => Options] =
     {
       command(SECTION) ~! text ^^
         { case _ ~ a => (options: Options) => options.set_section(a) } |
-      opt(command(PUBLIC)) ~ command(OPTION) ~! (option_name ~ keyword(":") ~ option_type ~
-      keyword("=") ~ option_value ~ (keyword("--") ~! text ^^ { case _ ~ x => x } | success(""))) ^^
-        { case a ~ pos ~ (b ~ _ ~ c ~ _ ~ d ~ e) =>
+      opt($$$(PUBLIC)) ~ command(OPTION) ~! (position(option_name) ~ $$$(":") ~ option_type ~
+      $$$("=") ~ option_value ~ (comment_marker ~! text ^^ { case _ ~ x => x } | success(""))) ^^
+        { case a ~ _ ~ ((b, pos) ~ _ ~ c ~ _ ~ d ~ e) =>
             (options: Options) => options.declare(a.isDefined, pos, b, c, d, e) }
     }
 
     val prefs_entry: Parser[Options => Options] =
     {
-      option_name ~ (keyword("=") ~! option_value) ^^
+      option_name ~ ($$$("=") ~! option_value) ^^
       { case a ~ (_ ~ b) => (options: Options) => options.add_permissive(a, b) }
     }
 
     def parse_file(syntax: Outer_Syntax, parser: Parser[Options => Options],
       options: Options, file: Path): Options =
     {
-      val toks = syntax.scan(File.read(file))
+      val toks = Token.explode(syntax.keywords, File.read(file))
       val ops =
-        parse_all(rep(parser), Token.reader(toks, file.implode)) match {
+        parse_all(rep(parser), Token.reader(toks, Token.Pos.file(file.implode))) match {
           case Success(result, _) => result
           case bad => error(bad.toString)
         }
@@ -118,6 +123,9 @@ object Options
       catch { case ERROR(msg) => error(msg + Position.here(file.position)) }
     }
   }
+
+  def load(file: Path): Options =
+    Parser.parse_file(options_syntax, Parser.option_entry, empty, file)
 
   def init_defaults(): Options =
   {
@@ -137,28 +145,54 @@ object Options
   val encode: XML.Encode.T[Options] = (options => options.encode)
 
 
-  /* command line entry point */
+  /* Isabelle tool wrapper */
 
-  def main(args: Array[String])
+  val isabelle_tool = Isabelle_Tool("option", "print Isabelle system options", args =>
   {
-    Command_Line.tool0 {
-      args.toList match {
-        case get_option :: export_file :: more_options =>
-          val options = (Options.init() /: more_options)(_ + _)
+    var build_options = false
+    var get_option = ""
+    var list_options = false
+    var export_file = ""
 
-          if (get_option != "")
-            Console.println(options.check_name(get_option).value)
+    val getopts = Getopts("""
+Usage: isabelle options [OPTIONS] [MORE_OPTIONS ...]
 
-          if (export_file != "")
-            File.write(Path.explode(export_file), YXML.string_of_body(options.encode))
+  Options are:
+    -b           include $ISABELLE_BUILD_OPTIONS
+    -g OPTION    get value of OPTION
+    -l           list options
+    -x FILE      export options to FILE in YXML format
 
-          if (get_option == "" && export_file == "")
-            Console.println(options.print)
+  Report Isabelle system options, augmented by MORE_OPTIONS given as
+  arguments NAME=VAL or NAME.
+""",
+      "b" -> (_ => build_options = true),
+      "g:" -> (arg => get_option = arg),
+      "l" -> (_ => list_options = true),
+      "x:" -> (arg => export_file = arg))
 
-        case _ => error("Bad arguments:\n" + cat_lines(args))
-      }
+    val more_options = getopts(args)
+    if (get_option == "" && !list_options && export_file == "") getopts.usage()
+
+    val options =
+    {
+      val options0 = Options.init()
+      val options1 =
+        if (build_options)
+          (options0 /: Word.explode(Isabelle_System.getenv("ISABELLE_BUILD_OPTIONS")))(_ + _)
+        else options0
+      (options1 /: more_options)(_ + _)
     }
-  }
+
+    if (get_option != "")
+      Console.println(options.check_name(get_option).value)
+
+    if (export_file != "")
+      File.write(Path.explode(export_file), YXML.string_of_body(options.encode))
+
+    if (get_option == "" && export_file == "")
+      Console.println(options.print)
+  })
 }
 
 
@@ -166,7 +200,7 @@ final class Options private(
   val options: Map[String, Options.Opt] = Map.empty,
   val section: String = "")
 {
-  override def toString: String = options.iterator.mkString("Options (", ",", ")")
+  override def toString: String = options.iterator.mkString("Options(", ",", ")")
 
   private def print_opt(opt: Options.Opt): String =
     if (opt.public) "public " + opt.print else opt.print
@@ -216,25 +250,25 @@ final class Options private(
 
   class Bool_Access
   {
-    def apply(name: String): Boolean = get(name, Options.Bool, Properties.Value.Boolean.unapply)
+    def apply(name: String): Boolean = get(name, Options.Bool, Value.Boolean.unapply)
     def update(name: String, x: Boolean): Options =
-      put(name, Options.Bool, Properties.Value.Boolean(x))
+      put(name, Options.Bool, Value.Boolean(x))
   }
   val bool = new Bool_Access
 
   class Int_Access
   {
-    def apply(name: String): Int = get(name, Options.Int, Properties.Value.Int.unapply)
+    def apply(name: String): Int = get(name, Options.Int, Value.Int.unapply)
     def update(name: String, x: Int): Options =
-      put(name, Options.Int, Properties.Value.Int(x))
+      put(name, Options.Int, Value.Int(x))
   }
   val int = new Int_Access
 
   class Real_Access
   {
-    def apply(name: String): Double = get(name, Options.Real, Properties.Value.Double.unapply)
+    def apply(name: String): Double = get(name, Options.Real, Value.Double.unapply)
     def update(name: String, x: Double): Options =
-      put(name, Options.Real, Properties.Value.Double(x))
+      put(name, Options.Real, Value.Double(x))
   }
   val real = new Real_Access
 
@@ -368,7 +402,7 @@ final class Options private(
       (for {
         (name, opt2) <- options.iterator
         opt1 = defaults.options.get(name)
-        if (opt1.isEmpty || opt1.get.value != opt2.value)
+        if opt1.isEmpty || opt1.get.value != opt2.value
       } yield (name, opt2.value, if (opt1.isEmpty) "  (* unknown *)" else "")).toList
 
     val prefs =
@@ -376,57 +410,59 @@ final class Options private(
         .map({ case (x, y, z) => x + " = " + Outer_Syntax.quote_string(y) + z + "\n" }).mkString
 
     Isabelle_System.mkdirs(Options.PREFS_DIR)
-    File.write_backup(Options.PREFS,
-      "(* generated by Isabelle " + Calendar.getInstance.getTime + " *)\n\n" + prefs)
+    File.write_backup(Options.PREFS, "(* generated by Isabelle " + Date.now() + " *)\n\n" + prefs)
   }
 }
 
 
 class Options_Variable
 {
-  private var options = Options.empty
+  private var options: Option[Options] = None
 
-  def value: Options = synchronized { options }
-  def update(new_options: Options): Unit = synchronized { options = new_options }
+  def store(new_options: Options): Unit = synchronized { options = Some(new_options) }
 
-  def + (name: String, x: String): Unit = synchronized { options = options + (name, x) }
+  def value: Options = synchronized {
+    options match {
+      case Some(opts) => opts
+      case None => error("Uninitialized Isabelle system options")
+    }
+  }
+
+  private def upd(f: Options => Options): Unit = synchronized { options = Some(f(value)) }
+
+  def + (name: String, x: String): Unit = upd(opts => opts + (name, x))
 
   class Bool_Access
   {
-    def apply(name: String): Boolean = synchronized { options.bool(name) }
-    def update(name: String, x: Boolean): Unit =
-      synchronized { options = options.bool.update(name, x) }
+    def apply(name: String): Boolean = value.bool(name)
+    def update(name: String, x: Boolean): Unit = upd(opts => opts.bool.update(name, x))
   }
   val bool = new Bool_Access
 
   class Int_Access
   {
-    def apply(name: String): Int = synchronized { options.int(name) }
-    def update(name: String, x: Int): Unit =
-      synchronized { options = options.int.update(name, x) }
+    def apply(name: String): Int = value.int(name)
+    def update(name: String, x: Int): Unit = upd(opts => opts.int.update(name, x))
   }
   val int = new Int_Access
 
   class Real_Access
   {
-    def apply(name: String): Double = synchronized { options.real(name) }
-    def update(name: String, x: Double): Unit =
-      synchronized { options = options.real.update(name, x) }
+    def apply(name: String): Double = value.real(name)
+    def update(name: String, x: Double): Unit = upd(opts => opts.real.update(name, x))
   }
   val real = new Real_Access
 
   class String_Access
   {
-    def apply(name: String): String = synchronized { options.string(name) }
-    def update(name: String, x: String): Unit =
-      synchronized { options = options.string.update(name, x) }
+    def apply(name: String): String = value.string(name)
+    def update(name: String, x: String): Unit = upd(opts => opts.string.update(name, x))
   }
   val string = new String_Access
 
   class Seconds_Access
   {
-    def apply(name: String): Time = synchronized { options.seconds(name) }
+    def apply(name: String): Time = value.seconds(name)
   }
   val seconds = new Seconds_Access
 }
-

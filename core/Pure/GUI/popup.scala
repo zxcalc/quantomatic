@@ -1,5 +1,4 @@
 /*  Title:      Pure/GUI/popup.scala
-    Module:     PIDE-GUI
     Author:     Makarius
 
 Popup within layered pane.

@@ -1,5 +1,4 @@
 /*  Title:      Pure/General/linear_set.scala
-    Module:     PIDE
     Author:     Makarius
     Author:     Fabian Immler, TU Munich
 
@@ -122,7 +121,7 @@ final class Linear_Set[A] private(
   override def size: Int = if (isEmpty) 0 else nexts.size + 1
 
   def contains(elem: A): Boolean =
-    !isEmpty && (end.get == elem || nexts.isDefinedAt(elem))
+    nonEmpty && (end.get == elem || nexts.isDefinedAt(elem))
 
   private def make_iterator(from: Option[A]): Iterator[A] = new Iterator[A] {
     private var next_elem = from

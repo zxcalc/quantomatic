@@ -56,7 +56,7 @@ fun calculate thy class sups base_sort param_map assm_axiom =
         val loc_intro_tac =
           (case Locale.intros_of thy class of
             (_, NONE) => all_tac
-          | (_, SOME intro) => ALLGOALS (rtac intro));
+          | (_, SOME intro) => ALLGOALS (resolve_tac empty_ctxt [intro]));
         val tac = loc_intro_tac
           THEN ALLGOALS (Proof_Context.fact_tac empty_ctxt (sup_axioms @ the_list assm_axiom));
       in Element.prove_witness empty_ctxt prop tac end) some_prop;
@@ -93,12 +93,12 @@ fun calculate thy class sups base_sort param_map assm_axiom =
     val sup_of_classes = map (snd o Class.rules thy) sups;
     val loc_axiom_intros = map Drule.export_without_context_open (Locale.axioms_of thy class);
     val axclass_intro = #intro (Axclass.get_info thy class);
-    val base_sort_trivs = Thm.of_sort (Thm.ctyp_of thy aT, base_sort);
-    val tac =
+    val base_sort_trivs = Thm.of_sort (Thm.global_ctyp_of thy aT, base_sort);
+    fun tac ctxt =
       REPEAT (SOMEGOAL
-        (match_tac (axclass_intro :: sup_of_classes @ loc_axiom_intros @ base_sort_trivs)
-          ORELSE' assume_tac));
-    val of_class = Goal.prove_sorry_global thy [] [] of_class_prop (K tac);
+        (match_tac ctxt (axclass_intro :: sup_of_classes @ loc_axiom_intros @ base_sort_trivs)
+          ORELSE' assume_tac ctxt));
+    val of_class = Goal.prove_sorry_global thy [] [] of_class_prop (tac o #context);
 
   in (base_morph, eq_morph, export_morph, some_axiom, some_assm_intro, of_class) end;
 
@@ -107,21 +107,21 @@ fun calculate thy class sups base_sort param_map assm_axiom =
 
 fun prep_class_elems prep_decl thy sups raw_elems =
   let
-
     (* user space type system: only permits 'a type variable, improves towards 'a *)
     val algebra = Sign.classes_of thy;
     val inter_sort = curry (Sorts.inter_sort algebra);
     val proto_base_sort =
       if null sups then Sign.defaultS thy
       else fold inter_sort (map (Class.base_sort thy) sups) [];
+    val is_param = member (op =) (map fst (Class.these_params thy sups));
     val base_constraints = (map o apsnd)
-      (map_type_tfree (K (TVar ((Name.aT, 0), proto_base_sort))) o fst o snd)
+      (map_type_tfree (K (TVar ((Name.aT, 0), proto_base_sort))) o fst o fst o snd)
         (Class.these_operations thy sups);
-    fun singleton_fixate tms =
+    val singleton_fixate = burrow_types (fn Ts =>
       let
-        val tfrees = fold Term.add_tfrees tms [];
+        val tfrees = fold Term.add_tfreesT Ts [];
         val inferred_sort =
-          (fold o fold_types o fold_atyps) (fn TVar (_, S) => inter_sort S | _ => I) tms [];
+          (fold o fold_atyps) (fn TVar (_, S) => inter_sort S | _ => I) Ts [];
         val fixate_sort =
           (case tfrees of
             [] => inferred_sort
@@ -137,19 +137,21 @@ fun prep_class_elems prep_decl thy sups raw_elems =
           | _ => error "Multiple type variables in class specification");
         val fixateT = TFree (Name.aT, fixate_sort);
       in
-        (map o map_types o map_atyps)
-          (fn T as TVar (xi, _) => if Type_Infer.is_param xi then fixateT else T | T => T) tms
-      end;
-    fun after_infer_fixate tms =
+        (map o map_atyps)
+          (fn T as TVar (xi, _) => if Type_Infer.is_param xi then fixateT else T | T => T) Ts
+      end);
+    fun unify_params ts =
       let
-        val fixate_sort =
-          (fold o fold_types o fold_atyps)
-            (fn TVar (xi, S) => if Type_Infer.is_param xi then inter_sort S else I | _ => I) tms [];
-      in
-        (map o map_types o map_atyps)
-          (fn T as TVar (xi, _) =>
-              if Type_Infer.is_param xi then Type_Infer.param 0 (Name.aT, fixate_sort) else T
-            | T => T) tms
+        val param_Ts = (fold o fold_aterms)
+          (fn Free (v, T) => if is_param v then fold_atyps (insert (op =)) T else I | _ => I) ts [];
+        val param_namesT = map_filter (try (fst o dest_TVar)) param_Ts;
+        val param_T = if null param_namesT then NONE
+          else SOME (case get_first (try dest_TFree) param_Ts of
+            SOME v_sort => TFree v_sort |
+            NONE => TVar (hd param_namesT, proto_base_sort));
+      in case param_T of
+        NONE => ts |
+        SOME T => map (subst_TVars (map (rpair T) param_namesT)) ts
       end;
 
     (* preprocessing elements, retrieving base sort from type-checked elements *)
@@ -161,7 +163,7 @@ fun prep_class_elems prep_decl thy sups raw_elems =
       #> Context.proof_map (Syntax_Phases.term_check 0 "singleton_fixate" (K singleton_fixate));
     val ((raw_supparams, _, raw_inferred_elems, _), _) =
       Proof_Context.init_global thy
-      |> Context.proof_map (Syntax_Phases.term_check 0 "after_infer_fixate" (K after_infer_fixate))
+      |> Context.proof_map (Syntax_Phases.term_check 0 "unify_params" (K unify_params))
       |> prep_decl raw_supexpr init_class_body raw_elems;
     fun filter_element (Element.Fixes []) = NONE
       | filter_element (e as Element.Fixes _) = SOME e
@@ -296,14 +298,14 @@ fun adjungate_axclass bname class base_sort sups supsort supparam_names global_s
       | [thm] => SOME thm);
   in
     thy
-    |> add_consts class base_sort sups supparam_names global_syntax
-    |-> (fn (param_map, params) => Axclass.define_class (bname, supsort)
-          (map (fst o snd) params)
-          [(Thm.empty_binding, Option.map (globalize param_map) raw_pred |> the_list)]
-    #> snd
-    #> `get_axiom
-    #-> (fn assm_axiom => fold (Sign.add_const_constraint o apsnd SOME o snd) params
-    #> pair (param_map, params, assm_axiom)))
+    |> add_consts class base_sort sups supparam_names global_syntax |-> (fn (param_map, params) =>
+      Axclass.define_class (bname, supsort)
+        (map (fst o snd) params)
+          [(Binding.empty_atts, Option.map (globalize param_map) raw_pred |> the_list)]
+      #> snd
+      #> `get_axiom
+      #-> (fn assm_axiom => fold (Sign.add_const_constraint o apsnd SOME o snd) params
+      #> pair (param_map, params, assm_axiom)))
   end;
 
 fun gen_class prep_class_spec b raw_supclasses raw_elems thy =
@@ -325,7 +327,7 @@ fun gen_class prep_class_spec b raw_supclasses raw_elems thy =
     #> Class.register class sups params base_sort base_morph export_morph some_axiom some_assm_intro of_class
     #> Global_Theory.store_thm (prefix (Binding.qualified_name (class ^ ".of_class.intro")), of_class)))
     |> snd
-    |> Named_Target.init class
+    |> Named_Target.init NONE class
     |> pair class
   end;
 
@@ -346,9 +348,10 @@ fun gen_subclass prep_class do_proof raw_sup lthy =
   let
     val thy = Proof_Context.theory_of lthy;
     val proto_sup = prep_class thy raw_sup;
-    val proto_sub = case Named_Target.class_of lthy of
+    val proto_sub =
+      (case Named_Target.class_of lthy of
         SOME class => class
-      | NONE => error "Not in a class target";
+      | NONE => error "Not in a class target");
     val (sub, sup) = Axclass.cert_classrel thy (proto_sub, proto_sup);
 
     val expr = ([(sup, (("", false), Expression.Positional []))], []);

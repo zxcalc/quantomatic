@@ -64,11 +64,12 @@ datatype data = Data of
   prems: thm list};                     (*prems: A |- norm_hhf A*)
 
 fun make_data (assms, prems) = Data {assms = assms, prems = prems};
+val empty_data = make_data ([], []);
 
 structure Data = Proof_Data
 (
   type T = data;
-  fun init _ = make_data ([], []);
+  fun init _ = empty_data;
 );
 
 fun map_data f = Data.map (fn Data {assms, prems} => make_data (f (assms, prems)));

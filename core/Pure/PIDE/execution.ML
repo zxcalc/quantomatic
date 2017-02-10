@@ -14,7 +14,6 @@ sig
   val running: Document_ID.execution -> Document_ID.exec -> Future.group list -> bool
   val peek: Document_ID.exec -> Future.group list
   val cancel: Document_ID.exec -> unit
-  val terminate: Document_ID.exec -> unit
   type params = {name: string, pos: Position.T, pri: int}
   val fork: params -> (unit -> 'a) -> 'a future
   val print: params -> (unit -> unit) -> unit
@@ -66,14 +65,9 @@ fun is_running_exec exec_id =
 fun running execution_id exec_id groups =
   change_state_result (fn (execution_id', execs) =>
     let
-      val continue = execution_id = execution_id';
-      val execs' =
-        if continue then
-          Inttab.update_new (exec_id, (groups, [])) execs
-            handle Inttab.DUP dup =>
-              raise Fail ("Execution already registered: " ^ Document_ID.print dup)
-        else execs;
-    in (continue, (execution_id', execs')) end);
+      val ok = execution_id = execution_id' andalso not (Inttab.defined execs exec_id);
+      val execs' = execs |> ok ? Inttab.update (exec_id, (groups, []));
+    in (ok, (execution_id', execs')) end);
 
 fun peek exec_id =
   (case Inttab.lookup (#2 (get_state ())) exec_id of
@@ -81,7 +75,6 @@ fun peek exec_id =
   | NONE => []);
 
 fun cancel exec_id = List.app Future.cancel_group (peek exec_id);
-fun terminate exec_id = List.app Future.terminate (peek exec_id);
 
 
 (* fork *)
@@ -96,7 +89,7 @@ fun status task markups =
 type params = {name: string, pos: Position.T, pri: int};
 
 fun fork ({name, pos, pri}: params) e =
-  uninterruptible (fn _ => Position.setmp_thread_data pos (fn () =>
+  Thread_Attributes.uninterruptible (fn _ => Position.setmp_thread_data pos (fn () =>
     let
       val exec_id = the_default 0 (Position.parse_id pos);
       val group = Future.worker_subgroup ();
@@ -115,7 +108,8 @@ fun fork ({name, pos, pri}: params) e =
               val _ = status task [Markup.running];
               val result =
                 Exn.capture (Future.interruptible_task e) ()
-                |> Future.identify_result pos;
+                |> Future.identify_result pos
+                |> Exn.map_exn Runtime.thread_context;
               val _ = status task [Markup.joined];
               val _ =
                 (case result of

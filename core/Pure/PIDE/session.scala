@@ -1,6 +1,6 @@
 /*  Title:      Pure/PIDE/session.scala
     Author:     Makarius
-    Options:    :folding=explicit:collapseFolds=1:
+    Options:    :folding=explicit:
 
 PIDE editor session, potentially with running prover process.
 */
@@ -24,7 +24,7 @@ object Session
 
   class Outlet[A](dispatcher: Consumer_Thread[() => Unit])
   {
-    private val consumers = Synchronized(List.empty[Consumer[A]])
+    private val consumers = Synchronized[List[Consumer[A]]](Nil)
 
     def += (c: Consumer[A]) { consumers.change(Library.update(c)) }
     def -= (c: Consumer[A]) { consumers.change(Library.remove(c)) }
@@ -47,7 +47,7 @@ object Session
 
   sealed case class Change(
     previous: Document.Version,
-    syntax_changed: Boolean,
+    syntax_changed: List[Document.Node.Name],
     deps_changed: Boolean,
     doc_edits: List[Document.Edit_Command],
     version: Document.Version)
@@ -63,6 +63,7 @@ object Session
   case object Caret_Focus
   case class Raw_Edits(doc_blobs: Document.Blobs, edits: List[Document.Edit_Text])
   case class Dialog_Result(id: Document_ID.Generic, serial: Long, result: String)
+  case class Build_Theories(id: String, master_dir: Path, theories: List[(Options, List[Path])])
   case class Commands_Changed(
     assignment: Boolean, nodes: Set[Document.Node.Name], commands: Set[Command])
 
@@ -104,14 +105,20 @@ object Session
     val functions: Map[String, (Prover, Prover.Protocol_Output) => Boolean]
   }
 
-  class Protocol_Handlers(
+  def bad_protocol_handler(exn: Throwable, name: String): Unit =
+    Output.error_message(
+      "Failed to initialize protocol handler: " + quote(name) + "\n" + Exn.message(exn))
+
+  private class Protocol_Handlers(
     handlers: Map[String, Session.Protocol_Handler] = Map.empty,
     functions: Map[String, Prover.Protocol_Output => Boolean] = Map.empty)
   {
     def get(name: String): Option[Protocol_Handler] = handlers.get(name)
 
-    def add(prover: Prover, name: String): Protocol_Handlers =
+    def add(prover: Prover, handler: Protocol_Handler): Protocol_Handlers =
     {
+      val name = handler.getClass.getName
+
       val (handlers1, functions1) =
         handlers.get(name) match {
           case Some(old_handler) =>
@@ -123,22 +130,20 @@ object Session
 
       val (handlers2, functions2) =
         try {
-          val new_handler = Class.forName(name).newInstance.asInstanceOf[Protocol_Handler]
-          new_handler.start(prover)
+          handler.start(prover)
 
           val new_functions =
-            for ((a, f) <- new_handler.functions.toList) yield
+            for ((a, f) <- handler.functions.toList) yield
               (a, (msg: Prover.Protocol_Output) => f(prover, msg))
 
           val dups = for ((a, _) <- new_functions if functions1.isDefinedAt(a)) yield a
-          if (!dups.isEmpty) error("Duplicate protocol functions: " + commas_quote(dups))
+          if (dups.nonEmpty) error("Duplicate protocol functions: " + commas_quote(dups))
 
-          (handlers1 + (name -> new_handler), functions1 ++ new_functions)
+          (handlers1 + (name -> handler), functions1 ++ new_functions)
         }
         catch {
           case exn: Throwable =>
-            Output.error_message(
-              "Failed to initialize protocol handler: " + quote(name) + "\n" + Exn.message(exn))
+            Session.bad_protocol_handler(exn, name)
             (handlers1, functions1)
         }
 
@@ -178,7 +183,7 @@ class Session(val resources: Resources)
   /* tuning parameters */
 
   def output_delay: Time = Time.seconds(0.1)  // prover output (markup, common messages)
-  def prune_delay: Time = Time.seconds(60.0)  // prune history (delete old versions)
+  def prune_delay: Time = Time.seconds(15.0)  // prune history (delete old versions)
   def prune_size: Int = 0  // size of retained history
   def syslog_limit: Int = 100
   def reparse_limit: Int = 0
@@ -197,16 +202,17 @@ class Session(val resources: Resources)
   val phase_changed = new Session.Outlet[Session.Phase](dispatcher)
   val syslog_messages = new Session.Outlet[Prover.Output](dispatcher)
   val raw_output_messages = new Session.Outlet[Prover.Output](dispatcher)
-  val all_messages = new Session.Outlet[Prover.Message](dispatcher)  // potential bottle-neck
   val trace_events = new Session.Outlet[Simplifier_Trace.Event.type](dispatcher)
+  val debugger_updates = new Session.Outlet[Debugger.Update.type](dispatcher)
 
+  val all_messages = new Session.Outlet[Prover.Message](dispatcher)  // potential bottle-neck!
 
 
   /** main protocol manager **/
 
   /* internal messages */
 
-  private case class Start(name: String, args: List[String])
+  private case class Start(start_prover: Prover.Receiver => Prover)
   private case object Stop
   private case class Cancel_Exec(exec_id: Document_ID.Exec)
   private case class Protocol_Command(name: String, args: List[String])
@@ -231,19 +237,9 @@ class Session(val resources: Resources)
   private val global_state = Synchronized(Document.State.init)
   def current_state(): Document.State = global_state.value
 
-  def recent_syntax(): Prover.Syntax =
-  {
-    val version = current_state().recent_finished.version.get_finished
-    version.syntax getOrElse resources.base_syntax
-  }
-
-
-  /* protocol handlers */
-
-  @volatile private var _protocol_handlers = new Session.Protocol_Handlers()
-
-  def protocol_handler(name: String): Option[Session.Protocol_Handler] =
-    _protocol_handlers.get(name)
+  def recent_syntax(name: Document.Node.Name): Outer_Syntax =
+    global_state.value.recent_finished.version.get_finished.nodes(name).syntax getOrElse
+    resources.base_syntax
 
 
   /* theory files */
@@ -289,13 +285,13 @@ class Session(val resources: Resources)
     private var commands: Set[Command] = Set.empty
 
     def flush(): Unit = synchronized {
-      if (assignment || !nodes.isEmpty || !commands.isEmpty)
+      if (assignment || nodes.nonEmpty || commands.nonEmpty)
         commands_changed.post(Session.Commands_Changed(assignment, nodes, commands))
       assignment = false
       nodes = Set.empty
       commands = Set.empty
     }
-    private val delay_flush = Simple_Thread.delay_first(output_delay) { flush() }
+    private val delay_flush = Standard_Thread.delay_first(output_delay) { flush() }
 
     def invoke(assign: Boolean, cmds: List[Command]): Unit = synchronized {
       assignment |= assign
@@ -334,7 +330,7 @@ class Session(val resources: Resources)
 
   private object prover
   {
-    private val variable = Synchronized(None: Option[Prover])
+    private val variable = Synchronized[Option[Prover]](None)
 
     def defined: Boolean = variable.value.isDefined
     def get: Prover = variable.value.get
@@ -344,9 +340,21 @@ class Session(val resources: Resources)
   }
 
 
+  /* protocol handlers */
+
+  private val _protocol_handlers = Synchronized(new Session.Protocol_Handlers)
+
+  def get_protocol_handler(name: String): Option[Session.Protocol_Handler] =
+    _protocol_handlers.value.get(name)
+
+  def add_protocol_handler(handler: Session.Protocol_Handler): Unit =
+    _protocol_handlers.change(_.add(prover.get, handler))
+
+
   /* manager thread */
 
-  private val delay_prune = Simple_Thread.delay_first(prune_delay) { manager.send(Prune_History) }
+  private val delay_prune =
+    Standard_Thread.delay_first(prune_delay) { manager.send(Prune_History) }
 
   private val manager: Consumer_Thread[Any] =
   {
@@ -433,11 +441,16 @@ class Session(val resources: Resources)
 
       output match {
         case msg: Prover.Protocol_Output =>
-          val handled = _protocol_handlers.invoke(msg)
+          val handled = _protocol_handlers.value.invoke(msg)
           if (!handled) {
             msg.properties match {
               case Markup.Protocol_Handler(name) if prover.defined =>
-                _protocol_handlers = _protocol_handlers.add(prover.get, name)
+                try {
+                  val handler =
+                    Class.forName(name).newInstance.asInstanceOf[Session.Protocol_Handler]
+                  add_protocol_handler(handler)
+                }
+                catch { case exn: Throwable => Session.bad_protocol_handler(exn, name) }
 
               case Protocol.Command_Timing(state_id, timing) if prover.defined =>
                 val message = XML.elem(Markup.STATUS, List(XML.Elem(Markup.Timing(timing), Nil)))
@@ -489,7 +502,8 @@ class Session(val resources: Resources)
               else phase = Session.Failed
               prover.reset
 
-            case _ => raw_output_messages.post(output)
+            case _ =>
+              raw_output_messages.post(output)
           }
         }
     }
@@ -518,15 +532,15 @@ class Session(val resources: Resources)
           case input: Prover.Input =>
             all_messages.post(input)
 
-          case Start(name, args) if !prover.defined =>
+          case Start(start_prover) if !prover.defined =>
             if (phase == Session.Inactive || phase == Session.Failed) {
               phase = Session.Startup
-              prover.set(resources.start_prover(manager.send(_), name, args))
+              prover.set(start_prover(manager.send(_)))
             }
 
           case Stop =>
             if (prover.defined && is_ready) {
-              _protocol_handlers = _protocol_handlers.stop(prover.get)
+              _protocol_handlers.change(_.stop(prover.get))
               global_state.change(_ => Document.State.init)
               phase = Session.Shutdown
               prover.get.terminate
@@ -535,7 +549,7 @@ class Session(val resources: Resources)
           case Prune_History =>
             if (prover.defined) {
               val old_versions = global_state.change_result(_.remove_versions(prune_size))
-              if (!old_versions.isEmpty) prover.get.remove_versions(old_versions)
+              if (old_versions.nonEmpty) prover.get.remove_versions(old_versions)
             }
 
           case Update_Options(options) =>
@@ -554,6 +568,9 @@ class Session(val resources: Resources)
           case Session.Dialog_Result(id, serial, result) if prover.defined =>
             prover.get.dialog_result(serial, result)
             handle_output(new Prover.Output(Protocol.Dialog_Result(id, serial, result)))
+
+          case Session.Build_Theories(id, master_dir, theories) if prover.defined =>
+            prover.get.build_theories(id, master_dir, theories)
 
           case Protocol_Command(name, args) if prover.defined =>
             prover.get.protocol_command(name, args:_*)
@@ -584,16 +601,16 @@ class Session(val resources: Resources)
       pending_edits: List[Text.Edit] = Nil): Document.Snapshot =
     global_state.value.snapshot(name, pending_edits)
 
-  def start(name: String, args: List[String])
-  { manager.send(Start(name, args)) }
+  def start(start_prover: Prover.Receiver => Prover)
+  { manager.send(Start(start_prover)) }
 
   def stop()
   {
+    delay_prune.revoke()
     manager.send_wait(Stop)
     prover.await_reset()
     change_parser.shutdown()
     change_buffer.shutdown()
-    delay_prune.revoke()
     manager.shutdown()
     dispatcher.shutdown()
   }
@@ -605,11 +622,14 @@ class Session(val resources: Resources)
   { manager.send(Cancel_Exec(exec_id)) }
 
   def update(doc_blobs: Document.Blobs, edits: List[Document.Edit_Text])
-  { if (!edits.isEmpty) manager.send_wait(Session.Raw_Edits(doc_blobs, edits)) }
+  { if (edits.nonEmpty) manager.send_wait(Session.Raw_Edits(doc_blobs, edits)) }
 
   def update_options(options: Options)
   { manager.send_wait(Update_Options(options)) }
 
   def dialog_result(id: Document_ID.Generic, serial: Long, result: String)
   { manager.send(Session.Dialog_Result(id, serial, result)) }
+
+  def build_theories(id: String, master_dir: Path, theories: List[(Options, List[Path])])
+  { manager.send(Session.Build_Theories(id, master_dir, theories)) }
 }

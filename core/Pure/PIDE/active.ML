@@ -9,7 +9,8 @@ sig
   val make_markup: string -> {implicit: bool, properties: Properties.T} -> Markup.T
   val markup_implicit: string -> string -> string
   val markup: string -> string -> string
-  val sendback_markup: Properties.T -> string -> string
+  val sendback_markup_properties: Properties.T -> string -> string
+  val sendback_markup_command: string -> string
   val dialog: unit -> (string -> Markup.T) * string future
   val dialog_text: unit -> (string -> string) * string future
   val dialog_result: serial -> string -> unit
@@ -33,8 +34,11 @@ fun make_markup name {implicit, properties} =
 fun markup_implicit name s = Markup.markup (make_markup name {implicit = true, properties = []}) s;
 fun markup name s = Markup.markup (make_markup name {implicit = false, properties = []}) s;
 
-fun sendback_markup props =
-  Markup.markup (make_markup Markup.sendbackN {implicit = false, properties = props});
+fun sendback_markup_properties props s =
+  Markup.markup (make_markup Markup.sendbackN {implicit = false, properties = props}) s;
+
+fun sendback_markup_command s =
+  sendback_markup_properties [Markup.padding_command] s;
 
 
 (* dialog via document content *)

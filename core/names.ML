@@ -175,7 +175,7 @@ end
 in
 (* Put opaque Quanto names and name maps into the top-level *)
 open QuantoNames
-
+(*
 (* install pretty printers *)
 local
     fun prettyVertex _ _ x =
@@ -189,5 +189,6 @@ in
     val () = PolyML.addPrettyPrinter prettyEdge;
     val () = PolyML.addPrettyPrinter prettyBBox;
 end
+*)
 
 end

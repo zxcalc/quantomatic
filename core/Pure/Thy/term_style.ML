@@ -24,7 +24,6 @@ structure Data = Theory_Data
 );
 
 val get_data = Data.get o Proof_Context.theory_of;
-val get_style = Name_Space.get o get_data;
 
 fun setup binding style thy =
   Data.map (#2 o Name_Space.define (Context.Theory thy) true (binding, style)) thy;
@@ -33,10 +32,10 @@ fun setup binding style thy =
 (* style parsing *)
 
 fun parse_single ctxt =
-  Parse.position Parse.xname -- Parse.args >> (fn (name, args) =>
+  Parse.token Parse.name ::: Parse.args >> (fn src0 =>
     let
-      val (src, parse) = Args.check_src ctxt (get_data ctxt) (Args.src name args);
-      val (f, _) = Args.syntax (Scan.lift parse) src ctxt;
+      val (src, parse) = Token.check_src ctxt get_data src0;
+      val (f, _) = Token.syntax (Scan.lift parse) src ctxt;
     in f ctxt end);
 
 val parse = Args.context :|-- (fn ctxt => Scan.lift
@@ -49,8 +48,7 @@ val parse = Args.context :|-- (fn ctxt => Scan.lift
 
 fun style_lhs_rhs proj = Scan.succeed (fn ctxt => fn t =>
   let
-    val concl =
-      Object_Logic.drop_judgment (Proof_Context.theory_of ctxt) (Logic.strip_imp_concl t)
+    val concl = Object_Logic.drop_judgment ctxt (Logic.strip_imp_concl t);
   in
     (case concl of
       _ $ l $ r => proj (l, r)
@@ -68,7 +66,7 @@ val style_prem = Parse.nat >> (fn i => fn ctxt => fn t =>
   end);
 
 fun sub_symbols (d :: s :: ss) =
-      if Symbol.is_ascii_digit d andalso not (String.isPrefix ("\<^") s)
+      if Symbol.is_ascii_digit d andalso not (Symbol.is_control s)
       then d :: "\<^sub>" :: sub_symbols (s :: ss)
       else d :: s :: ss
   | sub_symbols cs = cs;

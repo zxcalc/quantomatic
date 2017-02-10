@@ -26,6 +26,7 @@ sig
   val output_markup_elem: Markup.T -> (string * string) * string
   val parse_body: string -> XML.body
   val parse: string -> XML.tree
+  val content_of: string -> string
 end;
 
 structure YXML: YXML =
@@ -48,12 +49,15 @@ fun embed_controls str =
 
 (* markers *)
 
-val X = chr 5;
-val Y = chr 6;
+val X_char = Char.chr 5;
+val Y_char = Char.chr 6;
+
+val X = String.str X_char;
+val Y = String.str Y_char;
 val XY = X ^ Y;
 val XYX = XY ^ X;
 
-val detect = exists_string (fn s => s = X orelse s = Y);
+fun detect s = Char.contains s X_char orelse Char.contains s Y_char;
 
 
 (* output *)
@@ -93,12 +97,10 @@ local
 
 (* splitting *)
 
-fun is_char s c = ord s = Char.ord c;
-
 val split_string =
   Substring.full #>
-  Substring.tokens (is_char X) #>
-  map (Substring.fields (is_char Y) #> map Substring.string);
+  Substring.tokens (fn c => c = X_char) #>
+  map (Substring.fields (fn c => c = Y_char) #> map Substring.string);
 
 
 (* structural errors *)
@@ -147,6 +149,8 @@ fun parse source =
   | _ => err "multiple results");
 
 end;
+
+val content_of = parse_body #> XML.content_of;
 
 end;
 

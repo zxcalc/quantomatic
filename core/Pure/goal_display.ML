@@ -11,9 +11,6 @@ sig
   val goals_limit: int Config.T
   val show_main_goal_raw: Config.raw
   val show_main_goal: bool Config.T
-  val show_consts_raw: Config.raw
-  val show_consts: bool Config.T
-  val pretty_flexpair: Proof.context -> term * term -> Pretty.T
   val pretty_goals: Proof.context -> thm -> Pretty.T list
   val pretty_goal: Proof.context -> thm -> Pretty.T
   val string_of_goal: Proof.context -> thm -> string
@@ -27,12 +24,6 @@ val goals_limit = Config.int goals_limit_raw;
 
 val show_main_goal_raw = Config.declare_option ("show_main_goal", @{here});
 val show_main_goal = Config.bool show_main_goal_raw;
-
-val show_consts_raw = Config.declare_option ("show_consts", @{here});
-val show_consts = Config.bool show_consts_raw;
-
-fun pretty_flexpair ctxt (t, u) = Pretty.block
-  [Syntax.pretty_term ctxt t, Pretty.str " =?=", Pretty.brk 1, Syntax.pretty_term ctxt u];
 
 
 (*print thm A1,...,An/B in "goal style" -- premises as numbered subgoals*)
@@ -58,7 +49,7 @@ val add_varsT = Term.fold_atyps
     | _ => I);
 
 fun sort_idxs vs = map (apsnd (sort (prod_ord string_ord int_ord))) vs;
-fun sort_cnsts cs = map (apsnd (sort_wrt fst)) cs;
+fun sort_cnsts cs = map (apsnd (sort_by fst)) cs;
 
 fun consts_of t = sort_cnsts (add_consts t []);
 fun vars_of t = sort_idxs (add_vars t []);
@@ -107,14 +98,14 @@ fun pretty_goals ctxt0 state =
       Pretty.markup (Markup.subgoal s) [Pretty.str (" " ^ s ^ ". "), prt_term A];
     val pretty_subgoals = map_index (fn (i, A) => pretty_subgoal (string_of_int (i + 1)) A);
 
-    val pretty_ffpairs = pretty_list "flex-flex pairs:" (pretty_flexpair ctxt);
+    val pretty_ffpairs = pretty_list "flex-flex pairs:" (Thm.pretty_flexpair ctxt);
 
     val pretty_consts = pretty_list "constants:" prt_consts o consts_of;
     val pretty_vars = pretty_list "variables:" prt_vars o vars_of;
     val pretty_varsT = pretty_list "type variables:" prt_varsT o varsT_of;
 
 
-    val {prop, tpairs, ...} = Thm.rep_thm state;
+    val prop = Thm.prop_of state;
     val (As, B) = Logic.strip_horn prop;
     val ngoals = length As;
   in
@@ -124,7 +115,7 @@ fun pretty_goals ctxt0 state =
         pretty_subgoals (take goals_limit As) @
         [Pretty.str ("A total of " ^ string_of_int ngoals ^ " subgoals...")]
       else pretty_subgoals As) @
-    pretty_ffpairs tpairs @
+    pretty_ffpairs (Thm.tpairs_of state) @
     (if show_consts then pretty_consts prop else []) @
     (if show_types then pretty_vars prop else []) @
     (if show_sorts0 then pretty_varsT prop else [])

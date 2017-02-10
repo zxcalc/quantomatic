@@ -171,12 +171,12 @@ let
           val worker = Future.fork (fn () => (Log.log 2 "(core) worker forked"; dispatch system rid json))
         in Thread.fork (fn () => (
               let
-                val json = PolyML.exception_trace (fn () => (
+                (*val json = PolyML.exception_trace (fn () => (
                              Future.join worker
                              handle Thread.Interrupt => json_error rid 1 "Job interrupted"
-                           )) handle _ => json_error rid 2 "Unexpected exception"
+                           )) handle _ => json_error rid 2 "Unexpected exception"*)
               in
-                push_output json; 
+                push_output (Future.join worker); 
                 Synchronized.change job_table (JobTable.delete rid)
               end
            ),[]);

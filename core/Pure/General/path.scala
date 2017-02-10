@@ -18,9 +18,9 @@ object Path
   /* path elements */
 
   sealed abstract class Elem
-  private case class Root(val name: String) extends Elem
-  private case class Basic(val name: String) extends Elem
-  private case class Variable(val name: String) extends Elem
+  private case class Root(name: String) extends Elem
+  private case class Basic(name: String) extends Elem
+  private case class Variable(name: String) extends Elem
   private case object Parent extends Elem
 
   private def err_elem(msg: String, s: String): Nothing =
@@ -30,7 +30,7 @@ object Path
     if (s == "" || s == "~" || s == "~~") err_elem("Illegal", s)
     else {
       "/\\$:\"'".iterator.foreach(c =>
-        if (s.iterator.exists(_ == c))
+        if (s.iterator.contains(c))
           err_elem("Illegal character " + quote(c.toString) + " in", s))
       s
     }
@@ -96,7 +96,7 @@ object Path
       else (List(root_elem(es.head)), es.tail)
     val elems = raw_elems.filterNot(s => s.isEmpty || s == ".").map(explode_elem)
 
-    new Path(norm_elems(elems.reverse ::: roots))
+    new Path(norm_elems(elems reverse_::: roots))
   }
 
   def is_wellformed(str: String): Boolean =
@@ -118,7 +118,7 @@ object Path
 final class Path private(private val elems: List[Path.Elem]) // reversed elements
 {
   def is_current: Boolean = elems.isEmpty
-  def is_absolute: Boolean = !elems.isEmpty && elems.last.isInstanceOf[Path.Root]
+  def is_absolute: Boolean = elems.nonEmpty && elems.last.isInstanceOf[Path.Root]
   def is_basic: Boolean = elems match { case List(Path.Basic(_)) => true case _ => false }
 
   def +(other: Path): Path = new Path((other.elems :\ elems)(Path.apply_elem))
@@ -162,6 +162,12 @@ final class Path private(private val elems: List[Path.Elem]) // reversed element
     prfx + Path.basic(s + "~")
   }
 
+  def backup2: Path =
+  {
+    val (prfx, s) = split_path
+    prfx + Path.basic(s + "~~")
+  }
+
   private val Ext = new Regex("(.*)\\.([^.]*)")
 
   def split_ext: (Path, String) =
@@ -176,12 +182,12 @@ final class Path private(private val elems: List[Path.Elem]) // reversed element
 
   /* expand */
 
-  def expand: Path =
+  def expand_env(env: Map[String, String]): Path =
   {
     def eval(elem: Path.Elem): List[Path.Elem] =
       elem match {
         case Path.Variable(s) =>
-          val path = Path.explode(Isabelle_System.getenv_strict(s))
+          val path = Path.explode(Isabelle_System.getenv_strict(s, env))
           if (path.elems.exists(_.isInstanceOf[Path.Variable]))
             error("Illegal path variable nesting: " + s + "=" + path.toString)
           else path.elems
@@ -191,6 +197,8 @@ final class Path private(private val elems: List[Path.Elem]) // reversed element
     new Path(Path.norm_elems(elems.map(eval).flatten))
   }
 
+  def expand: Path = expand_env(Isabelle_System.settings())
+
 
   /* source position */
 
@@ -199,7 +207,7 @@ final class Path private(private val elems: List[Path.Elem]) // reversed element
 
   /* platform file */
 
-  def file: JFile = Isabelle_System.platform_file(this)
+  def file: JFile = File.platform_file(this)
   def is_file: Boolean = file.isFile
   def is_dir: Boolean = file.isDirectory
 }

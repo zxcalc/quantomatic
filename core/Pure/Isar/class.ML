@@ -12,18 +12,18 @@ sig
   val base_sort: theory -> class -> sort
   val rules: theory -> class -> thm option * thm
   val these_defs: theory -> sort -> thm list
-  val these_operations: theory -> sort
-    -> (string * (class * (typ * term))) list
+  val these_operations: theory -> sort -> (string * (class * ((typ * term) * bool))) list
   val print_classes: Proof.context -> unit
   val init: class -> theory -> Proof.context
   val begin: class list -> sort -> Proof.context -> Proof.context
-  val const: class -> (binding * mixfix) * term -> term list * term list -> local_theory -> local_theory
-  val abbrev: class -> Syntax.mode -> (binding * mixfix) * term -> term -> term list * term list -> local_theory -> local_theory
+  val const: class -> (binding * mixfix) * term -> term list * term list ->
+    local_theory -> local_theory
+  val abbrev: class -> Syntax.mode -> (binding * mixfix) * term -> local_theory ->
+    (term * term) * local_theory
   val redeclare_operations: theory -> sort -> Proof.context -> Proof.context
   val class_prefix: string -> string
-  val register: class -> class list -> ((string * typ) * (string * typ)) list
-    -> sort -> morphism -> morphism -> thm option -> thm option -> thm
-    -> theory -> theory
+  val register: class -> class list -> ((string * typ) * (string * typ)) list ->
+    sort -> morphism -> morphism -> thm option -> thm option -> thm -> theory -> theory
 
   (*instances*)
   val instantiation: string list * (string * sort) list * sort -> theory -> local_theory
@@ -47,8 +47,11 @@ sig
     -> morphism -> local_theory -> local_theory
 
   (*tactics*)
-  val intro_classes_tac: thm list -> tactic
-  val default_intro_tac: Proof.context -> thm list -> tactic
+  val intro_classes_tac: Proof.context -> thm list -> tactic
+  val standard_intro_classes_tac: Proof.context -> thm list -> tactic
+
+  (*diagnostics*)
+  val pretty_specification: theory -> class -> Pretty.T list
 end;
 
 structure Class: CLASS =
@@ -71,7 +74,7 @@ datatype class_data = Class_Data of {
 
   (* dynamic part *)
   defs: thm list,
-  operations: (string * (class * (typ * term))) list
+  operations: (string * (class * ((typ * term) * bool))) list
 
   (* n.b.
     params = logical parameters of class
@@ -157,6 +160,11 @@ fun morphism thy class =
 
 val export_morphism = #export_morph oo the_class_data;
 
+fun pretty_param ctxt (c, ty) =
+  Pretty.block
+   [Name_Space.pretty ctxt (Proof_Context.const_space ctxt) c, Pretty.str " ::",
+    Pretty.brk 1, Syntax.pretty_typ ctxt ty];
+
 fun print_classes ctxt =
   let
     val thy = Proof_Context.theory_of ctxt;
@@ -164,7 +172,6 @@ fun print_classes ctxt =
 
     val class_space = Proof_Context.class_space ctxt;
     val type_space = Proof_Context.type_space ctxt;
-    val const_space = Proof_Context.const_space ctxt;
 
     val arities =
       Symtab.empty
@@ -180,10 +187,7 @@ fun print_classes ctxt =
         val Ss = Sorts.mg_domain algebra tyco [class];
       in Syntax.pretty_arity ctxt (tyco, Ss, [class]) end;
 
-    fun prt_param (c, ty) =
-      Pretty.block
-       [Name_Space.pretty ctxt const_space c, Pretty.str " ::",
-        Pretty.brk 1, Syntax.pretty_typ ctxt (Type.strip_sorts_dummy ty)];
+    fun prt_param (c, ty) = pretty_param ctxt (c, Type.strip_sorts_dummy ty);
 
     fun prt_entry class =
       Pretty.block
@@ -213,10 +217,11 @@ fun register class sups params base_sort base_morph export_morph
     some_axiom some_assm_intro of_class thy =
   let
     val operations = map (fn (v_ty as (_, ty), (c, _)) =>
-      (c, (class, (ty, Free v_ty)))) params;
+      (c, (class, ((ty, Free v_ty), false)))) params;
     val add_class = Graph.new_node (class,
-        make_class_data (((map o pairself) fst params, base_sort,
-          base_morph, export_morph, some_assm_intro, of_class, some_axiom), ([], operations)))
+        make_class_data (((map o apply2) fst params, base_sort,
+          base_morph, export_morph, Option.map Thm.trim_context some_assm_intro,
+          Thm.trim_context of_class, Option.map Thm.trim_context some_axiom), ([], operations)))
       #> fold (curry Graph.add_edge class) sups;
   in Class_Data.map add_class thy end;
 
@@ -227,7 +232,7 @@ fun activate_defs class thms thy =
         (eq_morph, true) (export_morphism thy cls)) thy) (heritage thy [class]) thy
   | NONE => thy);
 
-fun register_operation class (c, t) thy =
+fun register_operation class (c, t) input_only thy =
   let
     val base_sort = base_sort thy class;
     val prep_typ = map_type_tfree
@@ -238,12 +243,12 @@ fun register_operation class (c, t) thy =
   in
     thy
     |> (Class_Data.map o Graph.map_node class o map_class_data o apsnd o apsnd)
-        (cons (c, (class, (ty', t'))))
+        (cons (c, (class, ((ty', t'), input_only))))
   end;
 
 fun register_def class def_thm thy =
   let
-    val sym_thm = Thm.symmetric def_thm
+    val sym_thm = Thm.trim_context (Thm.symmetric def_thm)
   in
     thy
     |> (Class_Data.map o Graph.map_node class o map_class_data o apsnd o apfst)
@@ -256,8 +261,22 @@ fun register_def class def_thm thy =
 
 (* class context syntax *)
 
-fun these_unchecks thy = map (fn (c, (_, (ty, t))) => (t, Const (c, ty)))
-  o these_operations thy;
+fun make_rewrite t c_ty =
+  let
+    val (vs, t') = strip_abs t;
+    val vts = map snd vs
+      |> Name.invent_names Name.context Name.uu
+      |> map (fn (v, T) => Var ((v, 0), T));
+  in (betapplys (t, vts), betapplys (Const c_ty, vts)) end;
+
+fun these_unchecks thy =
+  these_operations thy
+  #> map_filter (fn (c, (_, ((ty, t), input_only))) =>
+    if input_only then NONE else SOME (make_rewrite t (c, ty)));
+
+fun these_unchecks_reversed thy =
+  these_operations thy
+  #> map (fn (c, (_, ((ty, t), _))) => (Const (c, ty), t));
 
 fun redeclare_const thy c =
   let val b = Long_Name.base_name c
@@ -270,9 +289,9 @@ fun synchronize_class_syntax sort base_sort ctxt =
     val operations = these_operations thy sort;
     fun subst_class_typ sort = map_type_tfree (K (TVar ((Name.aT, 0), sort)));
     val primary_constraints =
-      (map o apsnd) (subst_class_typ base_sort o fst o snd) operations;
+      (map o apsnd) (subst_class_typ base_sort o fst o fst o snd) operations;
     val secondary_constraints =
-      (map o apsnd) (fn (class, (ty, _)) => subst_class_typ [class] ty) operations;
+      (map o apsnd) (fn (class, ((ty, _), _)) => subst_class_typ [class] ty) operations;
     fun improve (c, ty) =
       (case AList.lookup (op =) primary_constraints c of
         SOME ty' =>
@@ -286,13 +305,14 @@ fun synchronize_class_syntax sort base_sort ctxt =
               | _ => NONE)
           | NONE => NONE)
       | NONE => NONE);
-    fun subst (c, _) = Option.map snd (AList.lookup (op =) operations c);
+    fun subst (c, _) = Option.map (fst o snd) (AList.lookup (op =) operations c);
     val unchecks = these_unchecks thy sort;
   in
     ctxt
     |> fold (redeclare_const thy o fst) primary_constraints
-    |> Overloading.map_improvable_syntax (K (((primary_constraints, secondary_constraints),
-        (((improve, subst), true), unchecks)), false))
+    |> Overloading.map_improvable_syntax (K {primary_constraints = primary_constraints,
+      secondary_constraints = secondary_constraints, improve = improve, subst = subst,
+      no_subst_in_abbrev_mode = true, unchecks = unchecks})
     |> Overloading.set_primary_constraints
   end;
 
@@ -321,26 +341,28 @@ fun init class thy =
 
 val class_prefix = Logic.const_of_class o Long_Name.base_name;
 
-local
-
 fun guess_morphism_identity (b, rhs) phi1 phi2 =
   let
     (*FIXME proper concept to identify morphism instead of educated guess*)
-    val name_of_binding = Name_Space.full_name Name_Space.default_naming;
+    val name_of_binding = Name_Space.full_name Name_Space.global_naming;
     val n1 = (name_of_binding o Morphism.binding phi1) b;
     val n2 = (name_of_binding o Morphism.binding phi2) b;
     val rhs1 = Morphism.term phi1 rhs;
     val rhs2 = Morphism.term phi2 rhs;
   in n1 = n2 andalso Term.aconv_untyped (rhs1, rhs2) end;
 
-fun target_const class phi0 prmode ((b, _), rhs) =
+fun target_const class phi0 prmode (b, rhs) lthy =
   let
-    val guess_identity = guess_morphism_identity (b, rhs) Morphism.identity;
-    val guess_canonical = guess_morphism_identity (b, rhs) phi0;
+    val export = Variable.export_morphism lthy (Local_Theory.target_of lthy);
+    val guess_identity = guess_morphism_identity (b, rhs) export;
+    val guess_canonical = guess_morphism_identity (b, rhs) (export $> phi0);
   in
-    Generic_Target.locale_target_const class
+    lthy
+    |> Generic_Target.locale_target_const class
       (not o (guess_identity orf guess_canonical)) prmode ((b, NoSyn), rhs)
   end;
+
+local
 
 fun dangling_params_for lthy class (type_params, term_params) =
   let
@@ -371,24 +393,8 @@ fun canonical_const class phi dangling_params ((b, mx), rhs) thy =
     |> snd
     |> global_def (b_def, def_eq)
     |-> (fn def_thm => register_def class def_thm)
-    |> null dangling_params ? register_operation class (c, rhs)
+    |> null dangling_params ? register_operation class (c, rhs) false
     |> Sign.add_const_constraint (c, SOME ty)
-  end;
-
-fun canonical_abbrev class phi prmode dangling_term_params ((b, mx), rhs) thy =
-  let
-    val unchecks = these_unchecks thy [class];
-    val rhs' = Pattern.rewrite_term thy unchecks [] rhs;
-    val c' = Sign.full_name thy b;
-    val ty' = map Term.fastype_of dangling_term_params ---> Term.fastype_of rhs';
-  in
-    thy
-    |> Sign.add_abbrev (#1 prmode) (b, Logic.varify_types_global (fold lambda dangling_term_params rhs'))
-    |> snd
-    |> Sign.notation true prmode [(Const (c', ty'), mx)]
-    |> (null dangling_term_params andalso not (#1 prmode = Print_Mode.input))
-      ? register_operation class (c', rhs')
-    |> Sign.add_const_constraint (c', SOME ty')
   end;
 
 in
@@ -399,7 +405,7 @@ fun const class ((b, mx), lhs) params lthy =
     val dangling_params = map (Morphism.term phi) (uncurry append (dangling_params_for lthy class params));
   in
     lthy
-    |> target_const class phi Syntax.mode_default ((b, mx), lhs)
+    |> target_const class phi Syntax.mode_default (b, lhs)
     |> Local_Theory.raw_theory (canonical_const class phi dangling_params
          ((Morphism.binding phi b, if null dangling_params then mx else NoSyn), Morphism.term phi lhs))
     |> Generic_Target.standard_const (fn (this, other) => other <> 0 andalso this <> other)
@@ -407,18 +413,57 @@ fun const class ((b, mx), lhs) params lthy =
     |> synchronize_class_syntax_target class
   end;
 
-fun abbrev class prmode ((b, mx), lhs) rhs' params lthy =
+end;
+
+local
+
+fun canonical_abbrev class phi prmode with_syntax ((b, mx), rhs) thy =
   let
-    val phi = morphism (Proof_Context.theory_of lthy) class;
-    val dangling_term_params = map (Morphism.term phi) (snd (dangling_params_for lthy class params));
+    val c = Sign.full_name thy b;
+    val constrain = map_atyps (fn T as TFree (v, _) =>
+      if v = Name.aT then TFree (v, [class]) else T | T => T);
+    val rhs' = map_types constrain rhs;
+  in
+    thy
+    |> Sign.add_abbrev (#1 prmode) (b, Logic.varify_types_global rhs')
+    |> snd
+    |> with_syntax ? Sign.notation true prmode [(Const (c, fastype_of rhs), mx)]
+    |> with_syntax ? register_operation class (c, rhs)
+        (#1 prmode = Print_Mode.input)
+    |> Sign.add_const_constraint (c, SOME (fastype_of rhs'))
+  end;
+
+fun canonical_abbrev_target class phi prmode ((b, mx), rhs) lthy =
+  let
+    val thy = Proof_Context.theory_of lthy;
+    val preprocess = perhaps (try (Pattern.rewrite_term_top thy (these_unchecks thy [class]) []));
+    val (global_rhs, (extra_tfrees, (type_params, term_params))) =
+      Generic_Target.export_abbrev lthy preprocess rhs;
+    val mx' = Generic_Target.check_mixfix_global (b, null term_params) mx;
   in
     lthy
-    |> target_const class phi prmode ((b, mx), lhs)
-    |> Local_Theory.raw_theory (canonical_abbrev class phi prmode dangling_term_params
-         ((Morphism.binding phi b, if null dangling_term_params then mx else NoSyn), rhs'))
-    |> Generic_Target.standard_const (fn (this, other) => other <> 0 andalso this <> other)
-         prmode ((b, if null dangling_term_params then NoSyn else mx), lhs)
-    |> synchronize_class_syntax_target class
+    |> Local_Theory.raw_theory (canonical_abbrev class phi prmode (null term_params)
+        ((Morphism.binding phi b, mx'), Logic.unvarify_types_global global_rhs))
+  end;
+
+fun further_abbrev_target class phi prmode (b, mx) rhs params =
+  Generic_Target.background_abbrev (b, rhs) (snd params)
+  #-> (fn (lhs, _) => target_const class phi prmode (b, lhs)
+    #> Generic_Target.standard_const (fn (this, other) => other <> 0 andalso this <> other) prmode ((b, mx), lhs))
+
+in
+
+fun abbrev class prmode ((b, mx), rhs) lthy =
+  let
+    val thy = Proof_Context.theory_of lthy;
+    val phi = morphism thy class;
+    val rhs_generic =
+      perhaps (try (Pattern.rewrite_term_top thy (these_unchecks_reversed thy [class]) [])) rhs;
+  in
+    lthy
+    |> canonical_abbrev_target class phi prmode ((b, mx), rhs)
+    |> Generic_Target.abbrev (further_abbrev_target class phi) prmode ((b, mx), rhs_generic)
+    ||> synchronize_class_syntax_target class
   end;
 
 end;
@@ -434,7 +479,7 @@ fun register_subclass (sub, sup) some_dep_morph some_witn export lthy =
         (fst o rules thy) sub];
     val classrel =
       Goal.prove_sorry_global thy [] [] (Logic.mk_classrel (sub, sup))
-        (K (EVERY (map (TRYALL o rtac) intros)));
+        (fn {context = ctxt, ...} => EVERY (map (TRYALL o resolve_tac ctxt o single) intros));
     val diff_sort = Sign.complete_sort thy [sup]
       |> subtract (op =) (Sign.complete_sort thy [sub])
       |> filter (is_class thy);
@@ -484,21 +529,23 @@ datatype instantiation = Instantiation of {
     (*(instantiation parameter, type constructor), (local instantiation parameter, typ)*)
 }
 
+fun make_instantiation (arities, params) =
+  Instantiation {arities = arities, params = params};
+
+val empty_instantiation = make_instantiation (([], [], []), []);
+
 structure Instantiation = Proof_Data
 (
   type T = instantiation;
-  fun init _ = Instantiation {arities = ([], [], []), params = []};
+  fun init _ = empty_instantiation;
 );
-
-fun mk_instantiation (arities, params) =
-  Instantiation {arities = arities, params = params};
 
 val get_instantiation =
   (fn Instantiation data => data) o Instantiation.get o Local_Theory.target_of;
 
 fun map_instantiation f =
   (Local_Theory.target o Instantiation.map)
-    (fn Instantiation {arities, params} => mk_instantiation (f (arities, params)));
+    (fn Instantiation {arities, params} => make_instantiation (f (arities, params)));
 
 fun the_instantiation lthy =
   (case get_instantiation lthy of
@@ -538,9 +585,10 @@ fun synchronize_inst_syntax ctxt =
       map (fn ((c, _), v_ty as (_, ty)) => (Free v_ty, Const (c, ty))) params;
   in
     ctxt
-    |> Overloading.map_improvable_syntax
-      (fn (((primary_constraints, _), (((improve, _), _), _)), _) =>
-          (((primary_constraints, []), (((improve, subst), false), unchecks)), false))
+    |> Overloading.map_improvable_syntax (fn {primary_constraints, improve, ...} =>
+      {primary_constraints = primary_constraints, secondary_constraints = [],
+        improve = improve, subst = subst, no_subst_in_abbrev_mode = false,
+        unchecks = unchecks})
   end;
 
 fun resort_terms ctxt algebra consts constraints ts =
@@ -552,7 +600,7 @@ fun resort_terms ctxt algebra consts constraints ts =
               fold2 (curry (Sorts.meet_sort algebra)) (Consts.typargs consts c_ty) sorts)
       | matchings _ = I;
     val tvartab = (fold o fold_aterms) matchings ts Vartab.empty
-      handle Sorts.CLASS_ERROR e => error (Sorts.class_error (Context.pretty ctxt) e);
+      handle Sorts.CLASS_ERROR e => error (Sorts.class_error (Context.Proof ctxt) e);
     val inst = map_type_tvar
       (fn (vi, sort) => TVar (vi, the_default sort (Vartab.lookup tvartab vi)));
   in if Vartab.is_empty tvartab then ts else (map o map_types) inst ts end;
@@ -560,18 +608,30 @@ fun resort_terms ctxt algebra consts constraints ts =
 
 (* target *)
 
-fun define_overloaded (c, U) v (b_def, rhs) =
-  Local_Theory.background_theory_result (Axclass.declare_overloaded (c, U)
-  ##>> Axclass.define_overloaded b_def (c, rhs))
-  ##> (map_instantiation o apsnd) (filter_out (fn (_, (v', _)) => v' = v))
-  ##> Local_Theory.map_contexts (K synchronize_inst_syntax);
+fun define_overloaded (c, U) b (b_def, rhs) lthy =
+  let
+    val name = Binding.name_of b;
+    val pos = Binding.pos_of b;
+    val _ =
+      if Context_Position.is_reported lthy pos then
+        Position.report_text pos Markup.class_parameter
+          (Pretty.string_of
+            (Pretty.block [Pretty.keyword1 "class", Pretty.brk 1,
+                Pretty.str "parameter", Pretty.brk 1, pretty_param lthy (c, U)]))
+      else ();
+  in
+    lthy |> Local_Theory.background_theory_result
+      (Axclass.declare_overloaded (c, U) ##>> Axclass.define_overloaded b_def (c, rhs))
+    ||> (map_instantiation o apsnd) (filter_out (fn (_, (v', _)) => v' = name))
+    ||> Local_Theory.map_contexts (K synchronize_inst_syntax)
+  end;
 
 fun foundation (((b, U), mx), (b_def, rhs)) params lthy =
   (case instantiation_param lthy b of
     SOME c =>
-      if mx <> NoSyn then error ("Illegal mixfix syntax for overloaded constant " ^ quote c)
-      else lthy |> define_overloaded (c, U) (Binding.name_of b) (b_def, rhs)
-  | NONE => lthy |> Generic_Target.theory_foundation (((b, U), mx), (b_def, rhs)) params);
+      if Mixfix.is_empty mx then lthy |> define_overloaded (c, U) b (b_def, rhs)
+      else error ("Illegal mixfix syntax for overloaded constant " ^ quote c)
+  | NONE => lthy |> Generic_Target.theory_target_foundation (((b, U), mx), (b_def, rhs)) params);
 
 fun pretty lthy =
   let
@@ -581,7 +641,10 @@ fun pretty lthy =
       Pretty.block (Pretty.breaks
         [Pretty.str v, Pretty.str "==", Proof_Context.pretty_const lthy c,
           Pretty.str "::", Syntax.pretty_typ lthy ty]);
-  in Pretty.keyword1 "instantiation" :: map pr_arity tycos @ map pr_param params end;
+  in
+    [Pretty.block
+      (Pretty.fbreaks (Pretty.keyword1 "instantiation" :: map pr_arity tycos @ map pr_param params))]
+  end;
 
 fun conclude lthy =
   let
@@ -594,8 +657,6 @@ fun conclude lthy =
 
 fun instantiation (tycos, vs, sort) thy =
   let
-    val naming = Sign.naming_of thy;
-
     val _ = if null tycos then error "At least one arity must be given" else ();
     val class_params = these_params thy (filter (can (Axclass.get_info thy)) sort);
     fun get_param tyco (param, (_, (c, ty))) =
@@ -609,7 +670,7 @@ fun instantiation (tycos, vs, sort) thy =
     val primary_constraints = map (apsnd
       (map_atyps (K (TVar ((Name.aT, 0), [])))) o snd o snd) class_params;
     val algebra = Sign.classes_of thy
-      |> fold (fn tyco => Sorts.add_arities (Context.pretty_global thy)
+      |> fold (fn tyco => Sorts.add_arities (Context.Theory thy)
             (tyco, map (fn class => (class, map snd vs)) sort)) tycos;
     val consts = Sign.consts_of thy;
     val improve_constraints = AList.lookup (op =)
@@ -624,20 +685,22 @@ fun instantiation (tycos, vs, sort) thy =
     thy
     |> Sign.change_begin
     |> Proof_Context.init_global
-    |> Instantiation.put (mk_instantiation ((tycos, vs, sort), params))
+    |> Instantiation.put (make_instantiation ((tycos, vs, sort), params))
     |> fold (Variable.declare_typ o TFree) vs
     |> fold (Variable.declare_names o Free o snd) params
-    |> (Overloading.map_improvable_syntax o apfst)
-         (K ((primary_constraints, []), (((improve, K NONE), false), [])))
+    |> (Overloading.map_improvable_syntax) (K {primary_constraints = primary_constraints,
+      secondary_constraints = [], improve = improve, subst = K NONE,
+      no_subst_in_abbrev_mode = false, unchecks = []})
     |> Overloading.activate_improvable_syntax
     |> Context.proof_map (Syntax_Phases.term_check 0 "resorting" resort_check)
     |> synchronize_inst_syntax
-    |> Local_Theory.init naming
+    |> Local_Theory.init (Sign.naming_of thy)
        {define = Generic_Target.define foundation,
-        notes = Generic_Target.notes Generic_Target.theory_notes,
-        abbrev = Generic_Target.abbrev Generic_Target.theory_abbrev,
+        notes = Generic_Target.notes Generic_Target.theory_target_notes,
+        abbrev = Generic_Target.abbrev Generic_Target.theory_target_abbrev,
         declaration = K Generic_Target.theory_declaration,
-        subscription = Generic_Target.theory_registration,
+        theory_registration = Generic_Target.theory_registration,
+        locale_dependency = fn _ => error "Not possible in instantiation target",
         pretty = pretty,
         exit = conclude #> Local_Theory.target_of #> Sign.change_end_local}
   end;
@@ -695,33 +758,63 @@ fun instance_arity_cmd raw_arities thy =
   end;
 
 
+
 (** tactics and methods **)
 
-fun intro_classes_tac facts st =
+fun intro_classes_tac ctxt facts st =
   let
-    val thy = Thm.theory_of_thm st;
+    val thy = Proof_Context.theory_of ctxt;
     val classes = Sign.all_classes thy;
     val class_trivs = map (Thm.class_triv thy) classes;
     val class_intros = map_filter (try (#intro o Axclass.get_info thy)) classes;
     val assm_intros = all_assm_intros thy;
   in
-    Method.intros_tac (class_trivs @ class_intros @ assm_intros) facts st
+    Method.intros_tac ctxt (class_trivs @ class_intros @ assm_intros) facts st
   end;
 
-fun default_intro_tac ctxt [] =
-      COND Thm.no_prems no_tac
-        (intro_classes_tac [] ORELSE Locale.intro_locales_tac true ctxt [])
-  | default_intro_tac _ _ = no_tac;
+fun standard_intro_classes_tac ctxt facts st =
+  if null facts andalso not (Thm.no_prems st) then
+    (intro_classes_tac ctxt [] ORELSE Locale.intro_locales_tac true ctxt []) st
+  else no_tac st;
 
-fun default_tac rules ctxt facts =
-  HEADGOAL (Method.some_rule_tac ctxt rules facts) ORELSE
-    default_intro_tac ctxt facts;
+fun standard_tac ctxt facts =
+  HEADGOAL (Method.some_rule_tac ctxt [] facts) ORELSE
+  standard_intro_classes_tac ctxt facts;
 
 val _ = Theory.setup
- (Method.setup @{binding intro_classes} (Scan.succeed (K (METHOD intro_classes_tac)))
+ (Method.setup @{binding intro_classes} (Scan.succeed (METHOD o intro_classes_tac))
     "back-chain introduction rules of classes" #>
-  Method.setup @{binding default} (Attrib.thms >> (METHOD oo default_tac))
-    "apply some intro/elim rule");
+  Method.setup @{binding standard} (Scan.succeed (METHOD o standard_tac))
+    "standard proof step: Pure intro/elim rule or class introduction");
+
+
+
+(** diagnostics **)
+
+fun pretty_specification thy class =
+  if is_class thy class then
+    let
+      val class_ctxt = init class thy;
+      val prt_class = Name_Space.pretty class_ctxt (Proof_Context.class_space class_ctxt);
+
+      val super_classes = Sign.minimize_sort thy (Sign.super_classes thy class);
+
+      val fix_args =
+        #params (Axclass.get_info thy class)
+        |> map (fn (c, T) => (Binding.name (Long_Name.base_name c), SOME T, NoSyn));
+      val fixes = if null fix_args then [] else [Element.Fixes fix_args];
+      val assumes = Locale.hyp_spec_of thy class;
+
+      val header =
+        [Pretty.keyword1 "class", Pretty.brk 1, prt_class class, Pretty.str " =", Pretty.brk 1] @
+        Pretty.separate " +" (map prt_class super_classes) @
+        (if null super_classes then [] else [Pretty.str " +"]);
+      val body =
+        if null fixes andalso null assumes then []
+        else
+          maps (Element.pretty_ctxt_no_attribs class_ctxt) (fixes @ assumes)
+          |> maps (fn prt => [Pretty.fbrk, prt]);
+    in if null body then [] else [Pretty.block (header @ body)] end
+  else [];
 
 end;
-

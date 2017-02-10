@@ -1,4 +1,4 @@
-/*  Title:      Pure/System/interrupt.scala
+/*  Title:      Pure/System/posix_interrupt.scala
     Author:     Makarius
 
 Support for POSIX interrupts (bypassed on Windows).

@@ -6,8 +6,12 @@ Primitive definition forms.
 
 signature PRIMITIVE_DEFS =
 sig
-  val dest_def: Proof.context -> (term -> bool) -> (string -> bool) -> (string -> bool) ->
-    term -> (term * term) * term
+  val dest_def: Proof.context ->
+    {check_head: term -> bool,
+     check_free_lhs: string -> bool,
+     check_free_rhs: string -> bool,
+     check_tfree: string -> bool} ->
+    term -> (term * term) * term list * term
   val abs_def: term -> term * term
 end;
 
@@ -20,7 +24,7 @@ fun term_kind (Const _) = "existing constant "
   | term_kind _ = "";
 
 (*c x == t[x] to !!x. c x == t[x]*)
-fun dest_def ctxt check_head is_fixed is_fixedT eq =
+fun dest_def ctxt {check_head, check_free_lhs, check_free_rhs, check_tfree} eq =
   let
     fun err msg = raise TERM (msg, [eq]);
     val eq_vars = Term.strip_all_vars eq;
@@ -36,7 +40,7 @@ fun dest_def ctxt check_head is_fixed is_fixedT eq =
     val head_tfrees = Term.add_tfrees head [];
 
     fun check_arg (Bound _) = true
-      | check_arg (Free (x, _)) = not (is_fixed x)
+      | check_arg (Free (x, _)) = check_free_lhs x
       | check_arg (Const ("Pure.type", Type ("itself", [TFree _]))) = true
       | check_arg _ = false;
     fun close_arg (Bound _) t = t
@@ -45,10 +49,10 @@ fun dest_def ctxt check_head is_fixed is_fixedT eq =
     val lhs_bads = filter_out check_arg args;
     val lhs_dups = duplicates (op aconv) args;
     val rhs_extras = Term.fold_aterms (fn v as Free (x, _) =>
-      if is_fixed x orelse member (op aconv) args v then I
+      if check_free_rhs x orelse member (op aconv) args v then I
       else insert (op aconv) v | _ => I) rhs [];
     val rhs_extrasT = Term.fold_aterms (Term.fold_types (fn v as TFree (a, S) =>
-      if is_fixedT a orelse member (op =) head_tfrees (a, S) then I
+      if check_tfree a orelse member (op =) head_tfrees (a, S) then I
       else insert (op =) v | _ => I)) rhs [];
   in
     if not (check_head head) then
@@ -64,7 +68,8 @@ fun dest_def ctxt check_head is_fixed is_fixedT eq =
     else if exists_subterm (fn t => t aconv head) rhs then
       err "Entity to be defined occurs on rhs"
     else
-      ((lhs, rhs), fold_rev close_arg args (Logic.list_all (eq_vars, (Logic.mk_equals (lhs, rhs)))))
+      ((lhs, rhs), args,
+        fold_rev close_arg args (Logic.list_all (eq_vars, (Logic.mk_equals (lhs, rhs)))))
   end;
 
 (*!!x. c x == t[x] to c == %x. t[x]*)

@@ -5,7 +5,22 @@
 Railroad diagrams in LaTeX.
 *)
 
-structure Rail: sig end =
+signature RAIL =
+sig
+  datatype rails =
+    Cat of int * rail list
+  and rail =
+    Bar of rails list |
+    Plus of rails * rails |
+    Newline of int |
+    Nonterminal of string |
+    Terminal of bool * string |
+    Antiquote of bool * Antiquote.antiq
+  val read: Proof.context -> Input.source -> (string Antiquote.antiquote * rail) list
+  val output_rules: Toplevel.state -> (string Antiquote.antiquote * rail) list -> string
+end;
+
+structure Rail: RAIL =
 struct
 
 (** lexical syntax **)
@@ -36,6 +51,11 @@ datatype token = Token of Position.range * (kind * string);
 fun pos_of (Token ((pos, _), _)) = pos;
 fun end_pos_of (Token ((_, pos), _)) = pos;
 
+fun range_of (toks as tok :: _) =
+      let val pos' = end_pos_of (List.last toks)
+      in Position.range (pos_of tok, pos') end
+  | range_of [] = Position.no_range;
+
 fun kind_of (Token (_, (k, _))) = k;
 fun content_of (Token (_, (_, x))) = x;
 
@@ -58,7 +78,7 @@ fun print_keyword x = print_kind Keyword ^ " " ^ quote x;
 fun reports_of_token (Token ((pos, _), (String, _))) = [(pos, Markup.inner_string)]
   | reports_of_token (Token ((pos, _), (Keyword, x))) =
       map (pair pos) (the_list (Symtab.lookup keywords x) @ Completion.suppress_abbrevs x)
-  | reports_of_token (Token (_, (Antiq antiq, _))) = Antiquote.antiq_reports antiq
+  | reports_of_token (Token (_, (Antiq antiq, _))) = Antiquote.antiq_reports [Antiquote.Antiq antiq]
   | reports_of_token _ = [];
 
 
@@ -80,6 +100,9 @@ local
 
 fun token k ss = [Token (Symbol_Pos.range ss, (k, Symbol_Pos.content ss))];
 
+fun antiq_token antiq =
+  [Token (#range antiq, (Antiq antiq, Symbol_Pos.content (#body antiq)))];
+
 val scan_space = Scan.many1 (Symbol.is_blank o Symbol_Pos.symbol);
 
 val scan_keyword =
@@ -89,14 +112,14 @@ val err_prefix = "Rail lexical error: ";
 
 val scan_token =
   scan_space >> K [] ||
-  Antiquote.scan_antiq >> (fn antiq as (ss, _) => token (Antiq antiq) ss) ||
+  Antiquote.scan_antiq >> antiq_token ||
   scan_keyword >> (token Keyword o single) ||
   Lexicon.scan_id >> token Ident ||
   Symbol_Pos.scan_string_q err_prefix >> (fn (pos1, (ss, pos2)) =>
-    [Token (Position.range pos1 pos2, (String, Symbol_Pos.content ss))]);
+    [Token (Position.range (pos1, pos2), (String, Symbol_Pos.content ss))]);
 
 val scan =
-  (Scan.repeat scan_token >> flat) --|
+  Scan.repeats scan_token --|
     Symbol_Pos.!!! (fn () => err_prefix ^ "bad input")
       (Scan.ahead (Scan.one Symbol_Pos.is_eof));
 
@@ -109,6 +132,8 @@ end;
 
 
 (** parsing **)
+
+(* parser combinators *)
 
 fun !!! scan =
   let
@@ -140,6 +165,78 @@ val string = Scan.some (fn tok => if kind_of tok = String then SOME (content_of 
 
 val antiq = Scan.some (fn tok => (case kind_of tok of Antiq a => SOME a | _ => NONE));
 
+fun RANGE scan = Scan.trace scan >> apsnd range_of;
+fun RANGE_APP scan = RANGE scan >> (fn (f, r) => f r);
+
+
+(* parse trees *)
+
+datatype trees =
+  CAT of tree list * Position.range
+and tree =
+  BAR of trees list * Position.range |
+  STAR of (trees * trees) * Position.range |
+  PLUS of (trees * trees) * Position.range |
+  MAYBE of tree * Position.range |
+  NEWLINE of Position.range |
+  NONTERMINAL of string * Position.range |
+  TERMINAL of (bool * string) * Position.range |
+  ANTIQUOTE of (bool * Antiquote.antiq) * Position.range;
+
+fun reports_of_tree ctxt =
+  if Context_Position.is_visible ctxt then
+    let
+      fun reports r =
+        if r = Position.no_range then []
+        else [(Position.range_position r, Markup.expression "")];
+      fun trees (CAT (ts, r)) = reports r @ maps tree ts
+      and tree (BAR (Ts, r)) = reports r @ maps trees Ts
+        | tree (STAR ((T1, T2), r)) = reports r @ trees T1 @ trees T2
+        | tree (PLUS ((T1, T2), r)) = reports r @ trees T1 @ trees T2
+        | tree (MAYBE (t, r)) = reports r @ tree t
+        | tree (NEWLINE r) = reports r
+        | tree (NONTERMINAL (_, r)) = reports r
+        | tree (TERMINAL (_, r)) = reports r
+        | tree (ANTIQUOTE (_, r)) = reports r;
+    in distinct (op =) o tree end
+  else K [];
+
+local
+
+val at_mode = Scan.option ($$$ "@") >> (fn NONE => false | _ => true);
+
+fun body x = (RANGE (enum1 "|" body1) >> BAR) x
+and body0 x = (RANGE (enum "|" body1) >> BAR) x
+and body1 x =
+ (RANGE_APP (body2 :|-- (fn a =>
+   $$$ "*" |-- !!! body4e >> (fn b => fn r => CAT ([STAR ((a, b), r)], r)) ||
+   $$$ "+" |-- !!! body4e >> (fn b => fn r => CAT ([PLUS ((a, b), r)], r)) ||
+   Scan.succeed (K a)))) x
+and body2 x = (RANGE (Scan.repeat1 body3) >> CAT) x
+and body3 x =
+ (RANGE_APP (body4 :|-- (fn a =>
+   $$$ "?" >> K (curry MAYBE a) ||
+   Scan.succeed (K a)))) x
+and body4 x =
+ ($$$ "(" |-- !!! (body0 --| $$$ ")") ||
+  RANGE_APP
+   ($$$ "\<newline>" >> K NEWLINE ||
+    ident >> curry NONTERMINAL ||
+    at_mode -- string >> curry TERMINAL ||
+    at_mode -- antiq >> curry ANTIQUOTE)) x
+and body4e x =
+  (RANGE (Scan.option body4) >> (fn (a, r) => CAT (the_list a, r))) x;
+
+val rule_name = ident >> Antiquote.Text || antiq >> Antiquote.Antiq;
+val rule = rule_name -- ($$$ ":" |-- !!! body) || body >> pair (Antiquote.Text "");
+val rules = enum1 ";" (Scan.option rule) >> map_filter I;
+
+in
+
+fun parse_rules toks =
+  #1 (Scan.error (Scan.finite stopper (rules --| !!! (Scan.ahead (Scan.one is_eof)))) toks);
+
+end;
 
 
 (** rail expressions **)
@@ -156,68 +253,57 @@ and rail =
   Terminal of bool * string |
   Antiquote of bool * Antiquote.antiq;
 
-fun reverse_cat (Cat (y, rails)) = Cat (y, rev (map reverse rails))
-and reverse (Bar cats) = Bar (map reverse_cat cats)
-  | reverse (Plus (cat1, cat2)) = Plus (reverse_cat cat1, reverse_cat cat2)
-  | reverse x = x;
+fun is_newline (Newline _) = true | is_newline _ = false;
+
+
+(* prepare *)
+
+local
 
 fun cat rails = Cat (0, rails);
 
 val empty = cat [];
 fun is_empty (Cat (_, [])) = true | is_empty _ = false;
 
-fun is_newline (Newline _) = true | is_newline _ = false;
-
 fun bar [Cat (_, [rail])] = rail
   | bar cats = Bar cats;
 
-fun plus cat1 cat2 = Plus (cat1, reverse_cat cat2);
+fun reverse_cat (Cat (y, rails)) = Cat (y, rev (map reverse rails))
+and reverse (Bar cats) = Bar (map reverse_cat cats)
+  | reverse (Plus (cat1, cat2)) = Plus (reverse_cat cat1, reverse_cat cat2)
+  | reverse x = x;
 
-fun star cat1 cat2 =
-  if is_empty cat2 then plus empty cat1
-  else bar [empty, cat [plus cat1 cat2]];
+fun plus (cat1, cat2) = Plus (cat1, reverse_cat cat2);
 
-fun maybe rail = bar [empty, cat [rail]];
+in
+
+fun prepare_trees (CAT (ts, _)) = Cat (0, map prepare_tree ts)
+and prepare_tree (BAR (Ts, _)) = bar (map prepare_trees Ts)
+  | prepare_tree (STAR (Ts, _)) =
+      let val (cat1, cat2) = apply2 prepare_trees Ts in
+        if is_empty cat2 then plus (empty, cat1)
+        else bar [empty, cat [plus (cat1, cat2)]]
+      end
+  | prepare_tree (PLUS (Ts, _)) = plus (apply2 prepare_trees Ts)
+  | prepare_tree (MAYBE (t, _)) = bar [empty, cat [prepare_tree t]]
+  | prepare_tree (NEWLINE _) = Newline 0
+  | prepare_tree (NONTERMINAL (a, _)) = Nonterminal a
+  | prepare_tree (TERMINAL (a, _)) = Terminal a
+  | prepare_tree (ANTIQUOTE (a, _)) = Antiquote a;
+
+end;
 
 
 (* read *)
 
-local
-
-val at_mode = Scan.option ($$$ "@") >> (fn NONE => false | _ => true);
-
-fun body x = (enum1 "|" body1 >> bar) x
-and body0 x = (enum "|" body1 >> bar) x
-and body1 x =
- (body2 :|-- (fn a =>
-   $$$ "*" |-- !!! body4e >> (cat o single o star a) ||
-   $$$ "+" |-- !!! body4e >> (cat o single o plus a) ||
-   Scan.succeed a)) x
-and body2 x = (Scan.repeat1 body3 >> cat) x
-and body3 x = (body4 :|-- (fn a => $$$ "?" >> K (maybe a) || Scan.succeed a)) x
-and body4 x =
- ($$$ "(" |-- !!! (body0 --| $$$ ")") ||
-  $$$ "\<newline>" >> K (Newline 0) ||
-  ident >> Nonterminal ||
-  at_mode -- string >> Terminal ||
-  at_mode -- antiq >> Antiquote) x
-and body4e x = (Scan.option body4 >> (cat o the_list)) x;
-
-val rule_name = ident >> Antiquote.Text || antiq >> Antiquote.Antiq;
-val rule = rule_name -- ($$$ ":" |-- !!! body) || body >> pair (Antiquote.Text "");
-val rules = enum1 ";" (Scan.option rule) >> map_filter I;
-
-in
-
-fun read ctxt (source: Symbol_Pos.source) =
+fun read ctxt source =
   let
-    val {text, pos, ...} = source;
-    val _ = Context_Position.report ctxt pos Markup.language_rail;
-    val toks = tokenize (Symbol_Pos.explode (text, pos));
+    val _ = Context_Position.report ctxt (Input.pos_of source) Markup.language_rail;
+    val toks = tokenize (Input.source_explode source);
     val _ = Context_Position.reports ctxt (maps reports_of_token toks);
-  in #1 (Scan.error (Scan.finite stopper (rules --| !!! (Scan.ahead (Scan.one is_eof)))) toks) end;
-
-end;
+    val rules = parse_rules toks;
+    val _ = Position.reports (maps (reports_of_tree ctxt o #2) rules);
+  in map (apsnd prepare_tree) rules end;
 
 
 (* latex output *)
@@ -242,9 +328,11 @@ and vertical_range (Bar cats) y =
   | vertical_range (Newline _) y = (Newline (y + 2), y + 3)
   | vertical_range atom y = (atom, y + 1);
 
+in
+
 fun output_rules state rules =
   let
-    val output_antiq = Thy_Output.eval_antiq (#1 (Keyword.get_lexicons ())) state;
+    val output_antiq = Thy_Output.eval_antiquote state o Antiquote.Antiq;
     fun output_text b s =
       Output.output s
       |> b ? enclose "\\isakeyword{" "}"
@@ -283,20 +371,12 @@ fun output_rules state rules =
         output "" rail' ^
         "\\rail@end\n"
       end;
-  in
-    "\\begin{railoutput}\n" ^
-    implode (map output_rule rules) ^
-    "\\end{railoutput}\n"
-  end;
-
-in
+  in Latex.environment "railoutput" (implode (map output_rule rules)) end;
 
 val _ = Theory.setup
-  (Thy_Output.antiquotation @{binding rail}
-    (Scan.lift (Parse.source_position (Parse.string || Parse.cartouche)))
+  (Thy_Output.antiquotation @{binding rail} (Scan.lift Args.text_input)
     (fn {state, context, ...} => output_rules state o read context));
 
 end;
 
 end;
-

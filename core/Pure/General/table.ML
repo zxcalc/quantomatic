@@ -56,7 +56,8 @@ sig
   val dest_list: 'a list table -> (key * 'a) list
   val merge_list: ('a * 'a -> bool) -> 'a list table * 'a list table -> 'a list table
   type set = unit table
-  val make_set: key list -> set                                        (*exception DUP*)
+  val insert_set: key -> set -> set
+  val make_set: key list -> set
 end;
 
 functor Table(Key: KEY): TABLE =
@@ -405,16 +406,19 @@ fun merge_list eq = join (fn _ => Library.merge eq);
 
 type set = unit table;
 
-fun make_set entries = fold (fn x => update_new (x, ())) entries empty;
+fun insert_set x = update (x, ());
+fun make_set entries = fold insert_set entries empty;
 
 
 (* ML pretty-printing *)
 
 val _ =
-  PolyML.addPrettyPrinter (fn depth => fn pretty => fn tab =>
-    ml_pretty
+  ML_system_pp (fn depth => fn pretty => fn tab =>
+    ML_Pretty.to_polyml
       (ML_Pretty.enum "," "{" "}"
-        (ML_Pretty.pair (pretty_ml o PolyML.prettyRepresentation) (pretty_ml o pretty))
+        (ML_Pretty.pair
+          (ML_Pretty.from_polyml o ML_system_pretty)
+          (ML_Pretty.from_polyml o pretty))
         (dest tab, depth)));
 
 

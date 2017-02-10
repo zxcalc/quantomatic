@@ -1,5 +1,4 @@
 /*  Title:      Pure/General/multi_map.scala
-    Module:     PIDE
     Author:     Makarius
 
 Maps with multiple entries per key.
@@ -8,6 +7,7 @@ Maps with multiple entries per key.
 package isabelle
 
 
+import scala.collection.GenTraversableOnce
 import scala.collection.generic.{ImmutableMapFactory, CanBuildFrom}
 
 
@@ -21,7 +21,7 @@ object Multi_Map extends ImmutableMapFactory[Multi_Map]
 }
 
 
-final class Multi_Map[A, +B] private(rep: Map[A, List[B]])
+final class Multi_Map[A, +B] private(protected val rep: Map[A, List[B]])
   extends scala.collection.immutable.Map[A, B]
   with scala.collection.immutable.MapLike[A, B, Multi_Map[A, B]]
 {
@@ -50,6 +50,14 @@ final class Multi_Map[A, +B] private(rep: Map[A, List[B]])
     else this
   }
 
+  def ++[B1 >: B] (other: Multi_Map[A, B1]): Multi_Map[A, B1] =
+    if (this eq other) this
+    else if (isEmpty) other
+    else
+      (this.asInstanceOf[Multi_Map[A, B1]] /: other.rep.iterator) {
+        case (m1, (a, bs)) => (bs :\ m1) { case (b, m2) => m2.insert(a, b) }
+      }
+
 
   /* Map operations */
 
@@ -66,6 +74,9 @@ final class Multi_Map[A, +B] private(rep: Map[A, List[B]])
   def get(a: A): Option[B] = get_list(a).headOption
 
   def + [B1 >: B](p: (A, B1)): Multi_Map[A, B1] = insert(p._1, p._2)
+
+  override def ++ [B1 >: B](entries: GenTraversableOnce[(A, B1)]): Multi_Map[A, B1] =
+    (this.asInstanceOf[Multi_Map[A, B1]] /: entries)(_ + _)
 
   def - (a: A): Multi_Map[A, B] =
     if (rep.isDefinedAt(a)) new Multi_Map(rep - a) else this

@@ -32,23 +32,23 @@ fun var name = Var
 fun peek (Var {var, ...}) = SingleAssignment.savalue var;
 
 fun await (v as Var {name, lock, cond, ...}) =
-  Simple_Thread.synchronized name lock (fn () =>
+  Multithreading.synchronized name lock (fn () =>
     let
       fun wait () =
         (case peek v of
           NONE =>
-            (case Multithreading.sync_wait NONE NONE cond lock of
+            (case Multithreading.sync_wait NONE cond lock of
               Exn.Res _ => wait ()
-            | Exn.Exn exn => reraise exn)
+            | Exn.Exn exn => Exn.reraise exn)
         | SOME x => x);
     in wait () end);
 
 fun assign (v as Var {name, lock, cond, var}) x =
-  Simple_Thread.synchronized name lock (fn () =>
+  Multithreading.synchronized name lock (fn () =>
     (case peek v of
       SOME _ => raise Fail ("Duplicate assignment to " ^ name)
     | NONE =>
-        uninterruptible (fn _ => fn () =>
+        Thread_Attributes.uninterruptible (fn _ => fn () =>
          (SingleAssignment.saset (var, x); ConditionVar.broadcast cond)) ()));
 
 end;

@@ -14,12 +14,12 @@ structure Command_Line: COMMAND_LINE =
 struct
 
 fun tool body =
-  uninterruptible (fn restore_attributes => fn () =>
+  Thread_Attributes.uninterruptible (fn restore_attributes => fn () =>
     let
       val rc =
         restore_attributes body () handle exn =>
           Exn.capture_exit 2 (fn () => (Runtime.exn_error_message exn; raise exn)) ();
-    in if rc = 0 then () else exit rc end) ();
+    in exit rc end) ();
 
 fun tool0 body = tool (fn () => (body (); 0));
 

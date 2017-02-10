@@ -16,7 +16,8 @@ sig
   val paramify_vars: typ -> typ
   val deref: typ Vartab.table -> typ -> typ
   val finish: Proof.context -> typ Vartab.table -> typ list * term list -> typ list * term list
-  val fixate: Proof.context -> term list -> term list
+  val object_logic: bool Config.T
+  val fixate: Proof.context -> bool -> term list -> term list
 end;
 
 structure Type_Infer: TYPE_INFER =
@@ -99,14 +100,22 @@ fun finish ctxt tye (Ts, ts) =
 
 (* fixate -- introduce fresh type variables *)
 
-fun fixate ctxt ts =
+val object_logic =
+  Config.bool (Config.declare ("Type_Infer.object_logic", @{here}) (K (Config.Bool true)));
+
+fun fixate ctxt pattern ts =
   let
+    val base_sort = Object_Logic.get_base_sort ctxt;
+    val improve_sort =
+      if is_some base_sort andalso not pattern andalso Config.get ctxt object_logic
+      then fn [] => the base_sort | S => S else I;
+
     fun subst_param (xi, S) (inst, used) =
       if is_param xi then
         let
           val [a] = Name.invent used Name.aT 1;
           val used' = Name.declare a used;
-        in (((xi, S), TFree (a, S)) :: inst, used') end
+        in (((xi, S), TFree (a, improve_sort S)) :: inst, used') end
       else (inst, used);
     val used = (fold o fold_types) Term.declare_typ_names ts (Variable.names_of ctxt);
     val (inst, _) = fold_rev subst_param (fold Term.add_tvars ts []) ([], used);

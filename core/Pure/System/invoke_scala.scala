@@ -8,7 +8,6 @@ package isabelle
 
 
 import java.lang.reflect.{Method, Modifier, InvocationTargetException}
-import java.util.concurrent.{Future => JFuture}
 
 import scala.util.matching.Regex
 
@@ -72,7 +71,7 @@ object Invoke_Scala
 
 class Invoke_Scala extends Session.Protocol_Handler
 {
-  private var futures = Map.empty[String, JFuture[Unit]]
+  private var futures = Map.empty[String, Future[Unit]]
 
   private def fulfill(prover: Prover, id: String, tag: Invoke_Scala.Tag.Value, res: String): Unit =
     synchronized
@@ -83,9 +82,9 @@ class Invoke_Scala extends Session.Protocol_Handler
       }
     }
 
-  private def cancel(prover: Prover, id: String, future: JFuture[Unit])
+  private def cancel(prover: Prover, id: String, future: Future[Unit])
   {
-    future.cancel(true)
+    future.cancel
     fulfill(prover, id, Invoke_Scala.Tag.INTERRUPT, "")
   }
 
@@ -94,7 +93,7 @@ class Invoke_Scala extends Session.Protocol_Handler
     msg.properties match {
       case Markup.Invoke_Scala(name, id) =>
         futures += (id ->
-          Simple_Thread.submit_task {
+          Future.fork {
             val (tag, result) = Invoke_Scala.method(name, msg.text)
             fulfill(prover, id, tag, result)
           })
@@ -126,4 +125,3 @@ class Invoke_Scala extends Session.Protocol_Handler
     Markup.INVOKE_SCALA -> invoke_scala _,
     Markup.CANCEL_SCALA -> cancel_scala _)
 }
-

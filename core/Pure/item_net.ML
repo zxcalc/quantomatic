@@ -14,9 +14,11 @@ sig
   val retrieve: 'a T -> term -> 'a list
   val retrieve_matching: 'a T -> term -> 'a list
   val member: 'a T -> 'a -> bool
+  val lookup: 'a T -> 'a -> 'a list
   val merge: 'a T * 'a T -> 'a T
   val remove: 'a -> 'a T -> 'a T
   val update: 'a -> 'a T -> 'a T
+  val filter: ('a -> bool) -> 'a T -> 'a T
 end;
 
 structure Item_Net: ITEM_NET =
@@ -50,6 +52,12 @@ fun member (Items {eq, index, content, net, ...}) x =
     [] => Library.member eq content x
   | t :: _ => exists (fn (_, y) => eq (x, y)) (Net.unify_term net t));
 
+fun lookup (Items {eq, index, content, net, ...}) x =
+  (case index x of
+    [] => content
+  | t :: _ => map #2 (Net.unify_term net t))
+  |> filter (fn y => eq (x, y));
+
 fun cons x (Items {eq, index, content, next, net}) =
   mk_items eq index (x :: content) (next - 1)
     (fold (fn t => Net.insert_term (K false) (t, (next, x))) (index x) net);
@@ -64,9 +72,12 @@ fun merge
 fun remove x (items as Items {eq, index, content, next, net}) =
   if member items x then
     mk_items eq index (Library.remove eq x content) next
-      (fold (fn t => Net.delete_term_safe (eq o pairself #2) (t, (0, x))) (index x) net)
+      (fold (fn t => Net.delete_term_safe (eq o apply2 #2) (t, (0, x))) (index x) net)
   else items;
 
 fun update x items = cons x (remove x items);
+
+fun filter pred items =
+  fold (fn x => not (pred x) ? remove x) (content items) items;
 
 end;

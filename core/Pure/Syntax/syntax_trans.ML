@@ -47,11 +47,11 @@ sig
   val quote_antiquote_tr': string -> string -> string ->
     string * (Proof.context -> term list -> term)
   val update_name_tr': term -> term
+  val get_idents: Proof.context -> {structs: string list, fixes: string list}
+  val put_idents: {structs: string list, fixes: string list} -> Proof.context -> Proof.context
   val pure_parse_ast_translation: (string * (Proof.context -> Ast.ast list -> Ast.ast)) list
   val pure_parse_translation: (string * (Proof.context -> term list -> term)) list
   val pure_print_ast_translation: (string * (Proof.context -> Ast.ast list -> Ast.ast)) list
-  val struct_tr: string list -> string * (Proof.context -> term list -> term)
-  val struct_ast_tr': string list -> string * (Proof.context -> Ast.ast list -> Ast.ast)
 end;
 
 structure Syntax_Trans: SYNTAX_TRANS =
@@ -102,7 +102,7 @@ fun tapp_ast_tr [ty, c] = Ast.Appl [c, ty]
 fun tappl_ast_tr [ty, tys, c] = Ast.mk_appl c (ty :: Ast.unfold_ast "_types" tys)
   | tappl_ast_tr asts = raise Ast.AST ("tappl_ast_tr", asts);
 
-fun bracket_ast_tr [dom, cod] = Ast.fold_ast_p "\\<^type>fun" (Ast.unfold_ast "_types" dom, cod)
+fun bracket_ast_tr [dom, cod] = Ast.fold_ast_p "\<^type>fun" (Ast.unfold_ast "_types" dom, cod)
   | bracket_ast_tr asts = raise Ast.AST ("bracket_ast_tr", asts);
 
 
@@ -152,18 +152,18 @@ fun mk_binder_tr (syn, name) =
 
 fun mk_type ty =
   Syntax.const "_constrain" $
-    Syntax.const "\\<^const>Pure.type" $ (Syntax.const "\\<^type>itself" $ ty);
+    Syntax.const "\<^const>Pure.type" $ (Syntax.const "\<^type>itself" $ ty);
 
 fun ofclass_tr [ty, cls] = cls $ mk_type ty
   | ofclass_tr ts = raise TERM ("ofclass_tr", ts);
 
-fun sort_constraint_tr [ty] = Syntax.const "\\<^const>Pure.sort_constraint" $ mk_type ty
+fun sort_constraint_tr [ty] = Syntax.const "\<^const>Pure.sort_constraint" $ mk_type ty
   | sort_constraint_tr ts = raise TERM ("sort_constraint_tr", ts);
 
 
 (* meta propositions *)
 
-fun aprop_tr [t] = Syntax.const "_constrain" $ t $ Syntax.const "\\<^type>prop"
+fun aprop_tr [t] = Syntax.const "_constrain" $ t $ Syntax.const "\<^type>prop"
   | aprop_tr ts = raise TERM ("aprop_tr", ts);
 
 
@@ -174,7 +174,7 @@ fun bigimpl_ast_tr (asts as [asms, concl]) =
         (case Ast.unfold_ast_p "_asms" asms of
           (asms', Ast.Appl [Ast.Constant "_asm", asm']) => asms' @ [asm']
         | _ => raise Ast.AST ("bigimpl_ast_tr", asts))
-      in Ast.fold_ast_p "\\<^const>Pure.imp" (prems, concl) end
+      in Ast.fold_ast_p "\<^const>Pure.imp" (prems, concl) end
   | bigimpl_ast_tr asts = raise Ast.AST ("bigimpl_ast_tr", asts);
 
 
@@ -182,11 +182,6 @@ fun bigimpl_ast_tr (asts as [asms, concl]) =
 
 fun type_tr [ty] = mk_type ty
   | type_tr ts = raise TERM ("type_tr", ts);
-
-
-(* dddot *)
-
-fun dddot_tr ts = Term.list_comb (Syntax.var Syntax_Ext.dddot_indexname, ts);
 
 
 (* quote / antiquote *)
@@ -225,6 +220,15 @@ fun update_name_tr (Free (x, T) :: ts) = list_comb (Free (suffix "_update" x, T)
 
 (* indexed syntax *)
 
+structure Idents = Proof_Data
+(
+  type T = {structs: string list, fixes: string list};
+  fun init _ : T = {structs = [], fixes = []};
+);
+
+val get_idents = Idents.get;
+val put_idents = Idents.put;
+
 fun indexdefault_ast_tr [] =
       Ast.Appl [Ast.Constant "_index",
         Ast.Appl [Ast.Constant "_struct", Ast.Constant "_indexdefault"]]
@@ -239,13 +243,11 @@ fun struct_ast_tr [Ast.Appl [Ast.Constant "_index", ast]] = ast
 fun index_tr [t] = t
   | index_tr ts = raise TERM ("index_tr", ts);
 
-fun struct_tr structs =
-  ("_struct", fn _ =>
-    (fn [Const ("_indexdefault", _)] =>
-        (case structs of
-          x :: _ => Syntax.const (Lexicon.mark_fixed x)
-        | _ => error "Illegal reference to implicit structure")
-      | ts => raise TERM ("struct_tr", ts)));
+fun struct_tr ctxt [Const ("_indexdefault", _)] =
+      (case #structs (get_idents ctxt) of
+        x :: _ => Syntax.const (Lexicon.mark_fixed x)
+      | _ => error "Illegal reference to implicit structure")
+  | struct_tr _ ts = raise TERM ("struct_tr", ts);
 
 
 
@@ -266,7 +268,7 @@ fun tappl_ast_tr' (f, []) = raise Ast.AST ("tappl_ast_tr'", [f])
 fun fun_ast_tr' asts =
   if no_brackets () orelse no_type_brackets () then raise Match
   else
-    (case Ast.unfold_ast_p "\\<^type>fun" (Ast.Appl (Ast.Constant "\\<^type>fun" :: asts)) of
+    (case Ast.unfold_ast_p "\<^type>fun" (Ast.Appl (Ast.Constant "\<^type>fun" :: asts)) of
       (dom as _ :: _ :: _, cod)
         => Ast.Appl [Ast.Constant "_bracket", Ast.fold_ast "_types" dom, cod]
     | _ => raise Match);
@@ -382,8 +384,8 @@ fun idtyp_ast_tr' a [Ast.Appl [Ast.Constant "_constrain", x, ty], xs] =
 fun impl_ast_tr' asts =
   if no_brackets () then raise Match
   else
-    (case Ast.unfold_ast_p "\\<^const>Pure.imp"
-        (Ast.Appl (Ast.Constant "\\<^const>Pure.imp" :: asts)) of
+    (case Ast.unfold_ast_p "\<^const>Pure.imp"
+        (Ast.Appl (Ast.Constant "\<^const>Pure.imp" :: asts)) of
       (prems as _ :: _ :: _, concl) =>
         let
           val (asms, asm) = split_last prems;
@@ -457,13 +459,11 @@ end;
 fun index_ast_tr' [Ast.Appl [Ast.Constant "_struct", ast]] = ast
   | index_ast_tr' _ = raise Match;
 
-fun struct_ast_tr' structs =
-  ("_struct", fn _ =>
-    (fn [Ast.Constant "_indexdefault"] =>
-        (case structs of
-          x :: _ => Ast.Appl [Ast.Constant "_free", Ast.Variable x]
-        | _ => raise Match)
-      | _ => raise Match));
+fun struct_ast_tr' ctxt [Ast.Constant "_indexdefault"] =
+      (case #structs (get_idents ctxt) of
+        x :: _ => Ast.Appl [Ast.Constant "_free", Ast.Variable x]
+      | _ => raise Match)
+  | struct_ast_tr' _ _ = raise Match;
 
 
 
@@ -490,17 +490,18 @@ val pure_parse_translation =
   ("_ofclass", fn _ => ofclass_tr),
   ("_sort_constraint", fn _ => sort_constraint_tr),
   ("_TYPE", fn _ => type_tr),
-  ("_DDDOT", fn _ => dddot_tr),
   ("_update_name", fn _ => update_name_tr),
-  ("_index", fn _ => index_tr)];
+  ("_index", fn _ => index_tr),
+  ("_struct", struct_tr)];
 
 val pure_print_ast_translation =
- [("\\<^type>fun", fn _ => fun_ast_tr'),
+ [("\<^type>fun", fn _ => fun_ast_tr'),
   ("_abs", fn _ => abs_ast_tr'),
   ("_idts", fn _ => idtyp_ast_tr' "_idts"),
   ("_pttrns", fn _ => idtyp_ast_tr' "_pttrns"),
-  ("\\<^const>Pure.imp", fn _ => impl_ast_tr'),
-  ("_index", fn _ => index_ast_tr')];
+  ("\<^const>Pure.imp", fn _ => impl_ast_tr'),
+  ("_index", fn _ => index_ast_tr'),
+  ("_struct", struct_ast_tr')];
 
 end;
 

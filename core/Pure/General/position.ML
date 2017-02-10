@@ -7,13 +7,14 @@ Source positions: counting Isabelle symbols, starting from 1.
 signature POSITION =
 sig
   eqtype T
-  val make: {line: int, offset: int, end_offset: int, props: Properties.T} -> T
-  val dest: T -> {line: int, offset: int, end_offset: int, props: Properties.T}
+  val make: Thread_Position.T -> T
+  val dest: T -> Thread_Position.T
   val line_of: T -> int option
   val offset_of: T -> int option
   val end_offset_of: T -> int option
   val file_of: T -> string option
   val advance: Symbol.symbol -> T -> T
+  val advance_offset: int -> T -> T
   val distance_of: T -> T -> int
   val none: T
   val start: T
@@ -50,9 +51,11 @@ sig
   val here_list: T list -> string
   type range = T * T
   val no_range: range
-  val set_range: range -> T
-  val reset_range: T -> T
-  val range: T -> T -> range
+  val no_range_position: T -> T
+  val range_position: range -> T
+  val range: T * T -> range
+  val range_of_properties: Properties.T -> range
+  val properties_of_range: range -> Properties.T
   val thread_data: unit -> T
   val setmp_thread_data: T -> ('a -> 'b) -> 'a -> 'b
   val default: T -> bool * T
@@ -90,7 +93,7 @@ fun file_of (Pos (_, props)) = Properties.get props Markup.fileN;
 fun advance_count "\n" (i: int, j: int, k: int) =
       (if_valid i (i + 1), if_valid j (j + 1), k)
   | advance_count s (i, j, k) =
-      if Symbol.is_regular s then (i, if_valid j (j + 1), k)
+      if Symbol.not_eof s then (i, if_valid j (j + 1), k)
       else (i, j, k);
 
 fun invalid_count (i, j, _: int) =
@@ -98,6 +101,11 @@ fun invalid_count (i, j, _: int) =
 
 fun advance sym (pos as (Pos (count, props))) =
   if invalid_count count then pos else Pos (advance_count sym count, props);
+
+fun advance_offset offset (pos as (Pos (count as (i, j, k), props))) =
+  if invalid_count count then pos
+  else if valid i then raise Fail "Illegal line position"
+  else Pos ((i, if_valid j (j + offset), k), props);
 
 
 (* distance of adjacent positions *)
@@ -127,35 +135,34 @@ fun id id = Pos ((0, 1, 0), [(Markup.idN, id)]);
 fun id_only id = Pos ((0, 0, 0), [(Markup.idN, id)]);
 
 fun get_id (Pos (_, props)) = Properties.get props Markup.idN;
-fun put_id id (Pos (count, props)) = Pos (count, Properties.put (Markup.idN, id) props);
+fun put_id id (Pos (count, props)) = Pos (count, norm_props (Properties.put (Markup.idN, id) props));
 
-fun parse_id pos = Option.map Markup.parse_int (get_id pos);
+fun parse_id pos = Option.map Value.parse_int (get_id pos);
 
 
 (* markup properties *)
 
+fun get props name =
+  (case Properties.get props name of
+    NONE => 0
+  | SOME s => Value.parse_int s);
+
 fun of_properties props =
-  let
-    fun get name =
-      (case Properties.get props name of
-        NONE => 0
-      | SOME s => Markup.parse_int s);
-  in
-    make {line = get Markup.lineN, offset = get Markup.offsetN,
-      end_offset = get Markup.end_offsetN, props = props}
-  end;
+  make {line = get props Markup.lineN,
+    offset = get props Markup.offsetN,
+    end_offset = get props Markup.end_offsetN,
+    props = props};
 
-
-fun value k i = if valid i then [(k, Markup.print_int i)] else [];
+fun value k i = if valid i then [(k, Value.print_int i)] else [];
 
 fun properties_of (Pos ((i, j, k), props)) =
   value Markup.lineN i @ value Markup.offsetN j @ value Markup.end_offsetN k @ props;
 
 val def_properties_of = properties_of #> map (fn (x, y) => ("def_" ^ x, y));
 
-fun entity_properties_of def id pos =
-  if def then (Markup.defN, Markup.print_int id) :: properties_of pos
-  else (Markup.refN, Markup.print_int id) :: def_properties_of pos;
+fun entity_properties_of def serial pos =
+  if def then (Markup.defN, Value.print_int serial) :: properties_of pos
+  else (Markup.refN, Value.print_int serial) :: def_properties_of pos;
 
 fun default_properties default props =
   if exists (member (op =) Markup.position_properties o #1) props then props
@@ -198,16 +205,16 @@ fun here pos =
     val props = properties_of pos;
     val (s1, s2) =
       (case (line_of pos, file_of pos) of
-        (SOME i, NONE) => (" ", "(line " ^ Markup.print_int i ^ ")")
-      | (SOME i, SOME name) => (" ", "(line " ^ Markup.print_int i ^ " of " ^ quote name ^ ")")
+        (SOME i, NONE) => (" ", "(line " ^ Value.print_int i ^ ")")
+      | (SOME i, SOME name) => (" ", "(line " ^ Value.print_int i ^ " of " ^ quote name ^ ")")
       | (NONE, SOME name) => (" ", "(file " ^ quote name ^ ")")
-      | _ => if is_reported pos then ("", "\\<here>") else ("", ""));
+      | _ => if is_reported pos then ("", "\<here>") else ("", ""));
   in
     if null props then ""
     else s1 ^ Markup.markup (Markup.properties props Markup.position) s2
   end;
 
-val here_list = space_implode " " o map here;
+val here_list = implode o map here;
 
 
 (* range *)
@@ -216,21 +223,28 @@ type range = T * T;
 
 val no_range = (none, none);
 
-fun set_range (Pos ((i, j, _), props), Pos ((_, j', _), _)) = Pos ((i, j, j'), props);
-fun reset_range (Pos ((i, j, _), props)) = Pos ((i, j, 0), props);
+fun no_range_position (Pos ((i, j, _), props)) = Pos ((i, j, 0), props);
+fun range_position (Pos ((i, j, _), props), Pos ((_, j', _), _)) = Pos ((i, j, j'), props);
+fun range (pos, pos') = (range_position (pos, pos'), no_range_position pos');
 
-fun range pos pos' = (set_range (pos, pos'), pos');
+fun range_of_properties props =
+  let
+    val pos = of_properties props;
+    val pos' =
+      make {line = get props Markup.end_lineN,
+        offset = get props Markup.end_offsetN,
+        end_offset = 0,
+        props = props};
+  in (pos, pos') end;
+
+fun properties_of_range (pos, pos') =
+  properties_of pos @ value Markup.end_lineN (the_default 0 (line_of pos'));
 
 
 (* thread data *)
 
-local val tag = Universal.tag () : T Universal.tag in
-
-fun thread_data () = the_default none (Thread.getLocal tag);
-
-fun setmp_thread_data pos = Library.setmp_thread_data tag (thread_data ()) pos;
-
-end;
+val thread_data = make o Thread_Position.get;
+fun setmp_thread_data pos = Thread_Position.setmp (dest pos);
 
 fun default pos =
   if pos = none then (false, thread_data ())

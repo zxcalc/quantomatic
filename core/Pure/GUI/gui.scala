@@ -1,5 +1,4 @@
 /*  Title:      Pure/GUI/gui.scala
-    Module:     PIDE-GUI
     Author:     Makarius
 
 Basic GUI tools (for AWT/Swing).
@@ -7,15 +6,15 @@ Basic GUI tools (for AWT/Swing).
 
 package isabelle
 
-
 import java.lang.{ClassLoader, ClassNotFoundException, NoSuchMethodException}
-import java.awt.{Image, Component, Container, Toolkit, Window, Font, KeyboardFocusManager}
+import java.io.{FileInputStream, BufferedInputStream}
+import java.awt.{GraphicsEnvironment, Image, Component, Container, Toolkit, Window, Font,
+  KeyboardFocusManager}
 import java.awt.font.{TextAttribute, TransformAttribute, FontRenderContext, LineMetrics}
 import java.awt.geom.AffineTransform
 import javax.swing.{ImageIcon, JOptionPane, UIManager, JLayeredPane, JFrame, JWindow, JDialog,
   JButton, JTextField}
 
-import scala.collection.convert.WrapAsJava
 import scala.swing.{ComboBox, TextArea, ScrollPane}
 import scala.swing.event.SelectionChanged
 
@@ -24,19 +23,27 @@ object GUI
 {
   /* Swing look-and-feel */
 
+  def find_laf(name: String): Option[String] =
+    UIManager.getInstalledLookAndFeels().
+      find(c => c.getName == name || c.getClassName == name).
+      map(_.getClassName)
+
   def get_laf(): String =
-  {
-    if (Platform.is_windows || Platform.is_macos)
-      UIManager.getSystemLookAndFeelClassName()
-    else
-      UIManager.getInstalledLookAndFeels().find(_.getName == "Nimbus").map(_.getClassName)
-        .getOrElse(UIManager.getCrossPlatformLookAndFeelClassName())
-  }
+    find_laf(System.getProperty("isabelle.laf")) getOrElse {
+      if (Platform.is_windows || Platform.is_macos)
+        UIManager.getSystemLookAndFeelClassName()
+      else
+        UIManager.getCrossPlatformLookAndFeelClassName()
+    }
 
   def init_laf(): Unit = UIManager.setLookAndFeel(get_laf())
 
   def is_macos_laf(): Boolean =
     Platform.is_macos &&
+    UIManager.getSystemLookAndFeelClassName() == UIManager.getLookAndFeel.getClass.getName
+
+  def is_windows_laf(): Boolean =
+    Platform.is_windows &&
     UIManager.getSystemLookAndFeelClassName() == UIManager.getLookAndFeel.getClass.getName
 
 
@@ -59,13 +66,11 @@ object GUI
     if (Platform.is_windows || Platform.is_macos) None
     else
       try {
-        val XWM = Class.forName("sun.awt.X11.XWM", true, ClassLoader.getSystemClassLoader)
-        val getWM = XWM.getDeclaredMethod("getWM")
-        getWM.setAccessible(true)
-        getWM.invoke(null) match {
-          case null => None
-          case wm => Some(wm.toString)
-        }
+        val wm =
+          Untyped.method(Class.forName("sun.awt.X11.XWM", true, ClassLoader.getSystemClassLoader),
+            "getWM").invoke(null)
+        if (wm == null) None
+        else Some(wm.toString)
       }
       catch {
         case _: ClassNotFoundException => None
@@ -76,9 +81,10 @@ object GUI
 
   /* simple dialogs */
 
-  def scrollable_text(txt: String, width: Int = 60, height: Int = 20, editable: Boolean = false)
+  def scrollable_text(raw_txt: String, width: Int = 60, height: Int = 20, editable: Boolean = false)
     : ScrollPane =
   {
+    val txt = Output.clean_yxml(raw_txt)
     val text = new TextArea(txt)
     if (width > 0) text.columns = width
     if (height > 0 && split_lines(txt).length > height) text.rows = height
@@ -159,13 +165,7 @@ object GUI
 
   def tooltip_lines(text: String): String =
     if (text == null || text == "") null
-    else "<html>" + HTML.encode(text) + "</html>"
-
-
-  /* screen resolution */
-
-  def resolution_scale(): Double = Toolkit.getDefaultToolkit.getScreenResolution.toDouble / 72
-  def resolution_scale(i: Int): Int = (i.toDouble * resolution_scale()).round.toInt
+    else "<html>" + HTML.output(text) + "</html>"
 
 
   /* icon */
@@ -178,9 +178,6 @@ object GUI
       yield new ImageIcon(getClass.getClassLoader.getResource(icon))
 
   def isabelle_image(): Image = isabelle_icon().getImage
-
-  def isabelle_images(): java.util.List[Image] =
-    WrapAsJava.seqAsJavaList(isabelle_icons.map(_.getImage))
 
 
   /* component hierachy */
@@ -214,23 +211,59 @@ object GUI
       case _ => None
     }
 
+  def traverse_components(component: Component, apply: Component => Unit)
+  {
+    def traverse(comp: Component)
+    {
+      apply(comp)
+      comp match {
+        case cont: Container =>
+          for (i <- 0 until cont.getComponentCount)
+            traverse(cont.getComponent(i))
+        case _ =>
+      }
+    }
+    traverse(component)
+  }
+
 
   /* font operations */
 
-  def font_metrics(font: Font): LineMetrics =
+  def copy_font(font: Font): Font =
+    if (font == null) null
+    else new Font(font.getFamily, font.getStyle, font.getSize)
+
+  def line_metrics(font: Font): LineMetrics =
     font.getLineMetrics("", new FontRenderContext(null, false, false))
 
-  def imitate_font(family: String, font: Font, scale: Double = 1.0): Font =
+  def imitate_font(font: Font, family: String, scale: Double = 1.0): Font =
   {
     val font1 = new Font(family, font.getStyle, font.getSize)
-    val size = scale * (font_metrics(font).getAscent / font_metrics(font1).getAscent * font.getSize)
-    font1.deriveFont(size.round.toInt)
+    val rel_size = line_metrics(font).getHeight.toDouble / line_metrics(font1).getHeight
+    new Font(family, font.getStyle, (scale * rel_size * font.getSize).toInt)
+  }
+
+  def imitate_font_css(font: Font, family: String, scale: Double = 1.0): String =
+  {
+    val font1 = new Font(family, font.getStyle, font.getSize)
+    val rel_size = line_metrics(font).getHeight.toDouble / line_metrics(font1).getHeight
+    "font-family: " + family + "; font-size: " + (scale * rel_size * 100).toInt + "%;"
   }
 
   def transform_font(font: Font, transform: AffineTransform): Font =
   {
     import scala.collection.JavaConversions._
     font.deriveFont(Map(TextAttribute.TRANSFORM -> new TransformAttribute(transform)))
+  }
+
+  def font(family: String = "IsabelleText", size: Int = 1, bold: Boolean = false): Font =
+    new Font(family, if (bold) Font.BOLD else Font.PLAIN, size)
+
+  def install_fonts()
+  {
+    val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
+    for (font <- Path.split(Isabelle_System.getenv_strict("ISABELLE_FONTS")))
+      ge.registerFont(Font.createFont(Font.TRUETYPE_FONT, font.file))
   }
 }
 

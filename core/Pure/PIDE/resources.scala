@@ -16,13 +16,14 @@ import java.io.{File => JFile}
 object Resources
 {
   def thy_path(path: Path): Path = path.ext("thy")
-}
 
+  val empty: Resources = new Resources(Set.empty, Map.empty, Outer_Syntax.empty)
+}
 
 class Resources(
   val loaded_theories: Set[String],
   val known_theories: Map[String, Document.Node.Name],
-  val base_syntax: Prover.Syntax)
+  val base_syntax: Outer_Syntax)
 {
   /* document node names */
 
@@ -54,10 +55,10 @@ class Resources(
 
   /* theory files */
 
-  def loaded_files(syntax: Prover.Syntax, text: String): List[String] =
+  def loaded_files(syntax: Outer_Syntax, text: String): List[String] =
     if (syntax.load_commands_in(text)) {
-      val spans = Thy_Syntax.parse_spans(syntax.scan(text))
-      spans.iterator.map(Thy_Syntax.span_files(syntax, _)).flatten.toList
+      val spans = syntax.parse_spans(text)
+      spans.iterator.map(Command.span_files(syntax, _)._1).flatten.toList
     }
     else Nil
 
@@ -86,29 +87,39 @@ class Resources(
     }
   }
 
-  def check_thy_reader(qualifier: String, name: Document.Node.Name, reader: Reader[Char])
-    : Document.Node.Header =
+  def check_thy_reader(qualifier: String, node_name: Document.Node.Name,
+    reader: Reader[Char], start: Token.Pos): Document.Node.Header =
   {
     if (reader.source.length > 0) {
       try {
-        val header = Thy_Header.read(reader).decode_symbols
+        val header = Thy_Header.read(reader, start).decode_symbols
 
-        val base_name = Long_Name.base_name(name.theory)
-        val name1 = header.name
-        if (base_name != name1)
-          error("Bad file name " + Resources.thy_path(Path.basic(base_name)) +
-            " for theory " + quote(name1))
+        val base_name = Long_Name.base_name(node_name.theory)
+        val (name, pos) = header.name
+        if (base_name != name)
+          error("Bad theory name " + quote(name) +
+            " for file " + Resources.thy_path(Path.basic(base_name)) + Position.here(pos) +
+            Completion.report_names(pos, 1, List((base_name, ("theory", base_name)))))
 
-        val imports = header.imports.map(import_name(qualifier, name, _))
-        Document.Node.Header(imports, header.keywords, Nil)
+        val imports =
+          header.imports.map({ case (s, pos) => (import_name(qualifier, node_name, s), pos) })
+        Document.Node.Header(imports, header.keywords, header.abbrevs)
       }
       catch { case exn: Throwable => Document.Node.bad_header(Exn.message(exn)) }
     }
     else Document.Node.no_header
   }
 
-  def check_thy(qualifier: String, name: Document.Node.Name): Document.Node.Header =
-    with_thy_reader(name, check_thy_reader(qualifier, name, _))
+  def check_thy(qualifier: String, name: Document.Node.Name, start: Token.Pos)
+    : Document.Node.Header =
+    with_thy_reader(name, check_thy_reader(qualifier, name, _, start))
+
+  def check_file(file: String): Boolean =
+    try {
+      if (Url.is_wellformed(file)) Url.is_readable(file)
+      else (new JFile(file)).isFile
+    }
+    catch { case ERROR(_) => false }
 
 
   /* document changes */
@@ -121,11 +132,5 @@ class Resources(
     Thy_Syntax.parse_change(this, reparse_limit, previous, doc_blobs, edits)
 
   def commit(change: Session.Change) { }
-
-
-  /* prover process */
-
-  def start_prover(receiver: Prover.Message => Unit, name: String, args: List[String]): Prover =
-    new Isabelle_Process(receiver, args) with Protocol
 }
 

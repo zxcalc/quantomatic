@@ -1,4 +1,4 @@
-/*  Title:      Pure/System/print_operation.scala
+/*  Title:      Pure/Tools/print_operation.scala
     Author:     Makarius
 
 Print operations as asynchronous query.
@@ -10,7 +10,7 @@ package isabelle
 object Print_Operation
 {
   def print_operations(session: Session): List[(String, String)] =
-    session.protocol_handler("isabelle.Print_Operation$Handler") match {
+    session.get_protocol_handler("isabelle.Print_Operation$Handler") match {
       case Some(handler: Handler) => handler.get
       case _ => Nil
     }
@@ -20,7 +20,7 @@ object Print_Operation
 
   class Handler extends Session.Protocol_Handler
   {
-    private val print_operations = Synchronized(Nil: List[(String, String)])
+    private val print_operations = Synchronized[List[(String, String)]](Nil)
 
     def get: List[(String, String)] = print_operations.value
 

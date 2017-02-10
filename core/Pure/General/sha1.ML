@@ -1,20 +1,25 @@
 (*  Title:      Pure/General/sha1.ML
     Author:     Makarius
+    Author:     Sascha Boehme, TU Muenchen
 
-Digesting strings according to SHA-1 (see RFC 3174) -- relatively slow
-version in pure ML.
+Digesting strings according to SHA-1 (see RFC 3174).
 *)
 
 signature SHA1 =
 sig
   eqtype digest
-  val digest: string -> digest
   val rep: digest -> string
   val fake: string -> digest
+  val digest: string -> digest
+  val test_samples: unit -> unit
 end;
 
 structure SHA1: SHA1 =
 struct
+
+(** internal implementation in ML -- relatively slow **)
+
+local
 
 (* 32bit words *)
 
@@ -37,7 +42,7 @@ fun rotate k w = w << k orb w >> (0w32 - k);
 fun hex_digit (text, w: Word32.word) =
   let
     val d = Word32.toInt (w andb 0wxf);
-    val dig = if d < 10 then chr (ord "0" + d) else chr (ord "a" + d - 10);
+    val dig = if d < 10 then chr (Char.ord #"0" + d) else chr (Char.ord #"a" + d - 10);
   in (dig ^ text, w >> 0w4) end;
 
 fun hex_word w = #1 (funpow 8 hex_digit ("", w));
@@ -45,7 +50,7 @@ fun hex_word w = #1 (funpow 8 hex_digit ("", w));
 
 (* padding *)
 
-fun pack_bytes 0 n = ""
+fun pack_bytes 0 _ = ""
   | pack_bytes k n = pack_bytes (k - 1) (n div 256) ^ chr (n mod 256);
 
 fun padded_text str =
@@ -61,7 +66,7 @@ fun padded_text str =
   in ((len + size padding) div 4, word) end;
 
 
-(* digest_string *)
+(* digest_string_internal *)
 
 fun digest_word (i, w, {a, b, c, d, e}) =
   let
@@ -87,7 +92,9 @@ fun digest_word (i, w, {a, b, c, d, e}) =
      e = d}
   end;
 
-fun digest_string str =
+in
+
+fun digest_string_internal str =
   let
     val (text_len, text) = padded_text str;
 
@@ -129,14 +136,94 @@ fun digest_string str =
     val hex = hex_word o hash;
   in hex 0 ^ hex 1 ^ hex 2 ^ hex 3 ^ hex 4 end;
 
+end;
 
-(* type digest *)
+
+(** external implementation in C **)
+
+local
+
+(* C library and memory *)
+
+val library_path =
+  Path.explode ("$ML_HOME/" ^ (if ML_System.platform_is_windows then "sha1.dll" else "libsha1.so"));
+
+fun with_memory n =
+  Thread_Attributes.uninterruptible (fn restore_attributes => fn f =>
+    let
+      val mem = Foreign.Memory.malloc (Word.fromInt n);
+      val res = Exn.capture (restore_attributes f) mem;
+      val _ = Foreign.Memory.free mem;
+    in Exn.release res end);
+
+
+(* digesting *)
+
+fun hex_digit i = if i < 10 then chr (Char.ord #"0" + i) else chr (Char.ord #"a" + i - 10);
+fun hex_string byte = op ^ (apply2 hex_digit (Integer.div_mod (Word8.toInt byte) 16));
+
+in
+
+fun digest_string_external str =
+  with_memory 20 (fn mem =>
+    let
+      val library = Foreign.loadLibrary (File.platform_path library_path);
+      val bytes = Byte.stringToBytes str;
+      val _ =
+        Foreign.buildCall3 (Foreign.getSymbol library "sha1_buffer",
+          (Foreign.cByteArray, Foreign.cUlong, Foreign.cPointer), Foreign.cPointer)
+          (bytes, Word8Vector.length bytes, mem);
+      fun get i = hex_string (Foreign.Memory.get8 (mem, Word.fromInt i));
+    in implode (map get (0 upto 19)) end);
+
+end;
+
+
+
+(** type digest **)
 
 datatype digest = Digest of string;
 
-val digest = Digest o digest_string;
 fun rep (Digest s) = s;
-
 val fake = Digest;
+
+val _ = ML_system_pp (fn _ => fn _ => Pretty.to_polyml o Pretty.str o quote o rep);
+
+fun digest_string str = digest_string_external str
+  handle CInterface.Foreign msg =>
+    (warning (msg ^ "\nUsing slow ML implementation of SHA1.digest"); digest_string_internal str);
+
+val digest = Digest o digest_string;
+
+
+
+(** SHA1 samples found in the wild **)
+
+local
+
+fun check (msg, key) =
+  let val key' = rep (digest msg) in
+    if key = key' then ()
+    else
+      raise Fail ("SHA1 library integrity test failed on " ^ quote msg ^ ":\n" ^
+        key ^ " expected, but\n" ^ key' ^ " was found")
+  end;
+
+in
+
+fun test_samples () =
+  List.app check
+   [("", "da39a3ee5e6b4b0d3255bfef95601890afd80709"),
+    ("a", "86f7e437faa5a7fce15d1ddcb9eaeaea377667b8"),
+    ("abc", "a9993e364706816aba3e25717850c26c9cd0d89d"),
+    ("abcdefghijklmnopqrstuvwxyz", "32d10c7b8cf96570ca04ce37f2a19d84240d3a89"),
+    ("The quick brown fox jumps over the lazy dog", "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12"),
+    (replicate_string 100 "\000", "ed4a77d1b56a118938788fc53037759b6c501e3d"),
+    ("a\000b", "4a3dec2d1f8245280855c42db0ee4239f917fdb8"),
+    ("\000\001", "3f29546453678b855931c174a97d6c0894b8f546")];
+
+end;
+
+val _ = test_samples ();
 
 end;

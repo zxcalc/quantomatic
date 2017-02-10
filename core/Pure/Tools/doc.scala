@@ -58,19 +58,24 @@ object Doc
         })
 
   def contents(): List[Entry] =
-    (for {
-      (dir, line) <- contents_lines()
-      entry <-
-        line match {
-          case Section_Entry(text) =>
-            Library.try_unsuffix("!", text) match {
-              case None => Some(Section(text, false))
-              case Some(txt) => Some(Section(txt, true))
-            }
-          case Doc_Entry(name, title) => Some(Doc(name, title, dir + Path.basic(name)))
-          case _ => None
-        }
-    } yield entry) ::: release_notes() ::: examples()
+  {
+    val main_contents =
+      for {
+        (dir, line) <- contents_lines()
+        entry <-
+          line match {
+            case Section_Entry(text) =>
+              Library.try_unsuffix("!", text) match {
+                case None => Some(Section(text, false))
+                case Some(txt) => Some(Section(txt, true))
+              }
+            case Doc_Entry(name, title) => Some(Doc(name, title, dir + Path.basic(name)))
+            case _ => None
+          }
+      } yield entry
+
+    examples() ::: release_notes() ::: main_contents
+  }
 
 
   /* view */
@@ -86,22 +91,26 @@ object Doc
   }
 
 
-  /* command line entry point */
+  /* Isabelle tool wrapper */
 
-  def main(args: Array[String])
+  val isabelle_tool = Isabelle_Tool("doc", "view Isabelle documentation", args =>
   {
-    Command_Line.tool0 {
-      val entries = contents()
-      if (args.isEmpty) Console.println(cat_lines(contents_lines().map(_._2)))
-      else {
-        args.foreach(arg =>
-          entries.collectFirst { case Doc(name, _, path) if arg == name => path } match {
-            case Some(path) => view(path)
-            case None => error("No Isabelle documentation entry: " + quote(arg))
-          }
-        )
-      }
-    }
-  }
-}
+    val getopts = Getopts("""
+Usage: isabelle doc [DOC ...]
 
+  View Isabelle documentation.
+""")
+    val docs = getopts(args)
+
+    val entries = contents()
+    if (docs.isEmpty) Console.println(cat_lines(contents_lines().map(_._2)))
+    else {
+      docs.foreach(doc =>
+        entries.collectFirst { case Doc(name, _, path) if doc == name => path } match {
+          case Some(path) => view(path)
+          case None => error("No Isabelle documentation entry: " + quote(doc))
+        }
+      )
+    }
+  })
+}

@@ -169,7 +169,7 @@ exception NO_UNIFIER of string * typ Vartab.table;
 fun unify ctxt =
   let
     val thy = Proof_Context.theory_of ctxt;
-    val arity_sorts = Type.arity_sorts (Context.pretty ctxt) (Sign.tsig_of thy);
+    val arity_sorts = Proof_Context.arity_sorts ctxt;
 
 
     (* adjust sorts of parameters *)
@@ -219,7 +219,7 @@ fun unify ctxt =
       quote (Syntax.string_of_typ ctxt (Type (a, replicate (length Ts) dummyT)));
 
     fun unif (T1, T2) (env as (tye, _)) =
-      (case pairself (`Type_Infer.is_paramT o Type_Infer.deref tye) (T1, T2) of
+      (case apply2 (`Type_Infer.is_paramT o Type_Infer.deref tye) (T1, T2) of
         ((true, TVar (xi, S)), (_, T)) => assign xi T S env
       | ((_, T), (true, TVar (xi, S))) => assign xi T S env
       | ((_, Type (a, Ts)), (_, Type (b, Us))) =>

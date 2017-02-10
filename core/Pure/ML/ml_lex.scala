@@ -1,7 +1,7 @@
 /*  Title:      Pure/ML/ml_lex.scala
     Author:     Makarius
 
-Lexical syntax for SML.
+Lexical syntax for Isabelle/ML and Standard ML.
 */
 
 package isabelle
@@ -26,8 +26,8 @@ object ML_Lex
       "with", "withtype")
 
   val keywords2: Set[String] =
-    Set("case", "do", "else", "end", "if", "in", "let", "local", "of",
-      "sig", "struct", "then", "while", "with")
+    Set("and", "case", "do", "else", "end", "if", "in", "let", "local",
+      "of", "sig", "struct", "then", "while", "with")
 
   val keywords3: Set[String] =
     Set("handle", "open", "raise")
@@ -51,6 +51,7 @@ object ML_Lex
     val STRING = Value("quoted string")
     val SPACE = Value("white space")
     val COMMENT = Value("comment text")
+    val CONTROL = Value("control symbol antiquotation")
     val ANTIQ = Value("antiquotation")
     val ANTIQ_START = Value("antiquotation: start")
     val ANTIQ_STOP = Value("antiquotation: stop")
@@ -61,10 +62,12 @@ object ML_Lex
     val ERROR = Value("bad input")
   }
 
-  sealed case class Token(val kind: Kind.Value, val source: String)
+  sealed case class Token(kind: Kind.Value, source: String)
   {
     def is_keyword: Boolean = kind == Kind.KEYWORD
     def is_delimiter: Boolean = is_keyword && !Symbol.is_ascii_identifier(source)
+    def is_space: Boolean = kind == Kind.SPACE
+    def is_comment: Boolean = kind == Kind.COMMENT
   }
 
 
@@ -90,8 +93,8 @@ object ML_Lex
       repeated(character(Symbol.is_ascii_digit), 3, 3)
 
     private val str =
-      one(Symbol.is_symbolic) |
       one(character(c => c != '"' && c != '\\' && ' ' <= c && c <= '~')) |
+      one(s => Symbol.is_symbolic(s) | Symbol.is_control(s)) |
       "\\" ~ escape ^^ { case x ~ y => x + y }
 
 
@@ -148,7 +151,8 @@ object ML_Lex
       ml_char | (ml_string | ml_comment)
 
     private val recover_delimited: Parser[Token] =
-      (recover_ml_char | (recover_ml_string | recover_comment)) ^^ (x => Token(Kind.ERROR, x))
+      (recover_ml_char | (recover_ml_string | (recover_cartouche | recover_comment))) ^^
+        (x => Token(Kind.ERROR, x))
 
 
     private def other_token: Parser[Token] =
@@ -188,6 +192,9 @@ object ML_Lex
         sign ~ ("0x" ~ hex ^^ { case x ~ y => x + y } | dec) ^^
           { case x ~ y => Token(Kind.INT, x + y) }
 
+      val rat =
+        decint ~ opt("/" ~ dec) ^^ { case x ~ None => x case x ~ Some(y ~ z) => x + y + z }
+
       val real =
         (decint ~ "." ~ dec ~ (opt(exp) ^^ { case Some(x) => x case None => "" }) ^^
           { case x ~ y ~ z ~ w => x + y + z + w } |
@@ -200,12 +207,15 @@ object ML_Lex
 
       val keyword = literal(lexicon) ^^ (x => Token(Kind.KEYWORD, x))
 
-      val ml_antiq = antiq ^^ (x => Token(Kind.ANTIQ, x))
+      val ml_control = control ^^ (x => Token(Kind.CONTROL, x))
+      val ml_antiq =
+        "@" ~ rat ^^ { case x ~ y => Token(Kind.ANTIQ, x + y) } |
+        antiq ^^ (x => Token(Kind.ANTIQ, x))
 
       val bad = one(_ => true) ^^ (x => Token(Kind.ERROR, x))
 
-      space | (recover_delimited | (ml_antiq |
-        (((word | (real | (int | (long_ident | (ident | type_var))))) ||| keyword) | bad)))
+      space | (ml_control | (recover_delimited | (ml_antiq |
+        (((word | (real | (int | (long_ident | (ident | type_var))))) ||| keyword) | bad))))
     }
 
 
@@ -270,7 +280,7 @@ object ML_Lex
     var ctxt = context
     while (!in.atEnd) {
       Parsers.parse(Parsers.token_line(SML, ctxt), in) match {
-        case Parsers.Success((x, c), rest) => { toks += x; ctxt = c; in = rest }
+        case Parsers.Success((x, c), rest) => toks += x; ctxt = c; in = rest
         case Parsers.NoSuccess(_, rest) =>
           error("Unexpected failure of tokenizing input:\n" + rest.source.toString)
       }
@@ -278,4 +288,3 @@ object ML_Lex
     (toks.toList, ctxt)
   }
 }
-

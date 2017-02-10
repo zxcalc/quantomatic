@@ -25,9 +25,7 @@ sig
   val map_generic: 'a T -> ('a -> 'a) -> Context.generic -> Context.generic
   val put_generic: 'a T -> 'a -> Context.generic -> Context.generic
   val declare: string * Position.T -> (Context.generic -> value) -> raw
-  val declare_global: string * Position.T -> (Context.generic -> value) -> raw
   val declare_option: string * Position.T -> raw
-  val declare_option_global: string * Position.T -> raw
   val name_of: 'a T -> string
   val pos_of: 'a T -> Position.T
 end;
@@ -46,7 +44,7 @@ datatype value =
 fun print_value (Bool true) = "true"
   | print_value (Bool false) = "false"
   | print_value (Int i) = signed_string_of_int i
-  | print_value (Real x) = Markup.print_real x
+  | print_value (Real x) = Value.print_real x
   | print_value (String s) = quote s;
 
 fun print_type (Bool _) = "bool"
@@ -105,7 +103,7 @@ fun put_global config value = map_global config (K value);
 
 (* context information *)
 
-structure Value = Generic_Data
+structure Data = Generic_Data
 (
   type T = value Inttab.table;
   val empty = Inttab.empty;
@@ -113,33 +111,22 @@ structure Value = Generic_Data
   fun merge data = Inttab.merge (K true) data;
 );
 
-local
-
-fun declare_generic global (name, pos) default =
+fun declare (name, pos) default =
   let
     val id = serial ();
 
     fun get_value context =
-      (case Inttab.lookup (Value.get context) id of
+      (case Inttab.lookup (Data.get context) id of
         SOME value => value
       | NONE => default context);
 
-    fun update_value f context =
-      Value.map (Inttab.update (id, type_check (name, pos) f (get_value context))) context;
+    fun map_value f context =
+      Data.map (Inttab.update (id, type_check (name, pos) f (get_value context))) context;
+  in
+    Config {name = name, pos = pos, get_value = get_value, map_value = map_value}
+  end;
 
-    fun map_value f (context as Context.Proof ctxt) =
-          let val context' = update_value f context in
-            if global andalso
-              Context_Position.is_really_visible ctxt andalso
-              print_value (get_value (Context.Theory (Context.theory_of context'))) <>
-                print_value (get_value context')
-            then (warning ("Ignoring local change of global option " ^ quote name); context)
-            else context'
-          end
-      | map_value f context = update_value f context;
-  in Config {name = name, pos = pos, get_value = get_value, map_value = map_value} end;
-
-fun declare_option_generic global (name, pos) =
+fun declare_option (name, pos) =
   let
     val typ = Options.default_typ name;
     val default =
@@ -148,16 +135,7 @@ fun declare_option_generic global (name, pos) =
       else if typ = Options.realT then fn _ => Real (Options.default_real name)
       else if typ = Options.stringT then fn _ => String (Options.default_string name)
       else error ("Unknown type for option " ^ quote name ^ Position.here pos ^ " : " ^ quote typ);
-  in declare_generic global (name, pos) default end;
-
-in
-
-val declare = declare_generic false;
-val declare_global = declare_generic true;
-val declare_option = declare_option_generic false;
-val declare_option_global = declare_option_generic true;
-
-end;
+  in declare (name, pos) default end;
 
 fun name_of (Config {name, ...}) = name;
 fun pos_of (Config {pos, ...}) = pos;

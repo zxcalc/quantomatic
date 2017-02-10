@@ -49,14 +49,13 @@ sig
   val restore_mode: Proof.context -> Proof.context -> Proof.context
   val type_space: tsig -> Name_Space.T
   val type_alias: Name_Space.naming -> binding -> string -> tsig -> tsig
-  val is_logtype: tsig -> string -> bool
   val check_decl: Context.generic -> tsig ->
     xstring * Position.T -> (string * Position.report list) * decl
   val the_decl: tsig -> string * Position.T -> decl
   val cert_typ_mode: mode -> tsig -> typ -> typ
   val cert_typ: tsig -> typ -> typ
   val arity_number: tsig -> string -> int
-  val arity_sorts: Context.pretty -> tsig -> string -> sort -> sort list
+  val arity_sorts: Context.generic -> tsig -> string -> sort -> sort list
 
   (*special treatment of type vars*)
   val sort_of_atyp: typ -> sort
@@ -87,7 +86,7 @@ sig
   val raw_unifys: typ list * typ list -> tyenv -> tyenv
   val could_unify: typ * typ -> bool
   val could_unifys: typ list * typ list -> bool
-  val eq_type: tyenv -> typ * typ -> bool
+  val unified: tyenv -> typ * typ -> bool
 
   (*extend and merge type signatures*)
   val add_class: Context.generic -> binding * class list -> tsig -> tsig
@@ -97,9 +96,9 @@ sig
   val add_abbrev: Context.generic -> binding * string list * typ -> tsig -> tsig
   val add_nonterminal: Context.generic -> binding -> tsig -> tsig
   val hide_type: bool -> string -> tsig -> tsig
-  val add_arity: Context.pretty -> arity -> tsig -> tsig
-  val add_classrel: Context.pretty -> class * class -> tsig -> tsig
-  val merge_tsig: Context.pretty -> tsig * tsig -> tsig
+  val add_arity: Context.generic -> arity -> tsig -> tsig
+  val add_classrel: Context.generic -> class * class -> tsig -> tsig
+  val merge_tsig: Context.generic -> tsig * tsig -> tsig
 end;
 
 structure Type: TYPE =
@@ -188,7 +187,7 @@ fun build_tsig (classes, default, types) =
   let
     val log_types =
       Name_Space.fold_table (fn (c, LogicalType n) => cons (c, n) | _ => I) types []
-      |> Library.sort (int_ord o pairself snd) |> map fst;
+      |> Library.sort (int_ord o apply2 snd) |> map fst;
   in make_tsig (classes, default, types, log_types) end;
 
 fun map_tsig f (TSig {classes, default, types, log_types = _}) =
@@ -252,12 +251,10 @@ val type_space = Name_Space.space_of_table o #types o rep_tsig;
 fun type_alias naming binding name = map_tsig (fn (classes, default, types) =>
   (classes, default, (Name_Space.alias_table naming binding name types)));
 
-val is_logtype = member (op =) o logical_types;
-
 
 fun undecl_type c = "Undeclared type constructor: " ^ quote c;
 
-fun lookup_type (TSig {types, ...}) = Option.map #2 o Name_Space.lookup_key types;
+fun lookup_type (TSig {types, ...}) = Name_Space.lookup types;
 
 fun check_decl context (TSig {types, ...}) (c, pos) =
   Name_Space.check_reports context types (c, [pos]);
@@ -324,9 +321,9 @@ fun arity_number tsig a =
   | _ => error (undecl_type a));
 
 fun arity_sorts _ tsig a [] = replicate (arity_number tsig a) []
-  | arity_sorts pp (TSig {classes, ...}) a S =
+  | arity_sorts context (TSig {classes, ...}) a S =
       Sorts.mg_domain (#2 classes) a S
-        handle Sorts.CLASS_ERROR err => error (Sorts.class_error pp err);
+        handle Sorts.CLASS_ERROR err => error (Sorts.class_error context err);
 
 
 
@@ -436,11 +433,10 @@ exception TYPE_MATCH;
 
 fun typ_match tsig =
   let
-    fun match (V as TVar (v, S), T) subs =
+    fun match (TVar (v, S), T) subs =
           (case lookup subs (v, S) of
             NONE =>
-              if V = T then subs
-              else if of_sort tsig (T, S) then Vartab.update_new (v, (S, T)) subs
+              if of_sort tsig (T, S) then Vartab.update_new (v, (S, T)) subs
               else raise TYPE_MATCH
           | SOME U => if U = T then subs else raise TYPE_MATCH)
       | match (Type (a, Ts), Type (b, Us)) subs =
@@ -457,9 +453,9 @@ fun typ_instance tsig (T, U) =
   (typ_match tsig (U, T) Vartab.empty; true) handle TYPE_MATCH => false;
 
 (*purely structural matching*)
-fun raw_match (V as TVar (v, S), T) subs =
+fun raw_match (TVar (v, S), T) subs =
       (case lookup subs (v, S) of
-        NONE => if V = T then subs else Vartab.update_new (v, (S, T)) subs
+        NONE => Vartab.update_new (v, (S, T)) subs
       | SOME U => if U = T then subs else raise TYPE_MATCH)
   | raw_match (Type (a, Ts), Type (b, Us)) subs =
       if a <> b then raise TYPE_MATCH
@@ -588,16 +584,17 @@ and could_unifys (T :: Ts, U :: Us) = could_unify (T, U) andalso could_unifys (T
   | could_unifys ([], []) = true
   | could_unifys _ = false;
 
-
 (*equality with respect to a type environment*)
-fun equal_type tye (T, T') =
-  (case (devar tye T, devar tye T') of
-     (Type (s, Ts), Type (s', Ts')) =>
-       s = s' andalso ListPair.all (equal_type tye) (Ts, Ts')
-   | (U, U') => U = U');
-
-fun eq_type tye =
-  if Vartab.is_empty tye then op = else equal_type tye;
+fun unified tye =
+  let
+    fun unif (T, T') =
+      (case (devar tye T, devar tye T') of
+         (Type (s, Ts), Type (s', Ts')) => s = s' andalso unifs (Ts, Ts')
+       | (U, U') => U = U')
+    and unifs ([], []) = true
+      | unifs (T :: Ts, T' :: Ts') = unif (T', T') andalso unifs (Ts, Ts')
+      | unifs _ = false;
+  in if Vartab.is_empty tye then op = else unif end;
 
 
 
@@ -612,7 +609,7 @@ fun add_class context (c, cs) tsig =
         handle TYPE (msg, _, _) => error msg;
       val _ = Binding.check c;
       val (c', space') = space |> Name_Space.declare context true c;
-      val classes' = classes |> Sorts.add_class (Context.pretty_generic context) (c', cs');
+      val classes' = classes |> Sorts.add_class context (c', cs');
     in ((space', classes'), default, types) end);
 
 fun hide_class fully c = map_tsig (fn ((space, classes), default, types) =>
@@ -621,7 +618,7 @@ fun hide_class fully c = map_tsig (fn ((space, classes), default, types) =>
 
 (* arities *)
 
-fun add_arity pp (t, Ss, S) tsig = tsig |> map_tsig (fn ((space, classes), default, types) =>
+fun add_arity context (t, Ss, S) tsig = tsig |> map_tsig (fn ((space, classes), default, types) =>
   let
     val _ =
       (case lookup_type tsig t of
@@ -630,18 +627,18 @@ fun add_arity pp (t, Ss, S) tsig = tsig |> map_tsig (fn ((space, classes), defau
       | NONE => error (undecl_type t));
     val (Ss', S') = (map (cert_sort tsig) Ss, cert_sort tsig S)
       handle TYPE (msg, _, _) => error msg;
-    val classes' = classes |> Sorts.add_arities pp ((t, map (fn c' => (c', Ss')) S'));
+    val classes' = classes |> Sorts.add_arities context ((t, map (fn c' => (c', Ss')) S'));
   in ((space, classes'), default, types) end);
 
 
 (* classrel *)
 
-fun add_classrel pp rel tsig =
+fun add_classrel context rel tsig =
   tsig |> map_tsig (fn ((space, classes), default, types) =>
     let
-      val rel' = pairself (cert_class tsig) rel
+      val rel' = apply2 (cert_class tsig) rel
         handle TYPE (msg, _, _) => error msg;
-      val classes' = classes |> Sorts.add_classrel pp rel';
+      val classes' = classes |> Sorts.add_classrel context rel';
     in ((space, classes'), default, types) end);
 
 
@@ -662,8 +659,9 @@ fun map_types f = map_tsig (fn (classes, default, types) =>
   let
     val types' = f types;
     val _ =
+      not (Name_Space.defined types' "dummy") orelse
       Name_Space.intern (Name_Space.space_of_table types') "dummy" = "dummy" orelse
-        error "Illegal declaration of dummy type";
+      error "Illegal declaration of dummy type";
   in (classes, default, types') end);
 
 fun syntactic tsig (Type (c, Ts)) =
@@ -703,7 +701,7 @@ fun hide_type fully c = map_tsig (fn (classes, default, types) =>
 
 (* merge type signatures *)
 
-fun merge_tsig pp (tsig1, tsig2) =
+fun merge_tsig context (tsig1, tsig2) =
   let
     val (TSig {classes = (space1, classes1), default = default1, types = types1,
       log_types = _}) = tsig1;
@@ -711,7 +709,7 @@ fun merge_tsig pp (tsig1, tsig2) =
       log_types = _}) = tsig2;
 
     val space' = Name_Space.merge (space1, space2);
-    val classes' = Sorts.merge_algebra pp (classes1, classes2);
+    val classes' = Sorts.merge_algebra context (classes1, classes2);
     val default' = Sorts.inter_sort classes' (default1, default2);
     val types' = Name_Space.merge_tables (types1, types2);
   in build_tsig ((space', classes'), default', types') end;

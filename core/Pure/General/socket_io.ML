@@ -4,8 +4,6 @@
 
 Stream IO over TCP sockets.  Following example 10.2 in "The Standard
 ML Basis Library" by Emden R. Gansner and John H. Reppy.
-
-Note: BinIO requires Poly/ML 5.5.x to work reliably.
 *)
 
 signature SOCKET_IO =
@@ -25,7 +23,7 @@ fun make_streams socket =
     val rd =
       BinPrimIO.RD {
         name = name,
-        chunkSize = io_buffer_size,
+        chunkSize = 4096,
         readVec = SOME (fn n => Socket.recvVec (socket, n)),
         readArr = SOME (fn buffer => Socket.recvArr (socket, buffer)),
         readVecNB = NONE,
@@ -44,7 +42,7 @@ fun make_streams socket =
     val wr =
       BinPrimIO.WR {
         name = name,
-        chunkSize = io_buffer_size,
+        chunkSize = 4096,
         writeVec = SOME (fn buffer => Socket.sendVec (socket, buffer)),
         writeArr = SOME (fn buffer => Socket.sendArr (socket, buffer)),
         writeVecNB = NONE,

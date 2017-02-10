@@ -31,8 +31,8 @@ type execution = generic;
 val none = 0;
 val make = Counter.make ();
 
-val parse = Markup.parse_int;
-val print = Markup.print_int;
+val parse = Value.parse_int;
+val print = Value.print_int;
 
 end;
 

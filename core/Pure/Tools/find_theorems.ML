@@ -15,12 +15,16 @@ sig
     rem_dups: bool,
     criteria: (bool * 'term criterion) list
   }
+  val query_parser: (bool * string criterion) list parser
   val read_query: Position.T -> string -> (bool * string criterion) list
   val find_theorems: Proof.context -> thm option -> int option -> bool ->
     (bool * term criterion) list -> int option * (Facts.ref * thm) list
   val find_theorems_cmd: Proof.context -> thm option -> int option -> bool ->
     (bool * string criterion) list -> int option * (Facts.ref * thm) list
   val pretty_thm: Proof.context -> Facts.ref * thm -> Pretty.T
+  val pretty_theorems: Proof.state ->
+    int option -> bool -> (bool * string criterion) list -> Pretty.T
+  val proof_state: Toplevel.state -> Proof.state
 end;
 
 structure Find_Theorems: FIND_THEOREMS =
@@ -31,32 +35,13 @@ struct
 datatype 'term criterion =
   Name of string | Intro | Elim | Dest | Solves | Simp of 'term | Pattern of 'term;
 
-fun apply_dummies tm =
-  let
-    val (xs, _) = Term.strip_abs tm;
-    val tm' = Term.betapplys (tm, map (Term.dummy_pattern o #2) xs);
-  in #1 (Term.replace_dummy_patterns tm' 1) end;
-
-fun parse_pattern ctxt nm =
-  let
-    val consts = Proof_Context.consts_of ctxt;
-    val nm' =
-      (case Syntax.parse_term ctxt nm of
-        Const (c, _) => c
-      | _ => Consts.intern consts nm);
-  in
-    (case try (Consts.the_abbreviation consts) nm' of
-      SOME (_, rhs) => apply_dummies (Proof_Context.expand_abbrevs ctxt rhs)
-    | NONE => Proof_Context.read_term_pattern ctxt nm)
-  end;
-
 fun read_criterion _ (Name name) = Name name
   | read_criterion _ Intro = Intro
   | read_criterion _ Elim = Elim
   | read_criterion _ Dest = Dest
   | read_criterion _ Solves = Solves
   | read_criterion ctxt (Simp str) = Simp (Proof_Context.read_term_pattern ctxt str)
-  | read_criterion ctxt (Pattern str) = Pattern (parse_pattern ctxt str);
+  | read_criterion ctxt (Pattern str) = Pattern (Proof_Context.read_term_pattern ctxt str);
 
 fun pretty_criterion ctxt (b, c) =
   let
@@ -108,7 +93,7 @@ fun map_criteria f {goal, limit, rem_dups, criteria} =
 
 (* matching theorems *)
 
-fun is_nontrivial thy = Term.is_Const o Term.head_of o Object_Logic.drop_judgment thy;
+fun is_nontrivial ctxt = Term.is_Const o Term.head_of o Object_Logic.drop_judgment ctxt;
 
 (*extract terms from term_src, refine them to the parts that concern us,
   if po try match them against obj else vice versa.
@@ -119,7 +104,7 @@ fun is_matching_thm (extract_terms, refine_term) ctxt po obj term_src =
     val thy = Proof_Context.theory_of ctxt;
 
     fun matches pat =
-      is_nontrivial thy pat andalso
+      is_nontrivial ctxt pat andalso
       Pattern.matches thy (if po then (pat, obj) else (obj, pat));
 
     fun subst_size pat =
@@ -170,7 +155,7 @@ fun filter_intro ctxt goal (_, thm) =
     val concl = Logic.concl_of_goal goal 1;
   in
     (case is_matching_thm extract_intro ctxt true concl thm of
-      SOME ss => SOME (size_of_term (Thm.prop_of thm), Thm.nprems_of thm, ss)
+      SOME k => SOME (size_of_term (Thm.prop_of thm), Thm.nprems_of thm, k)
     | NONE => NONE)
   end;
 
@@ -190,8 +175,7 @@ fun filter_elim ctxt goal (_, thm) =
     in
       (*elim rules always have assumptions, so an elim with one
         assumption is as good as an intro rule with none*)
-      if is_nontrivial (Proof_Context.theory_of ctxt) (Thm.major_prem_of thm)
-          andalso not (null successful) then
+      if is_nontrivial ctxt (Thm.major_prem_of thm) andalso not (null successful) then
         SOME (size_of_term (Thm.prop_of thm), Thm.nprems_of thm - 1, foldl1 Int.min successful)
       else NONE
     end
@@ -206,9 +190,10 @@ fun filter_solves ctxt goal =
     val goal' = Thm.transfer thy' goal;
 
     fun limited_etac thm i =
-      Seq.take (Options.default_int @{system_option find_theorems_tactic_limit}) o etac thm i;
+      Seq.take (Options.default_int @{system_option find_theorems_tactic_limit}) o
+        eresolve_tac ctxt' [thm] i;
     fun try_thm thm =
-      if Thm.no_prems thm then rtac thm 1 goal'
+      if Thm.no_prems thm then resolve_tac ctxt' [thm] 1 goal'
       else
         (limited_etac thm THEN_ALL_NEW (Goal.norm_hhf_tac ctxt' THEN' Method.assm_tac ctxt'))
           1 goal';
@@ -236,7 +221,24 @@ fun filter_simp ctxt t (_, thm) =
 
 (* filter_pattern *)
 
+fun expand_abs t =
+  let
+    val m = Term.maxidx_of_term t + 1;
+    val vs = strip_abs_vars t;
+    val ts = map_index (fn (k, (_, T)) => Var ((Name.aT, m + k), T)) vs;
+  in betapplys (t, ts) end;
+
 fun get_names t = Term.add_const_names t (Term.add_free_names t []);
+
+(* Does pat match a subterm of obj? *)
+fun matches_subterm thy (pat, obj) =
+  let
+    fun msub bounds obj = Pattern.matches thy (pat, obj) orelse
+      (case obj of
+        Abs (_, T, t) => msub (bounds + 1) (snd (Term.dest_abs (Name.bound bounds, T, t)))
+      | t $ u => msub bounds t orelse msub bounds u
+      | _ => false)
+  in msub 0 obj end;
 
 (*Including all constants and frees is only sound because matching
   uses higher-order patterns. If full matching were used, then
@@ -248,12 +250,12 @@ fun get_names t = Term.add_const_names t (Term.add_free_names t []);
 
 fun filter_pattern ctxt pat =
   let
-    val pat_consts = get_names pat;
-
+    val pat' = (expand_abs o Envir.eta_contract) pat;
+    val pat_consts = get_names pat';
     fun check ((x, thm), NONE) = check ((x, thm), SOME (get_names (Thm.full_prop_of thm)))
       | check ((_, thm), c as SOME thm_consts) =
          (if subset (op =) (pat_consts, thm_consts) andalso
-            Pattern.matches_subterm (Proof_Context.theory_of ctxt) (pat, Thm.full_prop_of thm)
+            matches_subterm (Proof_Context.theory_of ctxt) (pat', Thm.full_prop_of thm)
           then SOME (size_of_term (Thm.prop_of thm), Thm.nprems_of thm, 0) else NONE, c);
   in check end;
 
@@ -329,14 +331,16 @@ end;
 local
 
 val index_ord = option_ord (K EQUAL);
-val hidden_ord = bool_ord o pairself Long_Name.is_hidden;
-val qual_ord = int_ord o pairself Long_Name.qualification;
-val txt_ord = int_ord o pairself size;
+val hidden_ord = bool_ord o apply2 Long_Name.is_hidden;
+val qual_ord = int_ord o apply2 Long_Name.qualification;
+val txt_ord = int_ord o apply2 size;
 
-fun nicer_name (x, i) (y, j) =
-  (case hidden_ord (x, y) of EQUAL =>
-    (case index_ord (i, j) of EQUAL =>
-      (case qual_ord (x, y) of EQUAL => txt_ord (x, y) | ord => ord)
+fun nicer_name ((a, x), i) ((b, y), j) =
+  (case bool_ord (a, b) of EQUAL =>
+    (case hidden_ord (x, y) of EQUAL =>
+      (case index_ord (i, j) of EQUAL =>
+        (case qual_ord (x, y) of EQUAL => txt_ord (x, y) | ord => ord)
+      | ord => ord)
     | ord => ord)
   | ord => ord) <> GREATER;
 
@@ -355,8 +359,10 @@ in
 fun nicer_shortest ctxt =
   let
     fun extern_shortest name =
-      Name_Space.extern_shortest ctxt
-        (Facts.space_of (Proof_Context.facts_of_fact ctxt name)) name;
+      let
+        val facts = Proof_Context.facts_of_fact ctxt name;
+        val space = Facts.space_of facts;
+      in (Facts.is_dynamic facts name, Name_Space.extern_shortest ctxt space name) end;
 
     fun nicer (Facts.Named ((x, _), i)) (Facts.Named ((y, _), j)) =
           nicer_name (extern_shortest x, i) (extern_shortest y, j)
@@ -367,9 +373,9 @@ fun nicer_shortest ctxt =
 
 fun rem_thm_dups nicer xs =
   (xs ~~ (1 upto length xs))
-  |> sort (Term_Ord.fast_term_ord o pairself (Thm.full_prop_of o #2 o #1))
+  |> sort (Term_Ord.fast_term_ord o apply2 (Thm.full_prop_of o #2 o #1))
   |> rem_cdups nicer
-  |> sort (int_ord o pairself #2)
+  |> sort (int_ord o apply2 #2)
   |> map #1;
 
 end;
@@ -382,12 +388,15 @@ end;
 
 fun all_facts_of ctxt =
   let
+    val thy = Proof_Context.theory_of ctxt;
+    val transfer = Global_Theory.transfer_theories thy;
     val local_facts = Proof_Context.facts_of ctxt;
-    val global_facts = Global_Theory.facts_of (Proof_Context.theory_of ctxt);
+    val global_facts = Global_Theory.facts_of thy;
   in
-    maps Facts.selections
-     (Facts.dest_static false [global_facts] local_facts @
-      Facts.dest_static false [] global_facts)
+   (Facts.dest_all (Context.Proof ctxt) false [global_facts] local_facts @
+     Facts.dest_all (Context.Proof ctxt) false [] global_facts)
+   |> maps Facts.selections
+   |> map (apsnd transfer)
   end;
 
 fun filter_theorems ctxt theorems query =
@@ -428,7 +437,7 @@ fun gen_find_theorems filter ctxt opt_goal opt_limit rem_dups raw_criteria =
     val assms =
       Proof_Context.get_fact ctxt (Facts.named "local.assms")
         handle ERROR _ => [];
-    val add_prems = Seq.hd o TRY (Method.insert_tac assms 1);
+    val add_prems = Seq.hd o TRY (Method.insert_tac ctxt assms 1);
     val opt_goal' = Option.map add_prems opt_goal;
   in
     filter ctxt (all_facts_of ctxt)
@@ -454,14 +463,14 @@ fun pretty_ref ctxt thmref =
         Facts.Named ((name, _), sel) => (name, sel)
       | Facts.Fact _ => raise Fail "Illegal literal fact");
   in
-    [Pretty.mark (#1 (Proof_Context.markup_extern_fact ctxt name)) (Pretty.str name),
+    [Pretty.marks_str (#1 (Proof_Context.markup_extern_fact ctxt name), name),
       Pretty.str (Facts.string_of_selection sel), Pretty.str ":", Pretty.brk 1]
   end;
 
 in
 
 fun pretty_thm ctxt (thmref, thm) =
-  Pretty.block (pretty_ref ctxt thmref @ [Display.pretty_thm ctxt thm]);
+  Pretty.block (pretty_ref ctxt thmref @ [Thm.pretty_thm ctxt thm]);
 
 fun pretty_theorems state opt_limit rem_dups raw_criteria =
   let
@@ -501,15 +510,10 @@ end;
 
 (** Isar command syntax **)
 
-fun proof_state st =
-  (case try Toplevel.proof_of st of
-    SOME state => state
-  | NONE => Proof.init (Toplevel.context_of st));
-
 local
 
 val criterion =
-  Parse.reserved "name" |-- Parse.!!! (Parse.$$$ ":" |-- Parse.xname) >> Name ||
+  Parse.reserved "name" |-- Parse.!!! (Parse.$$$ ":" |-- Parse.name) >> Name ||
   Parse.reserved "intro" >> K Intro ||
   Parse.reserved "elim" >> K Elim ||
   Parse.reserved "dest" >> K Dest ||
@@ -517,28 +521,18 @@ val criterion =
   Parse.reserved "simp" |-- Parse.!!! (Parse.$$$ ":" |-- Parse.term) >> Simp ||
   Parse.term >> Pattern;
 
-val options =
-  Scan.optional
-    (Parse.$$$ "(" |--
-      Parse.!!! (Scan.option Parse.nat -- Scan.optional (Parse.reserved "with_dups" >> K false) true
-        --| Parse.$$$ ")")) (NONE, true);
-
-val query = Scan.repeat ((Scan.option Parse.minus >> is_none) -- criterion);
+val query_keywords =
+  Keyword.add_keywords [((":", @{here}), Keyword.no_spec)] Keyword.empty_keywords;
 
 in
 
-fun read_query pos str =
-  Outer_Syntax.scan pos str
-  |> filter Token.is_proper
-  |> Scan.error (Scan.finite Token.stopper (Parse.!!! (query --| Scan.ahead Parse.eof)))
-  |> #1;
+val query_parser = Scan.repeat ((Scan.option Parse.minus >> is_none) -- criterion);
 
-val _ =
-  Outer_Syntax.improper_command @{command_spec "find_theorems"}
-    "find theorems meeting specified criteria"
-    (options -- query >> (fn ((opt_lim, rem_dups), spec) =>
-      Toplevel.keep (fn st =>
-        Pretty.writeln (pretty_theorems (proof_state st) opt_lim rem_dups spec))));
+fun read_query pos str =
+  Token.explode query_keywords pos str
+  |> filter Token.is_proper
+  |> Scan.error (Scan.finite Token.stopper (Parse.!!! (query_parser --| Scan.ahead Parse.eof)))
+  |> #1;
 
 end;
 
@@ -546,16 +540,22 @@ end;
 
 (** PIDE query operation **)
 
+fun proof_state st =
+  (case try Toplevel.proof_of st of
+    SOME state => state
+  | NONE => Proof.init (Toplevel.context_of st));
+
 val _ =
-  Query_Operation.register "find_theorems" (fn {state = st, args, output_result} =>
-    if can Toplevel.context_of st then
-      let
-        val [limit_arg, allow_dups_arg, query_arg] = args;
-        val state = proof_state st;
-        val opt_limit = Int.fromString limit_arg;
-        val rem_dups = allow_dups_arg = "false";
-        val criteria = read_query Position.none query_arg;
-      in output_result (Pretty.string_of (pretty_theorems state opt_limit rem_dups criteria)) end
-    else error "Unknown context");
+  Query_Operation.register {name = "find_theorems", pri = Task_Queue.urgent_pri}
+    (fn {state = st, args, writeln_result, ...} =>
+      if can Toplevel.context_of st then
+        let
+          val [limit_arg, allow_dups_arg, query_arg] = args;
+          val state = proof_state st;
+          val opt_limit = Int.fromString limit_arg;
+          val rem_dups = allow_dups_arg = "false";
+          val criteria = read_query Position.none query_arg;
+        in writeln_result (Pretty.string_of (pretty_theorems state opt_limit rem_dups criteria)) end
+      else error "Unknown context");
 
 end;

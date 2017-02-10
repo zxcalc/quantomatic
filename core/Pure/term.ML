@@ -107,6 +107,7 @@ sig
   val maxidx_of_typ: typ -> int
   val maxidx_of_typs: typ list -> int
   val maxidx_of_term: term -> int
+  val fold_subtypes: (typ -> 'a -> 'a) -> typ -> 'a -> 'a
   val exists_subtype: (typ -> bool) -> typ -> bool
   val exists_type: (typ -> bool) -> term -> bool
   val exists_subterm: (term -> bool) -> term -> bool
@@ -152,12 +153,16 @@ sig
   val rename_abs: term -> term -> term -> term option
   val is_open: term -> bool
   val is_dependent: term -> bool
+  val term_name: term -> string
+  val dependent_lambda_name: string * term -> term -> term
   val lambda_name: string * term -> term -> term
   val close_schematic_term: term -> term
   val maxidx_typ: typ -> int -> int
   val maxidx_typs: typ list -> int -> int
   val maxidx_term: term -> int -> int
-  val has_abs: term -> bool
+  val could_beta_contract: term -> bool
+  val could_eta_contract: term -> bool
+  val could_beta_eta_contract: term -> bool
   val dest_abs: string * typ * term -> string * term
   val dummy_pattern: typ -> term
   val dummy: term
@@ -166,7 +171,6 @@ sig
   val free_dummy_patterns: term -> Name.context -> term * Name.context
   val no_dummy_patterns: term -> term
   val replace_dummy_patterns: term -> int -> term * int
-  val is_replaced_dummy_pattern: indexname -> bool
   val show_dummy_patterns: term -> term
   val string_of_vname: indexname -> string
   val string_of_vname': indexname -> string
@@ -179,12 +183,12 @@ struct
   for resolution.*)
 type indexname = string * int;
 
-(* Types are classified by sorts. *)
+(*Types are classified by sorts.*)
 type class = string;
 type sort  = class list;
 type arity = string * sort list * sort;
 
-(* The sorts attached to TFrees and TVars specify the sort of that variable *)
+(*The sorts attached to TFrees and TVars specify the sort of that variable.*)
 datatype typ = Type  of string * typ list
              | TFree of string * sort
              | TVar  of indexname * sort;
@@ -291,15 +295,15 @@ fun dest_funT (Type ("fun", [T, U])) = (T, U)
   | dest_funT T = raise TYPE ("dest_funT", [T], []);
 
 
-(* maps  [T1,...,Tn]--->T  to the list  [T1,T2,...,Tn]*)
+(*maps  [T1,...,Tn]--->T  to the list  [T1,T2,...,Tn]*)
 fun binder_types (Type ("fun", [T, U])) = T :: binder_types U
   | binder_types _ = [];
 
-(* maps  [T1,...,Tn]--->T  to T*)
+(*maps  [T1,...,Tn]--->T  to T*)
 fun body_type (Type ("fun", [_, U])) = body_type U
   | body_type T = T;
 
-(* maps  [T1,...,Tn]--->T  to   ([T1,T2,...,Tn], T)  *)
+(*maps  [T1,...,Tn]--->T  to   ([T1,T2,...,Tn], T)*)
 fun strip_type T = (binder_types T, body_type T);
 
 
@@ -359,11 +363,11 @@ fun strip_abs (Abs (a, T, t)) =
       in ((a, T) :: a', t') end
   | strip_abs t = ([], t);
 
-(* maps  (x1,...,xn)t   to   t  *)
+(*maps  (x1,...,xn)t   to   t*)
 fun strip_abs_body (Abs(_,_,t))  =  strip_abs_body t
   | strip_abs_body u  =  u;
 
-(* maps  (x1,...,xn)t   to   [x1, ..., xn]  *)
+(*maps  (x1,...,xn)t   to   [x1, ..., xn]*)
 fun strip_abs_vars (Abs(a,T,t))  =  (a,T) :: strip_abs_vars t
   | strip_abs_vars u  =  [] : (string*typ) list;
 
@@ -379,18 +383,18 @@ let fun strip(Const(c,_)$Abs(a,T,t)) = if c=qnt then (a,T)::strip t else []
 in strip end;
 
 
-(* maps   (f, [t1,...,tn])  to  f(t1,...,tn) *)
+(*maps   (f, [t1,...,tn])  to  f(t1,...,tn)*)
 val list_comb : term * term list -> term = Library.foldl (op $);
 
 
-(* maps   f(t1,...,tn)  to  (f, [t1,...,tn]) ; naturally tail-recursive*)
+(*maps   f(t1,...,tn)  to  (f, [t1,...,tn]) ; naturally tail-recursive*)
 fun strip_comb u : term * term list =
     let fun stripc (f$t, ts) = stripc (f, t::ts)
         |   stripc  x =  x
     in  stripc(u,[])  end;
 
 
-(* maps   f(t1,...,tn)  to  f , which is never a combination *)
+(*maps   f(t1,...,tn)  to  f , which is never a combination*)
 fun head_of (f$t) = head_of f
   | head_of u = u;
 
@@ -578,14 +582,13 @@ val a_itselfT = itselfT (TFree (Name.aT, []));
 
 val propT : typ = Type ("prop",[]);
 
-(* maps  !!x1...xn. t   to   t  *)
-fun strip_all_body (Const("Pure.all",_)$Abs(_,_,t))  =  strip_all_body t
-  | strip_all_body t  =  t;
+(*maps  !!x1...xn. t   to   t*)
+fun strip_all_body (Const ("Pure.all", _) $ Abs (_, _, t)) = strip_all_body t
+  | strip_all_body t = t;
 
-(* maps  !!x1...xn. t   to   [x1, ..., xn]  *)
-fun strip_all_vars (Const("Pure.all",_)$Abs(a,T,t))  =
-                (a,T) :: strip_all_vars t
-  | strip_all_vars t  =  [] : (string*typ) list;
+(*maps  !!x1...xn. t   to   [x1, ..., xn]*)
+fun strip_all_vars (Const ("Pure.all", _) $ Abs (a, T, t)) = (a, T) :: strip_all_vars t
+  | strip_all_vars t = [];
 
 (*increments a term's non-local bound variables
   required when moving a term within abstractions
@@ -750,6 +753,10 @@ fun term_name (Const (x, _)) = Long_Name.base_name x
   | term_name (Var ((x, _), _)) = x
   | term_name _ = Name.uu;
 
+fun dependent_lambda_name (x, v) t =
+  let val t' = abstract_over (v, t)
+  in if is_dependent t' then Abs (if x = "" then term_name v else x, fastype_of v, t') else t end;
+
 fun lambda_name (x, v) t =
   Abs (if x = "" then term_name v else x, fastype_of v, abstract_over (v, t));
 
@@ -875,6 +882,12 @@ fun maxidx_of_term t = maxidx_term t ~1;
 
 (* substructure *)
 
+fun fold_subtypes f =
+  let
+    fun iter ty =
+      (case ty of Type (_, Ts) => f ty #> fold iter Ts | _ => f ty);
+  in iter end;
+
 fun exists_subtype P =
   let
     fun ex ty = P ty orelse
@@ -902,9 +915,24 @@ fun exists_subterm P =
 
 fun exists_Const P = exists_subterm (fn Const c => P c | _ => false);
 
-fun has_abs (Abs _) = true
-  | has_abs (t $ u) = has_abs t orelse has_abs u
-  | has_abs _ = false;
+
+(* contraction *)
+
+fun could_beta_contract (Abs _ $ _) = true
+  | could_beta_contract (t $ u) = could_beta_contract t orelse could_beta_contract u
+  | could_beta_contract (Abs (_, _, b)) = could_beta_contract b
+  | could_beta_contract _ = false;
+
+fun could_eta_contract (Abs (_, _, _ $ Bound 0)) = true
+  | could_eta_contract (Abs (_, _, b)) = could_eta_contract b
+  | could_eta_contract (t $ u) = could_eta_contract t orelse could_eta_contract u
+  | could_eta_contract _ = false;
+
+fun could_beta_eta_contract (Abs _ $ _) = true
+  | could_beta_eta_contract (Abs (_, _, _ $ Bound 0)) = true
+  | could_beta_eta_contract (Abs (_, _, b)) = could_beta_eta_contract b
+  | could_beta_eta_contract (t $ u) = could_beta_eta_contract t orelse could_beta_eta_contract u
+  | could_beta_eta_contract _ = false;
 
 
 (* dest abstraction *)
@@ -962,9 +990,6 @@ fun replace_dummy Ts (Const ("Pure.dummy_pattern", T)) i =
 
 val replace_dummy_patterns = replace_dummy [];
 
-fun is_replaced_dummy_pattern ("_dummy_", _) = true
-  | is_replaced_dummy_pattern _ = false;
-
 fun show_dummy_patterns (Var (("_dummy_", _), T)) = dummy_pattern T
   | show_dummy_patterns (t $ u) = show_dummy_patterns t $ show_dummy_patterns u
   | show_dummy_patterns (Abs (x, T, t)) = Abs (x, T, show_dummy_patterns t)
@@ -978,7 +1003,7 @@ fun string_of_vname (x, i) =
     val idx = string_of_int i;
     val dot =
       (case rev (Symbol.explode x) of
-        _ :: "\\<^sub>" :: _ => false
+        _ :: "\<^sub>" :: _ => false
       | c :: _ => Symbol.is_digit c
       | _ => true);
   in

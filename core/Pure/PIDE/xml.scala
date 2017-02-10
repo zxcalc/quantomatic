@@ -1,5 +1,4 @@
 /*  Title:      Pure/PIDE/xml.scala
-    Module:     PIDE
     Author:     Makarius
 
 Untyped XML trees and basic data representation.
@@ -21,36 +20,38 @@ object XML
 
   type Attributes = Properties.T
 
-  sealed abstract class Tree { override def toString = string_of_tree(this) }
-  case class Elem(markup: Markup, body: List[Tree]) extends Tree
+  sealed abstract class Tree { override def toString: String = string_of_tree(this) }
+  type Body = List[Tree]
+  case class Elem(markup: Markup, body: Body) extends Tree
   {
     def name: String = markup.name
+    def update_attributes(more_attributes: Attributes): Elem =
+      if (more_attributes.isEmpty) this
+      else Elem(markup.update_properties(more_attributes), body)
   }
   case class Text(content: String) extends Tree
 
-  def elem(name: String, body: List[Tree]) = Elem(Markup(name, Nil), body)
-  def elem(name: String) = Elem(Markup(name, Nil), Nil)
-
-  type Body = List[Tree]
+  def elem(name: String, body: Body): XML.Elem = XML.Elem(Markup(name, Nil), body)
+  def elem(name: String): XML.Elem = XML.Elem(Markup(name, Nil), Nil)
 
 
   /* wrapped elements */
 
-  val XML_ELEM = "xml_elem";
-  val XML_NAME = "xml_name";
-  val XML_BODY = "xml_body";
+  val XML_ELEM = "xml_elem"
+  val XML_NAME = "xml_name"
+  val XML_BODY = "xml_body"
 
   object Wrapped_Elem
   {
     def apply(markup: Markup, body1: Body, body2: Body): XML.Elem =
-      Elem(Markup(XML_ELEM, (XML_NAME, markup.name) :: markup.properties),
-        Elem(Markup(XML_BODY, Nil), body1) :: body2)
+      XML.Elem(Markup(XML_ELEM, (XML_NAME, markup.name) :: markup.properties),
+        XML.Elem(Markup(XML_BODY, Nil), body1) :: body2)
 
     def unapply(tree: Tree): Option[(Markup, Body, Body)] =
       tree match {
         case
-          Elem(Markup(XML_ELEM, (XML_NAME, name) :: props),
-            Elem(Markup(XML_BODY, Nil), body1) :: body2) =>
+          XML.Elem(Markup(XML_ELEM, (XML_NAME, name) :: props),
+            XML.Elem(Markup(XML_BODY, Nil), body1) :: body2) =>
           Some(Markup(name, props), body1, body2)
         case _ => None
       }
@@ -63,9 +64,9 @@ object XML
   {
     def traverse(x: A, t: Tree): A =
       t match {
-        case Wrapped_Elem(_, _, ts) => (x /: ts)(traverse)
-        case Elem(_, ts) => (x /: ts)(traverse)
-        case Text(s) => op(x, s)
+        case XML.Wrapped_Elem(_, _, ts) => (x /: ts)(traverse)
+        case XML.Elem(_, ts) => (x /: ts)(traverse)
+        case XML.Text(s) => op(x, s)
       }
     (a /: body)(traverse)
   }
@@ -109,13 +110,13 @@ object XML
     def elem(markup: Markup) { s ++= markup.name; markup.properties.foreach(attrib) }
     def tree(t: Tree): Unit =
       t match {
-        case Elem(markup, Nil) =>
+        case XML.Elem(markup, Nil) =>
           s ++= "<"; elem(markup); s ++= "/>"
-        case Elem(markup, ts) =>
+        case XML.Elem(markup, ts) =>
           s ++= "<"; elem(markup); s ++= ">"
           ts.foreach(tree)
           s ++= "</"; s ++= markup.name; s ++= ">"
-        case Text(txt) => text(txt)
+        case XML.Text(txt) => text(txt)
       }
     body.foreach(tree)
     s.toString
@@ -150,12 +151,17 @@ object XML
     private def trim_bytes(s: String): String = new String(s.toCharArray)
 
     private def cache_string(x: String): String =
-      lookup(x) match {
-        case Some(y) => y
-        case None =>
-          val z = trim_bytes(x)
-          if (z.length > max_string) z else store(z)
-      }
+      if (x == "true") "true"
+      else if (x == "false") "false"
+      else if (x == "0.0") "0.0"
+      else if (Library.is_small_int(x)) Library.signed_string_of_int(Integer.parseInt(x))
+      else
+        lookup(x) match {
+          case Some(y) => y
+          case None =>
+            val z = trim_bytes(x)
+            if (z.length > max_string) z else store(z)
+        }
     private def cache_props(x: Properties.T): Properties.T =
       if (x.isEmpty) x
       else
@@ -214,9 +220,9 @@ object XML
 
     /* atomic values */
 
-    def long_atom(i: Long): String = i.toString
+    def long_atom(i: Long): String = Library.signed_string_of_long(i)
 
-    def int_atom(i: Int): String = i.toString
+    def int_atom(i: Int): String = Library.signed_string_of_int(i)
 
     def bool_atom(b: Boolean): String = if (b) "1" else "0"
 

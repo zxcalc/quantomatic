@@ -1,5 +1,4 @@
 /*  Title:      Pure/General/word.scala
-    Module:     PIDE
     Author:     Makarius
 
 Support for words within Unicode text.
@@ -7,7 +6,7 @@ Support for words within Unicode text.
 
 package isabelle
 
-
+import java.text.Bidi
 import java.util.Locale
 
 
@@ -28,6 +27,15 @@ object Word
     }
 
   def codepoint(c: Int): String = new String(Array(c), 0, 1)
+
+
+  /* directionality */
+
+  def bidi_detect(str: String): Boolean =
+    str.exists(c => c >= 0x590) && Bidi.requiresBidi(str.toArray, 0, str.length)
+
+  def bidi_override(str: String): String =
+    if (bidi_detect(str)) "\u200E\u202D" + str + "\u202C" else str
 
 
   /* case */
@@ -61,7 +69,7 @@ object Word
         case Capitalized => capitalize(str)
       }
     def unapply(str: String): Option[Case] =
-      if (!str.isEmpty) {
+      if (str.nonEmpty) {
         if (codepoint_iterator(str).forall(Character.isLowerCase(_))) Some(Lowercase)
         else if (codepoint_iterator(str).forall(Character.isUpperCase(_))) Some(Uppercase)
         else {
@@ -87,5 +95,10 @@ object Word
 
   def explode(text: String): List[String] =
     explode(Character.isWhitespace(_), text)
-}
 
+
+  /* brackets */
+
+  val open_brackets = "([{«‹⟨⌈⌊⦇⟦⦃"
+  val close_brackets = ")]}»›⟩⌉⌋⦈⟧⦄"
+}

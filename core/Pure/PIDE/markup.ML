@@ -6,12 +6,6 @@ Quasi-abstract markup elements.
 
 signature MARKUP =
 sig
-  val parse_bool: string -> bool
-  val print_bool: bool -> string
-  val parse_int: string -> int
-  val print_int: int -> string
-  val parse_real: string -> real
-  val print_real: real -> string
   type T = string * Properties.T
   val empty: T
   val is_empty: T -> bool
@@ -19,6 +13,8 @@ sig
   val nameN: string
   val name: string -> T -> T
   val kindN: string
+  val serialN: string
+  val serial_properties: int -> Properties.T
   val instanceN: string
   val languageN: string
   val symbolsN: string
@@ -26,6 +22,7 @@ sig
   val is_delimited: Properties.T -> bool
   val language: {name: string, symbols: bool, antiquotes: bool, delimited: bool} -> T
   val language': {name: string, symbols: bool, antiquotes: bool} -> bool -> T
+  val language_Isar: bool -> T
   val language_method: T
   val language_attribute: T
   val language_sort: bool -> T
@@ -37,8 +34,10 @@ sig
   val language_document: bool -> T
   val language_antiquotation: T
   val language_text: bool -> T
+  val language_verbatim: bool -> T
   val language_rail: T
   val language_path: T
+  val language_mixfix: T
   val bindingN: string val binding: T
   val entityN: string val entity: string -> string -> T
   val get_entity_kind: T -> string option
@@ -47,6 +46,7 @@ sig
   val completionN: string val completion: T
   val no_completionN: string val no_completion: T
   val lineN: string
+  val end_lineN: string
   val offsetN: string
   val end_offsetN: string
   val fileN: string
@@ -54,12 +54,19 @@ sig
   val position_properties': string list
   val position_properties: string list
   val positionN: string val position: T
+  val expressionN: string val expression: string -> T
+  val citationN: string val citation: string -> T
   val pathN: string val path: string -> T
   val urlN: string val url: string -> T
+  val docN: string val doc: string -> T
+  val markupN: string
+  val consistentN: string
+  val unbreakableN: string
+  val block_properties: string list
   val indentN: string
-  val blockN: string val block: int -> T
   val widthN: string
-  val breakN: string val break: int -> T
+  val blockN: string val block: bool -> int -> T
+  val breakN: string val break: int -> int -> T
   val fbreakN: string val fbreak: T
   val itemN: string val item: T
   val wordsN: string val words: T
@@ -72,6 +79,8 @@ sig
   val fixedN: string val fixed: string -> T
   val caseN: string val case_: string -> T
   val dynamic_factN: string val dynamic_fact: string -> T
+  val literal_factN: string val literal_fact: string -> T
+  val method_modifierN: string
   val tfreeN: string val tfree: T
   val tvarN: string val tvar: T
   val freeN: string val free: T
@@ -87,6 +96,7 @@ sig
   val token_rangeN: string val token_range: T
   val sortingN: string val sorting: T
   val typingN: string val typing: T
+  val class_parameterN: string val class_parameter: T
   val ML_keyword1N: string val ML_keyword1: T
   val ML_keyword2N: string val ML_keyword2: T
   val ML_keyword3N: string val ML_keyword3: T
@@ -102,6 +112,7 @@ sig
   val ML_openN: string
   val ML_structureN: string
   val ML_typingN: string val ML_typing: T
+  val ML_breakpointN: string val ML_breakpoint: int -> T
   val antiquotedN: string val antiquoted: T
   val antiquoteN: string val antiquote: T
   val ML_antiquotationN: string
@@ -109,14 +120,17 @@ sig
   val document_antiquotation_optionN: string
   val paragraphN: string val paragraph: T
   val text_foldN: string val text_fold: T
+  val markdown_paragraphN: string val markdown_paragraph: T
+  val markdown_listN: string val markdown_list: string -> T
+  val markdown_itemN: string val markdown_item: int -> T
+  val inputN: string val input: bool -> Properties.T -> T
+  val command_keywordN: string val command_keyword: T
   val commandN: string val command: T
   val stringN: string val string: T
-  val altstringN: string val altstring: T
+  val alt_stringN: string val alt_string: T
   val verbatimN: string val verbatim: T
   val cartoucheN: string val cartouche: T
   val commentN: string val comment: T
-  val controlN: string val control: T
-  val tokenN: string val token: bool -> Properties.T -> T
   val keyword1N: string val keyword1: T
   val keyword2N: string val keyword2: T
   val keyword3N: string val keyword3: T
@@ -134,9 +148,7 @@ sig
   val parse_command_timing_properties:
     Properties.T -> ({file: string, offset: int, name: string} * Time.time) option
   val timingN: string val timing: {elapsed: Time.time, cpu: Time.time, gc: Time.time} -> T
-  val subgoalsN: string
-  val proof_stateN: string val proof_state: int -> T
-  val stateN: string val state: T
+  val command_indentN: string val command_indent: int -> T
   val goalN: string val goal: T
   val subgoalN: string val subgoal: string -> T
   val taskN: string
@@ -146,25 +158,23 @@ sig
   val runningN: string val running: T
   val finishedN: string val finished: T
   val failedN: string val failed: T
-  val serialN: string
-  val serial_properties: int -> Properties.T
   val exec_idN: string
   val initN: string
-  val statusN: string
-  val resultN: string
-  val writelnN: string
-  val tracingN: string
-  val warningN: string
-  val errorN: string
-  val systemN: string
-  val protocolN: string
+  val statusN: string val status: T
+  val resultN: string val result: T
+  val writelnN: string val writeln: T
+  val stateN: string val state: T
+  val informationN: string val information: T
+  val tracingN: string val tracing: T
+  val warningN: string val warning: T
   val legacyN: string val legacy: T
-  val promptN: string val prompt: T
+  val errorN: string val error: T
+  val systemN: string val system: T
+  val protocolN: string
   val reportN: string val report: T
   val no_reportN: string val no_report: T
   val badN: string val bad: T
   val intensifyN: string val intensify: T
-  val informationN: string val information: T
   val browserN: string
   val graphviewN: string
   val sendbackN: string
@@ -172,6 +182,7 @@ sig
   val padding_line: Properties.entry
   val padding_command: Properties.entry
   val dialogN: string val dialog: serial -> string -> T
+  val jedit_actionN: string
   val functionN: string
   val assign_update: Properties.T
   val removed_versions: Properties.T
@@ -183,9 +194,11 @@ sig
   val command_timing: Properties.entry
   val loading_theory: string -> Properties.T
   val dest_loading_theory: Properties.T -> string option
-  val use_theories_result: string -> bool -> Properties.T
+  val build_theories_result: string -> Properties.T
   val print_operationsN: string
   val print_operations: Properties.T
+  val debugger_state: string -> Properties.T
+  val debugger_output: string -> Properties.T
   val simp_trace_panelN: string
   val simp_trace_logN: string
   val simp_trace_stepN: string
@@ -194,11 +207,11 @@ sig
   val simp_trace_ignoreN: string
   val simp_trace_cancel: serial -> Properties.T
   val no_output: Output.output * Output.output
-  val default_output: T -> Output.output * Output.output
   val add_mode: string -> (T -> Output.output * Output.output) -> unit
   val output: T -> Output.output * Output.output
   val enclose: T -> Output.output -> Output.output
   val markup: T -> string -> string
+  val markups: T list -> string -> string
   val markup_only: T -> string
   val markup_report: string -> string
 end;
@@ -207,36 +220,6 @@ structure Markup: MARKUP =
 struct
 
 (** markup elements **)
-
-(* misc values *)
-
-fun parse_bool "true" = true
-  | parse_bool "false" = false
-  | parse_bool s = raise Fail ("Bad boolean: " ^ quote s);
-
-val print_bool = Bool.toString;
-
-fun parse_int s =
-  let val i = Int.fromString s in
-    if is_none i orelse String.isPrefix "~" s
-    then raise Fail ("Bad integer: " ^ quote s)
-    else the i
-  end;
-
-val print_int = signed_string_of_int;
-
-fun parse_real s =
-  (case Real.fromString s of
-    SOME x => x
-  | NONE => raise Fail ("Bad real: " ^ quote s));
-
-fun print_real x =
-  let val s = signed_string_of_real x in
-    (case space_explode "." s of
-      [a, b] => if forall_string (fn c => c = "0") b then a else s
-    | _ => s)
-  end;
-
 
 (* basic markup *)
 
@@ -253,7 +236,7 @@ fun properties more_props ((elem, props): T) =
 
 fun markup_elem name = (name, (name, []): T);
 fun markup_string name prop = (name, fn s => (name, [(prop, s)]): T);
-fun markup_int name prop = (name, fn i => (name, [(prop, print_int i)]): T);
+fun markup_int name prop = (name, fn i => (name, [(prop, Value.print_int i)]): T);
 
 
 (* misc properties *)
@@ -262,6 +245,9 @@ val nameN = "name";
 fun name a = properties [(nameN, a)];
 
 val kindN = "kind";
+
+val serialN = "serial";
+fun serial_properties i = [(serialN, Value.print_int i)];
 
 val instanceN = "instance";
 
@@ -279,13 +265,14 @@ fun is_delimited props =
 fun language {name, symbols, antiquotes, delimited} =
   (languageN,
    [(nameN, name),
-    (symbolsN, print_bool symbols),
-    (antiquotesN, print_bool antiquotes),
-    (delimitedN, print_bool delimited)]);
+    (symbolsN, Value.print_bool symbols),
+    (antiquotesN, Value.print_bool antiquotes),
+    (delimitedN, Value.print_bool delimited)]);
 
 fun language' {name, symbols, antiquotes} delimited =
   language {name = name, symbols = symbols, antiquotes = antiquotes, delimited = delimited};
 
+val language_Isar = language' {name = "Isar", symbols = true, antiquotes = false};
 val language_method =
   language {name = "method", symbols = true, antiquotes = false, delimited = false};
 val language_attribute =
@@ -300,8 +287,11 @@ val language_document = language' {name = "document", symbols = false, antiquote
 val language_antiquotation =
   language {name = "antiquotation", symbols = true, antiquotes = false, delimited = true};
 val language_text = language' {name = "text", symbols = true, antiquotes = false};
+val language_verbatim = language' {name = "verbatim_text", symbols = true, antiquotes = false};
 val language_rail = language {name = "rail", symbols = true, antiquotes = true, delimited = true};
 val language_path = language {name = "path", symbols = false, antiquotes = false, delimited = true};
+val language_mixfix =
+  language {name = "mixfix_annotation", symbols = true, antiquotes = false, delimited = true};
 
 
 (* formal entities *)
@@ -309,7 +299,9 @@ val language_path = language {name = "path", symbols = false, antiquotes = false
 val (bindingN, binding) = markup_elem "binding";
 
 val entityN = "entity";
-fun entity kind name = (entityN, [(nameN, name), (kindN, kind)]);
+fun entity kind name =
+  (entityN,
+    (if name = "" then [] else [(nameN, name)]) @ (if kind = "" then [] else [(kindN, kind)]));
 
 fun get_entity_kind (name, props) =
   if name = entityN then AList.lookup (op =) props kindN
@@ -328,8 +320,11 @@ val (no_completionN, no_completion) = markup_elem "no_completion";
 (* position *)
 
 val lineN = "line";
+val end_lineN = "end_line";
+
 val offsetN = "offset";
 val end_offsetN = "end_offset";
+
 val fileN = "file";
 val idN = "id";
 
@@ -339,19 +334,46 @@ val position_properties = [lineN, offsetN, end_offsetN] @ position_properties';
 val (positionN, position) = markup_elem "position";
 
 
+(* expression *)
+
+val expressionN = "expression";
+fun expression kind = (expressionN, if kind = "" then [] else [(kindN, kind)]);
+
+
+(* citation *)
+
+val (citationN, citation) = markup_string "citation" nameN;
+
+
 (* external resources *)
 
 val (pathN, path) = markup_string "path" nameN;
 val (urlN, url) = markup_string "url" nameN;
+val (docN, doc) = markup_string "doc" nameN;
 
 
 (* pretty printing *)
 
+val markupN = "markup";
+val consistentN = "consistent";
+val unbreakableN = "unbreakable";
 val indentN = "indent";
-val (blockN, block) = markup_int "block" indentN;
+
+val block_properties = [markupN, consistentN, unbreakableN, indentN];
 
 val widthN = "width";
-val (breakN, break) = markup_int "break" widthN;
+
+val blockN = "block";
+fun block c i =
+  (blockN,
+    (if c then [(consistentN, Value.print_bool c)] else []) @
+    (if i <> 0 then [(indentN, Value.print_int i)] else []));
+
+val breakN = "break";
+fun break w i =
+  (breakN,
+    (if w <> 0 then [(widthN, Value.print_int w)] else []) @
+    (if i <> 0 then [(indentN, Value.print_int i)] else []));
 
 val (fbreakN, fbreak) = markup_elem "fbreak";
 
@@ -365,7 +387,7 @@ val (wordsN, words) = markup_elem "words";
 val (hiddenN, hidden) = markup_elem "hidden";
 
 
-(* formal entities *)
+(* misc entities *)
 
 val system_optionN = "system_option";
 
@@ -377,6 +399,9 @@ val constantN = "constant";
 val (fixedN, fixed) = markup_string "fixed" nameN;
 val (caseN, case_) = markup_string "case" nameN;
 val (dynamic_factN, dynamic_fact) = markup_string "dynamic_fact" nameN;
+val (literal_factN, literal_fact) = markup_string "literal_fact" nameN;
+
+val method_modifierN = "method_modifier";
 
 
 (* inner syntax *)
@@ -398,9 +423,10 @@ val (token_rangeN, token_range) = markup_elem "token_range";
 
 val (sortingN, sorting) = markup_elem "sorting";
 val (typingN, typing) = markup_elem "typing";
+val (class_parameterN, class_parameter) = markup_elem "class_parameter";
 
 
-(* ML syntax *)
+(* ML *)
 
 val (ML_keyword1N, ML_keyword1) = markup_elem "ML_keyword1";
 val (ML_keyword2N, ML_keyword2) = markup_elem "ML_keyword2";
@@ -419,6 +445,8 @@ val ML_openN = "ML_open";
 val ML_structureN = "ML_structure";
 val (ML_typingN, ML_typing) = markup_elem "ML_typing";
 
+val (ML_breakpointN, ML_breakpoint) = markup_int "ML_breakpoint" serialN;
+
 
 (* antiquotations *)
 
@@ -436,8 +464,22 @@ val (paragraphN, paragraph) = markup_elem "paragraph";
 val (text_foldN, text_fold) = markup_elem "text_fold";
 
 
+(* Markdown document structure *)
+
+val (markdown_paragraphN, markdown_paragraph) = markup_elem "markdown_paragraph";
+val (markdown_listN, markdown_list) = markup_string "markdown_list" kindN;
+val (markdown_itemN, markdown_item) = markup_int "markdown_item" "depth";
+
+
+(* formal input *)
+
+val inputN = "input";
+fun input delimited props = (inputN, (delimitedN, Value.print_bool delimited) :: props);
+
+
 (* outer syntax *)
 
+val (command_keywordN, command_keyword) = markup_elem "command_keyword";
 val (commandN, command) = markup_elem "command";
 val (keyword1N, keyword1) = markup_elem "keyword1";
 val (keyword2N, keyword2) = markup_elem "keyword2";
@@ -446,14 +488,10 @@ val (quasi_keywordN, quasi_keyword) = markup_elem "quasi_keyword";
 val (improperN, improper) = markup_elem "improper";
 val (operatorN, operator) = markup_elem "operator";
 val (stringN, string) = markup_elem "string";
-val (altstringN, altstring) = markup_elem "altstring";
+val (alt_stringN, alt_string) = markup_elem "alt_string";
 val (verbatimN, verbatim) = markup_elem "verbatim";
 val (cartoucheN, cartouche) = markup_elem "cartouche";
 val (commentN, comment) = markup_elem "comment";
-val (controlN, control) = markup_elem "control";
-
-val tokenN = "token";
-fun token delimited props = (tokenN, (delimitedN, print_bool delimited) :: props);
 
 
 (* timing *)
@@ -481,23 +519,24 @@ fun timing t = (timingN, timing_properties t);
 val command_timingN = "command_timing";
 
 fun command_timing_properties {file, offset, name} elapsed =
- [(fileN, file), (offsetN, print_int offset),
+ [(fileN, file), (offsetN, Value.print_int offset),
   (nameN, name), (elapsedN, Time.toString elapsed)];
 
 fun parse_command_timing_properties props =
   (case (Properties.get props fileN, Properties.get props offsetN, Properties.get props nameN) of
     (SOME file, SOME offset, SOME name) =>
-      SOME ({file = file, offset = parse_int offset, name = name},
+      SOME ({file = file, offset = Value.parse_int offset, name = name},
         Properties.seconds props elapsedN)
   | _ => NONE);
 
 
-(* toplevel *)
+(* indentation *)
 
-val subgoalsN = "subgoals";
-val (proof_stateN, proof_state) = markup_int "proof_state" subgoalsN;
+val (command_indentN, command_indent) = markup_int "command_indent" indentN;
 
-val (stateN, state) = markup_elem "state";
+
+(* goals *)
+
 val (goalN, goal) = markup_elem "goal";
 val (subgoalN, subgoal) = markup_string "subgoal" nameN;
 
@@ -516,23 +555,20 @@ val (failedN, failed) = markup_elem "failed";
 
 (* messages *)
 
-val serialN = "serial";
-fun serial_properties i = [(serialN, print_int i)];
-
 val exec_idN = "exec_id";
 
 val initN = "init";
-val statusN = "status";
-val resultN = "result";
-val writelnN = "writeln";
-val tracingN = "tracing";
-val warningN = "warning";
-val errorN = "error";
-val systemN = "system";
-val protocolN = "protocol";
-
+val (statusN, status) = markup_elem "status";
+val (resultN, result) = markup_elem "result";
+val (writelnN, writeln) = markup_elem "writeln";
+val (stateN, state) = markup_elem "state"
+val (informationN, information) = markup_elem "information";
+val (tracingN, tracing) = markup_elem "tracing";
+val (warningN, warning) = markup_elem "warning";
 val (legacyN, legacy) = markup_elem "legacy";
-val (promptN, prompt) = markup_elem "prompt";
+val (errorN, error) = markup_elem "error";
+val (systemN, system) = markup_elem "system";
+val protocolN = "protocol";
 
 val (reportN, report) = markup_elem "report";
 val (no_reportN, no_report) = markup_elem "no_report";
@@ -540,7 +576,6 @@ val (no_reportN, no_report) = markup_elem "no_report";
 val (badN, bad) = markup_elem "bad";
 
 val (intensifyN, intensify) = markup_elem "intensify";
-val (informationN, information) = markup_elem "information";
 
 
 (* active areas *)
@@ -554,7 +589,9 @@ val padding_line = (paddingN, "line");
 val padding_command = (paddingN, "command");
 
 val dialogN = "dialog";
-fun dialog i result = (dialogN, [(serialN, print_int i), (resultN, result)]);
+fun dialog i result = (dialogN, [(serialN, Value.print_int i), (resultN, result)]);
+
+val jedit_actionN = "jedit_action";
 
 
 (* protocol message functions *)
@@ -580,11 +617,16 @@ fun loading_theory name = [("function", "loading_theory"), ("name", name)];
 fun dest_loading_theory [("function", "loading_theory"), ("name", name)] = SOME name
   | dest_loading_theory _ = NONE;
 
-fun use_theories_result id ok =
-  [("function", "use_theories_result"), ("id", id), ("ok", print_bool ok)];
+fun build_theories_result id = [("function", "build_theories_result"), ("id", id)];
 
 val print_operationsN = "print_operations";
 val print_operations = [(functionN, print_operationsN)];
+
+
+(* debugger *)
+
+fun debugger_state name = [(functionN, "debugger_state"), (nameN, name)];
+fun debugger_output name = [(functionN, "debugger_output"), (nameN, name)];
 
 
 (* simplifier trace *)
@@ -597,23 +639,22 @@ val simp_trace_recurseN = "simp_trace_recurse";
 val simp_trace_hintN = "simp_trace_hint";
 val simp_trace_ignoreN = "simp_trace_ignore";
 
-fun simp_trace_cancel i = [(functionN, "simp_trace_cancel"), (serialN, print_int i)];
+fun simp_trace_cancel i = [(functionN, "simp_trace_cancel"), (serialN, Value.print_int i)];
 
 
 
 (** print mode operations **)
 
 val no_output = ("", "");
-fun default_output (_: T) = no_output;
 
 local
-  val default = {output = default_output};
+  val default = {output = Output_Primitives.markup_fn};
   val modes = Synchronized.var "Markup.modes" (Symtab.make [("", default)]);
 in
   fun add_mode name output =
     Synchronized.change modes (fn tab =>
       (if not (Symtab.defined tab name) then ()
-       else warning ("Redefining markup mode " ^ quote name);
+       else Output.warning ("Redefining markup mode " ^ quote name);
        Symtab.update (name, {output = output}) tab));
   fun get_mode () =
     the_default default
@@ -627,6 +668,8 @@ val enclose = output #-> Library.enclose;
 fun markup m =
   let val (bg, en) = output m
   in Library.enclose (Output.escape bg) (Output.escape en) end;
+
+val markups = fold_rev markup;
 
 fun markup_only m = markup m "";
 

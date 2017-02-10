@@ -1,5 +1,4 @@
 /*  Title:      Pure/GUI/html5_panel.scala
-    Module:     PIDE-GUI
     Author:     Makarius
 
 HTML5 panel based on Java FX WebView.
@@ -54,7 +53,7 @@ private class Web_View_Workaround extends javafx.scene.layout.Pane
 class HTML5_Panel extends javafx.embed.swing.JFXPanel
 {
   private val future =
-    JFX_Thread.future {
+    JFX_GUI.Thread.future {
       val pane = new Web_View_Workaround
 
       val web_view = pane.web_view

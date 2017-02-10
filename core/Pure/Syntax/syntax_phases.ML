@@ -7,6 +7,7 @@ of parse/unparse operations.
 
 signature SYNTAX_PHASES =
 sig
+  val reports_of_scope: Position.T list -> Position.report list
   val decode_sort: term -> sort
   val decode_typ: term -> typ
   val decode_term: Proof.context ->
@@ -51,7 +52,7 @@ fun markup_const ctxt c =
   [Name_Space.markup (Consts.space_of (Proof_Context.consts_of ctxt)) c];
 
 fun markup_free ctxt x =
-  [if Name.is_skolem x then Markup.skolem else Markup.free] @
+  Variable.markup ctxt x ::
   (if Variable.is_body ctxt orelse Variable.is_fixed ctxt x
    then [Variable.markup_fixed ctxt x]
    else []);
@@ -74,6 +75,20 @@ fun markup_entity ctxt c =
       case_const = markup_const ctxt,
       case_fixed = markup_free ctxt,
       case_default = K []});
+
+
+
+(** reports of implicit variable scope **)
+
+fun reports_of_scope [] = []
+  | reports_of_scope (def_pos :: ps) =
+      let
+        val id = serial ();
+        fun entity def = (Markup.entityN, Position.entity_properties_of def id def_pos);
+      in
+        map (rpair Markup.bound) (def_pos :: ps) @
+        ((def_pos, entity true) :: map (rpair (entity false)) ps)
+      end;
 
 
 
@@ -177,7 +192,7 @@ fun parsetree_to_ast ctxt trf parsetree =
           in [Ast.Constant (Lexicon.mark_type c)] end
       | asts_of (Parser.Node ("_position", [Parser.Tip tok])) = asts_of_position "_constrain" tok
       | asts_of (Parser.Node ("_position_sort", [Parser.Tip tok])) = asts_of_position "_ofsort" tok
-      | asts_of (Parser.Node (a as "\\<^const>Pure.dummy_pattern", [Parser.Tip tok])) =
+      | asts_of (Parser.Node (a as "\<^const>Pure.dummy_pattern", [Parser.Tip tok])) =
           [ast_of_dummy a tok]
       | asts_of (Parser.Node (a as "_idtdummy", [Parser.Tip tok])) =
           [ast_of_dummy a tok]
@@ -308,7 +323,7 @@ fun failed_results results = map_filter (fn (y, Exn.Exn e) => SOME (y, e) | _ =>
 
 fun report_result ctxt pos ambig_msgs results =
   (case (proper_results results, failed_results results) of
-    ([], (reports, exn) :: _) => (Context_Position.reports_text ctxt reports; reraise exn)
+    ([], (reports, exn) :: _) => (Context_Position.reports_text ctxt reports; Exn.reraise exn)
   | ([(reports, x)], _) => (Context_Position.reports_text ctxt reports; x)
   | _ =>
       if null ambig_msgs then
@@ -336,7 +351,7 @@ fun parse_asts ctxt raw root (syms, pos) =
       if len <= 1 then []
       else
         [cat_lines
-          (("Ambiguous input" ^ Position.here (Position.reset_range pos) ^
+          (("Ambiguous input" ^ Position.here (Position.no_range_position pos) ^
             " produces " ^ string_of_int len ^ " parse trees" ^
             (if len <= limit then "" else " (" ^ string_of_int limit ^ " displayed)") ^ ":") ::
             map (Pretty.string_of o Pretty.item o single o Parser.pretty_parsetree)
@@ -351,7 +366,7 @@ fun parse_tree ctxt root input =
     val parse_rules = Syntax.parse_rules syn;
     val (ambig_msgs, asts) = parse_asts ctxt false root input;
     val results =
-      (map o apsnd o Exn.maps_result)
+      (map o apsnd o Exn.maps_res)
         (Ast.normalize ctxt parse_rules #> Exn.interruptible_capture (ast_to_term ctxt tr)) asts;
   in (ambig_msgs, results) end;
 
@@ -363,7 +378,7 @@ fun parse_failed ctxt pos msg kind =
     Markup.markup_report (Context_Position.reported_text ctxt pos Markup.bad ""));
 
 fun parse_sort ctxt =
-  Syntax.parse_token ctxt Term_XML.Decode.sort Markup.language_sort
+  Syntax.parse_input ctxt Term_XML.Decode.sort Markup.language_sort
     (fn (syms, pos) =>
       parse_tree ctxt "sort" (syms, pos)
       |> uncurry (report_result ctxt pos)
@@ -372,7 +387,7 @@ fun parse_sort ctxt =
       handle ERROR msg => parse_failed ctxt pos msg "sort");
 
 fun parse_typ ctxt =
-  Syntax.parse_token ctxt Term_XML.Decode.typ Markup.language_type
+  Syntax.parse_input ctxt Term_XML.Decode.typ Markup.language_type
     (fn (syms, pos) =>
       parse_tree ctxt "type" (syms, pos)
       |> uncurry (report_result ctxt pos)
@@ -387,7 +402,7 @@ fun parse_term is_prop ctxt =
       else (Markup.language_term, "term", Config.get ctxt Syntax.root, I);
     val decode = constrain o Term_XML.Decode.term;
   in
-    Syntax.parse_token ctxt decode markup
+    Syntax.parse_input ctxt decode markup
       (fn (syms, pos) =>
         let
           val (ambig_msgs, results) = parse_tree ctxt root (syms, pos) ||> map (decode_term ctxt);
@@ -397,12 +412,13 @@ fun parse_term is_prop ctxt =
           val limit = Config.get ctxt Syntax.ambiguity_limit;
 
           (*brute-force disambiguation via type-inference*)
-          fun check t = (Syntax.check_term ctxt (constrain t); Exn.Res t)
-            handle exn as ERROR _ => Exn.Exn exn;
+          fun check t =
+            (Syntax.check_term (Proof_Context.allow_dummies ctxt) (constrain t); Exn.Res t)
+              handle exn as ERROR _ => Exn.Exn exn;
 
           val results' =
             if parsed_len > 1 then
-              (grouped 10 (Par_List.map_name "Syntax_Phases.parse_term") o apsnd o Exn.maps_result)
+              (grouped 10 (Par_List.map_name "Syntax_Phases.parse_term") o apsnd o Exn.maps_res)
                 check results
             else results;
           val reports' = fst (hd results');
@@ -461,8 +477,9 @@ fun parse_ast_pattern ctxt (root, str) =
           else decode_appl ps asts
       | decode ps (Ast.Appl asts) = decode_appl ps asts;
 
-    val {text, pos, ...} = Syntax.read_token str;
-    val syms = Symbol_Pos.explode (text, pos);
+    val source = Syntax.read_input str;
+    val pos = Input.pos_of source;
+    val syms = Input.source_explode source;
     val ast =
       parse_asts ctxt true root (syms, pos)
       |> uncurry (report_result ctxt pos)
@@ -577,7 +594,7 @@ fun mark_aprop tm =
             (mark Ts t1 $ mark Ts t2);
   in mark [] tm end;
 
-fun prune_types ctxt tm =
+fun prune_types tm =
   let
     fun regard t t' seen =
       if Type_Annotation.is_omitted (Type_Annotation.fastype_of [] t) then (t, seen)
@@ -598,8 +615,9 @@ fun prune_types ctxt tm =
           in (t1' $ t2', seen'') end;
   in #1 (prune (tm, [])) end;
 
-fun mark_atoms {structs, fixes} is_syntax_const ctxt tm =
+fun mark_atoms is_syntax_const ctxt tm =
   let
+    val {structs, fixes} = Syntax_Trans.get_idents ctxt;
     val show_structs = Config.get ctxt show_structs;
 
     fun mark ((t as Const (c, _)) $ u) =
@@ -619,14 +637,14 @@ fun mark_atoms {structs, fixes} is_syntax_const ctxt tm =
             else Syntax.const "_free" $ t
           end
       | mark (t as Var (xi, T)) =
-          if xi = Syntax_Ext.dddot_indexname then Const ("_DDDOT", T)
+          if xi = Auto_Bind.dddot then Const ("_DDDOT", T)
           else Syntax.const "_var" $ t
       | mark a = a;
   in mark tm end;
 
 in
 
-fun term_to_ast idents is_syntax_const ctxt trf tm =
+fun term_to_ast is_syntax_const ctxt trf tm =
   let
     val show_types = Config.get ctxt show_types orelse Config.get ctxt show_sorts;
     val show_markup = Config.get ctxt show_markup;
@@ -646,7 +664,7 @@ fun term_to_ast idents is_syntax_const ctxt trf tm =
           in Ast.mk_appl (constrain (c $ Syntax.free x) X) (map ast_of ts) end
       | (Const ("_idtdummy", T), ts) =>
           Ast.mk_appl (constrain (Syntax.const "_idtdummy") T) (map ast_of ts)
-      | (const as Const (c, T), ts) => trans c (Type_Annotation.smash T) ts
+      | (Const (c, T), ts) => trans c (Type_Annotation.smash T) ts
       | (t, ts) => Ast.mk_appl (simple_ast_of ctxt t) (map ast_of ts))
 
     and trans a T args = ast_of (trf a ctxt T args)
@@ -667,9 +685,9 @@ fun term_to_ast idents is_syntax_const ctxt trf tm =
   in
     tm
     |> mark_aprop
-    |> show_types ? prune_types ctxt
+    |> show_types ? prune_types
     |> Variable.revert_bounds ctxt
-    |> mark_atoms idents is_syntax_const ctxt
+    |> mark_atoms is_syntax_const ctxt
     |> ast_of
   end;
 
@@ -745,7 +763,8 @@ fun unparse_t t_to_ast prt_t markup ctxt t =
         let
           val ((bg1, bg2), en) = typing_elem;
           val bg = bg1 ^ Pretty.symbolic_output (pretty_typ_ast Markup.empty ty) ^ bg2;
-        in SOME (Pretty.raw_markup (bg, en) (0, [pretty_ast Markup.empty t])) end
+          val info = {markup = (bg, en), consistent = false, indent = 0};
+        in SOME (Pretty.make_block info [pretty_ast Markup.empty t]) end
       else NONE
 
     and ofsort_trans ty s =
@@ -753,7 +772,8 @@ fun unparse_t t_to_ast prt_t markup ctxt t =
         let
           val ((bg1, bg2), en) = sorting_elem;
           val bg = bg1 ^ Pretty.symbolic_output (pretty_typ_ast Markup.empty s) ^ bg2;
-        in SOME (Pretty.raw_markup (bg, en) (0, [pretty_typ_ast Markup.empty ty])) end
+          val info = {markup = (bg, en), consistent = false, indent = 0};
+        in SOME (Pretty.make_block info [pretty_typ_ast Markup.empty ty]) end
       else NONE
 
     and pretty_typ_ast m ast = ast
@@ -778,9 +798,8 @@ fun unparse_term ctxt =
   let
     val thy = Proof_Context.theory_of ctxt;
     val syn = Proof_Context.syn_of ctxt;
-    val idents = Local_Syntax.idents_of (Proof_Context.syntax_of ctxt);
   in
-    unparse_t (term_to_ast idents (is_some o Syntax.lookup_const syn))
+    unparse_t (term_to_ast (is_some o Syntax.lookup_const syn))
       (Printer.pretty_term_ast (not (Pure_Thy.old_appl_syntax thy)))
       (Markup.language_term false) ctxt
   end;
@@ -793,7 +812,7 @@ end;
 
 (* type propositions *)
 
-fun type_prop_tr' ctxt T [Const ("\\<^const>Pure.sort_constraint", _)] =
+fun type_prop_tr' ctxt T [Const ("\<^const>Pure.sort_constraint", _)] =
       Syntax.const "_sort_constraint" $ term_of_typ (Config.put show_sorts true ctxt) T
   | type_prop_tr' ctxt T [t] =
       Syntax.const "_ofclass" $ term_of_typ ctxt T $ t
@@ -835,7 +854,7 @@ val _ = Theory.setup
     ("_context_xconst", const_ast_tr false)] #>
   Sign.typed_print_translation
    [("_type_prop", type_prop_tr'),
-    ("\\<^const>Pure.type", type_tr'),
+    ("\<^const>Pure.type", type_tr'),
     ("_type_constraint_", type_constraint_tr')]);
 
 
@@ -863,8 +882,8 @@ fun print_checks ctxt =
   let
     fun split_checks checks =
       List.partition (fn ((_, un), _) => not un) checks
-      |> pairself (map (fn ((i, _), fs) => (i, map (fst o fst) fs))
-          #> sort (int_ord o pairself fst));
+      |> apply2 (map (fn ((i, _), fs) => (i, map (fst o fst) fs))
+          #> sort (int_ord o apply2 fst));
     fun pretty_checks kind checks =
       checks |> map (fn (i, names) => Pretty.block
         [Pretty.str (kind ^ " (stage " ^ signed_string_of_int i ^ "):"),
@@ -914,7 +933,7 @@ fun check which uncheck ctxt0 xs0 =
   let
     val funs = which (Checks.get (Context.Proof ctxt0))
       |> map_filter (fn ((i, u), fs) => if uncheck = u then SOME (i, map (snd o fst) fs) else NONE)
-      |> Library.sort (int_ord o pairself fst) |> map snd
+      |> Library.sort (int_ord o apply2 fst) |> map snd
       |> not uncheck ? map rev;
   in #1 (perhaps (check_all funs) (xs0, ctxt0)) end;
 
@@ -964,31 +983,32 @@ val uncheck_terms = apply_term_uncheck;
 end;
 
 
+(* install operations *)
+
+val _ =
+  Theory.setup
+   (Syntax.install_operations
+     {parse_sort = parse_sort,
+      parse_typ = parse_typ,
+      parse_term = parse_term false,
+      parse_prop = parse_term true,
+      unparse_sort = unparse_sort,
+      unparse_typ = unparse_typ,
+      unparse_term = unparse_term,
+      check_typs = check_typs,
+      check_terms = check_terms,
+      check_props = check_props,
+      uncheck_typs = uncheck_typs,
+      uncheck_terms = uncheck_terms});
+
+end;
+
+
 (* standard phases *)
 
 val _ = Context.>>
- (typ_check 0 "standard" Proof_Context.standard_typ_check #>
-  term_check 0 "standard"
+ (Syntax_Phases.typ_check 0 "standard" Proof_Context.standard_typ_check #>
+  Syntax_Phases.term_check 0 "standard"
     (fn ctxt => Type_Infer_Context.infer_types ctxt #> map (Proof_Context.expand_abbrevs ctxt)) #>
-  term_check 100 "standard_finish" Proof_Context.standard_term_check_finish #>
-  term_uncheck 0 "standard" Proof_Context.standard_term_uncheck);
-
-
-
-(** install operations **)
-
-val _ = Syntax.install_operations
-  {parse_sort = parse_sort,
-   parse_typ = parse_typ,
-   parse_term = parse_term false,
-   parse_prop = parse_term true,
-   unparse_sort = unparse_sort,
-   unparse_typ = unparse_typ,
-   unparse_term = unparse_term,
-   check_typs = check_typs,
-   check_terms = check_terms,
-   check_props = check_props,
-   uncheck_typs = uncheck_typs,
-   uncheck_terms = uncheck_terms};
-
-end;
+  Syntax_Phases.term_check 100 "standard_finish" Proof_Context.standard_term_check_finish #>
+  Syntax_Phases.term_uncheck 0 "standard" Proof_Context.standard_term_uncheck);

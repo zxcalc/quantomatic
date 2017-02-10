@@ -44,7 +44,7 @@ sig
   val output_markup: Markup.T -> Output.output * Output.output
   val string_of: tree -> string
   val pretty: int -> tree -> Pretty.T
-  val output: tree -> TextIO.outstream -> unit
+  val output: tree -> BinIO.outstream -> unit
   val parse_comments: string list -> unit * string list
   val parse_string : string -> string option
   val parse_element: string list -> tree * string list
@@ -104,12 +104,7 @@ fun trim_blanks trees =
   trees |> maps
     (fn Elem (markup, body) => [Elem (markup, trim_blanks body)]
       | Text s =>
-          let
-            val s' = s
-              |> raw_explode
-              |> take_prefix Symbol.is_blank |> #2
-              |> take_suffix Symbol.is_blank |> #1
-              |> implode;
+          let val s' = s |> raw_explode |> trim Symbol.is_blank |> implode;
           in if s' = "" then [] else [Text s'] end);
 
 
@@ -175,6 +170,8 @@ val output = Buffer.output o buffer_of ~1;
 fun pretty depth tree =
   Pretty.str (Buffer.content (buffer_of (Int.max (0, depth)) tree));
 
+val _ = ML_system_pp (fn depth => fn _ => Pretty.to_polyml o pretty (FixedInt.toInt depth));
+
 
 
 (** XML parsing **)
@@ -192,8 +189,8 @@ val parse_name = Scan.one name_start_char ::: Scan.many name_char;
 
 val blanks = Scan.many Symbol.is_blank;
 val special = $$ "&" ^^ (parse_name >> implode) ^^ $$ ";" >> decode;
-val regular = Scan.one Symbol.is_regular;
-fun regular_except x = Scan.one (fn c => Symbol.is_regular c andalso c <> x);
+val regular = Scan.one Symbol.not_eof;
+fun regular_except x = Scan.one (fn c => Symbol.not_eof c andalso c <> x);
 
 val parse_chars = Scan.repeat1 (special || regular_except "<") >> implode;
 
@@ -239,12 +236,12 @@ val parse_string = Scan.read Symbol.stopper parse_chars o raw_explode;
 
 fun parse_content xs =
   (parse_optional_text @@@
-    (Scan.repeat
+    Scan.repeats
       ((parse_element >> single ||
         parse_cdata >> (single o Text) ||
         parse_processing_instruction ||
         parse_comment)
-      @@@ parse_optional_text) >> flat)) xs
+      @@@ parse_optional_text)) xs
 
 and parse_element xs =
   ($$ "<" |-- parse_name -- Scan.repeat (blanks |-- parse_att) --| blanks :--
@@ -342,7 +339,7 @@ type 'a V = string list * body -> 'a;
 (* atomic values *)
 
 fun int_atom s =
-  Markup.parse_int s
+  Value.parse_int s
     handle Fail _ => raise XML_ATOM s;
 
 fun bool_atom "0" = false

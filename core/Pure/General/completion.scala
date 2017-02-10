@@ -135,10 +135,35 @@ object Completion
 
   /** semantic completion **/
 
+  def clean_name(s: String): Option[String] =
+    if (s == "" || s == "_") None
+    else Some(s.reverseIterator.dropWhile(_ == '_').toList.reverse.mkString)
+
+  def report_no_completion(pos: Position.T): String =
+    YXML.string_of_tree(Semantic.Info(pos, No_Completion))
+
+  def report_names(pos: Position.T, total: Int, names: List[(String, (String, String))]): String =
+    YXML.string_of_tree(Semantic.Info(pos, Names(total, names)))
+
   object Semantic
   {
     object Info
     {
+      def apply(pos: Position.T, semantic: Semantic): XML.Elem =
+      {
+        val elem =
+          semantic match {
+            case No_Completion => XML.Elem(Markup(Markup.NO_COMPLETION, pos), Nil)
+            case Names(total, names) =>
+              XML.Elem(Markup(Markup.COMPLETION, pos),
+                {
+                  import XML.Encode._
+                  pair(int, list(pair(string, pair(string, string))))(total, names)
+                })
+          }
+        XML.Elem(Markup(Markup.REPORT, pos), List(elem))
+      }
+
       def unapply(info: Text.Markup): Option[Text.Info[Semantic]] =
         info.info match {
           case XML.Elem(Markup(Markup.COMPLETION, _), body) =>
@@ -178,9 +203,19 @@ object Completion
             if (kind == "") (name, quote(decode(name)))
             else
              (Long_Name.qualify(kind, name),
-              Word.implode(Word.explode('_', kind)) + " " + quote(decode(name)))
-          description = List(xname1, "(" + descr_name + ")")
-        } yield Item(range, original, full_name, description, xname1, 0, true)
+              Word.implode(Word.explode('_', kind)) +
+              (if (xname == name) "" else " " + quote(decode(name))))
+        } yield {
+          val description = List(xname1, "(" + descr_name + ")")
+          val replacement =
+            List(original, xname1).map(Token.explode(Keyword.Keywords.empty, _)) match {
+              case List(List(tok), _) if tok.kind == Token.Kind.CARTOUCHE =>
+                Symbol.open_decoded + xname1 + Symbol.close_decoded
+              case List(_, List(tok)) if tok.is_name => xname1
+              case _ => quote(xname1)
+            }
+          Item(range, original, full_name, description, replacement, 0, true)
+        }
 
       if (items.isEmpty) None
       else Some(Result(range, original, names.length == 1, items.sorted(history.ordering)))
@@ -211,25 +246,25 @@ object Completion
   /* init */
 
   val empty: Completion = new Completion()
-  def init(): Completion = empty.add_symbols()
+  def init(): Completion =
+    empty.add_symbols.add_abbrevs(Completion.symbol_abbrevs ::: Completion.default_abbrevs)
 
 
   /* word parsers */
 
-  private object Word_Parsers extends RegexParsers
+  object Word_Parsers extends RegexParsers
   {
     override val whiteSpace = "".r
 
-    private val symbol_regex: Regex = """\\<\^?[A-Za-z0-9_']+>""".r
-    def is_symbol(s: CharSequence): Boolean = symbol_regex.pattern.matcher(s).matches
+    private val symboloid_regex: Regex = """\\([A-Za-z0-9_']+|<\^?[A-Za-z0-9_']+>?)""".r
+    def is_symboloid(s: CharSequence): Boolean = symboloid_regex.pattern.matcher(s).matches
 
     private def reverse_symbol: Parser[String] = """>[A-Za-z0-9_']+\^?<\\""".r
     private def reverse_symb: Parser[String] = """[A-Za-z0-9_']{2,}\^?<\\""".r
-    private def escape: Parser[String] = """[a-zA-Z0-9_']+\\""".r
+    private def reverse_escape: Parser[String] = """[a-zA-Z0-9_']+\\""".r
 
     private val word_regex = "[a-zA-Z0-9_'.]+".r
-    private def word: Parser[String] = word_regex
-    private def word3: Parser[String] = "[a-zA-Z0-9_'.]{3,}".r
+    private def word2: Parser[String] = "[a-zA-Z0-9_'.]{2,}".r
     private def underscores: Parser[String] = "_*".r
 
     def is_word(s: CharSequence): Boolean = word_regex.pattern.matcher(s).matches
@@ -244,13 +279,12 @@ object Completion
       }
     }
 
-    def read_word(explicit: Boolean, in: CharSequence): Option[(String, String)] =
+    def read_word(in: CharSequence): Option[(String, String)] =
     {
-      val parse_word = if (explicit) word else word3
       val reverse_in = new Library.Reverse(in)
       val parser =
-        (reverse_symbol | reverse_symb | escape) ^^ (x => (x.reverse, "")) |
-        underscores ~ parse_word ~ opt("?") ^^
+        (reverse_symbol | reverse_symb | reverse_escape) ^^ (x => (x.reverse, "")) |
+        underscores ~ word2 ~ opt("?") ^^
         { case x ~ y ~ z => (z.getOrElse("") + y.reverse, x) }
       parse(parser, reverse_in) match {
         case Success(result, _) => Some(result)
@@ -260,70 +294,115 @@ object Completion
   }
 
 
+  /* templates */
+
+  val caret_indicator = '\u0007'
+
+  def split_template(s: String): (String, String) =
+    space_explode(caret_indicator, s) match {
+      case List(s1, s2) => (s1, s2)
+      case _ => (s, "")
+    }
+
+
   /* abbreviations */
 
-  private val caret_indicator = '\u0007'
+  private def symbol_abbrevs: Thy_Header.Abbrevs =
+    for ((sym, abbr) <- Symbol.abbrevs.toList) yield (abbr, sym)
+
   private val antiquote = "@{"
 
-  private val default_abbrs =
+  private val default_abbrevs =
     List("@{" -> "@{\u0007}",
       "`" -> "\\<close>",
       "`" -> "\\<open>",
-      "`" -> "\\<open>\u0007\\<close>")
+      "`" -> "\\<open>\u0007\\<close>",
+      "\"" -> "\\<close>",
+      "\"" -> "\\<open>",
+      "\"" -> "\\<open>\u0007\\<close>")
 
   private def default_frequency(name: String): Option[Int] =
-    default_abbrs.iterator.map(_._2).zipWithIndex.find(_._1 == name).map(_._2)
+    default_abbrevs.iterator.map(_._2).zipWithIndex.find(_._1 == name).map(_._2)
 }
 
 final class Completion private(
-  keywords: Map[String, Boolean] = Map.empty,
-  words_lex: Scan.Lexicon = Scan.Lexicon.empty,
-  words_map: Multi_Map[String, String] = Multi_Map.empty,
-  abbrevs_lex: Scan.Lexicon = Scan.Lexicon.empty,
-  abbrevs_map: Multi_Map[String, (String, String)] = Multi_Map.empty)
+  protected val keywords: Set[String] = Set.empty,
+  protected val words_lex: Scan.Lexicon = Scan.Lexicon.empty,
+  protected val words_map: Multi_Map[String, String] = Multi_Map.empty,
+  protected val abbrevs_lex: Scan.Lexicon = Scan.Lexicon.empty,
+  protected val abbrevs_map: Multi_Map[String, (String, String)] = Multi_Map.empty)
 {
+  /* merge */
+
+  def is_empty: Boolean =
+    keywords.isEmpty &&
+    words_lex.is_empty &&
+    words_map.isEmpty &&
+    abbrevs_lex.is_empty &&
+    abbrevs_map.isEmpty
+
+  def ++ (other: Completion): Completion =
+    if (this eq other) this
+    else if (is_empty) other
+    else {
+      val keywords1 = (keywords /: other.keywords) { case (ks, k) => if (ks(k)) ks else ks + k }
+      val words_lex1 = words_lex ++ other.words_lex
+      val words_map1 = words_map ++ other.words_map
+      val abbrevs_lex1 = abbrevs_lex ++ other.abbrevs_lex
+      val abbrevs_map1 = abbrevs_map ++ other.abbrevs_map
+      new Completion(keywords1, words_lex1, words_map1, abbrevs_lex1, abbrevs_map1)
+    }
+
+
   /* keywords */
 
   private def is_symbol(name: String): Boolean = Symbol.names.isDefinedAt(name)
-  private def is_keyword(name: String): Boolean = !is_symbol(name) && keywords.isDefinedAt(name)
+  private def is_keyword(name: String): Boolean = !is_symbol(name) && keywords(name)
   private def is_keyword_template(name: String, template: Boolean): Boolean =
-    is_keyword(name) && keywords(name) == template
+    is_keyword(name) && (words_map.getOrElse(name, name) != name) == template
 
-  def + (keyword: String, template: String): Completion =
-    new Completion(
-      keywords + (keyword -> (keyword != template)),
-      words_lex + keyword,
-      words_map + (keyword -> template),
-      abbrevs_lex,
-      abbrevs_map)
-
-  def + (keyword: String): Completion = this + (keyword, keyword)
+  def add_keyword(keyword: String): Completion =
+    new Completion(keywords + keyword, words_lex, words_map, abbrevs_lex, abbrevs_map)
 
 
-  /* symbols with abbreviations */
+  /* symbols and abbrevs */
 
-  private def add_symbols(): Completion =
+  def add_symbols: Completion =
   {
     val words =
-      (for ((x, _) <- Symbol.names.toList) yield (x, x)) :::
-      (for ((x, y) <- Symbol.names.toList) yield ("\\" + y, x)) :::
-      (for ((x, y) <- Symbol.abbrevs.toList if Completion.Word_Parsers.is_word(y)) yield (y, x))
-
-    val symbol_abbrs =
-      (for ((x, y) <- Symbol.abbrevs.iterator if !Completion.Word_Parsers.is_word(y))
-        yield (y, x)).toList
-
-    val abbrs =
-      for ((a, b) <- symbol_abbrs ::: Completion.default_abbrs)
-        yield (a.reverse, (a, b))
+      (for ((sym, _) <- Symbol.names.toList) yield (sym, sym)) :::
+      (for ((sym, name) <- Symbol.names.toList) yield ("\\" + name, sym))
 
     new Completion(
       keywords,
       words_lex ++ words.map(_._1),
       words_map ++ words,
-      abbrevs_lex ++ abbrs.map(_._1),
-      abbrevs_map ++ abbrs)
+      abbrevs_lex,
+      abbrevs_map)
   }
+
+  def add_abbrevs(abbrevs: List[(String, String)]): Completion =
+    (this /: abbrevs)(_.add_abbrev(_))
+
+  private def add_abbrev(abbrev: (String, String)): Completion =
+    abbrev match {
+      case ("", _) => this
+      case (abbr, text) =>
+        val rev_abbr = abbr.reverse
+        val is_word = Completion.Word_Parsers.is_word(abbr)
+
+        val (words_lex1, words_map1) =
+          if (!is_word) (words_lex, words_map)
+          else if (text != "") (words_lex + abbr, words_map + abbrev)
+          else (words_lex -- List(abbr), words_map - abbr)
+
+        val (abbrevs_lex1, abbrevs_map1) =
+          if (is_word) (abbrevs_lex, abbrevs_map)
+          else if (text != "") (abbrevs_lex + rev_abbr, abbrevs_map + (rev_abbr -> abbrev))
+          else (abbrevs_lex -- List(rev_abbr), abbrevs_map - rev_abbr)
+
+        new Completion(keywords, words_lex1, words_map1, abbrevs_lex1, abbrevs_map1)
+    }
 
 
   /* complete */
@@ -344,18 +423,15 @@ final class Completion private(
     {
       val reverse_in = new Library.Reverse(text.subSequence(0, caret))
       Scan.Parsers.parse(Scan.Parsers.literal(abbrevs_lex), reverse_in) match {
-        case Scan.Parsers.Success(reverse_a, _) =>
-          val abbrevs = abbrevs_map.get_list(reverse_a)
+        case Scan.Parsers.Success(reverse_abbr, _) =>
+          val abbrevs = abbrevs_map.get_list(reverse_abbr)
           abbrevs match {
             case Nil => None
-            case (a, _) :: _ =>
+            case (abbr, _) :: _ =>
               val ok =
-                if (a == Completion.antiquote) language_context.antiquotes
-                else
-                  language_context.symbols ||
-                  Completion.default_abbrs.exists(_._1 == a) ||
-                  Completion.Word_Parsers.is_symbol(a)
-              if (ok) Some((a, abbrevs))
+                if (abbr == Completion.antiquote) language_context.antiquotes
+                else language_context.symbols || Completion.default_abbrevs.exists(_._1 == abbr)
+              if (ok) Some((abbr, abbrevs))
               else None
           }
         case _ => None
@@ -370,7 +446,7 @@ final class Completion private(
         val result =
           Completion.Word_Parsers.read_symbol(text.subSequence(0, caret)) match {
             case Some(symbol) => Some((symbol, ""))
-            case None => Completion.Word_Parsers.read_word(explicit, text.subSequence(0, caret))
+            case None => Completion.Word_Parsers.read_word(text.subSequence(0, caret))
           }
         result.map(
           {
@@ -384,20 +460,21 @@ final class Completion private(
                     complete_word <- complete_words
                     ok =
                       if (is_keyword(complete_word)) !word_context && language_context.is_outer
-                      else language_context.symbols
+                      else language_context.symbols || Completion.Word_Parsers.is_symboloid(word)
                     if ok
                     completion <- words_map.get_list(complete_word)
                   } yield (complete_word, completion)
-              ((full_word, completions))
+              (full_word, completions)
           })
       }
 
     (abbrevs_result orElse words_result) match {
-      case Some((original, completions)) if !completions.isEmpty =>
+      case Some((original, completions)) if completions.nonEmpty =>
         val range = Text.Range(- original.length, 0) + caret + start
         val immediate =
           explicit ||
             (!Completion.Word_Parsers.is_word(original) &&
+             !Completion.Word_Parsers.is_symboloid(original) &&
               Character.codePointCount(original, 0, original.length) > 1)
         val unique = completions.length == 1
 
@@ -406,11 +483,7 @@ final class Completion private(
             (complete_word, name0) <- completions
             name1 = decode(name0)
             if name1 != original
-            (s1, s2) =
-              space_explode(Completion.caret_indicator, name1) match {
-                case List(s1, s2) => (s1, s2)
-                case _ => (name1, "")
-              }
+            (s1, s2) = Completion.split_template(name1)
             move = - s2.length
             description =
               if (is_symbol(name0)) {

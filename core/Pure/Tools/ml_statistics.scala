@@ -22,11 +22,11 @@ object ML_Statistics
 
   final case class Entry(time: Double, data: Map[String, Double])
 
-  def apply(name: String, stats: List[Properties.T]): ML_Statistics =
-    new ML_Statistics(name, stats)
+  def apply(session_name: String, ml_statistics: List[Properties.T]): ML_Statistics =
+    new ML_Statistics(session_name, ml_statistics)
 
-  def apply(info: Build.Log_Info): ML_Statistics =
-    apply(info.name, info.stats)
+  def apply(info: Build_Log.Session_Info): ML_Statistics =
+    apply(info.session_name, info.ml_statistics)
 
   val empty = apply("", Nil)
 
@@ -34,7 +34,8 @@ object ML_Statistics
   /* standard fields */
 
   val tasks_fields =
-    ("Future tasks", List("tasks_ready", "tasks_pending", "tasks_running", "tasks_passive"))
+    ("Future tasks",
+      List("tasks_ready", "tasks_pending", "tasks_running", "tasks_passive", "tasks_urgent"))
 
   val workers_fields =
     ("Worker threads", List("workers_total", "workers_active", "workers_waiting"))
@@ -58,26 +59,26 @@ object ML_Statistics
       time_fields, speed_fields)
 }
 
-final class ML_Statistics private(val name: String, val stats: List[Properties.T])
+final class ML_Statistics private(val session_name: String, val ml_statistics: List[Properties.T])
 {
   val Now = new Properties.Double("now")
   def now(props: Properties.T): Double = Now.unapply(props).get
 
-  require(stats.forall(props => Now.unapply(props).isDefined))
+  require(ml_statistics.forall(props => Now.unapply(props).isDefined))
 
-  val time_start = if (stats.isEmpty) 0.0 else now(stats.head)
-  val duration = if (stats.isEmpty) 0.0 else now(stats.last) - time_start
+  val time_start = if (ml_statistics.isEmpty) 0.0 else now(ml_statistics.head)
+  val duration = if (ml_statistics.isEmpty) 0.0 else now(ml_statistics.last) - time_start
 
   val fields: Set[String] =
     SortedSet.empty[String] ++
-      (for (props <- stats.iterator; (x, _) <- props.iterator if x != Now.name)
+      (for (props <- ml_statistics.iterator; (x, _) <- props.iterator if x != Now.name)
         yield x)
 
   val content: List[ML_Statistics.Entry] =
   {
     var last_edge = Map.empty[String, (Double, Double, Double)]
     val result = new mutable.ListBuffer[ML_Statistics.Entry]
-    for (props <- stats) {
+    for (props <- ml_statistics) {
       val time = now(props) - time_start
       require(time >= 0.0)
 
@@ -134,7 +135,7 @@ final class ML_Statistics private(val name: String, val stats: List[Properties.T
       GUI_Thread.later {
         new Frame {
           iconImage = GUI.isabelle_image()
-          title = name
+          title = session_name
           contents = Component.wrap(new ChartPanel(c))
           visible = true
         }

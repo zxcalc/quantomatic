@@ -7,9 +7,12 @@ logical operations.
 
 signature ELEMENT =
 sig
+  type ('typ, 'term) obtain = binding * ((binding * 'typ option * mixfix) list * 'term list)
+  type obtains = (string, string) obtain list
+  type obtains_i = (typ, term) obtain list
   datatype ('typ, 'term) stmt =
     Shows of (Attrib.binding * ('term * 'term list) list) list |
-    Obtains of (binding * ((binding * 'typ option) list * 'term list)) list
+    Obtains of ('typ, 'term) obtain list
   type statement = (string, string) stmt
   type statement_i = (typ, term) stmt
   datatype ('typ, 'term, 'fact) ctxt =
@@ -17,20 +20,18 @@ sig
     Constrains of (string * 'typ) list |
     Assumes of (Attrib.binding * ('term * 'term list) list) list |
     Defines of (Attrib.binding * ('term * 'term list)) list |
-    Notes of string * (Attrib.binding * ('fact * Attrib.src list) list) list
+    Notes of string * (Attrib.binding * ('fact * Token.src list) list) list
   type context = (string, string, Facts.ref) ctxt
   type context_i = (typ, term, thm list) ctxt
   val map_ctxt: {binding: binding -> binding, typ: 'typ -> 'a, term: 'term -> 'b,
-    pattern: 'term -> 'b, fact: 'fact -> 'c, attrib: Attrib.src -> Attrib.src} ->
+    pattern: 'term -> 'b, fact: 'fact -> 'c, attrib: Token.src -> Token.src} ->
     ('typ, 'term, 'fact) ctxt -> ('a, 'b, 'c) ctxt
-  val map_ctxt_attrib: (Attrib.src -> Attrib.src) ->
+  val map_ctxt_attrib: (Token.src -> Token.src) ->
     ('typ, 'term, 'fact) ctxt -> ('typ, 'term, 'fact) ctxt
   val transform_ctxt: morphism -> context_i -> context_i
-  val transform_facts: morphism ->
-    (Attrib.binding * (thm list * Args.src list) list) list ->
-    (Attrib.binding * (thm list * Args.src list) list) list
   val pretty_stmt: Proof.context -> statement_i -> Pretty.T list
   val pretty_ctxt: Proof.context -> context_i -> Pretty.T list
+  val pretty_ctxt_no_attribs: Proof.context -> context_i -> Pretty.T list
   val pretty_statement: Proof.context -> string -> thm -> Pretty.T
   type witness
   val prove_witness: Proof.context -> term -> tactic -> witness
@@ -39,10 +40,9 @@ sig
   val witness_proof_eqs: (witness list list -> thm list -> Proof.context -> Proof.context) ->
     term list list -> term list -> Proof.context -> Proof.state
   val witness_local_proof: (witness list list -> Proof.state -> Proof.state) ->
-    string -> term list list -> Proof.context -> bool -> Proof.state -> Proof.state
+    string -> term list list -> Proof.context -> Proof.state -> Proof.state
   val witness_local_proof_eqs: (witness list list -> thm list -> Proof.state -> Proof.state) ->
-    string -> term list list -> term list -> Proof.context -> bool -> Proof.state ->
-    Proof.state
+    string -> term list list -> term list -> Proof.context -> Proof.state -> Proof.state
   val transform_witness: morphism -> witness -> witness
   val conclude_witness: Proof.context -> witness -> thm
   val pretty_witness: Proof.context -> witness -> Pretty.T
@@ -63,9 +63,13 @@ struct
 
 (* statement *)
 
+type ('typ, 'term) obtain = binding * ((binding * 'typ option * mixfix) list * 'term list);
+type obtains = (string, string) obtain list;
+type obtains_i = (typ, term) obtain list;
+
 datatype ('typ, 'term) stmt =
   Shows of (Attrib.binding * ('term * 'term list) list) list |
-  Obtains of (binding * ((binding * 'typ option) list * 'term list)) list;
+  Obtains of ('typ, 'term) obtain list;
 
 type statement = (string, string) stmt;
 type statement_i = (typ, term) stmt;
@@ -78,7 +82,7 @@ datatype ('typ, 'term, 'fact) ctxt =
   Constrains of (string * 'typ) list |
   Assumes of (Attrib.binding * ('term * 'term list) list) list |
   Defines of (Attrib.binding * ('term * 'term list)) list |
-  Notes of string * (Attrib.binding * ('fact * Attrib.src list) list) list;
+  Notes of string * (Attrib.binding * ('fact * Token.src list) list) list;
 
 type context = (string, string, Facts.ref) ctxt;
 type context_i = (typ, term, thm list) ctxt;
@@ -103,10 +107,7 @@ fun transform_ctxt phi = map_ctxt
   term = Morphism.term phi,
   pattern = Morphism.term phi,
   fact = Morphism.fact phi,
-  attrib = Args.transform_values phi};
-
-fun transform_facts phi facts =
-  Notes ("", facts) |> transform_ctxt phi |> (fn Notes (_, facts') => facts');
+  attrib = map (Token.transform phi)};
 
 
 
@@ -117,12 +118,6 @@ fun pretty_items _ _ [] = []
       Pretty.block [Pretty.keyword2 keyword, Pretty.brk 1, x] ::
         map (fn y => Pretty.block [Pretty.str "  ", Pretty.keyword2 sep, Pretty.brk 1, y]) ys;
 
-fun pretty_name_atts ctxt (b, atts) sep =
-  if Attrib.is_empty_binding (b, atts) then []
-  else
-    [Pretty.block (Pretty.breaks
-      (Binding.pretty b :: Attrib.pretty_attribs ctxt atts @ [Pretty.str sep]))];
-
 
 (* pretty_stmt *)
 
@@ -131,19 +126,20 @@ fun pretty_stmt ctxt =
     val prt_typ = Pretty.quote o Syntax.pretty_typ ctxt;
     val prt_term = Pretty.quote o Syntax.pretty_term ctxt;
     val prt_terms = separate (Pretty.keyword2 "and") o map prt_term;
-    val prt_name_atts = pretty_name_atts ctxt;
+    val prt_binding = Attrib.pretty_binding ctxt;
+    val prt_name = Proof_Context.pretty_name ctxt;
 
     fun prt_show (a, ts) =
-      Pretty.block (Pretty.breaks (prt_name_atts a ":" @ prt_terms (map fst ts)));
+      Pretty.block (Pretty.breaks (prt_binding a ":" @ prt_terms (map fst ts)));
 
-    fun prt_var (x, SOME T) = Pretty.block
-          [Pretty.str (Binding.name_of x ^ " ::"), Pretty.brk 1, prt_typ T]
-      | prt_var (x, NONE) = Pretty.str (Binding.name_of x);
+    fun prt_var (x, SOME T, _) = Pretty.block
+          [prt_name (Binding.name_of x), Pretty.str " ::", Pretty.brk 1, prt_typ T]
+      | prt_var (x, NONE, _) = prt_name (Binding.name_of x);
     val prt_vars = separate (Pretty.keyword2 "and") o map prt_var;
 
-    fun prt_obtain (_, ([], ts)) = Pretty.block (Pretty.breaks (prt_terms ts))
-      | prt_obtain (_, (xs, ts)) = Pretty.block (Pretty.breaks
-          (prt_vars xs @ [Pretty.keyword2 "where"] @ prt_terms ts));
+    fun prt_obtain (_, ([], props)) = Pretty.block (Pretty.breaks (prt_terms props))
+      | prt_obtain (_, (vars, props)) = Pretty.block (Pretty.breaks
+          (prt_vars vars @ [Pretty.keyword2 "where"] @ prt_terms props));
   in
     fn Shows shows => pretty_items "shows" "and" (map prt_show shows)
      | Obtains obtains => pretty_items "obtains" "|" (map prt_obtain obtains)
@@ -152,32 +148,38 @@ fun pretty_stmt ctxt =
 
 (* pretty_ctxt *)
 
-fun pretty_ctxt ctxt =
+fun gen_pretty_ctxt show_attribs ctxt =
   let
     val prt_typ = Pretty.quote o Syntax.pretty_typ ctxt;
     val prt_term = Pretty.quote o Syntax.pretty_term ctxt;
-    val prt_thm = Pretty.backquote o Display.pretty_thm ctxt;
-    val prt_name_atts = pretty_name_atts ctxt;
+    val prt_thm = Pretty.cartouche o Thm.pretty_thm ctxt;
+    val prt_name = Proof_Context.pretty_name ctxt;
+
+    fun prt_binding (b, atts) =
+      Attrib.pretty_binding ctxt (b, if show_attribs then atts else []);
+
+    fun prt_fact (ths, atts) =
+      if not show_attribs orelse null atts then map prt_thm ths
+      else
+        Pretty.enclose "(" ")" (Pretty.breaks (map prt_thm ths)) ::
+          Attrib.pretty_attribs ctxt atts;
 
     fun prt_mixfix NoSyn = []
       | prt_mixfix mx = [Pretty.brk 2, Mixfix.pretty_mixfix mx];
 
-    fun prt_fix (x, SOME T, mx) = Pretty.block (Pretty.str (Binding.name_of x ^ " ::") ::
+    fun prt_fix (x, SOME T, mx) = Pretty.block (prt_name (Binding.name_of x) :: Pretty.str " ::" ::
           Pretty.brk 1 :: prt_typ T :: Pretty.brk 1 :: prt_mixfix mx)
-      | prt_fix (x, NONE, mx) = Pretty.block (Pretty.str (Binding.name_of x) ::
+      | prt_fix (x, NONE, mx) = Pretty.block (prt_name (Binding.name_of x) ::
           Pretty.brk 1 :: prt_mixfix mx);
     fun prt_constrain (x, T) = prt_fix (Binding.name x, SOME T, NoSyn);
 
     fun prt_asm (a, ts) =
-      Pretty.block (Pretty.breaks (prt_name_atts a ":" @ map (prt_term o fst) ts));
+      Pretty.block (Pretty.breaks (prt_binding a ":" @ map (prt_term o fst) ts));
     fun prt_def (a, (t, _)) =
-      Pretty.block (Pretty.breaks (prt_name_atts a ":" @ [prt_term t]));
+      Pretty.block (Pretty.breaks (prt_binding a ":" @ [prt_term t]));
 
-    fun prt_fact (ths, []) = map prt_thm ths
-      | prt_fact (ths, atts) = Pretty.enclose "(" ")"
-          (Pretty.breaks (map prt_thm ths)) :: Attrib.pretty_attribs ctxt atts;
     fun prt_note (a, ths) =
-      Pretty.block (Pretty.breaks (flat (prt_name_atts a "=" :: map prt_fact ths)));
+      Pretty.block (Pretty.breaks (flat (prt_binding a " =" :: map prt_fact ths)));
   in
     fn Fixes fixes => pretty_items "fixes" "and" (map prt_fix fixes)
      | Constrains xs => pretty_items "constrains" "and" (map prt_constrain xs)
@@ -187,33 +189,35 @@ fun pretty_ctxt ctxt =
      | Notes (kind, facts) => pretty_items ("notes " ^ kind) "and" (map prt_note facts)
   end;
 
+val pretty_ctxt = gen_pretty_ctxt true;
+val pretty_ctxt_no_attribs = gen_pretty_ctxt false;
+
 
 (* pretty_statement *)
 
 local
 
-fun standard_elim th =
-  (case Object_Logic.elim_concl th of
+fun standard_elim ctxt th =
+  (case Object_Logic.elim_concl ctxt th of
     SOME C =>
       let
-        val cert = Thm.cterm_of (Thm.theory_of_thm th);
         val thesis = Var ((Auto_Bind.thesisN, Thm.maxidx_of th + 1), fastype_of C);
-        val th' = Thm.instantiate ([], [(cert C, cert thesis)]) th;
+        val th' = Thm.instantiate ([], [(Term.dest_Var C, Thm.cterm_of ctxt thesis)]) th;
       in (th', true) end
   | NONE => (th, false));
 
-fun thm_name kind th prts =
+fun thm_name ctxt kind th prts =
   let val head =
     if Thm.has_name_hint th then
-      Pretty.block [Pretty.keyword1 kind,
-        Pretty.brk 1, Pretty.str (Long_Name.base_name (Thm.get_name_hint th) ^ ":")]
+      Pretty.block [Pretty.keyword1 kind, Pretty.brk 1,
+        Proof_Context.pretty_name ctxt (Long_Name.base_name (Thm.get_name_hint th)), Pretty.str ":"]
     else Pretty.keyword1 kind
   in Pretty.block (Pretty.fbreaks (head :: prts)) end;
 
 fun obtain prop ctxt =
   let
-    val ((ps, prop'), ctxt') = Variable.focus prop ctxt;
-    fun fix (x, T) = (Binding.name (Variable.revert_fixed ctxt' x), SOME T);
+    val ((ps, prop'), ctxt') = Variable.focus NONE prop ctxt;
+    fun fix (x, T) = (Binding.name (Variable.revert_fixed ctxt' x), SOME T, NoSyn);
     val xs = map (fix o #2) ps;
     val As = Logic.strip_imp_prems prop';
   in ((Binding.empty, (xs, As)), ctxt') end;
@@ -222,27 +226,27 @@ in
 
 fun pretty_statement ctxt kind raw_th =
   let
-    val thy = Proof_Context.theory_of ctxt;
-
-    val (th, is_elim) = standard_elim (Raw_Simplifier.norm_hhf ctxt raw_th);
+    val (th, is_elim) = standard_elim ctxt (Raw_Simplifier.norm_hhf ctxt raw_th);
     val ((_, [th']), ctxt') = Variable.import true [th] (Variable.set_body true ctxt);
     val prop = Thm.prop_of th';
     val (prems, concl) = Logic.strip_horn prop;
-    val concl_term = Object_Logic.drop_judgment thy concl;
+    val concl_term = Object_Logic.drop_judgment ctxt concl;
 
-    val fixes = fold_aterms (fn v as Free (x, T) =>
-        if Variable.newly_fixed ctxt' ctxt x andalso not (v aconv concl_term)
-        then insert (op =) (Variable.revert_fixed ctxt' x, T) else I | _ => I) prop [] |> rev;
-    val (assumes, cases) = take_suffix (fn prem =>
-      is_elim andalso concl aconv Logic.strip_assums_concl prem) prems;
+    val (assumes, cases) =
+      take_suffix (fn prem => is_elim andalso concl aconv Logic.strip_assums_concl prem) prems;
+    val is_thesis = if null cases then K false else fn v => v aconv concl_term;
+    val fixes =
+      rev (fold_aterms (fn v as Free (x, T) =>
+        if Variable.is_newly_fixed ctxt' ctxt x andalso not (is_thesis v)
+        then insert (op =) (Variable.revert_fixed ctxt' x, T) else I | _ => I) prop []);
   in
     pretty_ctxt ctxt' (Fixes (map (fn (x, T) => (Binding.name x, SOME T, NoSyn)) fixes)) @
-    pretty_ctxt ctxt' (Assumes (map (fn t => (Attrib.empty_binding, [(t, [])])) assumes)) @
-     (if null cases then pretty_stmt ctxt' (Shows [(Attrib.empty_binding, [(concl, [])])])
+    pretty_ctxt ctxt' (Assumes (map (fn t => (Binding.empty_atts, [(t, [])])) assumes)) @
+     (if null cases then pretty_stmt ctxt' (Shows [(Binding.empty_atts, [(concl, [])])])
       else
         let val (clauses, ctxt'') = fold_map obtain cases ctxt'
         in pretty_stmt ctxt'' (Obtains clauses) end)
-  end |> thm_name kind raw_th;
+  end |> thm_name ctxt kind raw_th;
 
 end;
 
@@ -264,14 +268,15 @@ fun transform_witness phi = map_witness (fn (t, th) => (Morphism.term phi t, Mor
 fun prove_witness ctxt t tac =
   Witness (t,
     Thm.close_derivation
-      (Goal.prove ctxt [] [] (mark_witness t) (fn _ => rtac Drule.protectI 1 THEN tac)));
+      (Goal.prove ctxt [] [] (mark_witness t)
+        (fn _ => resolve_tac ctxt [Drule.protectI] 1 THEN tac)));
 
 
 local
 
 val refine_witness =
-  Proof.refine (Method.Basic (K (RAW_METHOD
-    (K (ALLGOALS (CONJUNCTS (ALLGOALS (CONJUNCTS (TRYALL (rtac Drule.protectI))))))))));
+  Proof.refine_singleton (Method.Basic (fn ctxt => Method.CONTEXT_TACTIC o
+    K (ALLGOALS (CONJUNCTS (ALLGOALS (CONJUNCTS (TRYALL (resolve_tac ctxt [Drule.protectI]))))))));
 
 fun gen_witness_proof proof after_qed wit_propss eq_props =
   let
@@ -281,12 +286,17 @@ fun gen_witness_proof proof after_qed wit_propss eq_props =
     fun after_qed' thmss =
       let val (wits, eqs) = split_last ((map o map) Thm.close_derivation thmss);
       in after_qed ((map2 o map2) (curry Witness) wit_propss wits) eqs end;
-  in proof after_qed' propss #> refine_witness #> Seq.hd end;
+  in proof after_qed' propss #> refine_witness end;
 
-fun proof_local cmd goal_ctxt int after_qed' propss =
-  Proof.map_context (K goal_ctxt) #>
-  Proof.local_goal (K (K ())) (K I) Proof_Context.bind_propp_i cmd NONE
-    after_qed' (map (pair Thm.empty_binding) propss);
+fun proof_local cmd goal_ctxt after_qed propp =
+  let
+    fun after_qed' (result_ctxt, results) state' =
+      after_qed (burrow (Proof_Context.export result_ctxt (Proof.context_of state')) results) state';
+  in
+    Proof.map_context (K goal_ctxt) #>
+    Proof.internal_goal (K (K ())) (Proof_Context.get_mode goal_ctxt) true cmd
+      NONE after_qed' [] [] (map (pair Binding.empty_atts) propp) #> snd
+  end;
 
 in
 
@@ -296,12 +306,12 @@ fun witness_proof after_qed wit_propss =
 
 val witness_proof_eqs = gen_witness_proof (Proof.theorem NONE);
 
-fun witness_local_proof after_qed cmd wit_propss goal_ctxt int =
-  gen_witness_proof (proof_local cmd goal_ctxt int)
+fun witness_local_proof after_qed cmd wit_propss goal_ctxt =
+  gen_witness_proof (proof_local cmd goal_ctxt)
     (fn wits => fn _ => after_qed wits) wit_propss [];
 
-fun witness_local_proof_eqs after_qed cmd wit_propss eq_props goal_ctxt int =
-  gen_witness_proof (proof_local cmd goal_ctxt int) after_qed wit_propss eq_props;
+fun witness_local_proof_eqs after_qed cmd wit_propss eq_props goal_ctxt =
+  gen_witness_proof (proof_local cmd goal_ctxt) after_qed wit_propss eq_props;
 
 end;
 
@@ -332,9 +342,8 @@ fun pretty_witness ctxt witn =
 
 fun instantiate_tfrees thy subst th =
   let
-    val certT = Thm.ctyp_of thy;
     val idx = Thm.maxidx_of th + 1;
-    fun cert_inst (a, (S, T)) = (certT (TVar ((a, idx), S)), certT T);
+    fun cert_inst (a, (S, T)) = (((a, idx), S), Thm.global_ctyp_of thy T);
 
     fun add_inst (a, S) insts =
       if AList.defined (op =) insts a then insts
@@ -349,13 +358,11 @@ fun instantiate_tfrees thy subst th =
   end;
 
 fun instantiate_frees thy subst =
-  let val cert = Thm.cterm_of thy in
-    Drule.forall_intr_list (map (cert o Free o fst) subst) #>
-    Drule.forall_elim_list (map (cert o snd) subst)
-  end;
+  Drule.forall_intr_list (map (Thm.global_cterm_of thy o Free o fst) subst) #>
+  Drule.forall_elim_list (map (Thm.global_cterm_of thy o snd) subst);
 
 fun hyps_rule rule th =
-  let val {hyps, ...} = Thm.crep_thm th in
+  let val hyps = Thm.chyps_of th in
     Drule.implies_elim_list
       (rule (Drule.implies_intr_list hyps th))
       (map (Thm.assume o Drule.cterm_rule rule) hyps)
@@ -448,7 +455,7 @@ fun satisfy_thm witns thm =
   thm |> fold (fn hyp =>
     (case find_first (fn Witness (t, _) => Thm.term_of hyp aconv t) witns of
       NONE => I
-    | SOME w => Thm.implies_intr hyp #> compose_witness w)) (#hyps (Thm.crep_thm thm));
+    | SOME w => Thm.implies_intr hyp #> compose_witness w)) (Thm.chyps_of thm);
 
 val satisfy_morphism = Morphism.thm_morphism "Element.satisfy" o satisfy_thm;
 
@@ -481,17 +488,17 @@ fun init (Fixes fixes) = Context.map_proof (Proof_Context.add_fixes fixes #> #2)
         val asms' = Attrib.map_specs (map (Attrib.attribute ctxt)) asms;
         val (_, ctxt') = ctxt
           |> fold Variable.auto_fixes (maps (map #1 o #2) asms')
-          |> Proof_Context.add_assms_i Assumption.assume_export asms';
+          |> Proof_Context.add_assms Assumption.assume_export asms';
       in ctxt' end)
   | init (Defines defs) = Context.map_proof (fn ctxt =>
       let
         val defs' = Attrib.map_specs (map (Attrib.attribute ctxt)) defs;
         val asms = defs' |> map (fn (b, (t, ps)) =>
-            let val (_, t') = Local_Defs.cert_def ctxt t  (* FIXME adapt ps? *)
+            let val (_, t') = Local_Defs.cert_def ctxt (K []) t  (* FIXME adapt ps? *)
             in (t', (b, [(t', ps)])) end);
         val (_, ctxt') = ctxt
           |> fold Variable.auto_fixes (map #1 asms)
-          |> Proof_Context.add_assms_i Local_Defs.def_export (map #2 asms);
+          |> Proof_Context.add_assms Local_Defs.def_export (map #2 asms);
       in ctxt' end)
   | init (Notes (kind, facts)) = Attrib.generic_notes kind facts #> #2;
 
@@ -509,14 +516,15 @@ fun init' elem context =
 fun activate_i elem ctxt =
   let
     val elem' =
-      (case map_ctxt_attrib Args.init_assignable elem of
+      (case (map_ctxt_attrib o map) Token.init_assignable elem of
         Defines defs =>
           Defines (defs |> map (fn ((a, atts), (t, ps)) =>
-            ((Thm.def_binding_optional (Binding.name (#1 (#1 (Local_Defs.cert_def ctxt t)))) a, atts),
+            ((Thm.def_binding_optional
+              (Binding.name (#1 (#1 (Local_Defs.cert_def ctxt (K []) t)))) a, atts),
               (t, ps))))
       | e => e);
     val ctxt' = Context.proof_map (init elem') ctxt;
-  in (map_ctxt_attrib Args.closure elem', ctxt') end;
+  in ((map_ctxt_attrib o map) Token.closure elem', ctxt') end;
 
 fun activate raw_elem ctxt =
   let val elem = raw_elem |> map_ctxt

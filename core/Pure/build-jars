@@ -9,30 +9,48 @@
 ## sources
 
 declare -a SOURCES=(
+  Admin/build_doc.scala
+  Admin/build_history.scala
+  Admin/build_log.scala
+  Admin/build_polyml.scala
+  Admin/build_release.scala
+  Admin/build_stats.scala
+  Admin/check_sources.scala
+  Admin/ci_api.scala
+  Admin/ci_profile.scala
+  Admin/isabelle_cronjob.scala
+  Admin/news.scala
+  Admin/other_isabelle.scala
+  Admin/remote_dmg.scala
   Concurrent/consumer_thread.scala
   Concurrent/counter.scala
   Concurrent/event_timer.scala
   Concurrent/future.scala
   Concurrent/mailbox.scala
-  Concurrent/simple_thread.scala
+  Concurrent/par_list.scala
+  Concurrent/standard_thread.scala
   Concurrent/synchronized.scala
   GUI/color_value.scala
   GUI/gui.scala
   GUI/gui_thread.scala
   GUI/html5_panel.scala
-  GUI/jfx_thread.scala
+  GUI/jfx_gui.scala
   GUI/popup.scala
-  GUI/system_dialog.scala
   GUI/wrap_panel.scala
   General/antiquote.scala
   General/bytes.scala
   General/completion.scala
+  General/date.scala
   General/exn.scala
   General/file.scala
   General/graph.scala
+  General/graph_display.scala
   General/graphics_file.scala
+  General/http_server.scala
+  General/json.scala
   General/linear_set.scala
   General/long_name.scala
+  General/mercurial.scala
   General/multi_map.scala
   General/output.scala
   General/path.scala
@@ -41,25 +59,35 @@ declare -a SOURCES=(
   General/properties.scala
   General/scan.scala
   General/sha1.scala
+  General/sql.scala
+  General/sqlite.scala
+  General/ssh.scala
   General/symbol.scala
   General/time.scala
   General/timing.scala
   General/untyped.scala
   General/url.scala
+  General/value.scala
   General/word.scala
-  General/xz_file.scala
+  General/xz.scala
+  Isar/document_structure.scala
   Isar/keyword.scala
+  Isar/line_structure.scala
   Isar/outer_syntax.scala
   Isar/parse.scala
   Isar/token.scala
   ML/ml_lex.scala
+  ML/ml_syntax.scala
+  PIDE/batch_session.scala
   PIDE/command.scala
+  PIDE/command_span.scala
   PIDE/document.scala
   PIDE/document_id.scala
   PIDE/editor.scala
   PIDE/markup.scala
   PIDE/markup_tree.scala
   PIDE/protocol.scala
+  PIDE/protocol_message.scala
   PIDE/prover.scala
   PIDE/query_operation.scala
   PIDE/resources.scala
@@ -68,46 +96,63 @@ declare -a SOURCES=(
   PIDE/xml.scala
   PIDE/yxml.scala
   ROOT.scala
+  System/bash.scala
   System/command_line.scala
+  System/cygwin.scala
+  System/distribution.scala
+  System/getopts.scala
   System/invoke_scala.scala
   System/isabelle_charset.scala
-  System/isabelle_font.scala
   System/isabelle_process.scala
   System/isabelle_system.scala
+  System/isabelle_tool.scala
+  System/numa.scala
   System/options.scala
   System/platform.scala
   System/posix_interrupt.scala
+  System/process_result.scala
+  System/progress.scala
   System/system_channel.scala
   System/utf8.scala
   Thy/html.scala
   Thy/present.scala
+  Thy/sessions.scala
   Thy/thy_header.scala
   Thy/thy_info.scala
   Thy/thy_syntax.scala
+  Tools/bibtex.scala
   Tools/build.scala
-  Tools/build_console.scala
-  Tools/build_doc.scala
-  Tools/check_source.scala
+  Tools/check_keywords.scala
+  Tools/debugger.scala
   Tools/doc.scala
-  Tools/keywords.scala
   Tools/main.scala
+  Tools/ml_console.scala
+  Tools/ml_process.scala
   Tools/ml_statistics.scala
   Tools/print_operation.scala
+  Tools/profiling_report.scala
   Tools/simplifier_trace.scala
   Tools/task_statistics.scala
+  Tools/update_cartouches.scala
+  Tools/update_header.scala
+  Tools/update_then.scala
+  Tools/update_theorems.scala
   library.scala
   term.scala
   term_xml.scala
-  "../Tools/Graphview/src/graph_panel.scala"
-  "../Tools/Graphview/src/layout_pendulum.scala"
-  "../Tools/Graphview/src/main_panel.scala"
-  "../Tools/Graphview/src/model.scala"
-  "../Tools/Graphview/src/mutator_dialog.scala"
-  "../Tools/Graphview/src/mutator_event.scala"
-  "../Tools/Graphview/src/mutator.scala"
-  "../Tools/Graphview/src/popups.scala"
-  "../Tools/Graphview/src/shapes.scala"
-  "../Tools/Graphview/src/visualizer.scala"
+  "../Tools/Graphview/graph_file.scala"
+  "../Tools/Graphview/graph_panel.scala"
+  "../Tools/Graphview/graphview.scala"
+  "../Tools/Graphview/layout.scala"
+  "../Tools/Graphview/main_panel.scala"
+  "../Tools/Graphview/metrics.scala"
+  "../Tools/Graphview/model.scala"
+  "../Tools/Graphview/mutator.scala"
+  "../Tools/Graphview/mutator_dialog.scala"
+  "../Tools/Graphview/mutator_event.scala"
+  "../Tools/Graphview/popups.scala"
+  "../Tools/Graphview/shapes.scala"
+  "../Tools/Graphview/tree_panel.scala"
 )
 
 
@@ -122,7 +167,6 @@ function usage()
   echo
   echo "  Options are:"
   echo "    -f           fresh build"
-  echo "    -t           test separate compilation of PIDE"
   echo
   exit 1
 }
@@ -141,16 +185,12 @@ function fail()
 # options
 
 FRESH=""
-TEST_PIDE=""
 
-while getopts "ft" OPT
+while getopts "f" OPT
 do
   case "$OPT" in
     f)
       FRESH=true
-      ;;
-    t)
-      TEST_PIDE=true
       ;;
     \?)
       usage
@@ -170,19 +210,6 @@ shift $(($OPTIND - 1))
 
 TARGET_DIR="$ISABELLE_HOME/lib/classes"
 TARGET="$TARGET_DIR/Pure.jar"
-
-declare -a PIDE_SOURCES=()
-declare -a PURE_SOURCES=()
-
-for DEP in "${SOURCES[@]}"
-do
-  if grep "Module:.*PIDE" "$DEP" >/dev/null
-  then
-    PIDE_SOURCES["${#PIDE_SOURCES[@]}"]="$DEP"
-  else
-    PURE_SOURCES["${#PURE_SOURCES[@]}"]="$DEP"
-  fi
-done
 
 declare -a UPDATED=()
 
@@ -216,24 +243,18 @@ then
     done
   }
 
+  rm -f "$TARGET"
   rm -rf classes && mkdir classes
 
   SCALAC_OPTIONS="$ISABELLE_SCALA_BUILD_OPTIONS -d classes"
 
   (
-    classpath "$ISABELLE_JDK_HOME/jre/lib/jfxrt.jar"
+    classpath "$JAVA_HOME/lib/jfxrt.jar"
     classpath classes
-    export CLASSPATH="$(jvmpath "$ISABELLE_CLASSPATH")"
+    export CLASSPATH="$(platform_path "$ISABELLE_CLASSPATH")"
 
-    if [ "$TEST_PIDE" = true ]; then
-      isabelle_scala scalac $SCALAC_OPTIONS "${PIDE_SOURCES[@]}" || \
-        fail "Failed to compile PIDE sources"
-      isabelle_scala scalac $SCALAC_OPTIONS "${PURE_SOURCES[@]}" || \
-        fail "Failed to compile Pure sources"
-    else
-      isabelle_scala scalac $SCALAC_OPTIONS "${PIDE_SOURCES[@]}" "${PURE_SOURCES[@]}" || \
-        fail "Failed to compile sources"
-    fi
+    isabelle_scala scalac $SCALAC_OPTIONS "${SOURCES[@]}" || \
+      fail "Failed to compile sources"
   ) || exit "$?"
 
   mkdir -p "$TARGET_DIR" || fail "Failed to create directory $TARGET_DIR"
@@ -247,7 +268,7 @@ then
   cp "$ISABELLE_HOME/lib/logo/isabelle_transparent-32.gif" isabelle/.
   cp "$ISABELLE_HOME/lib/logo/isabelle_transparent.gif" isabelle/.
 
-  isabelle_jdk jar cfe "$(jvmpath "$TARGET")" isabelle.Main META-INF isabelle || \
+  isabelle_jdk jar cfe "$(platform_path "$TARGET")" isabelle.Main META-INF isabelle || \
     fail "Failed to produce $TARGET"
 
   popd >/dev/null

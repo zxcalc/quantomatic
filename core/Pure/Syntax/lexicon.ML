@@ -15,9 +15,6 @@ sig
   val scan_id: Symbol_Pos.T list -> Symbol_Pos.T list * Symbol_Pos.T list
   val scan_longid: Symbol_Pos.T list -> Symbol_Pos.T list * Symbol_Pos.T list
   val scan_tid: Symbol_Pos.T list -> Symbol_Pos.T list * Symbol_Pos.T list
-  val scan_nat: Symbol_Pos.T list -> Symbol_Pos.T list * Symbol_Pos.T list
-  val scan_int: Symbol_Pos.T list -> Symbol_Pos.T list * Symbol_Pos.T list
-  val scan_float: Symbol_Pos.T list -> Symbol_Pos.T list * Symbol_Pos.T list
   val scan_hex: Symbol_Pos.T list -> Symbol_Pos.T list * Symbol_Pos.T list
   val scan_bin: Symbol_Pos.T list -> Symbol_Pos.T list * Symbol_Pos.T list
   val scan_var: Symbol_Pos.T list -> Symbol_Pos.T list * Symbol_Pos.T list
@@ -25,7 +22,7 @@ sig
   val is_tid: string -> bool
   datatype token_kind =
     Literal | IdentSy | LongIdentSy | VarSy | TFreeSy | TVarSy | NumSy |
-    FloatSy | XNumSy | StrSy | StringSy | Cartouche | Space | Comment | EOF
+    FloatSy | StrSy | StringSy | Cartouche | Space | Comment | EOF
   datatype token = Token of token_kind * string * Position.range
   val str_of_token: token -> string
   val pos_of_token: token -> Position.T
@@ -52,7 +49,7 @@ sig
   val read_variable: string -> indexname option
   val read_nat: string -> int option
   val read_int: string -> int option
-  val read_xnum: string -> {radix: int, leading_zeros: int, value: int}
+  val read_num: string -> {radix: int, leading_zeros: int, value: int}
   val read_float: string -> {mant: int, exp: int}
   val mark_class: string -> string val unmark_class: string -> string
   val mark_type: string -> string val unmark_type: string -> string
@@ -94,17 +91,14 @@ val err_prefix = "Inner lexical error: ";
 fun !!! msg = Symbol_Pos.!!! (fn () => err_prefix ^ msg);
 
 val scan_id = Symbol_Pos.scan_ident;
-val scan_longid = scan_id @@@ (Scan.repeat1 ($$$ "." @@@ scan_id) >> flat);
+val scan_longid = scan_id @@@ Scan.repeats1 ($$$ "." @@@ scan_id);
 val scan_tid = $$$ "'" @@@ scan_id;
 
-val scan_nat = Scan.many1 (Symbol.is_digit o Symbol_Pos.symbol);
-val scan_int = $$$ "-" @@@ scan_nat || scan_nat;
-val scan_natdot = scan_nat @@@ $$$ "." @@@ scan_nat;
-val scan_float = $$$ "-" @@@ scan_natdot || scan_natdot;
 val scan_hex = $$$ "0" @@@ $$$ "x" @@@ Scan.many1 (Symbol.is_ascii_hex o Symbol_Pos.symbol);
 val scan_bin = $$$ "0" @@@ $$$ "b" @@@ Scan.many1 (fn (s, _) => s = "0" orelse s = "1");
+val scan_num = scan_hex || scan_bin || Symbol_Pos.scan_nat;
 
-val scan_id_nat = scan_id @@@ Scan.optional ($$$ "." @@@ scan_nat) [];
+val scan_id_nat = scan_id @@@ Scan.optional ($$$ "." @@@ Symbol_Pos.scan_nat) [];
 val scan_var = $$$ "?" @@@ scan_id_nat;
 val scan_tvar = $$$ "?" @@@ $$$ "'" @@@ scan_id_nat;
 
@@ -119,7 +113,7 @@ fun is_tid s =
 
 datatype token_kind =
   Literal | IdentSy | LongIdentSy | VarSy | TFreeSy | TVarSy | NumSy |
-  FloatSy | XNumSy | StrSy | StringSy | Cartouche | Space | Comment | EOF;
+  FloatSy | StrSy | StringSy | Cartouche | Space | Comment | EOF;
 
 datatype token = Token of token_kind * string * Position.range;
 
@@ -152,7 +146,6 @@ val terminal_kinds =
   ("tvar", TVarSy),
   ("num_token", NumSy),
   ("float_token", FloatSy),
-  ("xnum_token", XNumSy),
   ("str_token", StrSy),
   ("string_token", StringSy),
   ("cartouche", Cartouche)];
@@ -173,7 +166,6 @@ val token_kind_markup =
   | TVarSy => Markup.tvar
   | NumSy => Markup.numeral
   | FloatSy => Markup.numeral
-  | XNumSy => Markup.numeral
   | StrSy => Markup.inner_string
   | StringSy => Markup.inner_string
   | Cartouche => Markup.inner_cartouche
@@ -234,19 +226,19 @@ val explode_string = explode_literal scan_string_body;
 val scan_chr =
   $$ "\\" |-- $$$ "'" ||
   Scan.one
-    ((fn s => s <> "\\" andalso s <> "'" andalso Symbol.is_regular s) o
+    ((fn s => s <> "\\" andalso s <> "'" andalso Symbol.not_eof s) o
       Symbol_Pos.symbol) >> single ||
   $$$ "'" --| Scan.ahead (~$$ "'");
 
 val scan_str =
   Scan.ahead ($$ "'" -- $$ "'") |--
     !!! "unclosed string literal"
-      ($$$ "'" @@@ $$$ "'" @@@ (Scan.repeat scan_chr >> flat) @@@ $$$ "'" @@@ $$$ "'");
+      ($$$ "'" @@@ $$$ "'" @@@ Scan.repeats scan_chr @@@ $$$ "'" @@@ $$$ "'");
 
 val scan_str_body =
   Scan.ahead ($$ "'" |-- $$ "'") |--
     !!! "unclosed string literal"
-      ($$ "'" |-- $$ "'" |-- (Scan.repeat scan_chr >> flat) --| $$ "'" --| $$ "'");
+      ($$ "'" |-- $$ "'" |-- Scan.repeats scan_chr --| $$ "'" --| $$ "'");
 
 fun implode_str ss = enclose "''" "''" (implode (map (fn "'" => "\\'" | s => s) ss));
 val explode_str = explode_literal scan_str_body;
@@ -264,15 +256,12 @@ fun tokenize lex xids syms =
       (if xids then $$$ "_" @@@ scan_id || scan_id else scan_id) ||
       $$$ "_" @@@ $$$ "_";
 
-    val scan_num = scan_hex || scan_bin || scan_int;
-
     val scan_val =
       scan_tvar >> token TVarSy ||
       scan_var >> token VarSy ||
       scan_tid >> token TFreeSy ||
-      scan_float >> token FloatSy ||
+      Symbol_Pos.scan_float >> token FloatSy ||
       scan_num >> token NumSy ||
-      $$$ "#" @@@ scan_num >> token XNumSy ||
       scan_longid >> token LongIdentSy ||
       scan_xid >> token IdentSy;
 
@@ -306,18 +295,18 @@ local
 val scan_vname =
   let
     fun nat n [] = n
-      | nat n (c :: cs) = nat (n * 10 + (ord c - ord "0")) cs;
+      | nat n (c :: cs) = nat (n * 10 + (ord c - Char.ord #"0")) cs;
 
     fun idxname cs ds = (implode (rev cs), nat 0 ds);
     fun chop_idx [] ds = idxname [] ds
-      | chop_idx (cs as (_ :: "\\<^sub>" :: _)) ds = idxname cs ds
+      | chop_idx (cs as (_ :: "\<^sub>" :: _)) ds = idxname cs ds
       | chop_idx (c :: cs) ds =
           if Symbol.is_digit c then chop_idx cs (c :: ds)
           else idxname (c :: cs) ds;
 
     val scan =
       (scan_id >> map Symbol_Pos.symbol) --
-      Scan.optional ($$ "." |-- scan_nat >> (nat 0 o map Symbol_Pos.symbol)) ~1;
+      Scan.optional ($$ "." |-- Symbol_Pos.scan_nat >> (nat 0 o map Symbol_Pos.symbol)) ~1;
   in
     scan >>
       (fn (cs, ~1) => chop_idx (rev cs) []
@@ -334,7 +323,7 @@ end;
 (* indexname *)
 
 fun read_indexname s =
-  (case Scan.read Symbol_Pos.stopper scan_indexname (Symbol_Pos.explode (s, Position.none)) of
+  (case Scan.read Symbol_Pos.stopper scan_indexname (Symbol_Pos.explode0 s) of
     SOME xi => xi
   | _ => error ("Lexical error in variable name: " ^ quote s));
 
@@ -346,16 +335,16 @@ fun read_var str =
     val scan =
       $$ "?" |-- scan_indexname --| Scan.ahead (Scan.one Symbol_Pos.is_eof)
         >> Syntax.var ||
-      Scan.many (Symbol.is_regular o Symbol_Pos.symbol)
+      Scan.many (Symbol.not_eof o Symbol_Pos.symbol)
         >> (Syntax.free o implode o map Symbol_Pos.symbol);
-  in the (Scan.read Symbol_Pos.stopper scan (Symbol_Pos.explode (str, Position.none))) end;
+  in the (Scan.read Symbol_Pos.stopper scan (Symbol_Pos.explode0 str)) end;
 
 
 (* read_variable *)
 
 fun read_variable str =
   let val scan = $$ "?" |-- scan_indexname || scan_indexname
-  in Scan.read Symbol_Pos.stopper scan (Symbol_Pos.explode (str, Position.none)) end;
+  in Scan.read Symbol_Pos.stopper scan (Symbol_Pos.explode0 str) end;
 
 
 (* read numbers *)
@@ -364,27 +353,27 @@ local
 
 fun nat cs =
   Option.map (#1 o Library.read_int o map Symbol_Pos.symbol)
-    (Scan.read Symbol_Pos.stopper scan_nat cs);
+    (Scan.read Symbol_Pos.stopper Symbol_Pos.scan_nat cs);
 
 in
 
-fun read_nat s = nat (Symbol_Pos.explode (s, Position.none));
+fun read_nat s = nat (Symbol_Pos.explode0 s);
 
 fun read_int s =
-  (case Symbol_Pos.explode (s, Position.none) of
+  (case Symbol_Pos.explode0 s of
     ("-", _) :: cs => Option.map ~ (nat cs)
   | cs => nat cs);
 
 end;
 
 
-(* read_xnum: hex/bin/decimal *)
+(* read_num: hex/bin/decimal *)
 
 local
 
-val ten = ord "0" + 10;
-val a = ord "a";
-val A = ord "A";
+val ten = Char.ord #"0" + 10;
+val a = Char.ord #"a";
+val A = Char.ord #"A";
 val _ = a > A orelse raise Fail "Bad ASCII";
 
 fun remap_hex c =
@@ -400,34 +389,30 @@ fun leading_zeros ["0"] = 0
 
 in
 
-fun read_xnum str =
+fun read_num str =
   let
-    val (sign, radix, digs) =
-      (case Symbol.explode (perhaps (try (unprefix "#")) str) of
-        "0" :: "x" :: cs => (1, 16, map remap_hex cs)
-      | "0" :: "b" :: cs => (1, 2, cs)
-      | "-" :: cs => (~1, 10, cs)
-      | cs => (1, 10, cs));
+    val (radix, digs) =
+      (case Symbol.explode str of
+        "0" :: "x" :: cs => (16, map remap_hex cs)
+      | "0" :: "b" :: cs => (2, cs)
+      | cs => (10, cs));
   in
    {radix = radix,
     leading_zeros = leading_zeros digs,
-    value = sign * #1 (Library.read_radix_int radix digs)}
+    value = #1 (Library.read_radix_int radix digs)}
   end;
 
 end;
 
 fun read_float str =
   let
-    val (sign, cs) =
-      (case Symbol.explode str of
-        "-" :: cs => (~1, cs)
-      | cs => (1, cs));
+    val cs = Symbol.explode str;
     val (intpart, fracpart) =
       (case take_prefix Symbol.is_digit cs of
         (intpart, "." :: fracpart) => (intpart, fracpart)
       | _ => raise Fail "read_float");
   in
-   {mant = sign * #1 (Library.read_int (intpart @ fracpart)),
+   {mant = #1 (Library.read_int (intpart @ fracpart)),
     exp = length fracpart}
   end;
 
@@ -436,10 +421,10 @@ fun read_float str =
 
 fun marker s = (prefix s, unprefix s);
 
-val (mark_class, unmark_class) = marker "\\<^class>";
-val (mark_type, unmark_type) = marker "\\<^type>";
-val (mark_const, unmark_const) = marker "\\<^const>";
-val (mark_fixed, unmark_fixed) = marker "\\<^fixed>";
+val (mark_class, unmark_class) = marker "\<^class>";
+val (mark_type, unmark_type) = marker "\<^type>";
+val (mark_const, unmark_const) = marker "\<^const>";
+val (mark_fixed, unmark_fixed) = marker "\<^fixed>";
 
 fun unmark {case_class, case_type, case_const, case_fixed, case_default} s =
   (case try unmark_class s of
@@ -461,5 +446,12 @@ val is_marked =
 
 val dummy_type = Syntax.const (mark_type "dummy");
 val fun_type = Syntax.const (mark_type "fun");
+
+
+(* toplevel pretty printing *)
+
+val _ =
+  ML_system_pp (fn _ => fn _ =>
+    Pretty.to_polyml o Pretty.str_list "{" "}" o map quote o Scan.dest_lexicon);
 
 end;

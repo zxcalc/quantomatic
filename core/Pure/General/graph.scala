@@ -1,5 +1,4 @@
 /*  Title:      Pure/General/graph.scala
-    Module:     PIDE
     Author:     Makarius
 
 Directed graphs.
@@ -21,8 +20,8 @@ object Graph
   def empty[Key, A](implicit ord: Ordering[Key]): Graph[Key, A] =
     new Graph[Key, A](SortedMap.empty(ord))
 
-  def make[Key, A](entries: List[((Key, A), List[Key])])(implicit ord: Ordering[Key])
-    : Graph[Key, A] =
+  def make[Key, A](entries: List[((Key, A), List[Key])])(
+    implicit ord: Ordering[Key]): Graph[Key, A] =
   {
     val graph1 =
       (empty[Key, A](ord) /: entries) { case (graph, ((x, info), _)) => graph.new_node(x, info) }
@@ -39,17 +38,17 @@ object Graph
   /* XML data representation */
 
   def encode[Key, A](key: XML.Encode.T[Key], info: XML.Encode.T[A]): XML.Encode.T[Graph[Key, A]] =
-    ((graph: Graph[Key, A]) => {
+    (graph: Graph[Key, A]) => {
       import XML.Encode._
       list(pair(pair(key, info), list(key)))(graph.dest)
-    })
+    }
 
-  def decode[Key, A](key: XML.Decode.T[Key], info: XML.Decode.T[A])(implicit ord: Ordering[Key])
-      : XML.Decode.T[Graph[Key, A]] =
-    ((body: XML.Body) => {
+  def decode[Key, A](key: XML.Decode.T[Key], info: XML.Decode.T[A])(
+    implicit ord: Ordering[Key]): XML.Decode.T[Graph[Key, A]] =
+    (body: XML.Body) => {
       import XML.Decode._
       make(list(pair(pair(key, info), list(key)))(body))(ord)
-    })
+    }
 }
 
 
@@ -181,6 +180,9 @@ final class Graph[Key, A] private(rep: SortedMap[Key, (A, (SortedSet[Key], Sorte
 
   /* edge operations */
 
+  def edges_iterator: Iterator[(Key, Key)] =
+    for { x <- keys_iterator; y <- imm_succs(x).iterator } yield (x, y)
+
   def is_edge(x: Key, y: Key): Boolean =
     defined(x) && defined(y) && imm_succs(x)(y)
 
@@ -206,7 +208,7 @@ final class Graph[Key, A] private(rep: SortedMap[Key, (A, (SortedSet[Key], Sorte
       xs0 match {
         case Nil => xs1
         case x :: xs =>
-          if (!(x_set(x)) || x == z || path.contains(x) ||
+          if (!x_set(x) || x == z || path.contains(x) ||
               xs.exists(red(x)) || xs1.exists(red(x)))
             irreds(xs, xs1)
           else irreds(xs, x :: xs1)

@@ -17,8 +17,8 @@ sig
   val square: int -> int
   val pow: int -> int -> int (* exponent -> base -> result *)
   val gcd: int -> int -> int
-  val gcds: int list -> int
   val lcm: int -> int -> int
+  val gcds: int list -> int
   val lcms: int list -> int
 end;
 
@@ -55,15 +55,13 @@ fun pow k l =
     else pw k l
   end;
 
-fun gcd x y =
-  let
-    fun gxd x y = if y = 0 then x else gxd y (x mod y)
-  in if x < y then gxd y x else gxd x y end;
+fun gcd x y = PolyML.IntInf.gcd (x, y);
+fun lcm x y = abs (PolyML.IntInf.lcm (x, y));
 
-fun gcds xs = fold gcd xs 0;
+fun gcds [] = 0
+  | gcds (x :: xs) = fold gcd xs x;
 
-fun lcm x y = (x * y) div (gcd x y);
-fun lcms xs = fold lcm xs 1;
+fun lcms [] = 1
+  | lcms (x :: xs) = abs (Library.foldl PolyML.IntInf.lcm (x, xs));
 
 end;
-

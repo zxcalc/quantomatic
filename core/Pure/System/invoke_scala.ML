@@ -63,7 +63,7 @@ val _ =
   Isabelle_Process.protocol_command "Invoke_Scala.fulfill"
     (fn [id, tag, res] =>
       fulfill id tag res
-        handle exn => if Exn.is_interrupt exn then () else reraise exn);
+        handle exn => if Exn.is_interrupt exn then () else Exn.reraise exn);
 
 end;
 

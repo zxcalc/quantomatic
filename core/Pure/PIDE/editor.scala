@@ -10,8 +10,9 @@ package isabelle
 abstract class Editor[Context]
 {
   def session: Session
-  def flush(): Unit
+  def flush(hidden: Boolean = true): Unit
   def invoke(): Unit
+  def invoke_generated(): Unit
   def current_context: Context
   def current_node(context: Context): Option[Document.Node.Name]
   def current_node_snapshot(context: Context): Option[Document.Snapshot]
@@ -27,6 +28,7 @@ abstract class Editor[Context]
     def follow(context: Context): Unit
   }
   def hyperlink_command(
-    snapshot: Document.Snapshot, command: Command, offset: Symbol.Offset = 0): Option[Hyperlink]
+    focus: Boolean, snapshot: Document.Snapshot, command: Command, offset: Symbol.Offset = 0)
+      : Option[Hyperlink]
 }
 

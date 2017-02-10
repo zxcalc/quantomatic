@@ -12,26 +12,16 @@ TODO: optimize red by special-casing it
 
 signature PATTERN =
 sig
-  val unify_trace_failure_default: bool Unsynchronized.ref
+  exception Unif
+  exception Pattern
   val unify_trace_failure_raw: Config.raw
   val unify_trace_failure: bool Config.T
+  val unify_types: Context.generic -> typ * typ -> Envir.env -> Envir.env
+  val unify: Context.generic -> term * term -> Envir.env -> Envir.env
+  exception MATCH
   val match: theory -> term * term -> Type.tyenv * Envir.tenv -> Type.tyenv * Envir.tenv
   val first_order_match: theory -> term * term
     -> Type.tyenv * Envir.tenv -> Type.tyenv * Envir.tenv
-  val matches: theory -> term * term -> bool
-  val matchess: theory -> term list * term list -> bool
-  val equiv: theory -> term * term -> bool
-  val matches_subterm: theory -> term * term -> bool
-  val unify_types: theory -> typ * typ -> Envir.env -> Envir.env
-  val unify: theory -> term * term -> Envir.env -> Envir.env
-  val first_order: term -> bool
-  val pattern: term -> bool
-  val match_rew: theory -> term -> term * term -> (term * term) option
-  val rewrite_term: theory -> (term * term) list -> (term -> term option) list -> term -> term
-  val rewrite_term_top: theory -> (term * term) list -> (term -> term option) list -> term -> term
-  exception Unif
-  exception MATCH
-  exception Pattern
 end;
 
 structure Pattern: PATTERN =
@@ -40,62 +30,63 @@ struct
 exception Unif;
 exception Pattern;
 
-val unify_trace_failure_default = Unsynchronized.ref false;
 val unify_trace_failure_raw =
-  Config.declare_global ("unify_trace_failure", @{here})
-    (fn _ => Config.Bool (! unify_trace_failure_default));
+  Config.declare ("unify_trace_failure", @{here}) (fn _ => Config.Bool false);
 val unify_trace_failure = Config.bool unify_trace_failure_raw;
 
-fun string_of_term thy env binders t =
-  Syntax.string_of_term_global thy
-    (Envir.norm_term env (subst_bounds (map Free binders, t)));
+fun string_of_term ctxt env binders t =
+  Syntax.string_of_term ctxt (Envir.norm_term env (subst_bounds (map Free binders, t)));
 
 fun bname binders i = fst (nth binders i);
 fun bnames binders is = space_implode " " (map (bname binders) is);
 
-fun typ_clash thy (tye,T,U) =
-  if Config.get_global thy unify_trace_failure
-  then let val t = Syntax.string_of_typ_global thy (Envir.norm_type tye T)
-           and u = Syntax.string_of_typ_global thy (Envir.norm_type tye U)
-       in tracing("The following types do not unify:\n" ^ t ^ "\n" ^ u) end
-  else ()
+fun typ_clash context (tye,T,U) =
+  if Config.get_generic context unify_trace_failure then
+    let
+      val ctxt = Context.proof_of context;
+      val t = Syntax.string_of_typ ctxt (Envir.norm_type tye T);
+      val u = Syntax.string_of_typ ctxt (Envir.norm_type tye U);
+    in tracing ("The following types do not unify:\n" ^ t ^ "\n" ^ u) end
+  else ();
 
-fun clash thy a b =
-  if Config.get_global thy unify_trace_failure then tracing("Clash: " ^ a ^ " =/= " ^ b) else ()
+fun clash context a b =
+  if Config.get_generic context unify_trace_failure
+  then tracing ("Clash: " ^ a ^ " =/= " ^ b) else ();
 
 fun boundVar binders i =
   "bound variable " ^ bname binders i ^ " (depth " ^ string_of_int i ^ ")";
 
-fun clashBB thy binders i j =
-  if Config.get_global thy unify_trace_failure
-  then clash thy (boundVar binders i) (boundVar binders j)
-  else ()
+fun clashBB context binders i j =
+  if Config.get_generic context unify_trace_failure
+  then clash context (boundVar binders i) (boundVar binders j) else ();
 
-fun clashB thy binders i s =
-  if Config.get_global thy unify_trace_failure
-  then clash thy (boundVar binders i) s
-  else ()
+fun clashB context binders i s =
+  if Config.get_generic context unify_trace_failure
+  then clash context (boundVar binders i) s else ();
 
-fun proj_fail thy (env,binders,F,_,is,t) =
-  if Config.get_global thy unify_trace_failure
-  then let val f = Term.string_of_vname F
-           val xs = bnames binders is
-           val u = string_of_term thy env binders t
-           val ys = bnames binders (subtract (op =) is (loose_bnos t))
-       in tracing("Cannot unify variable " ^ f ^
-               " (depending on bound variables " ^ xs ^ ")\nwith term " ^ u ^
-               "\nTerm contains additional bound variable(s) " ^ ys)
-       end
-  else ()
+fun proj_fail context (env,binders,F,_,is,t) =
+  if Config.get_generic context unify_trace_failure then
+    let
+      val ctxt = Context.proof_of context
+      val f = Term.string_of_vname F
+      val xs = bnames binders is
+      val u = string_of_term ctxt env binders t
+      val ys = bnames binders (subtract (op =) is (loose_bnos t))
+    in
+      tracing ("Cannot unify variable " ^ f ^
+        " (depending on bound variables " ^ xs ^ ")\nwith term " ^ u ^
+        "\nTerm contains additional bound variable(s) " ^ ys)
+    end
+  else ();
 
-fun ocheck_fail thy (F,t,binders,env) =
-  if Config.get_global thy unify_trace_failure
-  then let val f = Term.string_of_vname F
-           val u = string_of_term thy env binders t
-       in tracing("Variable " ^ f ^ " occurs in term\n" ^ u ^
-                  "\nCannot unify!\n")
-       end
-  else ()
+fun ocheck_fail context (F,t,binders,env) =
+  if Config.get_generic context unify_trace_failure then
+    let
+      val ctxt = Context.proof_of context
+      val f = Term.string_of_vname F
+      val u = string_of_term ctxt env binders t
+    in tracing ("Variable " ^ f ^ " occurs in term\n" ^ u ^ "\nCannot unify!\n") end
+  else ();
 
 fun occurs(F,t,env) =
     let fun occ(Var (G, T))   = (case Envir.lookup env (G, T) of
@@ -233,55 +224,57 @@ fun flexflex2(env,binders,F,Fty,is,G,Gty,js) =
                  end;
   in if Term_Ord.indexname_ord (G,F) = LESS then ff(F,Fty,is,G,Gty,js) else ff(G,Gty,js,F,Fty,is) end
 
-fun unify_types thy (T, U) (env as Envir.Envir {maxidx, tenv, tyenv}) =
+fun unify_types context (T, U) (env as Envir.Envir {maxidx, tenv, tyenv}) =
   if T = U then env
   else
-    let val (tyenv', maxidx') = Sign.typ_unify thy (U, T) (tyenv, maxidx)
+    let
+      val thy = Context.theory_of context
+      val (tyenv', maxidx') = Sign.typ_unify thy (U, T) (tyenv, maxidx)
     in Envir.Envir {maxidx = maxidx', tenv = tenv, tyenv = tyenv'} end
-    handle Type.TUNIFY => (typ_clash thy (tyenv, T, U); raise Unif);
+    handle Type.TUNIFY => (typ_clash context (tyenv, T, U); raise Unif);
 
-fun unif thy binders (s,t) env = case (Envir.head_norm env s, Envir.head_norm env t) of
+fun unif context binders (s,t) env = case (Envir.head_norm env s, Envir.head_norm env t) of
       (Abs(ns,Ts,ts),Abs(nt,Tt,tt)) =>
          let val name = if ns = "" then nt else ns
-         in unif thy ((name,Ts)::binders) (ts,tt) (unify_types thy (Ts, Tt) env) end
-    | (Abs(ns,Ts,ts),t) => unif thy ((ns,Ts)::binders) (ts,(incr t)$Bound(0)) env
-    | (t,Abs(nt,Tt,tt)) => unif thy ((nt,Tt)::binders) ((incr t)$Bound(0),tt) env
-    | p => cases thy (binders,env,p)
+         in unif context ((name,Ts)::binders) (ts,tt) (unify_types context (Ts, Tt) env) end
+    | (Abs(ns,Ts,ts),t) => unif context ((ns,Ts)::binders) (ts,(incr t)$Bound(0)) env
+    | (t,Abs(nt,Tt,tt)) => unif context ((nt,Tt)::binders) ((incr t)$Bound(0),tt) env
+    | p => cases context (binders,env,p)
 
-and cases thy (binders,env,(s,t)) = case (strip_comb s,strip_comb t) of
+and cases context (binders,env,(s,t)) = case (strip_comb s,strip_comb t) of
        ((Var(F,Fty),ss),(Var(G,Gty),ts)) =>
          if F = G then flexflex1(env,binders,F,Fty,ints_of' env ss,ints_of' env ts)
                   else flexflex2(env,binders,F,Fty,ints_of' env ss,G,Gty,ints_of' env ts)
-      | ((Var(F,Fty),ss),_)           => flexrigid thy (env,binders,F,Fty,ints_of' env ss,t)
-      | (_,(Var(F,Fty),ts))           => flexrigid thy (env,binders,F,Fty,ints_of' env ts,s)
-      | ((Const c,ss),(Const d,ts))   => rigidrigid thy (env,binders,c,d,ss,ts)
-      | ((Free(f),ss),(Free(g),ts))   => rigidrigid thy (env,binders,f,g,ss,ts)
-      | ((Bound(i),ss),(Bound(j),ts)) => rigidrigidB thy (env,binders,i,j,ss,ts)
+      | ((Var(F,Fty),ss),_)           => flexrigid context (env,binders,F,Fty,ints_of' env ss,t)
+      | (_,(Var(F,Fty),ts))           => flexrigid context (env,binders,F,Fty,ints_of' env ts,s)
+      | ((Const c,ss),(Const d,ts))   => rigidrigid context (env,binders,c,d,ss,ts)
+      | ((Free(f),ss),(Free(g),ts))   => rigidrigid context (env,binders,f,g,ss,ts)
+      | ((Bound(i),ss),(Bound(j),ts)) => rigidrigidB context (env,binders,i,j,ss,ts)
       | ((Abs(_),_),_)                => raise Pattern
       | (_,(Abs(_),_))                => raise Pattern
-      | ((Const(c,_),_),(Free(f,_),_)) => (clash thy c f; raise Unif)
-      | ((Const(c,_),_),(Bound i,_))   => (clashB thy binders i c; raise Unif)
-      | ((Free(f,_),_),(Const(c,_),_)) => (clash thy f c; raise Unif)
-      | ((Free(f,_),_),(Bound i,_))    => (clashB thy binders i f; raise Unif)
-      | ((Bound i,_),(Const(c,_),_))   => (clashB thy binders i c; raise Unif)
-      | ((Bound i,_),(Free(f,_),_))    => (clashB thy binders i f; raise Unif)
+      | ((Const(c,_),_),(Free(f,_),_)) => (clash context c f; raise Unif)
+      | ((Const(c,_),_),(Bound i,_))   => (clashB context binders i c; raise Unif)
+      | ((Free(f,_),_),(Const(c,_),_)) => (clash context f c; raise Unif)
+      | ((Free(f,_),_),(Bound i,_))    => (clashB context binders i f; raise Unif)
+      | ((Bound i,_),(Const(c,_),_))   => (clashB context binders i c; raise Unif)
+      | ((Bound i,_),(Free(f,_),_))    => (clashB context binders i f; raise Unif)
 
 
-and rigidrigid thy (env,binders,(a,Ta),(b,Tb),ss,ts) =
-      if a<>b then (clash thy a b; raise Unif)
-      else env |> unify_types thy (Ta,Tb) |> fold (unif thy binders) (ss~~ts)
+and rigidrigid context (env,binders,(a,Ta),(b,Tb),ss,ts) =
+      if a<>b then (clash context a b; raise Unif)
+      else env |> unify_types context (Ta,Tb) |> fold (unif context binders) (ss~~ts)
 
-and rigidrigidB thy (env,binders,i,j,ss,ts) =
-     if i <> j then (clashBB thy binders i j; raise Unif)
-     else fold (unif thy binders) (ss~~ts) env
+and rigidrigidB context (env,binders,i,j,ss,ts) =
+     if i <> j then (clashBB context binders i j; raise Unif)
+     else fold (unif context binders) (ss~~ts) env
 
-and flexrigid thy (params as (env,binders,F,Fty,is,t)) =
-      if occurs(F,t,env) then (ocheck_fail thy (F,t,binders,env); raise Unif)
+and flexrigid context (params as (env,binders,F,Fty,is,t)) =
+      if occurs(F,t,env) then (ocheck_fail context (F,t,binders,env); raise Unif)
       else (let val (u,env') = proj(t,env,binders,is)
             in Envir.update ((F, Fty), mkabs (binders, is, u)) env' end
-            handle Unif => (proj_fail thy params; raise Unif));
+            handle Unif => (proj_fail context params; raise Unif));
 
-fun unify thy = unif thy [];
+fun unify context = unif context [];
 
 
 
@@ -297,12 +290,16 @@ fun typ_match thy TU tyenv = Sign.typ_match thy TU tyenv
   Instantiation does not affect the object, so matching ?a with ?a+1 works.
   Object is eta-contracted on the fly (by eta-expanding the pattern).
   Precondition: the pattern is already eta-contracted!
-  Types are matched on the fly*)
+  Types are matched on the fly.
+  The parameter inAbs is an optimization to avoid calling is_open;
+  it has the funny consequence that outside abstractions
+  ?x matches terms containing loose Bounds.
+*)
 fun first_order_match thy =
   let
-    fun mtch k (instsp as (tyinsts,insts)) = fn
+    fun mtch inAbs (instsp as (tyinsts,insts)) = fn
         (Var(ixn,T), t)  =>
-          if k > 0 andalso Term.is_open t then raise MATCH
+          if inAbs andalso Term.is_open t then raise MATCH
           else (case Envir.lookup1 insts (ixn, T) of
                   NONE => (typ_match thy (T, fastype_of t) tyinsts,
                            Vartab.update_new (ixn, (T, t)) insts)
@@ -313,11 +310,11 @@ fun first_order_match thy =
           if a=b then (typ_match thy (T,U) tyinsts, insts) else raise MATCH
       | (Bound i, Bound j)  =>  if  i=j  then  instsp  else raise MATCH
       | (Abs(_,T,t), Abs(_,U,u))  =>
-          mtch (k + 1) (typ_match thy (T,U) tyinsts, insts) (t,u)
-      | (f$t, g$u) => mtch k (mtch k instsp (f,g)) (t, u)
-      | (t, Abs(_,U,u))  =>  mtch (k + 1) instsp ((incr t)$(Bound 0), u)
+          mtch true (typ_match thy (T,U) tyinsts, insts) (t,u)
+      | (f$t, g$u) => mtch inAbs (mtch inAbs instsp (f,g)) (t, u)
+      | (t, Abs(_,U,u))  =>  mtch true instsp ((incr t)$(Bound 0), u)
       | _ => raise MATCH
-  in fn tu => fn env => mtch 0 env tu end;
+  in fn tu => fn env => mtch false env tu end;
 
 
 (* Matching of higher-order patterns *)
@@ -380,111 +377,6 @@ let
   and oT = fastype_of obj
   val envir' = apfst (typ_match thy (pT, oT)) envir;
 in mtch [] po envir' handle Pattern => first_order_match thy po envir' end;
-
-fun matches thy po = (match thy po (Vartab.empty, Vartab.empty); true) handle MATCH => false;
-
-fun matchess thy (ps, os) =
-  length ps = length os andalso
-    ((fold (match thy) (ps ~~ os) (Vartab.empty, Vartab.empty); true) handle MATCH => false);
-
-fun equiv thy (t, u) = matches thy (t, u) andalso matches thy (u, t);
-
-
-(* Does pat match a subterm of obj? *)
-fun matches_subterm thy (pat, obj) =
-  let
-    fun msub bounds obj = matches thy (pat, obj) orelse
-      (case obj of
-        Abs (x, T, t) => msub (bounds + 1) (snd (Term.dest_abs (Name.bound bounds, T, t)))
-      | t $ u => msub bounds t orelse msub bounds u
-      | _ => false)
-  in msub 0 obj end;
-
-fun first_order(Abs(_,_,t)) = first_order t
-  | first_order(t $ u) = first_order t andalso first_order u andalso
-                         not(is_Var t)
-  | first_order _ = true;
-
-fun pattern (Abs (_, _, t)) = pattern t
-  | pattern t =
-      let val (head, args) = strip_comb t in
-        if is_Var head then
-          forall is_Bound args andalso not (has_duplicates (op aconv) args)
-        else forall pattern args
-      end;
-
-
-(* rewriting -- simple but fast *)
-
-fun match_rew thy tm (tm1, tm2) =
-  let val rtm = the_default tm2 (Term.rename_abs tm1 tm tm2) in
-    SOME (Envir.subst_term (match thy (tm1, tm) (Vartab.empty, Vartab.empty)) rtm, rtm)
-      handle MATCH => NONE
-  end;
-
-fun gen_rewrite_term bot thy rules procs tm =
-  let
-    val skel0 = Bound 0;
-
-    fun variant_absfree bounds (x, T, t) =
-      let
-        val (x', t') = Term.dest_abs (Name.bound bounds, T, t);
-        fun abs u = Abs (x, T, abstract_over (Free (x', T), u));
-      in (abs, t') end;
-
-    fun rew (Abs (_, _, body) $ t) = SOME (subst_bound (t, body), skel0)
-      | rew tm =
-          (case get_first (match_rew thy tm) rules of
-            NONE => Option.map (rpair skel0) (get_first (fn p => p tm) procs)
-          | x => x);
-
-    fun rew_sub r bounds skel (tm1 $ tm2) = (case tm1 of
-            Abs (_, _, body) =>
-              let val tm' = subst_bound (tm2, body)
-              in SOME (the_default tm' (rew_sub r bounds skel0 tm')) end
-          | _ =>
-            let val (skel1, skel2) = (case skel of
-                skel1 $ skel2 => (skel1, skel2)
-              | _ => (skel0, skel0))
-            in case r bounds skel1 tm1 of
-                SOME tm1' => (case r bounds skel2 tm2 of
-                    SOME tm2' => SOME (tm1' $ tm2')
-                  | NONE => SOME (tm1' $ tm2))
-              | NONE => (case r bounds skel2 tm2 of
-                    SOME tm2' => SOME (tm1 $ tm2')
-                  | NONE => NONE)
-            end)
-      | rew_sub r bounds skel (Abs body) =
-          let
-            val (abs, tm') = variant_absfree bounds body;
-            val skel' = (case skel of Abs (_, _, skel') => skel' | _ => skel0)
-          in case r (bounds + 1) skel' tm' of
-              SOME tm'' => SOME (abs tm'')
-            | NONE => NONE
-          end
-      | rew_sub _ _ _ _ = NONE;
-
-    fun rew_bot bounds (Var _) _ = NONE
-      | rew_bot bounds skel tm = (case rew_sub rew_bot bounds skel tm of
-          SOME tm1 => (case rew tm1 of
-              SOME (tm2, skel') => SOME (the_default tm2 (rew_bot bounds skel' tm2))
-            | NONE => SOME tm1)
-        | NONE => (case rew tm of
-              SOME (tm1, skel') => SOME (the_default tm1 (rew_bot bounds skel' tm1))
-            | NONE => NONE));
-
-    fun rew_top bounds _ tm = (case rew tm of
-          SOME (tm1, _) => (case rew_sub rew_top bounds skel0 tm1 of
-              SOME tm2 => SOME (the_default tm2 (rew_top bounds skel0 tm2))
-            | NONE => SOME tm1)
-        | NONE => (case rew_sub rew_top bounds skel0 tm of
-              SOME tm1 => SOME (the_default tm1 (rew_top bounds skel0 tm1))
-            | NONE => NONE));
-
-  in the_default tm ((if bot then rew_bot else rew_top) 0 skel0 tm) end;
-
-val rewrite_term = gen_rewrite_term true;
-val rewrite_term_top = gen_rewrite_term false;
 
 end;
 

@@ -10,9 +10,11 @@ sig
   val check_fact: theory -> xstring * Position.T -> string
   val intern_fact: theory -> xstring -> string
   val defined_fact: theory -> string -> bool
+  val alias_fact: binding -> string -> theory -> theory
   val hide_fact: bool -> string -> theory -> theory
   val get_thms: theory -> xstring -> thm list
   val get_thm: theory -> xstring -> thm
+  val transfer_theories: theory -> thm -> thm
   val all_thms_of: theory -> bool -> (string * thm) list
   val map_facts: ('a -> 'b) -> ('c * ('a list * 'd) list) list -> ('c * ('b list * 'd) list) list
   val burrow_fact: ('a list -> 'b list) -> ('a list * 'c) list -> ('b list * 'c) list
@@ -28,16 +30,14 @@ sig
   val add_thms: ((binding * thm) * attribute list) list -> theory -> thm list * theory
   val add_thm: (binding * thm) * attribute list -> theory -> thm * theory
   val add_thmss: ((binding * thm list) * attribute list) list -> theory -> thm list list * theory
+  val add_thms_dynamic': Context.generic -> binding * (Context.generic -> thm list) ->
+    theory -> string * theory
   val add_thms_dynamic: binding * (Context.generic -> thm list) -> theory -> theory
   val note_thmss: string -> (Thm.binding * (thm list * attribute list) list) list
     -> theory -> (string * thm list) list * theory
   val add_defs: bool -> ((binding * term) * attribute list) list ->
     theory -> thm list * theory
   val add_defs_unchecked: bool -> ((binding * term) * attribute list) list ->
-    theory -> thm list * theory
-  val add_defs_cmd: bool -> ((binding * string) * attribute list) list ->
-    theory -> thm list * theory
-  val add_defs_unchecked_cmd: bool -> ((binding * string) * attribute list) list ->
     theory -> thm list * theory
 end;
 
@@ -60,23 +60,36 @@ fun check_fact thy = Facts.check (Context.Theory thy) (facts_of thy);
 val intern_fact = Facts.intern o facts_of;
 val defined_fact = Facts.defined o facts_of;
 
+fun alias_fact binding name thy =
+  Data.map (Facts.alias (Sign.naming_of thy) binding name) thy;
+
 fun hide_fact fully name = Data.map (Facts.hide fully name);
 
 
 (* retrieve theorems *)
 
 fun get_thms thy xname =
-  #2 (Facts.retrieve (Context.Theory thy) (facts_of thy) (xname, Position.none));
+  #thms (Facts.retrieve (Context.Theory thy) (facts_of thy) (xname, Position.none));
 
 fun get_thm thy xname =
   Facts.the_single (xname, Position.none) (get_thms thy xname);
 
+fun transfer_theories thy =
+  let
+    val theories =
+      fold (fn thy' => Symtab.update (Context.theory_name thy', thy'))
+        (Theory.nodes_of thy) Symtab.empty;
+    fun transfer th =
+      Thm.transfer (the_default thy (Symtab.lookup theories (Thm.theory_name_of_thm th))) th;
+  in transfer end;
+
 fun all_thms_of thy verbose =
   let
+    val transfer = transfer_theories thy;
     val facts = facts_of thy;
     fun add (name, ths) =
       if not verbose andalso Facts.is_concealed facts name then I
-      else append (map (`(Thm.get_name_hint)) ths);
+      else append (map (`(Thm.get_name_hint) o transfer) ths);
   in Facts.fold_static add facts [] end;
 
 
@@ -153,10 +166,14 @@ val add_thms = gen_add_thms (name_thms true true);
 val add_thm = yield_singleton add_thms;
 
 
-(* add_thms_dynamic *)
+(* dynamic theorems *)
 
-fun add_thms_dynamic (b, f) thy = thy
-  |> Data.map (Facts.add_dynamic (Context.Theory thy) (b, f) #> snd);
+fun add_thms_dynamic' context arg thy =
+  let val (name, facts') = Facts.add_dynamic context arg (Data.get thy)
+  in (name, Data.put facts' thy) end;
+
+fun add_thms_dynamic arg thy =
+  add_thms_dynamic' (Context.Theory thy) arg thy |> snd;
 
 
 (* note_thmss *)
@@ -172,21 +189,14 @@ fun note_thmss kind = fold_map (fn ((b, more_atts), facts) => fn thy =>
   in ((name, thms), thy') end);
 
 
-(* store axioms as theorems *)
+(* old-style defs *)
 
 local
 
-fun no_read _ (_, t) = t;
-
-fun read ctxt (b, str) =
-  Syntax.read_prop ctxt str handle ERROR msg =>
-    cat_error msg ("The error(s) above occurred in definition " ^ Binding.print b);
-
-fun add prep unchecked overloaded = fold_map (fn ((b, raw_prop), atts) => fn thy =>
+fun add unchecked overloaded = fold_map (fn ((b, prop), atts) => fn thy =>
   let
-    val ctxt = Syntax.init_pretty_global thy;
-    val prop = prep ctxt (b, raw_prop);
-    val ((_, def), thy') = Thm.add_def ctxt unchecked overloaded (b, prop) thy;
+    val context = Defs.global_context thy;
+    val ((_, def), thy') = Thm.add_def context unchecked overloaded (b, prop) thy;
     val thm = def
       |> Thm.forall_intr_frees
       |> Thm.forall_elim_vars 0
@@ -195,10 +205,8 @@ fun add prep unchecked overloaded = fold_map (fn ((b, raw_prop), atts) => fn thy
 
 in
 
-val add_defs = add no_read false;
-val add_defs_unchecked = add no_read true;
-val add_defs_cmd = add read false;
-val add_defs_unchecked_cmd = add read true;
+val add_defs = add false;
+val add_defs_unchecked = add true;
 
 end;
 

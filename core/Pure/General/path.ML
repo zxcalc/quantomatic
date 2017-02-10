@@ -23,6 +23,7 @@ sig
   val make: string list -> T
   val implode: T -> string
   val explode: string -> T
+  val decode: T XML.Decode.T
   val split: string -> T list
   val pretty: T -> Pretty.T
   val print: T -> string
@@ -161,6 +162,8 @@ fun split str =
   space_explode ":" str
   |> map_filter (fn s => if s = "" then NONE else SOME (explode_path s));
 
+val decode = XML.Decode.string #> explode_path;
+
 
 (* print *)
 
@@ -168,7 +171,9 @@ fun pretty path =
   let val s = implode_path path
   in Pretty.mark (Markup.path s) (Pretty.str (quote s)) end;
 
-val print = Pretty.str_of o pretty;
+val print = Pretty.unformatted_string_of o pretty;
+
+val _ = ML_system_pp (fn _ => fn _ => Pretty.to_polyml o pretty);
 
 
 (* base element *)

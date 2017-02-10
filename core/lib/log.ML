@@ -22,7 +22,7 @@ sig
   (* forced to stderr *)
   val log_stderr : int -> string -> unit;
 
-  val print : 'a -> unit;
+  (*val print : 'a -> unit;*)
 end;
 
 (* handy little library for writing logs specific to a bit of code. *)
@@ -52,6 +52,6 @@ functor Log(val init_level : int)
   fun log_stderr level s =
       if level <= (!level_ref) then writeln_to_stderr s else ();
 
-  fun print x = (PolyML.print x; ());
+  (*fun print x = (PolyML.print x; ());*)
 end;
 

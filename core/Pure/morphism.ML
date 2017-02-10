@@ -35,6 +35,7 @@ sig
   val fact_morphism: string -> (thm list -> thm list) -> morphism
   val thm_morphism: string -> (thm -> thm) -> morphism
   val transfer_morphism: theory -> morphism
+  val trim_context_morphism: morphism
   val identity: morphism
   val compose: morphism -> morphism -> morphism
   val transform: morphism -> (morphism -> 'a) -> morphism -> 'a
@@ -51,7 +52,8 @@ type 'a funs = (string * ('a -> 'a)) list;
 exception MORPHISM of string * exn;
 
 fun app (name, f) x = f x
-  handle exn => if Exn.is_interrupt exn then reraise exn else raise MORPHISM (name, exn);
+  handle exn =>
+    if Exn.is_interrupt exn then Exn.reraise exn else raise MORPHISM (name, exn);
 
 fun apply fs = fold_rev app fs;
 
@@ -68,6 +70,8 @@ datatype morphism = Morphism of
 type declaration = morphism -> Context.generic -> Context.generic;
 
 fun pretty (Morphism {names, ...}) = Pretty.enum ";" "{" "}" (map Pretty.str (rev names));
+
+val _ = ML_system_pp (fn _ => fn _ => Pretty.to_polyml o pretty);
 
 fun binding (Morphism {binding, ...}) = apply binding;
 fun typ (Morphism {typ, ...}) = apply typ;
@@ -91,6 +95,7 @@ fun term_morphism a term = morphism a {binding = [], typ = [], term = [term], fa
 fun fact_morphism a fact = morphism a {binding = [], typ = [], term = [], fact = [fact]};
 fun thm_morphism a thm = morphism a {binding = [], typ = [], term = [], fact = [map thm]};
 val transfer_morphism = thm_morphism "transfer" o Thm.transfer;
+val trim_context_morphism = thm_morphism "trim_context" Thm.trim_context;
 
 val identity = morphism "" {binding = [], typ = [], term = [], fact = []};
 

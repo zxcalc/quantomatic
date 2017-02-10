@@ -1,5 +1,4 @@
 /*  Title:      Pure/Concurrent/consumer_thread.scala
-    Module:     PIDE
     Author:     Makarius
 
 Consumer thread with unbounded queueing of requests, and optional
@@ -32,7 +31,7 @@ final class Consumer_Thread[A] private(
   private var active = true
   private val mailbox = Mailbox[Option[Consumer_Thread.Request[A]]]
 
-  private val thread = Simple_Thread.fork(name, daemon) { main_loop(Nil) }
+  private val thread = Standard_Thread.fork(name, daemon) { main_loop(Nil) }
   def is_active: Boolean = active && thread.isAlive
 
   private def failure(exn: Throwable): Unit =

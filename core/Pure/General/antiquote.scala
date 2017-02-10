@@ -1,4 +1,4 @@
-/*  Title:      Pure/ML/antiquote.scala
+/*  Title:      Pure/General/antiquote.scala
     Author:     Makarius
 
 Antiquotations within plain text.
@@ -12,8 +12,9 @@ import scala.util.parsing.input.CharSequenceReader
 
 object Antiquote
 {
-  sealed abstract class Antiquote
+  sealed abstract class Antiquote { def source: String }
   case class Text(source: String) extends Antiquote
+  case class Control(source: String) extends Antiquote
   case class Antiq(source: String) extends Antiquote
 
 
@@ -24,7 +25,12 @@ object Antiquote
   trait Parsers extends Scan.Parsers
   {
     private val txt: Parser[String] =
-      rep1("@" ~ guard(one(s => s != "{")) | many1(s => s != "@")) ^^ (x => x.mkString)
+      rep1(many1(s => !Symbol.is_control(s) && !Symbol.is_open(s) && s != "@") |
+        "@" <~ guard(opt_term(one(s => s != "{")))) ^^ (x => x.mkString)
+
+    val control: Parser[String] =
+      opt(one(Symbol.is_control)) ~ cartouche ^^ { case Some(x) ~ y => x + y case None ~ x => x } |
+      one(Symbol.is_control)
 
     val antiq_other: Parser[String] =
       many1(s => s != "\"" && s != "`" && s != "}" && !Symbol.is_open(s) && !Symbol.is_close(s))
@@ -36,7 +42,7 @@ object Antiquote
       "@{" ~ rep(antiq_body) ~ "}" ^^ { case x ~ y ~ z => x + y.mkString + z }
 
     val antiquote: Parser[Antiquote] =
-      antiq ^^ (x => Antiq(x)) | txt ^^ (x => Text(x))
+      txt ^^ (x => Text(x)) | (control ^^ (x => Control(x)) | antiq ^^ (x => Antiq(x)))
   }
 
 

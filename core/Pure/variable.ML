@@ -6,72 +6,92 @@ Fixed type/term variables and polymorphic term abbreviations.
 
 signature VARIABLE =
 sig
-  val is_body: Proof.context -> bool
-  val set_body: bool -> Proof.context -> Proof.context
-  val restore_body: Proof.context -> Proof.context -> Proof.context
   val names_of: Proof.context -> Name.context
   val binds_of: Proof.context -> (typ * term) Vartab.table
   val maxidx_of: Proof.context -> int
-  val sorts_of: Proof.context -> sort list
   val constraints_of: Proof.context -> typ Vartab.table * sort Vartab.table
   val is_declared: Proof.context -> string -> bool
   val check_name: binding -> string
   val default_type: Proof.context -> string -> typ option
   val def_type: Proof.context -> bool -> indexname -> typ option
   val def_sort: Proof.context -> indexname -> sort option
+  val declare_maxidx: int -> Proof.context -> Proof.context
   val declare_names: term -> Proof.context -> Proof.context
   val declare_constraints: term -> Proof.context -> Proof.context
+  val declare_internal: term -> Proof.context -> Proof.context
   val declare_term: term -> Proof.context -> Proof.context
   val declare_typ: typ -> Proof.context -> Proof.context
   val declare_prf: Proofterm.proof -> Proof.context -> Proof.context
   val declare_thm: thm -> Proof.context -> Proof.context
-  val global_thm_context: thm -> Proof.context
   val variant_frees: Proof.context -> term list -> (string * 'a) list -> (string * 'a) list
-  val bind_term: indexname * term option -> Proof.context -> Proof.context
+  val bind_term: indexname * term -> Proof.context -> Proof.context
+  val unbind_term: indexname -> Proof.context -> Proof.context
+  val maybe_bind_term: indexname * term option -> Proof.context -> Proof.context
   val expand_binds: Proof.context -> term -> term
   val lookup_const: Proof.context -> string -> string option
   val is_const: Proof.context -> string -> bool
   val declare_const: string * string -> Proof.context -> Proof.context
   val next_bound: string * typ -> Proof.context -> term * Proof.context
   val revert_bounds: Proof.context -> term -> term
+  val is_body: Proof.context -> bool
+  val set_body: bool -> Proof.context -> Proof.context
+  val restore_body: Proof.context -> Proof.context -> Proof.context
+  val improper_fixes: Proof.context -> Proof.context
+  val restore_proper_fixes: Proof.context -> Proof.context -> Proof.context
+  val is_improper: Proof.context -> string -> bool
   val is_fixed: Proof.context -> string -> bool
-  val newly_fixed: Proof.context -> Proof.context -> string -> bool
+  val is_newly_fixed: Proof.context -> Proof.context -> string -> bool
   val fixed_ord: Proof.context -> string * string -> order
   val intern_fixed: Proof.context -> string -> string
-  val markup_fixed: Proof.context -> string -> Markup.T
   val lookup_fixed: Proof.context -> string -> string option
   val revert_fixed: Proof.context -> string -> string
+  val markup_fixed: Proof.context -> string -> Markup.T
+  val markup: Proof.context -> string -> Markup.T
+  val markup_entity_def: Proof.context -> string -> Markup.T
+  val dest_fixes: Proof.context -> (string * string) list
   val add_fixed_names: Proof.context -> term -> string list -> string list
   val add_fixed: Proof.context -> term -> (string * typ) list -> (string * typ) list
+  val add_newly_fixed: Proof.context -> Proof.context ->
+    term -> (string * typ) list -> (string * typ) list
   val add_free_names: Proof.context -> term -> string list -> string list
   val add_frees: Proof.context -> term -> (string * typ) list -> (string * typ) list
   val add_fixes_binding: binding list -> Proof.context -> string list * Proof.context
   val add_fixes: string list -> Proof.context -> string list * Proof.context
   val add_fixes_direct: string list -> Proof.context -> Proof.context
   val auto_fixes: term -> Proof.context -> Proof.context
+  val fix_dummy_patterns: term -> Proof.context -> term * Proof.context
   val variant_fixes: string list -> Proof.context -> string list * Proof.context
-  val dest_fixes: Proof.context -> (string * string) list
-  val invent_types: sort list -> Proof.context -> (string * sort) list * Proof.context
+  val gen_all: Proof.context -> thm -> thm
   val export_terms: Proof.context -> Proof.context -> term list -> term list
   val exportT_terms: Proof.context -> Proof.context -> term list -> term list
   val exportT: Proof.context -> Proof.context -> thm list -> thm list
   val export_prf: Proof.context -> Proof.context -> Proofterm.proof -> Proofterm.proof
   val export: Proof.context -> Proof.context -> thm list -> thm list
   val export_morphism: Proof.context -> Proof.context -> morphism
+  val invent_types: sort list -> Proof.context -> (string * sort) list * Proof.context
   val importT_inst: term list -> Proof.context -> ((indexname * sort) * typ) list * Proof.context
   val import_inst: bool -> term list -> Proof.context ->
     (((indexname * sort) * typ) list * ((indexname * typ) * term) list) * Proof.context
   val importT_terms: term list -> Proof.context -> term list * Proof.context
   val import_terms: bool -> term list -> Proof.context -> term list * Proof.context
-  val importT: thm list -> Proof.context -> ((ctyp * ctyp) list * thm list) * Proof.context
+  val importT: thm list -> Proof.context ->
+    (((indexname * sort) * ctyp) list * thm list) * Proof.context
   val import_prf: bool -> Proofterm.proof -> Proof.context -> Proofterm.proof * Proof.context
   val import: bool -> thm list -> Proof.context ->
-    (((ctyp * ctyp) list * (cterm * cterm) list) * thm list) * Proof.context
+    ((((indexname * sort) * ctyp) list * ((indexname * typ) * cterm) list) * thm list) * Proof.context
   val tradeT: (Proof.context -> thm list -> thm list) -> Proof.context -> thm list -> thm list
   val trade: (Proof.context -> thm list -> thm list) -> Proof.context -> thm list -> thm list
-  val focus: term -> Proof.context -> ((string * (string * typ)) list * term) * Proof.context
-  val focus_cterm: cterm -> Proof.context -> ((string * cterm) list * cterm) * Proof.context
-  val focus_subgoal: int -> thm -> Proof.context -> ((string * cterm) list * cterm) * Proof.context
+  val is_bound_focus: Proof.context -> bool
+  val set_bound_focus: bool -> Proof.context -> Proof.context
+  val restore_bound_focus: Proof.context -> Proof.context -> Proof.context
+  val focus_params: binding list option -> term -> Proof.context ->
+    (string list * (string * typ) list) * Proof.context
+  val focus: binding list option -> term -> Proof.context ->
+    ((string * (string * typ)) list * term) * Proof.context
+  val focus_cterm: binding list option -> cterm -> Proof.context ->
+    ((string * cterm) list * cterm) * Proof.context
+  val focus_subgoal: binding list option -> int -> thm -> Proof.context ->
+    ((string * cterm) list * cterm) * Proof.context
   val warn_extra_tfrees: Proof.context -> Proof.context -> unit
   val polymorphic_types: Proof.context -> term list -> (indexname * sort) list * term list
   val polymorphic: Proof.context -> term list -> term list
@@ -82,96 +102,72 @@ struct
 
 (** local context data **)
 
-type fixes = string Name_Space.table;
+type fixes = (string * bool) Name_Space.table;
 val empty_fixes: fixes = Name_Space.empty_table Markup.fixedN;
 
 datatype data = Data of
- {is_body: bool,                        (*inner body mode*)
-  names: Name.context,                  (*type/term variable names*)
+ {names: Name.context,                  (*type/term variable names*)
   consts: string Symtab.table,          (*consts within the local scope*)
   bounds: int * ((string * typ) * string) list,  (*next index, internal name, type, external name*)
   fixes: fixes,                         (*term fixes -- global name space, intern ~> extern*)
   binds: (typ * term) Vartab.table,     (*term bindings*)
   type_occs: string list Symtab.table,  (*type variables -- possibly within term variables*)
   maxidx: int,                          (*maximum var index*)
-  sorts: sort Ord_List.T,               (*declared sort occurrences*)
   constraints:
     typ Vartab.table *                  (*type constraints*)
     sort Vartab.table};                 (*default sorts*)
 
-fun make_data
-    (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints) =
-  Data {is_body = is_body, names = names, consts = consts, bounds = bounds, fixes = fixes,
-    binds = binds, type_occs = type_occs, maxidx = maxidx, sorts = sorts, constraints = constraints};
+fun make_data (names, consts, bounds, fixes, binds, type_occs, maxidx, constraints) =
+  Data {names = names, consts = consts, bounds = bounds, fixes = fixes, binds = binds,
+    type_occs = type_occs, maxidx = maxidx, constraints = constraints};
+
+val empty_data =
+  make_data (Name.context, Symtab.empty, (0, []), empty_fixes, Vartab.empty,
+    Symtab.empty, ~1, (Vartab.empty, Vartab.empty));
 
 structure Data = Proof_Data
 (
   type T = data;
-  fun init _ =
-    make_data (false, Name.context, Symtab.empty, (0, []), empty_fixes, Vartab.empty,
-      Symtab.empty, ~1, [], (Vartab.empty, Vartab.empty));
+  fun init _ = empty_data;
 );
 
 fun map_data f =
-  Data.map (fn
-      Data {is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints} =>
-    make_data
-      (f (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints)));
+  Data.map (fn Data {names, consts, bounds, fixes, binds, type_occs, maxidx, constraints} =>
+    make_data (f (names, consts, bounds, fixes, binds, type_occs, maxidx, constraints)));
 
 fun map_names f =
-  map_data (fn
-      (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints) =>
-    (is_body, f names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints));
+  map_data (fn (names, consts, bounds, fixes, binds, type_occs, maxidx, constraints) =>
+    (f names, consts, bounds, fixes, binds, type_occs, maxidx, constraints));
 
 fun map_consts f =
-  map_data (fn
-      (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints) =>
-    (is_body, names, f consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints));
+  map_data (fn (names, consts, bounds, fixes, binds, type_occs, maxidx, constraints) =>
+    (names, f consts, bounds, fixes, binds, type_occs, maxidx, constraints));
 
 fun map_bounds f =
-  map_data (fn
-      (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints) =>
-    (is_body, names, consts, f bounds, fixes, binds, type_occs, maxidx, sorts, constraints));
+  map_data (fn (names, consts, bounds, fixes, binds, type_occs, maxidx, constraints) =>
+    (names, consts, f bounds, fixes, binds, type_occs, maxidx, constraints));
 
 fun map_fixes f =
-  map_data (fn
-      (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints) =>
-    (is_body, names, consts, bounds, f fixes, binds, type_occs, maxidx, sorts, constraints));
+  map_data (fn (names, consts, bounds, fixes, binds, type_occs, maxidx, constraints) =>
+    (names, consts, bounds, f fixes, binds, type_occs, maxidx, constraints));
 
 fun map_binds f =
-  map_data (fn
-      (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints) =>
-    (is_body, names, consts, bounds, fixes, f binds, type_occs, maxidx, sorts, constraints));
+  map_data (fn (names, consts, bounds, fixes, binds, type_occs, maxidx, constraints) =>
+    (names, consts, bounds, fixes, f binds, type_occs, maxidx, constraints));
 
 fun map_type_occs f =
-  map_data (fn
-      (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints) =>
-    (is_body, names, consts, bounds, fixes, binds, f type_occs, maxidx, sorts, constraints));
+  map_data (fn (names, consts, bounds, fixes, binds, type_occs, maxidx, constraints) =>
+    (names, consts, bounds, fixes, binds, f type_occs, maxidx, constraints));
 
 fun map_maxidx f =
-  map_data (fn
-      (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints) =>
-    (is_body, names, consts, bounds, fixes, binds, type_occs, f maxidx, sorts, constraints));
-
-fun map_sorts f =
-  map_data (fn
-      (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints) =>
-    (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, f sorts, constraints));
+  map_data (fn (names, consts, bounds, fixes, binds, type_occs, maxidx, constraints) =>
+    (names, consts, bounds, fixes, binds, type_occs, f maxidx, constraints));
 
 fun map_constraints f =
-  map_data (fn
-      (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints) =>
-    (is_body, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, f constraints));
+  map_data (fn (names, consts, bounds, fixes, binds, type_occs, maxidx, constraints) =>
+    (names, consts, bounds, fixes, binds, type_occs, maxidx, f constraints));
 
 fun rep_data ctxt = Data.get ctxt |> (fn Data rep => rep);
-
-val is_body = #is_body o rep_data;
-
-fun set_body b =
-  map_data (fn (_, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints) =>
-    (b, names, consts, bounds, fixes, binds, type_occs, maxidx, sorts, constraints));
-
-fun restore_body ctxt = set_body (is_body ctxt);
 
 val names_of = #names o rep_data;
 val fixes_of = #fixes o rep_data;
@@ -179,7 +175,6 @@ val fixes_space = Name_Space.space_of_table o fixes_of;
 val binds_of = #binds o rep_data;
 val type_occs_of = #type_occs o rep_data;
 val maxidx_of = #maxidx o rep_data;
-val sorts_of = #sorts o rep_data;
 val constraints_of = #constraints o rep_data;
 
 val is_declared = Name.is_declared o names_of;
@@ -204,6 +199,11 @@ fun def_type ctxt pattern xi =
   end;
 
 val def_sort = Vartab.lookup o #2 o constraints_of;
+
+
+(* maxidx *)
+
+val declare_maxidx = map_maxidx o Integer.max;
 
 
 (* names *)
@@ -256,7 +256,7 @@ fun declare_constraints t = map_constraints (fn (types, sorts) =>
 fun declare_internal t =
   declare_names t #>
   declare_type_occs t #>
-  map_sorts (Sorts.insert_term t);
+  Thm.declare_term_sorts t;
 
 fun declare_term t =
   declare_internal t #>
@@ -267,7 +267,6 @@ val declare_typ = declare_term o Logic.mk_type;
 val declare_prf = Proofterm.fold_proof_terms declare_internal (declare_internal o Logic.mk_type);
 
 val declare_thm = Thm.fold_terms declare_internal;
-fun global_thm_context th = declare_thm th (Proof_Context.init_global (Thm.theory_of_thm th));
 
 
 (* renaming term/type frees *)
@@ -282,12 +281,16 @@ fun variant_frees ctxt ts frees =
 
 (** term bindings **)
 
-fun bind_term (xi, NONE) = map_binds (Vartab.delete_safe xi)
-  | bind_term ((x, i), SOME t) =
-      let
-        val u = Term.close_schematic_term t;
-        val U = Term.fastype_of u;
-      in declare_term u #> map_binds (Vartab.update ((x, i), (U, u))) end;
+fun bind_term ((x, i), t) =
+  let
+    val u = Term.close_schematic_term t;
+    val U = Term.fastype_of u;
+  in declare_term u #> map_binds (Vartab.update ((x, i), (U, u))) end;
+
+val unbind_term = map_binds o Vartab.delete_safe;
+
+fun maybe_bind_term (xi, SOME t) = bind_term (xi, t)
+  | maybe_bind_term (xi, NONE) = unbind_term xi;
 
 fun expand_binds ctxt =
   let
@@ -329,10 +332,34 @@ fun revert_bounds ctxt t =
 
 (** fixes **)
 
+(* inner body mode *)
+
+val inner_body =
+  Config.bool (Config.declare ("inner_body", @{here}) (K (Config.Bool false)));
+
+fun is_body ctxt = Config.get ctxt inner_body;
+val set_body = Config.put inner_body;
+fun restore_body ctxt = set_body (is_body ctxt);
+
+
+(* proper mode *)
+
+val proper_fixes =
+  Config.bool (Config.declare ("proper_fixes", @{here}) (K (Config.Bool true)));
+
+val improper_fixes = Config.put proper_fixes false;
+fun restore_proper_fixes ctxt = Config.put proper_fixes (Config.get ctxt proper_fixes);
+
+fun is_improper ctxt x =
+  (case Name_Space.lookup (fixes_of ctxt) x of
+    SOME (_, proper) => not proper
+  | NONE => false);
+
+
 (* specialized name space *)
 
-val is_fixed = Name_Space.defined_entry o fixes_space;
-fun newly_fixed inner outer = is_fixed inner andf (not o is_fixed outer);
+val is_fixed = Name_Space.defined o fixes_of;
+fun is_newly_fixed inner outer = is_fixed inner andf (not o is_fixed outer);
 
 val fixed_ord = Name_Space.entry_ord o fixes_space;
 val intern_fixed = Name_Space.intern o fixes_space;
@@ -342,17 +369,24 @@ fun lookup_fixed ctxt x =
   in if is_fixed ctxt x' then SOME x' else NONE end;
 
 fun revert_fixed ctxt x =
-  (case Name_Space.lookup_key (fixes_of ctxt) x of
-    SOME (_, x') => if intern_fixed ctxt x' = x then x' else x
+  (case Name_Space.lookup (fixes_of ctxt) x of
+    SOME (x', _) => if intern_fixed ctxt x' = x then x' else x
   | NONE => x);
 
 fun markup_fixed ctxt x =
   Name_Space.markup (fixes_space ctxt) x
   |> Markup.name (revert_fixed ctxt x);
 
+fun markup ctxt x =
+  if is_improper ctxt x then Markup.improper
+  else if Name.is_skolem x then Markup.skolem
+  else Markup.free;
+
+val markup_entity_def = Name_Space.markup_def o fixes_space;
+
 fun dest_fixes ctxt =
-  Name_Space.fold_table (fn (x, y) => cons (y, x)) (fixes_of ctxt) []
-  |> sort (Name_Space.entry_ord (fixes_space ctxt) o pairself #2);
+  Name_Space.fold_table (fn (x, (y, _)) => cons (y, x)) (fixes_of ctxt) []
+  |> sort (Name_Space.entry_ord (fixes_space ctxt) o apply2 #2);
 
 
 (* collect variables *)
@@ -369,6 +403,9 @@ fun add_fixed_names ctxt =
 fun add_fixed ctxt =
   fold_aterms (fn Free (x, T) => is_fixed ctxt x ? insert (op =) (x, T) | _ => I);
 
+fun add_newly_fixed ctxt' ctxt =
+  fold_aterms (fn Free (x, T) => is_newly_fixed ctxt' ctxt x ? insert (op =) (x, T) | _ => I);
+
 
 (* declarations *)
 
@@ -380,11 +417,16 @@ fun err_dups dups =
 fun new_fixed ((x, x'), pos) ctxt =
   if is_some (lookup_fixed ctxt x') then err_dups [Binding.make (x, pos)]
   else
-    let val context = Context.Proof ctxt |> Name_Space.map_naming (K Name_Space.default_naming) in
+    let
+      val proper = Config.get ctxt proper_fixes;
+      val context = Context.Proof ctxt
+        |> Name_Space.map_naming (K Name_Space.global_naming)
+        |> Context_Position.set_visible_generic false;
+    in
       ctxt
       |> map_fixes
-        (Name_Space.define context true (Binding.make (x', pos), x) #> snd #>
-          Name_Space.alias_table Name_Space.default_naming (Binding.make (x, pos)) x')
+        (Name_Space.define context true (Binding.make (x', pos), (x, proper)) #> snd #>
+          Name_Space.alias_table Name_Space.global_naming (Binding.make (x, pos)) x')
       |> declare_fixed x
       |> declare_constraints (Syntax.free x')
   end;
@@ -403,7 +445,7 @@ fun add_fixes_binding bs ctxt =
         [] => ()
       | bads => error ("Illegal internal Skolem constant(s): " ^ commas (map Binding.print bads)));
     val _ =
-      (case duplicates (op = o pairself Binding.name_of) bs of
+      (case duplicates (op = o apply2 Binding.name_of) bs of
         [] => ()
       | dups => err_dups dups);
 
@@ -414,12 +456,19 @@ fun add_fixes_binding bs ctxt =
       else (xs, fold Name.declare xs names);
   in ctxt |> new_fixes names' xs xs' (map Binding.pos_of bs) end;
 
+fun bound_fixes xs ctxt =
+  let
+    val (xs', ctxt') = fold_map next_bound xs ctxt;
+    val no_ps = replicate (length xs) Position.none;
+  in ctxt' |> new_fixes (names_of ctxt') (map #1 xs) (map (#1 o dest_Free) xs') no_ps end;
+
 fun variant_fixes raw_xs ctxt =
   let
     val names = names_of ctxt;
     val xs = map (fn x => Name.clean x |> Name.is_internal x ? Name.internal) raw_xs;
     val (xs', names') = fold_map Name.variant xs names |>> (is_body ctxt ? map Name.skolem);
-  in ctxt |> new_fixes names' xs xs' (replicate (length xs) Position.none) end;
+    val no_ps = replicate (length xs) Position.none;
+  in ctxt |> new_fixes names' xs xs' no_ps end;
 
 end;
 
@@ -434,20 +483,36 @@ fun auto_fixes t ctxt = ctxt
   |> not (is_body ctxt) ? add_fixes_direct (rev (add_free_names ctxt t []))
   |> declare_term t;
 
-fun invent_types Ss ctxt =
-  let
-    val tfrees = Name.invent (names_of ctxt) Name.aT (length Ss) ~~ Ss;
-    val ctxt' = fold (declare_constraints o Logic.mk_type o TFree) tfrees ctxt;
-  in (tfrees, ctxt') end;
+
+(* dummy patterns *)
+
+fun fix_dummy_patterns (Const ("Pure.dummy_pattern", T)) ctxt =
+      let val ([x], ctxt') = ctxt |> set_body true |> add_fixes [Name.uu_] ||> restore_body ctxt
+      in (Free (x, T), ctxt') end
+  | fix_dummy_patterns (Abs (x, T, b)) ctxt =
+      let val (b', ctxt') = fix_dummy_patterns b ctxt
+      in (Abs (x, T, b'), ctxt') end
+  | fix_dummy_patterns (t $ u) ctxt =
+      let
+        val (t', ctxt') = fix_dummy_patterns t ctxt;
+        val (u', ctxt'') = fix_dummy_patterns u ctxt';
+      in (t' $ u', ctxt'') end
+  | fix_dummy_patterns a ctxt = (a, ctxt);
 
 
 
 (** export -- generalize type/term variables (beware of closure sizes) **)
 
+fun gen_all ctxt th =
+  let
+    val i = Thm.maxidx_thm th (maxidx_of ctxt) + 1;
+    fun gen (x, T) = Thm.forall_elim (Thm.cterm_of ctxt (Var ((x, i), T)));
+  in fold gen (Drule.outer_params (Thm.prop_of th)) th end;
+
 fun export_inst inner outer =
   let
     val declared_outer = is_declared outer;
-    val still_fixed = not o newly_fixed inner outer;
+    val still_fixed = not o is_newly_fixed inner outer;
 
     val gen_fixes =
       Name_Space.fold_table (fn (y, _) => not (is_fixed outer y) ? cons y)
@@ -463,37 +528,44 @@ fun export_inst inner outer =
 fun exportT_inst inner outer = #1 (export_inst inner outer);
 
 fun exportT_terms inner outer =
-  let val mk_tfrees = exportT_inst inner outer in
+  let
+    val mk_tfrees = exportT_inst inner outer;
+    val maxidx = maxidx_of outer;
+  in
     fn ts => ts |> map
       (Term_Subst.generalize (mk_tfrees ts, [])
-        (fold (Term.fold_types Term.maxidx_typ) ts ~1 + 1))
+        (fold (Term.fold_types Term.maxidx_typ) ts maxidx + 1))
   end;
 
 fun export_terms inner outer =
-  let val (mk_tfrees, tfrees) = export_inst inner outer in
+  let
+    val (mk_tfrees, tfrees) = export_inst inner outer;
+    val maxidx = maxidx_of outer;
+  in
     fn ts => ts |> map
       (Term_Subst.generalize (mk_tfrees ts, tfrees)
-        (fold Term.maxidx_term ts ~1 + 1))
+        (fold Term.maxidx_term ts maxidx + 1))
   end;
 
 fun export_prf inner outer prf =
   let
     val (mk_tfrees, frees) = export_inst (declare_prf prf inner) outer;
     val tfrees = mk_tfrees [];
-    val idx = Proofterm.maxidx_proof prf ~1 + 1;
+    val maxidx = maxidx_of outer;
+    val idx = Proofterm.maxidx_proof prf maxidx + 1;
     val gen_term = Term_Subst.generalize_same (tfrees, frees) idx;
     val gen_typ = Term_Subst.generalizeT_same tfrees idx;
   in Same.commit (Proofterm.map_proof_terms_same gen_term gen_typ) prf end;
 
 
-fun gen_export (mk_tfrees, frees) ths =
+fun gen_export (mk_tfrees, frees) maxidx ths =
   let
     val tfrees = mk_tfrees (map Thm.full_prop_of ths);
-    val maxidx = fold Thm.maxidx_thm ths ~1;
-  in map (Thm.generalize (tfrees, frees) (maxidx + 1)) ths end;
+    val idx = fold Thm.maxidx_thm ths maxidx + 1;
+  in map (Thm.generalize (tfrees, frees) idx) ths end;
 
-fun exportT inner outer = gen_export (exportT_inst inner outer, []);
-fun export inner outer = gen_export (export_inst inner outer);
+fun exportT inner outer = gen_export (exportT_inst inner outer, []) (maxidx_of outer);
+fun export inner outer = gen_export (export_inst inner outer) (maxidx_of outer);
 
 fun export_morphism inner outer =
   let
@@ -507,6 +579,12 @@ fun export_morphism inner outer =
 
 
 (** import -- fix schematic type/term variables **)
+
+fun invent_types Ss ctxt =
+  let
+    val tfrees = Name.invent (names_of ctxt) Name.aT (length Ss) ~~ Ss;
+    val ctxt' = fold (declare_constraints o Logic.mk_type o TFree) tfrees ctxt;
+  in (tfrees, ctxt') end;
 
 fun importT_inst ts ctxt =
   let
@@ -533,10 +611,9 @@ fun import_terms is_open ts ctxt =
 
 fun importT ths ctxt =
   let
-    val thy = Proof_Context.theory_of ctxt;
     val (instT, ctxt') = importT_inst (map Thm.full_prop_of ths) ctxt;
-    val insts' as (instT', _) = Thm.certify_inst thy (instT, []);
-    val ths' = map (Thm.instantiate insts') ths;
+    val instT' = map (apsnd (Thm.ctyp_of ctxt')) instT;
+    val ths' = map (Thm.instantiate (instT', [])) ths;
   in ((instT', ths'), ctxt') end;
 
 fun import_prf is_open prf ctxt =
@@ -547,9 +624,10 @@ fun import_prf is_open prf ctxt =
 
 fun import is_open ths ctxt =
   let
-    val thy = Proof_Context.theory_of ctxt;
-    val (insts, ctxt') = import_inst is_open (map Thm.full_prop_of ths) ctxt;
-    val insts' = Thm.certify_inst thy insts;
+    val ((instT, inst), ctxt') = import_inst is_open (map Thm.full_prop_of ths) ctxt;
+    val insts' =
+     (map (apsnd (Thm.ctyp_of ctxt')) instT,
+      map (apsnd (Thm.cterm_of ctxt')) inst);
     val ths' = map (Thm.instantiate insts') ths;
   in ((insts', ths'), ctxt') end;
 
@@ -566,18 +644,28 @@ val trade = gen_trade (import true) export;
 
 (* focus on outermost parameters: !!x y z. B *)
 
-fun focus_params t ctxt =
-  let
-    val (xs, Ts) =
-      split_list (Term.variant_frees t (Term.strip_all_vars t));  (*as they are printed :-*)
-    val (xs', ctxt') = variant_fixes xs ctxt;
-    val ps = xs' ~~ Ts;
-    val ctxt'' = ctxt' |> fold (declare_constraints o Free) ps;
-  in ((xs, ps), ctxt'') end;
+val bound_focus =
+  Config.bool (Config.declare ("bound_focus", @{here}) (K (Config.Bool false)));
 
-fun focus t ctxt =
+fun is_bound_focus ctxt = Config.get ctxt bound_focus;
+val set_bound_focus = Config.put bound_focus;
+fun restore_bound_focus ctxt = set_bound_focus (is_bound_focus ctxt);
+
+fun focus_params bindings t ctxt =
   let
-    val ((xs, ps), ctxt') = focus_params t ctxt;
+    val ps = Term.variant_frees t (Term.strip_all_vars t);  (*as they are printed :-*)
+    val (xs, Ts) = split_list ps;
+    val (xs', ctxt') =
+      (case bindings of
+        SOME bs => ctxt |> set_body true |> add_fixes_binding bs ||> restore_body ctxt
+      | NONE => if is_bound_focus ctxt then bound_fixes ps ctxt else variant_fixes xs ctxt);
+    val ps' = xs' ~~ Ts;
+    val ctxt'' = ctxt' |> fold (declare_constraints o Free) ps';
+  in ((xs, ps'), ctxt'') end;
+
+fun focus bindings t ctxt =
+  let
+    val ((xs, ps), ctxt') = focus_params bindings t ctxt;
     val t' = Term.subst_bounds (rev (map Free ps), Term.strip_all_body t);
   in (((xs ~~ ps), t'), ctxt') end;
 
@@ -585,22 +673,20 @@ fun forall_elim_prop t prop =
   Thm.beta_conversion false (Thm.apply (Thm.dest_arg prop) t)
   |> Thm.cprop_of |> Thm.dest_arg;
 
-fun focus_cterm goal ctxt =
+fun focus_cterm bindings goal ctxt =
   let
-    val cert = Thm.cterm_of (Thm.theory_of_cterm goal);
-    val ((xs, ps), ctxt') = focus_params (Thm.term_of goal) ctxt;
-    val ps' = map (cert o Free) ps;
+    val ((xs, ps), ctxt') = focus_params bindings (Thm.term_of goal) ctxt;
+    val ps' = map (Thm.cterm_of ctxt' o Free) ps;
     val goal' = fold forall_elim_prop ps' goal;
   in ((xs ~~ ps', goal'), ctxt') end;
 
-fun focus_subgoal i st =
+fun focus_subgoal bindings i st =
   let
     val all_vars = Thm.fold_terms Term.add_vars st [];
-    val no_binds = map (fn (xi, _) => (xi, NONE)) all_vars;
   in
-    fold bind_term no_binds #>
+    fold (unbind_term o #1) all_vars #>
     fold (declare_constraints o Var) all_vars #>
-    focus_cterm (Thm.cprem_of st i)
+    focus_cterm bindings (Thm.cprem_of st i)
   end;
 
 

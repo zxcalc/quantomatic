@@ -14,10 +14,10 @@ sig
   val thynames_of_arity: theory -> string * class -> string list
   val param_of_inst: theory -> string * string -> string
   val inst_of_param: theory -> string -> (string * string) option
-  val unoverload: theory -> thm -> thm
-  val overload: theory -> thm -> thm
-  val unoverload_conv: theory -> conv
-  val overload_conv: theory -> conv
+  val unoverload: Proof.context -> thm -> thm
+  val overload: Proof.context -> thm -> thm
+  val unoverload_conv: Proof.context -> conv
+  val overload_conv: Proof.context -> conv
   val lookup_inst_param: Consts.T -> ((string * string) * 'a) list -> string * typ -> 'a option
   val unoverload_const: theory -> string * typ -> string
   val cert_classrel: theory -> class * class -> class * class
@@ -82,25 +82,25 @@ fun make_data
   Data {axclasses = axclasses, params = params, proven_classrels = proven_classrels,
     proven_arities = proven_arities, inst_params = inst_params};
 
-structure Data = Theory_Data_PP
+structure Data = Theory_Data'
 (
   type T = data;
   val empty =
     make_data (Symtab.empty, [], Symreltab.empty, Symtab.empty, (Symtab.empty, Symtab.empty));
   val extend = I;
-  fun merge pp
+  fun merge old_thys
       (Data {axclasses = axclasses1, params = params1, proven_classrels = proven_classrels1,
         proven_arities = proven_arities1, inst_params = inst_params1},
        Data {axclasses = axclasses2, params = params2, proven_classrels = proven_classrels2,
         proven_arities = proven_arities2, inst_params = inst_params2}) =
     let
-      val ctxt = Syntax.init_pretty pp;
+      val old_ctxt = Syntax.init_pretty_global (fst old_thys);
 
       val axclasses' = Symtab.merge (K true) (axclasses1, axclasses2);
       val params' =
         if null params1 then params2
         else
-          fold_rev (fn p => if member (op =) params1 p then I else add_param ctxt p)
+          fold_rev (fn p => if member (op =) params1 p then I else add_param old_ctxt p)
             params2 params1;
 
       (*see Theory.at_begin hook for transitive closure of classrels and arity completion*)
@@ -191,7 +191,7 @@ fun complete_classrels thy =
               thy2
               |> update_classrel ((c1, c2),
                 (the_classrel thy2 (c1, c) RS the_classrel thy2 (c, c2))
-                |> Drule.instantiate' [SOME (ctyp_of thy2 (TVar ((Name.aT, 0), [])))] []
+                |> Thm.instantiate' [SOME (Thm.global_ctyp_of thy2 (TVar ((Name.aT, 0), [])))] []
                 |> Thm.close_derivation));
 
         val proven = is_classrel thy1;
@@ -228,13 +228,13 @@ fun insert_arity_completions thy t ((c, Ss), ((th, thy_name))) (finished, aritie
             c1 = c2 andalso Sorts.sorts_le algebra (Ss2, Ss)) ars);
 
     val names = Name.invent Name.context Name.aT (length Ss);
-    val std_vars = map (fn a => SOME (ctyp_of thy (TVar ((a, 0), [])))) names;
+    val std_vars = map (fn a => SOME (Thm.global_ctyp_of thy (TVar ((a, 0), [])))) names;
 
     val completions = super_class_completions |> map (fn c1 =>
       let
         val th1 =
           (th RS the_classrel thy (c, c1))
-          |> Drule.instantiate' std_vars []
+          |> Thm.instantiate' std_vars []
           |> Thm.close_derivation;
       in ((th1, thy_name), c1) end);
 
@@ -261,12 +261,13 @@ fun complete_arities thy =
     else SOME (map_proven_arities (K arities') thy)
   end;
 
-val _ = Theory.setup
-  (Theory.at_begin complete_classrels #> Theory.at_begin complete_arities);
-
-val _ = Proofterm.install_axclass_proofs
-  {classrel_proof = Thm.proof_of oo the_classrel,
-   arity_proof = Thm.proof_of oo the_arity};
+val _ =
+  Theory.setup
+   (Theory.at_begin complete_classrels #>
+    Theory.at_begin complete_arities #>
+    Proofterm.install_axclass_proofs
+     {classrel_proof = Thm.proof_of oo the_classrel,
+      arity_proof = Thm.proof_of oo the_arity});
 
 
 (* maintain instance parameters *)
@@ -283,22 +284,17 @@ fun add_inst_param (c, tyco) inst =
 val inst_of_param = Symtab.lookup o #2 o inst_params_of;
 val param_of_inst = #1 oo get_inst_param;
 
-fun inst_thms thy =
-  Symtab.fold (Symtab.fold (cons o #2 o #2) o #2) (#1 (inst_params_of thy)) [];
+fun inst_thms ctxt =
+  Symtab.fold
+    (Symtab.fold (cons o #2 o #2) o #2) (#1 (inst_params_of (Proof_Context.theory_of ctxt))) [];
 
 fun get_inst_tyco consts = try (#1 o dest_Type o the_single o Consts.typargs consts);
 
-fun unoverload thy =
-  rewrite_rule (Proof_Context.init_global thy) (inst_thms thy);
+fun unoverload ctxt = rewrite_rule ctxt (inst_thms ctxt);
+fun overload ctxt = rewrite_rule ctxt (map Thm.symmetric (inst_thms ctxt));
 
-fun overload thy =
-  rewrite_rule (Proof_Context.init_global thy) (map Thm.symmetric (inst_thms thy));
-
-fun unoverload_conv thy =
-  Raw_Simplifier.rewrite (Proof_Context.init_global thy) true (inst_thms thy);
-
-fun overload_conv thy =
-  Raw_Simplifier.rewrite (Proof_Context.init_global thy) true (map Thm.symmetric (inst_thms thy));
+fun unoverload_conv ctxt = Raw_Simplifier.rewrite ctxt true (inst_thms ctxt);
+fun overload_conv ctxt = Raw_Simplifier.rewrite ctxt true (map Thm.symmetric (inst_thms ctxt));
 
 fun lookup_inst_param consts params (c, T) =
   (case get_inst_tyco consts (c, T) of
@@ -321,7 +317,7 @@ fun unoverload_const thy (c_ty as (c, _)) =
 fun cert_classrel thy raw_rel =
   let
     val string_of_sort = Syntax.string_of_sort_global thy;
-    val (c1, c2) = pairself (Sign.certify_class thy) raw_rel;
+    val (c1, c2) = apply2 (Sign.certify_class thy) raw_rel;
     val _ = Sign.primitive_classrel (c1, c2) thy;
     val _ =
       (case subtract (op =) (all_params_of thy [c1]) (all_params_of thy [c2]) of
@@ -331,7 +327,7 @@ fun cert_classrel thy raw_rel =
   in (c1, c2) end;
 
 fun read_classrel thy raw_rel =
-  cert_classrel thy (pairself (Proof_Context.read_class (Proof_Context.init_global thy)) raw_rel)
+  cert_classrel thy (apply2 (Proof_Context.read_class (Proof_Context.init_global thy)) raw_rel)
     handle TYPE (msg, _, _) => error msg;
 
 
@@ -362,7 +358,7 @@ fun declare_overloaded (c, T) thy =
         (Binding.name (Thm.def_name c'), Logic.mk_equals (Const (c, T'), const'))
       #>> apsnd Thm.varifyT_global
       #-> (fn (_, thm) => add_inst_param (c, tyco) (c'', thm)
-        #> Global_Theory.add_thm ((Binding.conceal (Binding.name c'), thm), [])
+        #> Global_Theory.add_thm ((Binding.concealed (Binding.name c'), thm), [])
         #> #2
         #> pair (Const (c, T))))
     ||> Sign.restore_naming thy
@@ -392,11 +388,11 @@ fun add_classrel raw_th thy =
     val rel = Logic.dest_classrel prop handle TERM _ => err ();
     val (c1, c2) = cert_classrel thy rel handle TYPE _ => err ();
     val binding =
-      Binding.conceal (Binding.name (prefix classrel_prefix (Logic.name_classrel (c1, c2))));
+      Binding.concealed (Binding.name (prefix classrel_prefix (Logic.name_classrel (c1, c2))));
     val (th', thy') = Global_Theory.store_thm (binding, th) thy;
     val th'' = th'
       |> Thm.unconstrainT
-      |> Drule.instantiate' [SOME (ctyp_of thy' (TVar ((Name.aT, 0), [])))] [];
+      |> Thm.instantiate' [SOME (Thm.global_ctyp_of thy' (TVar ((Name.aT, 0), [])))] [];
   in
     thy'
     |> Sign.primitive_classrel (c1, c2)
@@ -413,12 +409,12 @@ fun add_arity raw_th thy =
     val arity as (t, Ss, c) = Logic.dest_arity prop handle TERM _ => err ();
 
     val binding =
-      Binding.conceal (Binding.name (prefix arity_prefix (Logic.name_arity arity)));
+      Binding.concealed (Binding.name (prefix arity_prefix (Logic.name_arity arity)));
     val (th', thy') = Global_Theory.store_thm (binding, th) thy;
 
     val args = Name.invent_names Name.context Name.aT Ss;
     val T = Type (t, map TFree args);
-    val std_vars = map (fn (a, S) => SOME (ctyp_of thy' (TVar ((a, 0), [])))) args;
+    val std_vars = map (fn (a, S) => SOME (Thm.global_ctyp_of thy' (TVar ((a, 0), [])))) args;
 
     val missing_params = Sign.complete_sort thy' [c]
       |> maps (these o Option.map #params o try (get_info thy'))
@@ -426,7 +422,7 @@ fun add_arity raw_th thy =
       |> (map o apsnd o map_atyps) (K T);
     val th'' = th'
       |> Thm.unconstrainT
-      |> Drule.instantiate' std_vars [];
+      |> Thm.instantiate' std_vars [];
   in
     thy'
     |> fold (#2 oo declare_overloaded) missing_params
@@ -457,7 +453,7 @@ fun prove_arity raw_arity tac thy =
     val names = map (prefix arity_prefix) (Logic.name_arities arity);
     val props = Logic.mk_arities arity;
     val ths =
-      Goal.prove_multi ctxt [] [] props
+      Goal.prove_common ctxt NONE [] [] props
       (fn {context, ...} => Goal.precise_conjunction_tac (length props) 1 THEN tac context)
         handle ERROR msg =>
           cat_error msg ("The error(s) above occurred while trying to prove type arity " ^
@@ -596,6 +592,9 @@ fun add_axioms prep mk name add raw_args thy =
 fun class_const c =
   (Logic.const_of_class c, Term.itselfT (Term.aT []) --> propT);
 
+fun class_const_dep c =
+  ((Defs.Const, Logic.const_of_class c), [Term.aT []]);
+
 in
 
 val classrel_axiomatization =
@@ -614,7 +613,7 @@ fun class_axiomatization (bclass, raw_super) thy =
     thy
     |> Sign.primitive_class (bclass, super)
     |> classrel_axiomatization (map (fn c => (class, c)) super)
-    |> Theory.add_deps_global "" (class_const class) (map class_const super)
+    |> Theory.add_deps_global "" (class_const_dep class) (map class_const_dep super)
   end;
 
 end;

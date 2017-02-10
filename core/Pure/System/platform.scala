@@ -1,5 +1,4 @@
 /*  Title:      Pure/System/platform.scala
-    Module:     PIDE
     Author:     Makarius
 
 Raw platform identification.
@@ -15,6 +14,7 @@ object Platform
 {
   /* main OS variants */
 
+  val is_linux = System.getProperty("os.name", "") == "Linux"
   val is_macos = System.getProperty("os.name", "") == "Mac OS X"
   val is_windows = System.getProperty("os.name", "").startsWith("Windows")
 
@@ -53,8 +53,17 @@ object Platform
   }
 
 
+  /* JVM version */
+
+  private val Version = new Regex("""1\.(\d+)\.0_(\d+)""")
+  lazy val jvm_version =
+    System.getProperty("java.version") match {
+      case Version(a, b) => a + "u" + b
+      case a => a
+    }
+
+
   /* JVM name */
 
   val jvm_name: String = System.getProperty("java.vm.name", "")
 }
-

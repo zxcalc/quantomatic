@@ -176,6 +176,7 @@ functor NameFun(
 
 (* FIXME: respect depth properly; don't print out all things in set, just depth number of them. *)
   (* PolyML pretty print names *)
+(*
   val _ = PolyML.addPrettyPrinter (fn depth => fn printArgTypes => fn value =>
             ml_pretty (Pretty.to_ML (Nm.pretty_name value)));
 
@@ -195,7 +196,7 @@ functor NameFun(
                   |> Pretty.list "{" "}"
                   |> Pretty.to_ML |> ml_pretty
           end);
-
+*)
 end;
 
 (* add data to a names type - makes new names type with extra data *)

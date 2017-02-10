@@ -14,10 +14,12 @@ sig
   val ~$$$ : Symbol.symbol -> T list -> T list * T list
   val content: T list -> string
   val range: T list -> Position.range
+  val split_lines: T list -> T list list
+  val trim_blanks: T list -> T list
+  val trim_lines: T list -> T list
   val is_eof: T -> bool
   val stopper: T Scan.stopper
   val !!! : Scan.message -> (T list -> 'a) -> T list -> 'a
-  val change_prompt: ('a -> 'b) -> 'a -> 'b
   val scan_pos: T list -> Position.T * T list
   val scan_string_q: string -> T list -> (Position.T * (T list * Position.T)) * T list
   val scan_string_qq: string -> T list -> (Position.T * (T list * Position.T)) * T list
@@ -28,9 +30,10 @@ sig
   val quote_string_q: string -> string
   val quote_string_qq: string -> string
   val quote_string_bq: string -> string
-  val scan_cartouche: string -> T list -> T list * T list
-  val recover_cartouche: T list -> T list * T list
   val cartouche_content: T list -> T list
+  val scan_cartouche: string -> T list -> T list * T list
+  val scan_cartouche_content: string -> T list -> T list * T list
+  val recover_cartouche: T list -> T list * T list
   val scan_comment: string -> T list -> T list * T list
   val scan_comment_body: string -> T list -> T list * T list
   val recover_comment: T list -> T list * T list
@@ -38,12 +41,13 @@ sig
     (T, Position.T * (Symbol.symbol, 'a) Source.source) Source.source
   type text = string
   val implode: T list -> text
-  val implode_range: Position.T -> Position.T -> T list -> text * Position.range
+  val implode_range: Position.range -> T list -> text * Position.range
   val explode: text * Position.T -> T list
-  type source = {delimited: bool, text: text, pos: Position.T}
-  val source_content: source -> string * Position.T
+  val explode0: string -> T list
   val scan_ident: T list -> T list * T list
   val is_identifier: string -> bool
+  val scan_nat: T list -> T list * T list
+  val scan_float: T list -> T list * T list
 end;
 
 structure Symbol_Pos: SYMBOL_POS =
@@ -59,8 +63,25 @@ val content = implode o map symbol;
 
 fun range (syms as (_, pos) :: _) =
       let val pos' = List.last syms |-> Position.advance
-      in Position.range pos pos' end
+      in Position.range (pos, pos') end
   | range [] = Position.no_range;
+
+
+(* lines and blanks *)
+
+fun split_lines [] = []
+  | split_lines (list: T list) =
+      let
+        fun split syms =
+          (case take_prefix (fn (s, _) => s <> "\n") syms of
+            (line, []) => [line]
+          | (line, _ :: rest) => line :: split rest);
+      in split list end;
+
+val trim_blanks = trim (Symbol.is_blank o symbol);
+
+val trim_lines =
+  split_lines #> map trim_blanks #> separate [(Symbol.space, Position.none)] #> flat;
 
 
 (* stopper *)
@@ -87,8 +108,6 @@ fun !!! text scan =
       (case msg of NONE => "" | SOME m => "\n" ^ m ());
   in Scan.!! err scan end;
 
-fun change_prompt scan = Scan.prompt "# " scan;
-
 fun $$ s = Scan.one (fn x => symbol x = s);
 fun ~$$ s = Scan.one (fn x => symbol x <> s);
 
@@ -113,16 +132,15 @@ val char_code =
 fun scan_str q err_prefix =
   $$$ "\\" |-- !!! (fn () => err_prefix ^ "bad escape character in string")
     ($$$ q || $$$ "\\" || char_code) ||
-  Scan.one (fn (s, _) => s <> q andalso s <> "\\" andalso Symbol.is_regular s) >> single;
+  Scan.one (fn (s, _) => s <> q andalso s <> "\\" andalso Symbol.not_eof s) >> single;
 
 fun scan_strs q err_prefix =
   Scan.ahead ($$ q) |--
     !!! (fn () => err_prefix ^ "unclosed string literal")
-      ((scan_pos --| $$$ q) --
-        (change_prompt ((Scan.repeat (scan_str q err_prefix) >> flat) -- ($$$ q |-- scan_pos))));
+      ((scan_pos --| $$$ q) -- (Scan.repeats (scan_str q err_prefix) -- ($$$ q |-- scan_pos)));
 
 fun recover_strs q =
-  $$$ q @@@ (Scan.repeat (Scan.permissive (scan_str q "")) >> flat);
+  $$$ q @@@ Scan.repeats (Scan.permissive (scan_str q ""));
 
 in
 
@@ -162,21 +180,6 @@ end;
 
 (* nested text cartouches *)
 
-val scan_cartouche_depth =
-  Scan.repeat1 (Scan.depend (fn (d: int) =>
-    $$ "\\<open>" >> pair (d + 1) ||
-      (if d > 0 then
-        Scan.one (fn (s, _) => s <> "\\<close>" andalso Symbol.is_regular s) >> pair d ||
-        $$ "\\<close>" >> pair (d - 1)
-      else Scan.fail)));
-
-fun scan_cartouche err_prefix =
-  Scan.ahead ($$ "\\<open>") |--
-    !!! (fn () => err_prefix ^ "unclosed text cartouche")
-      (change_prompt (Scan.provide (fn d => d = 0) 0 scan_cartouche_depth));
-
-val recover_cartouche = Scan.pass 0 scan_cartouche_depth;
-
 fun cartouche_content syms =
   let
     fun err () =
@@ -184,12 +187,33 @@ fun cartouche_content syms =
         ^ quote (content syms) ^ Position.here (#1 (range syms)));
   in
     (case syms of
-      ("\\<open>", _) :: rest =>
+      ("\<open>", _) :: rest =>
         (case rev rest of
-          ("\\<close>", _) :: rrest => rev rrest
+          ("\<close>", _) :: rrest => rev rrest
         | _ => err ())
     | _ => err ())
   end;
+
+val scan_cartouche_depth =
+  Scan.repeat1 (Scan.depend (fn (depth: int option) =>
+    (case depth of
+      SOME d =>
+        $$ Symbol.open_ >> pair (SOME (d + 1)) ||
+          (if d > 0 then
+            Scan.one (fn (s, _) => s <> Symbol.close andalso Symbol.not_eof s) >> pair depth ||
+            $$ Symbol.close >> pair (if d = 1 then NONE else SOME (d - 1))
+          else Scan.fail)
+    | NONE => Scan.fail)));
+
+fun scan_cartouche err_prefix =
+  Scan.ahead ($$ Symbol.open_) |--
+    !!! (fn () => err_prefix ^ "unclosed text cartouche")
+      (Scan.provide is_none (SOME 0) scan_cartouche_depth);
+
+fun scan_cartouche_content err_prefix =
+  scan_cartouche err_prefix >> cartouche_content;
+
+val recover_cartouche = Scan.pass (SOME 0) scan_cartouche_depth;
 
 
 (* ML-style comments *)
@@ -200,23 +224,21 @@ val scan_cmt =
   Scan.depend (fn (d: int) => $$$ "(" @@@ $$$ "*" >> pair (d + 1)) ||
   Scan.depend (fn 0 => Scan.fail | d => $$$ "*" @@@ $$$ ")" >> pair (d - 1)) ||
   Scan.lift ($$$ "*" --| Scan.ahead (~$$$ ")")) ||
-  Scan.lift (Scan.one (fn (s, _) => s <> "*" andalso Symbol.is_regular s)) >> single;
+  Scan.lift (Scan.one (fn (s, _) => s <> "*" andalso Symbol.not_eof s)) >> single;
 
-val scan_cmts = Scan.pass 0 (Scan.repeat scan_cmt >> flat);
-
-val scan_body = change_prompt scan_cmts;
+val scan_cmts = Scan.pass 0 (Scan.repeats scan_cmt);
 
 in
 
 fun scan_comment err_prefix =
   Scan.ahead ($$ "(" -- $$ "*") |--
     !!! (fn () => err_prefix ^ "unclosed comment")
-      ($$$ "(" @@@ $$$ "*" @@@ scan_body @@@ $$$ "*" @@@ $$$ ")");
+      ($$$ "(" @@@ $$$ "*" @@@ scan_cmts @@@ $$$ "*" @@@ $$$ ")");
 
 fun scan_comment_body err_prefix =
   Scan.ahead ($$ "(" -- $$ "*") |--
     !!! (fn () => err_prefix ^ "unclosed comment")
-      ($$ "(" |-- $$ "*" |-- scan_body --| $$ "*" --| $$ ")");
+      ($$ "(" |-- $$ "*" |-- scan_cmts --| $$ "*" --| $$ ")");
 
 val recover_comment =
   $$$ "(" @@@ $$$ "*" @@@ scan_cmts;
@@ -228,7 +250,7 @@ end;
 
 fun source pos =
   Source.source' pos Symbol.stopper (Scan.bulk (Scan.depend (fn pos =>
-    Scan.one Symbol.not_eof >> (fn s => (Position.advance s pos, (s, pos)))))) NONE;
+    Scan.one Symbol.not_eof >> (fn s => (Position.advance s pos, (s, pos))))));
 
 
 (* compact representation -- with Symbol.DEL padding *)
@@ -245,7 +267,7 @@ fun pad [] = []
 
 val implode = implode o pad;
 
-fun implode_range pos1 pos2 syms =
+fun implode_range (pos1, pos2) syms =
   let val syms' = (("", pos1) :: syms @ [("", pos2)])
   in (implode syms', range syms') end;
 
@@ -253,16 +275,10 @@ fun explode (str, pos) =
   let
     val (res, _) =
       fold (fn s => fn (res, p) => ((s, p) :: res, Position.advance s p))
-        (Symbol.explode str) ([], Position.reset_range pos);
+        (Symbol.explode str) ([], Position.no_range_position pos);
   in fold (fn (s, p) => if s = Symbol.DEL then I else cons (s, p)) res [] end;
 
-
-(* full source information *)
-
-type source = {delimited: bool, text: text, pos: Position.T};
-
-fun source_content {delimited = _, text, pos} =
-  let val syms = explode (text, pos) in (content syms, pos) end;
+fun explode0 str = explode (str, Position.none);
 
 
 (* identifiers *)
@@ -272,19 +288,25 @@ local
 val letter = Scan.one (symbol #> Symbol.is_letter);
 val letdigs1 = Scan.many1 (symbol #> Symbol.is_letdig);
 
-val sub = Scan.one (symbol #> (fn s => s = "\\<^sub>"));
+val sub = Scan.one (symbol #> (fn s => s = "\<^sub>"));
 
 in
 
-val scan_ident = letter ::: (Scan.repeat (letdigs1 || sub ::: letdigs1) >> flat);
+val scan_ident = letter ::: Scan.repeats (letdigs1 || sub ::: letdigs1);
 
 end;
 
 fun is_identifier s =
   Symbol.is_ascii_identifier s orelse
-    (case try (Scan.finite stopper scan_ident) (explode (s, Position.none)) of
+    (case try (Scan.finite stopper scan_ident) (explode0 s) of
       SOME (_, []) => true
     | _ => false);
+
+
+(* numerals *)
+
+val scan_nat = Scan.many1 (Symbol.is_digit o symbol);
+val scan_float = scan_nat @@@ $$$ "." @@@ scan_nat;
 
 end;
 
@@ -295,4 +317,3 @@ struct
   val $$$ = Symbol_Pos.$$$;
   val ~$$$ = Symbol_Pos.~$$$;
 end;
-

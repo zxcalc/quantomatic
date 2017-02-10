@@ -8,15 +8,17 @@ Standard Isabelle syntax, based on arbitrary context-free grammars
 signature SYNTAX =
 sig
   type operations
-  val install_operations: operations -> unit
+  val install_operations: operations -> theory -> theory
   val root: string Config.T
   val ambiguity_warning_raw: Config.raw
   val ambiguity_warning: bool Config.T
   val ambiguity_limit_raw: Config.raw
   val ambiguity_limit: int Config.T
-  val read_token_pos: string -> Position.T
-  val read_token: string -> Symbol_Pos.source
-  val parse_token: Proof.context -> (XML.tree list -> 'a) ->
+  val encode_input: Input.source -> XML.tree
+  val implode_input: Input.source -> string
+  val read_input_pos: string -> Position.T
+  val read_input: string -> Input.source
+  val parse_input: Proof.context -> (XML.tree list -> 'a) ->
     (bool -> Markup.T) -> (Symbol_Pos.T list * Position.T -> 'a) -> string -> 'a
   val parse_sort: Proof.context -> string -> sort
   val parse_typ: Proof.context -> string -> typ
@@ -63,7 +65,7 @@ sig
   val is_pretty_global: Proof.context -> bool
   val set_pretty_global: bool -> Proof.context -> Proof.context
   val init_pretty_global: theory -> Proof.context
-  val init_pretty: Context.pretty -> Proof.context
+  val init_pretty: Context.generic -> Proof.context
   val pretty_term_global: theory -> term -> Pretty.T
   val pretty_typ_global: theory -> typ -> Pretty.T
   val pretty_sort_global: theory -> sort -> Pretty.T
@@ -106,7 +108,7 @@ sig
     (string * ((Proof.context -> typ -> term list -> term) * stamp)) list *
     (string * ((Proof.context -> Ast.ast list -> Ast.ast) * stamp)) list -> syntax -> syntax
   val update_type_gram: bool -> mode -> (string * typ * mixfix) list -> syntax -> syntax
-  val update_const_gram: bool -> (string -> bool) ->
+  val update_const_gram: bool -> string list ->
     mode -> (string * typ * mixfix) list -> syntax -> syntax
   val update_trrules: Ast.ast trrule list -> syntax -> syntax
   val remove_trrules: Ast.ast trrule list -> syntax -> syntax
@@ -121,7 +123,7 @@ struct
 
 (** inner syntax operations **)
 
-(* back-patched operations *)
+(* operations *)
 
 type operations =
  {parse_sort: Proof.context -> string -> sort,
@@ -137,11 +139,21 @@ type operations =
   uncheck_typs: Proof.context -> typ list -> typ list,
   uncheck_terms: Proof.context -> term list -> term list};
 
-val operations: operations Single_Assignment.var = Single_Assignment.var "Syntax.operations";
-fun install_operations ops = Single_Assignment.assign operations ops;
+structure Operations = Theory_Data
+(
+  type T = operations option;
+  val empty = NONE;
+  val extend = I;
+  val merge = merge_options;
+);
+
+fun install_operations ops =
+  Operations.map
+    (fn NONE => SOME ops
+      | SOME _ => raise Fail "Inner syntax operations already installed");
 
 fun operation which ctxt x =
-  (case Single_Assignment.peek operations of
+  (case Operations.get (Proof_Context.theory_of ctxt) of
     NONE => raise Fail "Inner syntax operations not installed"
   | SOME ops => which ops ctxt x);
 
@@ -159,40 +171,50 @@ val ambiguity_limit_raw =
 val ambiguity_limit = Config.int ambiguity_limit_raw;
 
 
-(* outer syntax token -- with optional YXML content *)
+(* formal input *)
+
+fun encode_input source =
+  let
+    val delimited = Input.is_delimited source;
+    val pos = Input.pos_of source;
+    val text = Input.text_of source;
+  in XML.Elem (Markup.input delimited (Position.properties_of pos), [XML.Text text]) end;
+
+val implode_input = encode_input #> YXML.string_of;
 
 local
 
-fun token_position (XML.Elem ((name, props), _)) =
-      if name = Markup.tokenN
-      then (Markup.is_delimited props, Position.of_properties props)
-      else (false, Position.none)
-  | token_position (XML.Text _) = (false, Position.none);
+fun input_range (XML.Elem ((name, props), _)) =
+      if name = Markup.inputN
+      then (Markup.is_delimited props, Position.range_of_properties props)
+      else (false, Position.no_range)
+  | input_range (XML.Text _) = (false, Position.no_range);
 
-fun token_source tree =
+fun input_source tree =
   let
     val text = XML.content_of [tree];
-    val (delimited, pos) = token_position tree;
-  in {delimited = delimited, text = text, pos = pos} end;
+    val (delimited, range) = input_range tree;
+  in Input.source delimited text range end;
 
 in
 
-fun read_token_pos str = #2 (token_position (YXML.parse str handle Fail msg => error msg));
+fun read_input_pos str = #1 (#2 (input_range (YXML.parse str handle Fail msg => error msg)));
 
-fun read_token str = token_source (YXML.parse str handle Fail msg => error msg);
+fun read_input str = input_source (YXML.parse str handle Fail msg => error msg);
 
-fun parse_token ctxt decode markup parse str =
+fun parse_input ctxt decode markup parse str =
   let
     fun parse_tree tree =
       let
-        val {delimited, text, pos} = token_source tree;
-        val syms = Symbol_Pos.explode (text, pos);
-        val _ = Context_Position.report ctxt pos (markup delimited);
+        val source = input_source tree;
+        val syms = Input.source_explode source;
+        val pos = Input.pos_of source;
+        val _ = Context_Position.report ctxt pos (markup (Input.is_delimited source));
       in parse (syms, pos) end;
   in
     (case YXML.parse_body str handle Fail msg => error msg of
       body as [tree as XML.Elem ((name, _), _)] =>
-        if name = Markup.tokenN then parse_tree tree else decode body
+        if name = Markup.inputN then parse_tree tree else decode body
     | [tree as XML.Text _] => parse_tree tree
     | body => decode body)
   end;
@@ -272,13 +294,13 @@ fun unparse_arity ctxt (a, Ss, S) =
 fun read_sort ctxt = parse_sort ctxt #> check_sort ctxt;
 
 fun read_typs ctxt =
-  grouped 10 (Par_List.map_name "Syntax.read_typs") (parse_typ ctxt) #> check_typs ctxt;
+  grouped 10 Par_List.map_independent (parse_typ ctxt) #> check_typs ctxt;
 
 fun read_terms ctxt =
-  grouped 10 (Par_List.map_name "Syntax.read_terms") (parse_term ctxt) #> check_terms ctxt;
+  grouped 10 Par_List.map_independent (parse_term ctxt) #> check_terms ctxt;
 
 fun read_props ctxt =
-  grouped 10 (Par_List.map_name "Syntax.read_props") (parse_prop ctxt) #> check_props ctxt;
+  grouped 10 Par_List.map_independent (parse_prop ctxt) #> check_props ctxt;
 
 val read_typ = singleton o read_typs;
 val read_term = singleton o read_terms;
@@ -312,7 +334,7 @@ val pretty_global =
 fun is_pretty_global ctxt = Config.get ctxt pretty_global;
 val set_pretty_global = Config.put pretty_global;
 val init_pretty_global = set_pretty_global true o Proof_Context.init_global;
-val init_pretty = Context.pretty_context init_pretty_global;
+val init_pretty = Context.cases init_pretty_global I;
 
 val pretty_term_global = pretty_term o init_pretty_global;
 val pretty_typ_global = pretty_typ o init_pretty_global;
@@ -590,9 +612,9 @@ end;
 fun guess_infix (Syntax ({gram, ...}, _)) c =
   (case Parser.guess_infix_lr (Lazy.force gram) c of
     SOME (s, l, r, j) => SOME
-     (if l then Mixfix.Infixl (s, j)
-      else if r then Mixfix.Infixr (s, j)
-      else Mixfix.Infix (s, j))
+     (if l then Infixl (Input.string s, j, Position.no_range)
+      else if r then Infixr (Input.string s, j, Position.no_range)
+      else Infix (Input.string s, j, Position.no_range))
   | NONE => NONE);
 
 
@@ -647,8 +669,8 @@ val update_trfuns = update_syntax mode_default o Syntax_Ext.syn_ext_trfuns;
 fun update_type_gram add prmode decls =
   (if add then update_syntax else remove_syntax) prmode (Mixfix.syn_ext_types decls);
 
-fun update_const_gram add is_logtype prmode decls =
-  (if add then update_syntax else remove_syntax) prmode (Mixfix.syn_ext_consts is_logtype decls);
+fun update_const_gram add logical_types prmode decls =
+  (if add then update_syntax else remove_syntax) prmode (Mixfix.syn_ext_consts logical_types decls);
 
 val update_trrules = update_syntax mode_default o Syntax_Ext.syn_ext_rules o check_rules;
 val remove_trrules = remove_syntax mode_default o Syntax_Ext.syn_ext_rules o check_rules;

@@ -1,83 +1,101 @@
 (*  Title:      Pure/General/graph_display.ML
     Author:     Makarius
 
-Generic graph display, with browser and graphview backends.
+Support for graph display.
 *)
 
 signature GRAPH_DISPLAY =
 sig
-  type node =
-   {name: string, ID: string, dir: string, unfold: bool,
-    path: string, parents: string list, content: Pretty.T list}
-  type graph = node list
-  val write_graph_browser: Path.T -> graph -> unit
-  val browserN: string
-  val graphviewN: string
-  val active_graphN: string
-  val display_graph: graph -> unit
+  type node
+  val content_node: string -> Pretty.T list -> node
+  val session_node: {name: string, unfold: bool, directory: string, path: string} -> node
+  type entry = (string * node) * string list
+  val display_graph: entry list -> unit
+  val display_graph_old: entry list -> unit
 end;
 
 structure Graph_Display: GRAPH_DISPLAY =
 struct
 
-(* external graph representation *)
+(* graph entries *)
 
-type node =
- {name: string, ID: string, dir: string, unfold: bool,
-  path: string, parents: string list, content: Pretty.T list};
+datatype node =
+  Node of {name: string, content: Pretty.T list, unfold: bool, directory: string, path: string};
 
-type graph = node list;
+fun content_node name content =
+  Node {name = name, content = content, unfold = true, directory = "", path = ""};
 
+fun session_node {name, unfold, directory, path} =
+  Node {name = name, content = [], unfold = unfold, directory = directory, path = path};
 
-(* print modes *)
-
-val browserN = "browser";
-val graphviewN = "graphview";
-val active_graphN = "active_graph";
-
-fun is_browser () =
-  (case find_first (fn m => m = browserN orelse m = graphviewN) (print_mode_value ()) of
-    SOME m => m = browserN
-  | NONE => true);
-
-
-(* encode graph *)
-
-fun encode_browser (graph: graph) =
-  cat_lines (map (fn {name, ID, dir, unfold, path, parents, ...} =>
-    "\"" ^ name ^ "\" \"" ^ ID ^ "\" \"" ^ dir ^ (if unfold then "\" + \"" else "\" \"") ^
-    path ^ "\" > " ^ space_implode " " (map quote parents) ^ " ;") graph);
-
-fun write_graph_browser path graph = File.write path (encode_browser graph);
-
-
-val encode_content = YXML.parse_body o Pretty.symbolic_string_of o Pretty.chunks;
-
-fun encode_graphview (graph: graph) =
-  Graph.empty
-  |> fold (fn {ID, name, content, ...} => Graph.new_node (ID, (name, content))) graph
-  |> fold (fn {ID = a, parents = bs, ...} => fold (fn b => Graph.add_edge (b, a)) bs) graph
-  |> let open XML.Encode in Graph.encode string (pair string encode_content) end;
+type entry = (string * node) * string list;
 
 
 (* display graph *)
 
-fun display_graph graph =
-  if print_mode_active active_graphN then
-    let
-      val (markup, body) =
-        if is_browser () then (Markup.browserN, encode_browser graph)
-        else (Markup.graphviewN, YXML.string_of_body (encode_graphview graph));
-      val ((bg1, bg2), en) =
-        YXML.output_markup_elem (Active.make_markup markup {implicit = false, properties = []});
-    in writeln ("See " ^ bg1 ^ body ^ bg2 ^ "graph" ^ en) end
-  else
-    let
-      val _ = writeln "Displaying graph ...";
-      val path = Isabelle_System.create_tmp_path "graph" "";
-      val _ = write_graph_browser path graph;
-      val _ = Isabelle_System.isabelle_tool "browser" ("-c " ^ File.shell_path path ^ " &");
-    in () end;
+local
+
+fun encode_node (Node {name, content, ...}) =
+  (name, content) |>
+    let open XML.Encode
+    in pair string (YXML.parse_body o Pretty.symbolic_string_of o Pretty.chunks) end;
+
+val encode_graph =
+  let open XML.Encode in list (pair (pair string encode_node) (list string)) end;
+
+in
+
+fun display_graph entries =
+  let
+    val ((bg1, bg2), en) =
+      YXML.output_markup_elem
+        (Active.make_markup Markup.graphviewN {implicit = false, properties = []});
+  in writeln ("See " ^ bg1 ^ YXML.string_of_body (encode_graph entries) ^ bg2 ^ "graph" ^ en) end;
 
 end;
 
+
+(* support for old browser *)
+
+local
+
+structure Graph =
+  Graph(type key = string * string val ord = prod_ord string_ord string_ord);
+
+fun build_graph entries =
+  let
+    val ident_names =
+      fold (fn ((ident, Node {name, ...}), _) => Symtab.update_new (ident, (name, ident)))
+        entries Symtab.empty;
+    val the_key = the o Symtab.lookup ident_names;
+  in
+    Graph.empty
+    |> fold (fn ((ident, node), _) => Graph.new_node (the_key ident, node)) entries
+    |> fold (fn ((ident, _), parents) =>
+        fold (fn parent => Graph.add_edge (the_key parent, the_key ident)) parents) entries
+  end;
+
+val sort_graph = build_graph #> (fn graph =>
+  Graph.topological_order graph |> map (fn key =>
+    let val (_, (node, (preds, _))) = Graph.get_entry graph key
+    in ((#2 key, node), map #2 (Graph.Keys.dest preds)) end));
+
+val encode_browser =
+  sort_graph
+  #> map (fn ((key, Node {name, unfold, content = _, directory, path}), parents) =>
+    "\"" ^ name ^ "\" \"" ^ key ^ "\" \"" ^ directory ^ (if unfold then "\" + \"" else "\" \"") ^
+    path ^ "\" > " ^ space_implode " " (map quote parents) ^ " ;")
+  #> cat_lines;
+
+in
+
+fun display_graph_old entries =
+  let
+    val ((bg1, bg2), en) =
+      YXML.output_markup_elem
+        (Active.make_markup Markup.browserN {implicit = false, properties = []});
+  in writeln ("See " ^ bg1 ^ encode_browser entries ^ bg2 ^ "graph" ^ en) end;
+
+end;
+
+end;

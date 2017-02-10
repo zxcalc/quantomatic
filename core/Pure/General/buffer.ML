@@ -11,7 +11,7 @@ sig
   val add: string -> T -> T
   val markup: Markup.T -> (T -> T) -> T -> T
   val content: T -> string
-  val output: T -> TextIO.outstream -> unit
+  val output: T -> BinIO.outstream -> unit
 end;
 
 structure Buffer: BUFFER =
@@ -29,6 +29,8 @@ fun markup m body =
   in add bg #> body #> add en end;
 
 fun content (Buffer xs) = implode (rev xs);
-fun output (Buffer xs) stream = List.app (fn s => TextIO.output (stream, s)) (rev xs);
+
+fun output (Buffer xs) stream =
+  List.app (fn s => BinIO.output (stream, Byte.stringToBytes s)) (rev xs);
 
 end;

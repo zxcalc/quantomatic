@@ -27,7 +27,7 @@ sig
   val merge_ss: simpset * simpset -> simpset
   val dest_ss: simpset ->
    {simps: (string * thm) list,
-    procs: (string * cterm list) list,
+    procs: (string * term list) list,
     congs: (cong_name * thm) list,
     weak_congs: cong_name list,
     loopers: string list,
@@ -35,10 +35,9 @@ sig
     safe_solvers: string list}
   type simproc
   val eq_simproc: simproc * simproc -> bool
+  val cert_simproc: theory -> string ->
+    {lhss: term list, proc: morphism -> Proof.context -> cterm -> thm option} -> simproc
   val transform_simproc: morphism -> simproc -> simproc
-  val make_simproc: {name: string, lhss: cterm list,
-    proc: morphism -> Proof.context -> cterm -> thm option, identifier: thm list} -> simproc
-  val mk_simproc: string -> cterm list -> (Proof.context -> term -> thm option) -> simproc
   val simpset_of: Proof.context -> simpset
   val put_simpset: simpset -> Proof.context -> Proof.context
   val simpset_map: Proof.context -> (Proof.context -> Proof.context) -> simpset -> simpset
@@ -91,6 +90,7 @@ sig
   val prems_of: Proof.context -> thm list
   val add_simp: thm -> Proof.context -> Proof.context
   val del_simp: thm -> Proof.context -> Proof.context
+  val init_simpset: thm list -> Proof.context -> Proof.context
   val add_eqcong: thm -> Proof.context -> Proof.context
   val del_eqcong: thm -> Proof.context -> Proof.context
   val add_cong: thm -> Proof.context -> Proof.context
@@ -105,13 +105,7 @@ sig
   val solver: Proof.context -> solver -> int -> tactic
   val simp_depth_limit_raw: Config.raw
   val default_mk_sym: Proof.context -> thm -> thm option
-  val simproc_global_i: theory -> string -> term list ->
-    (Proof.context -> term -> thm option) -> simproc
-  val simproc_global: theory -> string -> string list ->
-    (Proof.context -> term -> thm option) -> simproc
   val simp_trace_depth_limit_raw: Config.raw
-  val simp_trace_depth_limit_default: int Unsynchronized.ref
-  val simp_trace_default: bool Unsynchronized.ref
   val simp_trace_raw: Config.raw
   val simp_debug_raw: Config.raw
   val add_prems: thm list -> Proof.context -> Proof.context
@@ -148,10 +142,14 @@ type rrule =
  {thm: thm,         (*the rewrite rule*)
   name: string,     (*name of theorem from which rewrite rule was extracted*)
   lhs: term,        (*the left-hand side*)
-  elhs: cterm,      (*the etac-contracted lhs*)
+  elhs: cterm,      (*the eta-contracted lhs*)
   extra: bool,      (*extra variables outside of elhs*)
   fo: bool,         (*use first-order matching*)
   perm: bool};      (*the rewrite rule is permutative*)
+
+fun trim_context_rrule ({thm, name, lhs, elhs, extra, fo, perm}: rrule) =
+  {thm = Thm.trim_context thm, name = name, lhs = lhs, elhs = Thm.trim_context_cterm elhs,
+    extra = extra, fo = fo, perm = perm};
 
 (*
 Remarks:
@@ -184,11 +182,11 @@ fun rewrite_rule_extra_vars prems elhs erhs =
   end;
 
 fun rrule_extra_vars elhs thm =
-  rewrite_rule_extra_vars [] (term_of elhs) (Thm.full_prop_of thm);
+  rewrite_rule_extra_vars [] (Thm.term_of elhs) (Thm.full_prop_of thm);
 
 fun mk_rrule2 {thm, name, lhs, elhs, perm} =
   let
-    val t = term_of elhs;
+    val t = Thm.term_of elhs;
     val fo = Pattern.first_order t orelse not (Pattern.pattern t);
     val extra = rrule_extra_vars elhs thm;
   in {thm = thm, name = name, lhs = lhs, elhs = elhs, extra = extra, fo = fo, perm = perm} end;
@@ -220,14 +218,11 @@ fun default_reorient ctxt prems lhs rhs =
 datatype proc =
   Proc of
    {name: string,
-    lhs: cterm,
+    lhs: term,
     proc: Proof.context -> cterm -> thm option,
-    id: stamp * thm list};
+    stamp: stamp};
 
-fun eq_procid ((s1: stamp, ths1: thm list), (s2, ths2)) =
-  s1 = s2 andalso eq_list Thm.eq_thm (ths1, ths2);
-
-fun eq_proc (Proc {id = id1, ...}, Proc {id = id2, ...}) = eq_procid (id1, id2);
+fun eq_proc (Proc {stamp = stamp1, ...}, Proc {stamp = stamp2, ...}) = stamp1 = stamp2;
 
 
 (* solvers *)
@@ -300,8 +295,8 @@ fun dest_ss (Simpset ({rules, ...}, {congs, procs, loop_tacs, solvers, ...})) =
  {simps = Net.entries rules
     |> map (fn {name, thm, ...} => (name, thm)),
   procs = Net.entries procs
-    |> map (fn Proc {name, lhs, id, ...} => ((name, lhs), id))
-    |> partition_eq (eq_snd eq_procid)
+    |> map (fn Proc {name, lhs, stamp, ...} => ((name, lhs), stamp))
+    |> partition_eq (eq_snd op =)
     |> map (fn ps => (fst (fst (hd ps)), map (snd o fst) ps)),
   congs = #1 congs,
   weak_congs = #2 congs,
@@ -344,7 +339,7 @@ fun merge_ss (ss1, ss2) =
       val rules' = Net.merge eq_rrule (rules1, rules2);
       val prems' = Thm.merge_thms (prems1, prems2);
       val depth' = if #1 depth1 < #1 depth2 then depth2 else depth1;
-      val congs' = merge (Thm.eq_thm_prop o pairself #2) (congs1, congs2);
+      val congs' = merge (Thm.eq_thm_prop o apply2 #2) (congs1, congs2);
       val weak' = merge (op =) (weak1, weak2);
       val procs' = Net.merge eq_proc (procs1, procs2);
       val loop_tacs' = AList.merge (op =) (K true) (loop_tacs1, loop_tacs2);
@@ -397,10 +392,8 @@ val clear_simpset =
 val simp_depth_limit_raw = Config.declare ("simp_depth_limit", @{here}) (K (Config.Int 100));
 val simp_depth_limit = Config.int simp_depth_limit_raw;
 
-val simp_trace_depth_limit_default = Unsynchronized.ref 1;
 val simp_trace_depth_limit_raw =
-  Config.declare ("simp_trace_depth_limit", @{here})
-    (fn _ => Config.Int (! simp_trace_depth_limit_default));
+  Config.declare ("simp_trace_depth_limit", @{here}) (fn _ => Config.Int 1);
 val simp_trace_depth_limit = Config.int simp_trace_depth_limit_raw;
 
 fun inc_simp_depth ctxt =
@@ -422,9 +415,7 @@ exception SIMPLIFIER of string * thm list;
 val simp_debug_raw = Config.declare ("simp_debug", @{here}) (K (Config.Bool false));
 val simp_debug = Config.bool simp_debug_raw;
 
-val simp_trace_default = Unsynchronized.ref false;
-val simp_trace_raw =
-  Config.declare ("simp_trace", @{here}) (fn _ => Config.Bool (! simp_trace_default));
+val simp_trace_raw = Config.declare ("simp_trace", @{here}) (fn _ => Config.Bool false);
 val simp_trace = Config.bool simp_trace_raw;
 
 fun cond_warning ctxt msg =
@@ -467,7 +458,7 @@ fun add_prems ths =
 
 fun del_rrule (rrule as {thm, elhs, ...}) ctxt =
   ctxt |> map_simpset1 (fn (rules, prems, depth) =>
-    (Net.delete_term eq_rrule (term_of elhs, rrule) rules, prems, depth))
+    (Net.delete_term eq_rrule (Thm.term_of elhs, rrule) rules, prems, depth))
   handle Net.DELETE =>
     (cond_warning ctxt (fn () => print_thm ctxt "Rewrite rule not in simpset:" ("", thm)); ctxt);
 
@@ -476,7 +467,7 @@ fun insert_rrule (rrule as {thm, name, ...}) ctxt =
   ctxt |> map_simpset1 (fn (rules, prems, depth) =>
     let
       val rrule2 as {elhs, ...} = mk_rrule2 rrule;
-      val rules' = Net.insert_term eq_rrule (term_of elhs, rrule2) rules;
+      val rules' = Net.insert_term eq_rrule (Thm.term_of elhs, trim_context_rrule rrule2) rules;
     in (rules', prems, depth) end)
   handle Net.INSERT =>
     (cond_warning ctxt (fn () => print_thm ctxt "Ignoring duplicate rewrite rule:" ("", thm));
@@ -502,12 +493,12 @@ fun decomp_simp thm =
     val (lhs, rhs) = Thm.dest_equals concl handle TERM _ =>
       raise SIMPLIFIER ("Rewrite rule not a meta-equality", [thm]);
     val elhs = Thm.dest_arg (Thm.cprop_of (Thm.eta_conversion lhs));
-    val erhs = Envir.eta_contract (term_of rhs);
+    val erhs = Envir.eta_contract (Thm.term_of rhs);
     val perm =
-      var_perm (term_of elhs, erhs) andalso
-      not (term_of elhs aconv erhs) andalso
-      not (is_Var (term_of elhs));
-  in (prems, term_of lhs, elhs, term_of rhs, perm) end;
+      var_perm (Thm.term_of elhs, erhs) andalso
+      not (Thm.term_of elhs aconv erhs) andalso
+      not (is_Var (Thm.term_of elhs));
+  in (prems, Thm.term_of lhs, elhs, Thm.term_of rhs, perm) end;
 
 end;
 
@@ -540,7 +531,7 @@ fun mk_rrule ctxt (thm, name) =
     if perm then [{thm = thm, name = name, lhs = lhs, elhs = elhs, perm = true}]
     else
       (*weak test for loops*)
-      if rewrite_rule_extra_vars prems lhs rhs orelse is_Var (term_of elhs)
+      if rewrite_rule_extra_vars prems lhs rhs orelse is_Var (Thm.term_of elhs)
       then mk_eq_True ctxt (thm, name)
       else rrule_eq_True ctxt thm name lhs elhs rhs thm
   end;
@@ -579,10 +570,14 @@ fun mk_rrules ctxt thms =
 
 (* add/del rules explicitly *)
 
+local
+
 fun comb_simps ctxt comb mk_rrule thms =
   let
-    val rews = extract_rews ctxt thms;
+    val rews = extract_rews ctxt (map (Thm.transfer (Proof_Context.theory_of ctxt)) thms);
   in fold (fold comb o mk_rrule) rews ctxt end;
+
+in
 
 fun ctxt addsimps thms =
   comb_simps ctxt insert_rrule (mk_rrule ctxt) thms;
@@ -592,6 +587,14 @@ fun ctxt delsimps thms =
 
 fun add_simp thm ctxt = ctxt addsimps [thm];
 fun del_simp thm ctxt = ctxt delsimps [thm];
+
+end;
+
+fun init_simpset thms ctxt = ctxt
+  |> Context_Position.set_visible false
+  |> empty_simpset
+  |> fold add_simp thms
+  |> Context_Position.restore_visible ctxt;
 
 
 (* congs *)
@@ -636,11 +639,7 @@ fun add_eqcong thm ctxt = ctxt |> map_simpset2
       val a = the (cong_name (head_of lhs)) handle Option.Option =>
         raise SIMPLIFIER ("Congruence must start with a constant or free variable", [thm]);
       val (xs, weak) = congs;
-      val _ =
-        if AList.defined (op =) xs a then
-          cond_warning ctxt (fn () => "Overwriting congruence rule for " ^ quote (#2 a))
-        else ();
-      val xs' = AList.update (op =) (a, thm) xs;
+      val xs' = AList.update (op =) (a, Thm.trim_context thm) xs;
       val weak' = if is_full_cong thm then weak else a :: weak;
     in ((xs', weak'), procs, mk_rews, termless, subgoal_tac, loop_tacs, solvers) end);
 
@@ -669,39 +668,30 @@ end;
 datatype simproc =
   Simproc of
     {name: string,
-     lhss: cterm list,
+     lhss: term list,
      proc: morphism -> Proof.context -> cterm -> thm option,
-     id: stamp * thm list};
+     stamp: stamp};
 
-fun eq_simproc (Simproc {id = id1, ...}, Simproc {id = id2, ...}) = eq_procid (id1, id2);
+fun eq_simproc (Simproc {stamp = stamp1, ...}, Simproc {stamp = stamp2, ...}) = stamp1 = stamp2;
 
-fun transform_simproc phi (Simproc {name, lhss, proc, id = (s, ths)}) =
+fun cert_simproc thy name {lhss, proc} =
+  Simproc {name = name, lhss = map (Sign.cert_term thy) lhss, proc = proc, stamp = stamp ()};
+
+fun transform_simproc phi (Simproc {name, lhss, proc, stamp}) =
   Simproc
    {name = name,
-    lhss = map (Morphism.cterm phi) lhss,
+    lhss = map (Morphism.term phi) lhss,
     proc = Morphism.transform phi proc,
-    id = (s, Morphism.fact phi ths)};
-
-fun make_simproc {name, lhss, proc, identifier} =
-  Simproc {name = name, lhss = lhss, proc = proc, id = (stamp (), identifier)};
-
-fun mk_simproc name lhss proc =
-  make_simproc {name = name, lhss = lhss, proc = fn _ => fn ctxt => fn ct =>
-    proc ctxt (term_of ct), identifier = []};
-
-(* FIXME avoid global thy and Logic.varify_global *)
-fun simproc_global_i thy name = mk_simproc name o map (Thm.cterm_of thy o Logic.varify_global);
-fun simproc_global thy name = simproc_global_i thy name o map (Syntax.read_term_global thy);
-
+    stamp = stamp};
 
 local
 
 fun add_proc (proc as Proc {name, lhs, ...}) ctxt =
  (cond_tracing ctxt (fn () =>
-    print_term ctxt ("Adding simplification procedure " ^ quote name ^ " for") (term_of lhs));
+    print_term ctxt ("Adding simplification procedure " ^ quote name ^ " for") lhs);
   ctxt |> map_simpset2
     (fn (congs, procs, mk_rews, termless, subgoal_tac, loop_tacs, solvers) =>
-      (congs, Net.insert_term eq_proc (term_of lhs, proc) procs,
+      (congs, Net.insert_term eq_proc (lhs, proc) procs,
         mk_rews, termless, subgoal_tac, loop_tacs, solvers))
   handle Net.INSERT =>
     (cond_warning ctxt (fn () => "Ignoring duplicate simplification procedure " ^ quote name);
@@ -710,14 +700,14 @@ fun add_proc (proc as Proc {name, lhs, ...}) ctxt =
 fun del_proc (proc as Proc {name, lhs, ...}) ctxt =
   ctxt |> map_simpset2
     (fn (congs, procs, mk_rews, termless, subgoal_tac, loop_tacs, solvers) =>
-      (congs, Net.delete_term eq_proc (term_of lhs, proc) procs,
+      (congs, Net.delete_term eq_proc (lhs, proc) procs,
         mk_rews, termless, subgoal_tac, loop_tacs, solvers))
   handle Net.DELETE =>
     (cond_warning ctxt (fn () => "Simplification procedure " ^ quote name ^ " not in simpset");
       ctxt);
 
-fun prep_procs (Simproc {name, lhss, proc, id}) =
-  lhss |> map (fn lhs => Proc {name = name, lhs = lhs, proc = Morphism.form proc, id = id});
+fun prep_procs (Simproc {name, lhss, proc, stamp}) =
+  lhss |> map (fn lhs => Proc {name = name, lhs = lhs, proc = Morphism.form proc, stamp = stamp});
 
 in
 
@@ -851,8 +841,15 @@ fun trace_apply args ctxt = #trace_apply (trace_ops ctxt) args ctxt;
 fun check_conv ctxt msg thm thm' =
   let
     val thm'' = Thm.transitive thm thm' handle THM _ =>
-     Thm.transitive thm (Thm.transitive
-       (Thm.symmetric (Drule.beta_eta_conversion (Thm.lhs_of thm'))) thm')
+      let
+        val nthm' =
+          Thm.transitive (Thm.symmetric (Drule.beta_eta_conversion (Thm.lhs_of thm'))) thm'
+      in Thm.transitive thm nthm' handle THM _ =>
+           let
+             val nthm =
+               Thm.transitive thm (Drule.beta_eta_conversion (Thm.rhs_of thm))
+           in Thm.transitive nthm nthm' end
+      end
     val _ =
       if msg then cond_tracing ctxt (fn () => print_thm ctxt "SUCCEEDED" ("", thm'))
       else ();
@@ -920,17 +917,21 @@ fun cond_skel (args as (_, (lhs, rhs))) =
 
 fun rewritec (prover, maxt) ctxt t =
   let
+    val thy = Proof_Context.theory_of ctxt;
     val Simpset ({rules, ...}, {congs, procs, termless, ...}) = simpset_of ctxt;
     val eta_thm = Thm.eta_conversion t;
     val eta_t' = Thm.rhs_of eta_thm;
-    val eta_t = term_of eta_t';
+    val eta_t = Thm.term_of eta_t';
     fun rew rrule =
       let
-        val {thm, name, lhs, elhs, extra, fo, perm} = rrule
+        val {thm = thm0, name, lhs, elhs = elhs0, extra, fo, perm} = rrule;
+        val thm = Thm.transfer thy thm0;
+        val elhs = Thm.transfer_cterm thy elhs0;
         val prop = Thm.prop_of thm;
         val (rthm, elhs') =
           if maxt = ~1 orelse not extra then (thm, elhs)
           else (Thm.incr_indexes (maxt + 1) thm, Thm.incr_indexes_cterm (maxt + 1) elhs);
+
         val insts =
           if fo then Thm.first_order_match (elhs', eta_t')
           else Thm.match (elhs', eta_t');
@@ -995,7 +996,7 @@ fun rewritec (prover, maxt) ctxt t =
 
     fun proc_rews [] = NONE
       | proc_rews (Proc {name, proc, lhs, ...} :: ps) =
-          if Pattern.matches (Proof_Context.theory_of ctxt) (term_of lhs, term_of t) then
+          if Pattern.matches (Proof_Context.theory_of ctxt) (lhs, Thm.term_of t) then
             (cond_tracing' ctxt simp_debug (fn () =>
               print_term ctxt ("Trying procedure " ^ quote name ^ " on:") eta_t);
              (case proc ctxt eta_t' of
@@ -1027,11 +1028,12 @@ fun rewritec (prover, maxt) ctxt t =
 fun congc prover ctxt maxt cong t =
   let
     val rthm = Thm.incr_indexes (maxt + 1) cong;
-    val rlhs = fst (Thm.dest_equals (Drule.strip_imp_concl (cprop_of rthm)));
+    val rlhs = fst (Thm.dest_equals (Drule.strip_imp_concl (Thm.cprop_of rthm)));
     val insts = Thm.match (rlhs, t)
     (* Thm.match can raise Pattern.MATCH;
        is handled when congc is called *)
-    val thm' = Thm.instantiate insts (Thm.rename_boundvars (term_of rlhs) (term_of t) rthm);
+    val thm' =
+      Thm.instantiate insts (Thm.rename_boundvars (Thm.term_of rlhs) (Thm.term_of t) rthm);
     val _ =
       cond_tracing ctxt (fn () => print_thm ctxt "Applying congruence rule:" ("", thm'));
     fun err (msg, thm) = (cond_tracing ctxt (fn () => print_thm ctxt msg ("", thm)); NONE);
@@ -1042,12 +1044,13 @@ fun congc prover ctxt maxt cong t =
         (case check_conv ctxt true (Drule.beta_eta_conversion t) thm2 of
           NONE => err ("Congruence proof failed.  Should not have proved", thm2)
         | SOME thm2' =>
-            if op aconv (pairself term_of (Thm.dest_equals (cprop_of thm2')))
+            if op aconv (apply2 Thm.term_of (Thm.dest_equals (Thm.cprop_of thm2')))
             then NONE else SOME thm2'))
   end;
 
-val (cA, (cB, cC)) =
-  apsnd Thm.dest_equals (Thm.dest_implies (hd (cprems_of Drule.imp_cong)));
+val vA = (("A", 0), propT);
+val vB = (("B", 0), propT);
+val vC = (("C", 0), propT);
 
 fun transitive1 NONE NONE = NONE
   | transitive1 (SOME thm1) NONE = SOME thm1
@@ -1082,13 +1085,13 @@ fun bottomc ((simprem, useprem, mutsimp), prover, maxidx) =
 
     and subc skel ctxt t0 =
         let val Simpset (_, {congs, ...}) = simpset_of ctxt in
-          (case term_of t0 of
+          (case Thm.term_of t0 of
               Abs (a, T, _) =>
                 let
                     val (v, ctxt') = Variable.next_bound (a, T) ctxt;
                     val b = #1 (Term.dest_Free v);
                     val (v', t') = Thm.dest_abs (SOME b) t0;
-                    val b' = #1 (Term.dest_Free (term_of v'));
+                    val b' = #1 (Term.dest_Free (Thm.term_of v'));
                     val _ =
                       if b <> b' then
                         warning ("Bad Simplifier context: renamed bound variable " ^
@@ -1135,7 +1138,7 @@ fun bottomc ((simprem, useprem, mutsimp), prover, maxidx) =
                     (case cong_name h of
                       SOME a =>
                         (case AList.lookup (op =) (fst congs) a of
-                           NONE => appc ()
+                          NONE => appc ()
                         | SOME cong =>
      (*post processing: some partial applications h t1 ... tj, j <= length ts,
        may be a redex. Example: map (%x. x) = (%xs. xs) wrt map_cong*)
@@ -1161,11 +1164,11 @@ fun bottomc ((simprem, useprem, mutsimp), prover, maxidx) =
       else nonmut_impc ct ctxt
 
     and rules_of_prem prem ctxt =
-      if maxidx_of_term (term_of prem) <> ~1
+      if maxidx_of_term (Thm.term_of prem) <> ~1
       then
        (cond_tracing ctxt (fn () =>
           print_term ctxt "Cannot add premise as rewrite rule because it contains (type) unknowns:"
-            (term_of prem));
+            (Thm.term_of prem));
         (([], NONE), ctxt))
       else
         let val (asm, ctxt') = Thm.assume_hyps prem ctxt
@@ -1179,7 +1182,7 @@ fun bottomc ((simprem, useprem, mutsimp), prover, maxidx) =
         val (lhs, rhs) = Thm.dest_equals (Thm.cprop_of eq);
         val eq' =
           Thm.implies_elim
-            (Thm.instantiate ([], [(cA, prem), (cB, lhs), (cC, rhs)]) Drule.imp_cong)
+            (Thm.instantiate ([], [(vA, prem), (vB, lhs), (vC, rhs)]) Drule.imp_cong)
             (Thm.implies_intr prem eq);
       in
         if not r then eq'
@@ -1190,9 +1193,9 @@ fun bottomc ((simprem, useprem, mutsimp), prover, maxidx) =
           in
             Thm.transitive
               (Thm.transitive
-                (Thm.instantiate ([], [(cA, prem'), (cB, prem), (cC, concl)]) Drule.swap_prems_eq)
+                (Thm.instantiate ([], [(vA, prem'), (vB, prem), (vC, concl)]) Drule.swap_prems_eq)
                 eq')
-              (Thm.instantiate ([], [(cA, prem), (cB, prem''), (cC, concl)]) Drule.swap_prems_eq)
+              (Thm.instantiate ([], [(vA, prem), (vB, prem''), (vC, concl)]) Drule.swap_prems_eq)
           end
       end
 
@@ -1239,7 +1242,7 @@ fun bottomc ((simprem, useprem, mutsimp), prover, maxidx) =
         | SOME eqn =>
             let
               val prem' = Thm.rhs_of eqn;
-              val tprems = map term_of prems;
+              val tprems = map Thm.term_of prems;
               val i = 1 + fold Integer.max (map (fn p =>
                 find_index (fn q => q aconv p) tprems) (Thm.hyps_of eqn)) ~1;
               val ((rrs', asm'), ctxt') = rules_of_prem prem' ctxt;
@@ -1297,30 +1300,28 @@ fun rewrite_cterm mode prover raw_ctxt raw_ct =
   let
     val thy = Proof_Context.theory_of raw_ctxt;
 
-    val ct = Thm.adjust_maxidx_cterm ~1 raw_ct;
-    val {maxidx, ...} = Thm.rep_cterm ct;
-    val _ =
-      Theory.subthy (theory_of_cterm ct, thy) orelse
-        raise CTERM ("rewrite_cterm: bad background theory", [ct]);
+    val ct = raw_ct
+      |> Thm.transfer_cterm thy
+      |> Thm.adjust_maxidx_cterm ~1;
+    val maxidx = Thm.maxidx_of_cterm ct;
 
     val ctxt =
       raw_ctxt
       |> Context_Position.set_visible false
       |> inc_simp_depth
-      |> (fn ctxt => trace_invoke {depth = simp_depth ctxt, term = term_of ct} ctxt);
+      |> (fn ctxt => trace_invoke {depth = simp_depth ctxt, term = Thm.term_of ct} ctxt);
 
     val _ =
       cond_tracing ctxt (fn () =>
-        print_term ctxt "SIMPLIFIER INVOKED ON THE FOLLOWING TERM:" (term_of ct));
-  in bottomc (mode, Option.map Drule.flexflex_unique oo prover, maxidx) ctxt ct end;
+        print_term ctxt "SIMPLIFIER INVOKED ON THE FOLLOWING TERM:" (Thm.term_of ct));
+  in bottomc (mode, Option.map (Drule.flexflex_unique (SOME ctxt)) oo prover, maxidx) ctxt ct end;
 
 val simple_prover =
-  SINGLE o (fn ctxt => ALLGOALS (resolve_tac (prems_of ctxt)));
+  SINGLE o (fn ctxt => ALLGOALS (resolve_tac ctxt (prems_of ctxt)));
 
 fun rewrite _ _ [] = Thm.reflexive
   | rewrite ctxt full thms =
-      rewrite_cterm (full, false, false) simple_prover
-        (empty_simpset ctxt addsimps thms);
+      rewrite_cterm (full, false, false) simple_prover (init_simpset thms ctxt);
 
 fun rewrite_rule ctxt = Conv.fconv_rule o rewrite ctxt true;
 
@@ -1333,7 +1334,7 @@ fun rewrite_thm mode prover ctxt = Conv.fconv_rule (rewrite_cterm mode prover ct
 (*Rewrite the subgoals of a proof state (represented by a theorem)*)
 fun rewrite_goals_rule ctxt thms th =
   Conv.fconv_rule (Conv.prems_conv ~1 (rewrite_cterm (true, true, true) simple_prover
-    (empty_simpset ctxt addsimps thms))) th;
+    (init_simpset thms ctxt))) th;
 
 
 (** meta-rewriting tactics **)
@@ -1347,9 +1348,8 @@ fun generic_rewrite_goal_tac mode prover_tac ctxt i thm =
     Seq.single (Conv.gconv_rule (rewrite_cterm mode (SINGLE o prover_tac) ctxt) i thm)
   else Seq.empty;
 
-fun rewrite_goal_tac ctxt rews =
-  generic_rewrite_goal_tac (true, false, false) (K no_tac)
-    (empty_simpset ctxt addsimps rews);
+fun rewrite_goal_tac ctxt thms =
+  generic_rewrite_goal_tac (true, false, false) (K no_tac) (init_simpset thms ctxt);
 
 (*Prunes all redundant parameters from the proof state by rewriting.*)
 fun prune_params_tac ctxt = rewrite_goals_tac ctxt [Drule.triv_forall_equality];
@@ -1362,7 +1362,7 @@ fun term_depth (Abs (_, _, t)) = 1 + term_depth t
   | term_depth (f $ t) = 1 + Int.max (term_depth f, term_depth t)
   | term_depth _ = 0;
 
-val lhs_of_thm = #1 o Logic.dest_equals o prop_of;
+val lhs_of_thm = #1 o Logic.dest_equals o Thm.prop_of;
 
 (*folding should handle critical pairs!  E.g. K == Inl(0),  S == Inr(Inl(0))
   Returns longest lhs first to avoid folding its subexpressions.*)
@@ -1381,21 +1381,26 @@ fun fold_goals_tac ctxt defs = EVERY (map (rewrite_goals_tac ctxt) (rev_defs def
 
 local
 
-fun gen_norm_hhf ss ctxt th =
-  (if Drule.is_norm_hhf (Thm.prop_of th) then th
-   else
-    Conv.fconv_rule
-      (rewrite_cterm (true, false, false) (K (K NONE)) (put_simpset ss ctxt)) th)
-  |> Thm.adjust_maxidx_thm ~1
-  |> Drule.gen_all;
+fun gen_norm_hhf ss ctxt =
+  Thm.transfer (Proof_Context.theory_of ctxt) #>
+  (fn th =>
+    if Drule.is_norm_hhf (Thm.prop_of th) then th
+    else
+      Conv.fconv_rule
+        (rewrite_cterm (true, false, false) (K (K NONE)) (put_simpset ss ctxt)) th) #>
+  Thm.adjust_maxidx_thm ~1 #>
+  Variable.gen_all ctxt;
 
 val hhf_ss =
-  simpset_of (empty_simpset (Context.proof_of (Context.the_thread_data ()))
-    addsimps Drule.norm_hhf_eqs);
+  Context.the_local_context ()
+  |> init_simpset Drule.norm_hhf_eqs
+  |> simpset_of;
 
 val hhf_protect_ss =
-  simpset_of (empty_simpset (Context.proof_of (Context.the_thread_data ()))
-    addsimps Drule.norm_hhf_eqs |> add_eqcong Drule.protect_cong);
+  Context.the_local_context ()
+  |> init_simpset Drule.norm_hhf_eqs
+  |> add_eqcong Drule.protect_cong
+  |> simpset_of;
 
 in
 

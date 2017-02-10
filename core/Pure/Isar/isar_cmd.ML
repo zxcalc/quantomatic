@@ -6,25 +6,19 @@ Miscellaneous Isar commands.
 
 signature ISAR_CMD =
 sig
-  val global_setup: Symbol_Pos.source -> theory -> theory
-  val local_setup: Symbol_Pos.source -> Proof.context -> Proof.context
-  val parse_ast_translation: Symbol_Pos.source -> theory -> theory
-  val parse_translation: Symbol_Pos.source -> theory -> theory
-  val print_translation: Symbol_Pos.source -> theory -> theory
-  val typed_print_translation: Symbol_Pos.source -> theory -> theory
-  val print_ast_translation: Symbol_Pos.source -> theory -> theory
+  val setup: Input.source -> theory -> theory
+  val local_setup: Input.source -> Proof.context -> Proof.context
+  val parse_ast_translation: Input.source -> theory -> theory
+  val parse_translation: Input.source -> theory -> theory
+  val print_translation: Input.source -> theory -> theory
+  val typed_print_translation: Input.source -> theory -> theory
+  val print_ast_translation: Input.source -> theory -> theory
   val translations: (xstring * string) Syntax.trrule list -> theory -> theory
   val no_translations: (xstring * string) Syntax.trrule list -> theory -> theory
-  val oracle: bstring * Position.T -> Symbol_Pos.source -> theory -> theory
-  val add_defs: (bool * bool) * ((binding * string) * Attrib.src list) list -> theory -> theory
-  val declaration: {syntax: bool, pervasive: bool} ->
-    Symbol_Pos.source -> local_theory -> local_theory
-  val simproc_setup: string * Position.T -> string list -> Symbol_Pos.source ->
-    string list -> local_theory -> local_theory
-  val have: (Attrib.binding * (string * string list) list) list -> bool -> Proof.state -> Proof.state
-  val hence: (Attrib.binding * (string * string list) list) list -> bool -> Proof.state -> Proof.state
-  val show: (Attrib.binding * (string * string list) list) list -> bool -> Proof.state -> Proof.state
-  val thus: (Attrib.binding * (string * string list) list) list -> bool -> Proof.state -> Proof.state
+  val oracle: bstring * Position.range -> Input.source -> theory -> theory
+  val declaration: {syntax: bool, pervasive: bool} -> Input.source -> local_theory -> local_theory
+  val simproc_setup: string * Position.T -> string list -> Input.source ->
+    local_theory -> local_theory
   val qed: Method.text_range option -> Toplevel.transition -> Toplevel.transition
   val terminal_proof: Method.text_range * Method.text_range option ->
     Toplevel.transition -> Toplevel.transition
@@ -32,30 +26,20 @@ sig
   val immediate_proof: Toplevel.transition -> Toplevel.transition
   val done_proof: Toplevel.transition -> Toplevel.transition
   val skip_proof: Toplevel.transition -> Toplevel.transition
-  val ml_diag: bool -> Symbol_Pos.source -> Toplevel.transition -> Toplevel.transition
+  val ml_diag: bool -> Input.source -> Toplevel.transition -> Toplevel.transition
   val diag_state: Proof.context -> Toplevel.state
   val diag_goal: Proof.context -> {context: Proof.context, facts: thm list, goal: thm}
   val pretty_theorems: bool -> Toplevel.state -> Pretty.T list
-  val thy_deps: Toplevel.transition -> Toplevel.transition
-  val locale_deps: Toplevel.transition -> Toplevel.transition
-  val class_deps: Toplevel.transition -> Toplevel.transition
-  val thm_deps: (Facts.ref * Attrib.src list) list -> Toplevel.transition -> Toplevel.transition
-  val unused_thms: (string list * string list option) option ->
-    Toplevel.transition -> Toplevel.transition
-  val print_stmts: string list * (Facts.ref * Attrib.src list) list
+  val print_stmts: string list * (Facts.ref * Token.src list) list
     -> Toplevel.transition -> Toplevel.transition
-  val print_thms: string list * (Facts.ref * Attrib.src list) list
+  val print_thms: string list * (Facts.ref * Token.src list) list
     -> Toplevel.transition -> Toplevel.transition
-  val print_prfs: bool -> string list * (Facts.ref * Attrib.src list) list option
+  val print_prfs: bool -> string list * (Facts.ref * Token.src list) list option
     -> Toplevel.transition -> Toplevel.transition
   val print_prop: (string list * string) -> Toplevel.transition -> Toplevel.transition
   val print_term: (string list * string) -> Toplevel.transition -> Toplevel.transition
   val print_type: (string list * (string * string option)) ->
     Toplevel.transition -> Toplevel.transition
-  val header_markup: Symbol_Pos.source -> Toplevel.transition -> Toplevel.transition
-  val local_theory_markup: (xstring * Position.T) option * (Symbol_Pos.source) ->
-    Toplevel.transition -> Toplevel.transition
-  val proof_markup: Symbol_Pos.source -> Toplevel.transition -> Toplevel.transition
 end;
 
 structure Isar_Cmd: ISAR_CMD =
@@ -66,14 +50,16 @@ struct
 
 (* generic setup *)
 
-fun global_setup source =
+fun setup source =
   ML_Lex.read_source false source
-  |> ML_Context.expression (#pos source) "val setup: theory -> theory" "Context.map_theory setup"
+  |> ML_Context.expression (Input.range_of source) "setup" "theory -> theory"
+    "Context.map_theory setup"
   |> Context.theory_map;
 
 fun local_setup source =
   ML_Lex.read_source false source
-  |> ML_Context.expression (#pos source) "val setup: local_theory -> local_theory" "Context.map_proof setup"
+  |> ML_Context.expression (Input.range_of source) "local_setup" "local_theory -> local_theory"
+    "Context.map_proof local_setup"
   |> Context.proof_map;
 
 
@@ -81,36 +67,36 @@ fun local_setup source =
 
 fun parse_ast_translation source =
   ML_Lex.read_source false source
-  |> ML_Context.expression (#pos source)
-    "val parse_ast_translation: (string * (Proof.context -> Ast.ast list -> Ast.ast)) list"
+  |> ML_Context.expression (Input.range_of source) "parse_ast_translation"
+    "(string * (Proof.context -> Ast.ast list -> Ast.ast)) list"
     "Context.map_theory (Sign.parse_ast_translation parse_ast_translation)"
   |> Context.theory_map;
 
 fun parse_translation source =
   ML_Lex.read_source false source
-  |> ML_Context.expression (#pos source)
-    "val parse_translation: (string * (Proof.context -> term list -> term)) list"
+  |> ML_Context.expression (Input.range_of source) "parse_translation"
+    "(string * (Proof.context -> term list -> term)) list"
     "Context.map_theory (Sign.parse_translation parse_translation)"
   |> Context.theory_map;
 
 fun print_translation source =
   ML_Lex.read_source false source
-  |> ML_Context.expression (#pos source)
-    "val print_translation: (string * (Proof.context -> term list -> term)) list"
+  |> ML_Context.expression (Input.range_of source) "print_translation"
+    "(string * (Proof.context -> term list -> term)) list"
     "Context.map_theory (Sign.print_translation print_translation)"
   |> Context.theory_map;
 
 fun typed_print_translation source =
   ML_Lex.read_source false source
-  |> ML_Context.expression (#pos source)
-    "val typed_print_translation: (string * (Proof.context -> typ -> term list -> term)) list"
+  |> ML_Context.expression (Input.range_of source) "typed_print_translation"
+    "(string * (Proof.context -> typ -> term list -> term)) list"
     "Context.map_theory (Sign.typed_print_translation typed_print_translation)"
   |> Context.theory_map;
 
 fun print_ast_translation source =
   ML_Lex.read_source false source
-  |> ML_Context.expression (#pos source)
-    "val print_ast_translation: (string * (Proof.context -> Ast.ast list -> Ast.ast)) list"
+  |> ML_Context.expression (Input.range_of source) "print_ast_translation"
+    "(string * (Proof.context -> Ast.ast list -> Ast.ast)) list"
     "Context.map_theory (Sign.print_ast_translation print_ast_translation)"
   |> Context.theory_map;
 
@@ -133,41 +119,31 @@ fun no_translations args thy = Sign.del_trrules (read_trrules thy args) thy;
 
 (* oracles *)
 
-fun oracle (name, pos) source =
+fun oracle (name, range) source =
   let
+    val body_range = Input.range_of source;
     val body = ML_Lex.read_source false source;
+
     val ants =
-      ML_Lex.read Position.none
+      ML_Lex.read
        ("local\n\
-        \  val binding = " ^ ML_Syntax.make_binding (name, pos) ^ ";\n\
-        \  val body = ") @ body @ ML_Lex.read Position.none (";\n\
-        \in\n\
-        \  val " ^ name ^
-        " = snd (Context.>>> (Context.map_theory_result (Thm.add_oracle (binding, body))));\n\
-        \end;\n");
+        \  val binding = " ^ ML_Syntax.make_binding (name, #1 range) ^ ";\n\
+        \  val") @ ML_Lex.read_set_range body_range "oracle" @ ML_Lex.read "=" @ body @
+        ML_Lex.read (";\nin\n\
+        \  val") @ ML_Lex.read_set_range range name @ ML_Lex.read "=\
+        \ snd (Context.>>> (Context.map_theory_result (Thm.add_oracle (binding, oracle))));\n\
+        \end;\n";
   in
     Context.theory_map
-      (ML_Context.exec (fn () => ML_Context.eval ML_Compiler.flags (#pos source) ants))
+      (ML_Context.exec (fn () => ML_Context.eval ML_Compiler.flags (#1 body_range) ants))
   end;
-
-
-(* old-style defs *)
-
-fun add_defs ((unchecked, overloaded), args) thy =
- (legacy_feature "Old 'defs' command -- use 'definition' (with 'overloading') instead";
-  thy |>
-    (if unchecked then Global_Theory.add_defs_unchecked_cmd else Global_Theory.add_defs_cmd)
-      overloaded
-      (map (fn ((b, ax), srcs) => ((b, ax), map (Attrib.attribute_cmd_global thy) srcs)) args)
-  |> snd);
 
 
 (* declarations *)
 
 fun declaration {syntax, pervasive} source =
   ML_Lex.read_source false source
-  |> ML_Context.expression (#pos source)
-    "val declaration: Morphism.declaration"
+  |> ML_Context.expression (Input.range_of source) "declaration" "Morphism.declaration"
     ("Context.map_proof (Local_Theory.declaration {syntax = " ^ Bool.toString syntax ^ ", \
       \pervasive = " ^ Bool.toString pervasive ^ "} declaration)")
   |> Context.proof_map;
@@ -175,54 +151,39 @@ fun declaration {syntax, pervasive} source =
 
 (* simprocs *)
 
-fun simproc_setup name lhss source identifier =
+fun simproc_setup name lhss source =
   ML_Lex.read_source false source
-  |> ML_Context.expression (#pos source)
-    "val proc: Morphism.morphism -> Proof.context -> cterm -> thm option"
-    ("Context.map_proof (Simplifier.def_simproc_cmd {name = " ^ ML_Syntax.make_binding name ^ ", \
-      \lhss = " ^ ML_Syntax.print_strings lhss ^ ", proc = proc, \
-      \identifier = Library.maps ML_Context.thms " ^ ML_Syntax.print_strings identifier ^ "})")
+  |> ML_Context.expression (Input.range_of source) "proc"
+    "Morphism.morphism -> Proof.context -> cterm -> thm option"
+    ("Context.map_proof (Simplifier.define_simproc_cmd " ^
+      ML_Syntax.atomic (ML_Syntax.make_binding name) ^
+      "{lhss = " ^ ML_Syntax.print_strings lhss ^ ", proc = proc})")
   |> Context.proof_map;
-
-
-(* goals *)
-
-fun goal opt_chain goal stmt int =
-  opt_chain #> goal NONE (K I) stmt int;
-
-val have = goal I Proof.have_cmd;
-val hence = goal Proof.chain Proof.have_cmd;
-val show = goal I Proof.show_cmd;
-val thus = goal Proof.chain Proof.show_cmd;
 
 
 (* local endings *)
 
 fun local_qed m = Toplevel.proof (Proof.local_qed (m, true));
-val local_terminal_proof = Toplevel.proof' o Proof.local_future_terminal_proof;
+val local_terminal_proof = Toplevel.proof o Proof.local_future_terminal_proof;
 val local_default_proof = Toplevel.proof Proof.local_default_proof;
 val local_immediate_proof = Toplevel.proof Proof.local_immediate_proof;
 val local_done_proof = Toplevel.proof Proof.local_done_proof;
 val local_skip_proof = Toplevel.proof' Proof.local_skip_proof;
 
-val skip_local_qed = Toplevel.skip_proof (fn i => if i > 1 then i - 1 else raise Toplevel.UNDEF);
-
 
 (* global endings *)
 
 fun global_qed m = Toplevel.end_proof (K (Proof.global_qed (m, true)));
-val global_terminal_proof = Toplevel.end_proof o Proof.global_future_terminal_proof;
+val global_terminal_proof = Toplevel.end_proof o K o Proof.global_future_terminal_proof;
 val global_default_proof = Toplevel.end_proof (K Proof.global_default_proof);
 val global_immediate_proof = Toplevel.end_proof (K Proof.global_immediate_proof);
 val global_skip_proof = Toplevel.end_proof Proof.global_skip_proof;
 val global_done_proof = Toplevel.end_proof (K Proof.global_done_proof);
 
-val skip_global_qed = Toplevel.skip_proof_to_theory (fn n => n = 1);
-
 
 (* common endings *)
 
-fun qed m = local_qed m o global_qed m o skip_local_qed o skip_global_qed;
+fun qed m = local_qed m o global_qed m;
 fun terminal_proof m = local_terminal_proof m o global_terminal_proof m;
 val default_proof = local_default_proof o global_default_proof;
 val immediate_proof = local_immediate_proof o global_immediate_proof;
@@ -247,10 +208,7 @@ fun ml_diag verbose source = Toplevel.keep (fn state =>
   in ML_Context.eval_source_in opt_ctxt flags source end);
 
 val diag_state = Diag_State.get;
-
-fun diag_goal ctxt =
-  Proof.goal (Toplevel.proof_of (diag_state ctxt))
-    handle Toplevel.UNDEF => error "No goal present";
+val diag_goal = Proof.goal o Toplevel.proof_of o diag_state;
 
 val _ = Theory.setup
   (ML_Antiquotation.value (Binding.qualify true "Isar" @{binding state})
@@ -263,78 +221,15 @@ val _ = Theory.setup
 
 fun pretty_theorems verbose st =
   if Toplevel.is_proof st then
-    Proof_Context.pretty_local_facts (Toplevel.context_of st) verbose
+    Proof_Context.pretty_local_facts verbose (Toplevel.context_of st)
   else
     let
-      val thy = Toplevel.theory_of st;
+      val ctxt = Toplevel.context_of st;
       val prev_thys =
         (case Toplevel.previous_context_of st of
           SOME prev => [Proof_Context.theory_of prev]
-        | NONE => Theory.parents_of thy);
-    in Proof_Display.pretty_theorems_diff verbose prev_thys thy end;
-
-
-(* display dependencies *)
-
-val thy_deps = Toplevel.unknown_theory o Toplevel.keep (fn state =>
-  let
-    val thy = Toplevel.theory_of state;
-    val thy_session = Present.session_name thy;
-
-    val gr = rev (Theory.nodes_of thy) |> map (fn node =>
-      let
-        val name = Context.theory_name node;
-        val parents = map Context.theory_name (Theory.parents_of node);
-        val session = Present.session_name node;
-        val unfold = (session = thy_session);
-      in
-       {name = name, ID = name, parents = parents, dir = session,
-        unfold = unfold, path = "", content = []}
-      end);
-  in Graph_Display.display_graph gr end);
-
-val locale_deps = Toplevel.unknown_theory o Toplevel.keep (fn state =>
-  let
-    val thy = Toplevel.theory_of state;
-    val gr = Locale.pretty_locale_deps thy |> map (fn {name, parents, body} =>
-     {name = Locale.extern thy name, ID = name, parents = parents,
-      dir = "", unfold = true, path = "", content = [body]});
-  in Graph_Display.display_graph gr end);
-
-val class_deps = Toplevel.unknown_theory o Toplevel.keep (fn state =>
-  let
-    val ctxt = Toplevel.context_of state;
-    val {classes = (space, algebra), ...} = Type.rep_tsig (Proof_Context.tsig_of ctxt);
-    val classes = Sorts.classes_of algebra;
-    fun entry (c, (i, (_, cs))) =
-      (i, {name = Name_Space.extern ctxt space c, ID = c, parents = Graph.Keys.dest cs,
-            dir = "", unfold = true, path = "", content = []});
-    val gr =
-      Graph.fold (cons o entry) classes []
-      |> sort (int_ord o pairself #1) |> map #2;
-  in Graph_Display.display_graph gr end);
-
-fun thm_deps args = Toplevel.unknown_theory o Toplevel.keep (fn state =>
-  Thm_Deps.thm_deps (Toplevel.theory_of state)
-    (Attrib.eval_thms (Toplevel.context_of state) args));
-
-
-(* find unused theorems *)
-
-fun unused_thms opt_range = Toplevel.keep (fn state =>
-  let
-    val thy = Toplevel.theory_of state;
-    val ctxt = Toplevel.context_of state;
-    fun pretty_thm (a, th) = Proof_Context.pretty_fact ctxt (a, [th]);
-    val get_theory = Context.get_theory thy;
-  in
-    Thm_Deps.unused_thms
-      (case opt_range of
-        NONE => (Theory.parents_of thy, [thy])
-      | SOME (xs, NONE) => (map get_theory xs, [thy])
-      | SOME (xs, SOME ys) => (map get_theory xs, map get_theory ys))
-    |> map pretty_thm |> Pretty.writeln_chunks
-  end);
+        | NONE => Theory.parents_of (Proof_Context.theory_of ctxt));
+    in Proof_Display.pretty_theorems_diff verbose prev_thys ctxt end;
 
 
 (* print theorems, terms, types etc. *)
@@ -355,18 +250,32 @@ fun string_of_prfs full state arg =
       NONE =>
         let
           val {context = ctxt, goal = thm} = Proof.simple_goal (Toplevel.proof_of state);
-          val thy = Proof_Context.theory_of ctxt;
           val prf = Thm.proof_of thm;
           val prop = Thm.full_prop_of thm;
           val prf' = Proofterm.rewrite_proof_notypes ([], []) prf;
         in
           Proof_Syntax.pretty_proof ctxt
-            (if full then Reconstruct.reconstruct_proof thy prop prf' else prf')
+            (if full then Reconstruct.reconstruct_proof ctxt prop prf' else prf')
         end
     | SOME srcs =>
-        let val ctxt = Toplevel.context_of state
-        in map (Proof_Syntax.pretty_proof_of ctxt full) (Attrib.eval_thms ctxt srcs) end
-        |> Pretty.chunks);
+        let
+          val ctxt = Toplevel.context_of state;
+          val thy = Proof_Context.theory_of ctxt;
+          fun pretty_proof thm =
+            let
+              val (_, prop) =
+                Logic.unconstrainT (Thm.shyps_of thm)
+                  (Logic.list_implies (Thm.hyps_of thm, Thm.prop_of thm));
+            in
+              Proofterm.proof_of (Proofterm.strip_thm (Thm.proof_body_of thm))
+              |> Reconstruct.reconstruct_proof ctxt prop
+              |> Reconstruct.expand_proof ctxt [("", NONE)]
+              |> Proofterm.rew_proof thy
+              |> Proofterm.no_thm_proofs
+              |> not full ? Proofterm.shrink_proof
+              |> Proof_Syntax.pretty_proof ctxt
+            end;
+        in Pretty.chunks (map pretty_proof (Attrib.eval_thms ctxt srcs)) end);
 
 fun string_of_prop ctxt s =
   let
@@ -412,15 +321,5 @@ val print_term = print_item (string_of_term o Toplevel.context_of);
 val print_type = print_item (string_of_type o Toplevel.context_of);
 
 end;
-
-
-(* markup commands *)
-
-fun header_markup txt = Toplevel.keep (fn state =>
-  if Toplevel.is_toplevel state then Thy_Output.check_text txt state
-  else raise Toplevel.UNDEF);
-
-fun local_theory_markup (loc, txt) = Toplevel.present_local_theory loc (Thy_Output.check_text txt);
-val proof_markup = Toplevel.present_proof o Thy_Output.check_text;
 
 end;

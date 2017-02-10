@@ -8,7 +8,7 @@ package isabelle
 
 
 import scala.annotation.tailrec
-import scala.collection.{IndexedSeq, TraversableOnce}
+import scala.collection.{IndexedSeq, Traversable, TraversableOnce}
 import scala.collection.immutable.PagedSeq
 import scala.util.parsing.input.{OffsetPosition, Position => InputPosition, Reader}
 import scala.util.parsing.combinator.RegexParsers
@@ -91,7 +91,7 @@ object Scan
     private def quoted_body(quote: Symbol.Symbol): Parser[String] =
     {
       rep(many1(sym => sym != quote && sym != "\\") | "\\" + quote | "\\\\" |
-        (("""\\\d\d\d""".r) ^? { case x if x.substring(1, 4).toInt <= 255 => x })) ^^ (_.mkString)
+        ("""\\\d\d\d""".r ^? { case x if x.substring(1, 4).toInt <= 255 => x })) ^^ (_.mkString)
     }
 
     def quoted(quote: Symbol.Symbol): Parser[String] =
@@ -185,7 +185,8 @@ object Scan
           val n = matcher(i, end)
           val sym = in.source.subSequence(i, i + n).toString
           if (Symbol.is_open(sym)) { i += n; d += 1 }
-          else if (d > 0) { i += n; if (Symbol.is_close(sym)) d -= 1 }
+          else if (Symbol.is_close(sym) && d > 0) { i += n; d -= 1; if (d == 0) finished = true }
+          else if (d > 0) i += n
           else finished = true
         }
         if (i == start) Failure("bad input", in)
@@ -248,7 +249,7 @@ object Scan
         var finished = false
         while (!finished) {
           if (try_parse("(*")) d += 1
-          else if (d > 0 && try_parse("*)")) d -= 1
+          else if (d > 0 && try_parse("*)")) { d -= 1; if (d == 0) finished = true }
           else if (d == 0 || !try_parse(comment_text)) finished = true
         }
         if (in.offset < rest.offset)
@@ -306,7 +307,7 @@ object Scan
   {
     /* representation */
 
-    private sealed case class Tree(val branches: Map[Char, (String, Tree)])
+    private sealed case class Tree(branches: Map[Char, (String, Tree)])
     private val empty_tree = Tree(Map())
 
     val empty: Lexicon = new Lexicon(empty_tree)
@@ -317,10 +318,10 @@ object Scan
   {
     /* auxiliary operations */
 
-    private def content(tree: Lexicon.Tree, result: List[String]): List[String] =
+    private def dest(tree: Lexicon.Tree, result: List[String]): List[String] =
       (result /: tree.branches.toList) ((res, entry) =>
         entry match { case (_, (s, tr)) =>
-          if (s.isEmpty) content(tr, res) else content(tr, s :: res) })
+          if (s.isEmpty) dest(tr, res) else dest(tr, s :: res) })
 
     private def lookup(str: CharSequence): Option[(Boolean, Lexicon.Tree)] =
     {
@@ -329,7 +330,7 @@ object Scan
       {
         if (i < len) {
           tree.branches.get(str.charAt(i)) match {
-            case Some((s, tr)) => look(tr, !s.isEmpty, i + 1)
+            case Some((s, tr)) => look(tr, s.nonEmpty, i + 1)
             case None => None
           }
         }
@@ -340,20 +341,20 @@ object Scan
 
     def completions(str: CharSequence): List[String] =
       lookup(str) match {
-        case Some((true, tree)) => content(tree, List(str.toString))
-        case Some((false, tree)) => content(tree, Nil)
+        case Some((true, tree)) => dest(tree, List(str.toString))
+        case Some((false, tree)) => dest(tree, Nil)
         case None => Nil
       }
 
 
     /* pseudo Set methods */
 
-    def iterator: Iterator[String] = content(rep, Nil).sorted.iterator
+    def raw_iterator: Iterator[String] = dest(rep, Nil).iterator
+    def iterator: Iterator[String] = dest(rep, Nil).sorted.iterator
 
     override def toString: String = iterator.mkString("Lexicon(", ", ", ")")
 
-    def empty: Lexicon = Lexicon.empty
-    def isEmpty: Boolean = rep.branches.isEmpty
+    def is_empty: Boolean = rep.branches.isEmpty
 
     def contains(elem: String): Boolean =
       lookup(elem) match {
@@ -362,7 +363,7 @@ object Scan
       }
 
 
-    /* add elements */
+    /* build lexicon */
 
     def + (elem: String): Lexicon =
       if (contains(elem)) this
@@ -386,6 +387,16 @@ object Scan
       }
 
     def ++ (elems: TraversableOnce[String]): Lexicon = (this /: elems)(_ + _)
+
+    def ++ (other: Lexicon): Lexicon =
+      if (this eq other) this
+      else if (is_empty) other
+      else this ++ other.raw_iterator
+
+    def -- (remove: Traversable[String]): Lexicon =
+      if (remove.exists(contains(_)))
+        Lexicon.empty ++ iterator.filterNot(a => remove.exists(b => a == b))
+      else this
 
 
     /* scan */

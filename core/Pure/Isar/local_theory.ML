@@ -7,26 +7,31 @@ Local theory operations, with abstract target context.
 type local_theory = Proof.context;
 type generic_theory = Context.generic;
 
+structure Attrib =
+struct
+  type binding = binding * Token.src list;
+  type thms = (thm list * Token.src list) list;
+end;
+
 signature LOCAL_THEORY =
 sig
   type operations
   val assert: local_theory -> local_theory
-  val restore: local_theory -> local_theory
+  val reset: local_theory -> local_theory
   val level: Proof.context -> int
   val assert_bottom: bool -> local_theory -> local_theory
+  val mark_brittle: local_theory -> local_theory
   val assert_nonbrittle: local_theory -> local_theory
-  val open_target: Name_Space.naming -> operations -> (local_theory -> local_theory) ->
-    local_theory -> local_theory
-  val close_target: local_theory -> local_theory
   val map_contexts: (int -> Proof.context -> Proof.context) -> local_theory -> local_theory
-  val naming_of: local_theory -> Name_Space.naming
+  val background_naming_of: local_theory -> Name_Space.naming
+  val map_background_naming: (Name_Space.naming -> Name_Space.naming) ->
+    local_theory -> local_theory
+  val restore_background_naming: local_theory -> local_theory -> local_theory
   val full_name: local_theory -> binding -> string
-  val map_naming: (Name_Space.naming -> Name_Space.naming) -> local_theory -> local_theory
-  val conceal: local_theory -> local_theory
   val new_group: local_theory -> local_theory
   val reset_group: local_theory -> local_theory
-  val restore_naming: local_theory -> local_theory -> local_theory
   val standard_morphism: local_theory -> Proof.context -> morphism
+  val standard_morphism_theory: local_theory -> morphism
   val standard_form: local_theory -> Proof.context -> (morphism -> 'a) -> 'a
   val raw_theory_result: (theory -> 'a * theory) -> local_theory -> 'a * local_theory
   val raw_theory: (theory -> theory) -> local_theory -> local_theory
@@ -42,31 +47,34 @@ sig
   val define_internal: (binding * mixfix) * (Attrib.binding * term) -> local_theory ->
     (term * (string * thm)) * local_theory
   val note: Attrib.binding * thm list -> local_theory -> (string * thm list) * local_theory
-  val notes: (Attrib.binding * (thm list * Attrib.src list) list) list ->
-    local_theory -> (string * thm list) list * local_theory
-  val notes_kind: string -> (Attrib.binding * (thm list * Attrib.src list) list) list ->
-    local_theory -> (string * thm list) list * local_theory
+  val notes: (Attrib.binding * Attrib.thms) list -> local_theory ->
+    (string * thm list) list * local_theory
+  val notes_kind: string -> (Attrib.binding * Attrib.thms) list -> local_theory ->
+    (string * thm list) list * local_theory
   val abbrev: Syntax.mode -> (binding * mixfix) * term -> local_theory ->
     (term * term) * local_theory
   val declaration: {syntax: bool, pervasive: bool} -> declaration -> local_theory -> local_theory
-  val subscription: string * morphism -> (morphism * bool) option -> morphism ->
+  val theory_registration: string * morphism -> (morphism * bool) option -> morphism ->
+    local_theory -> local_theory
+  val locale_dependency: string * morphism -> (morphism * bool) option -> morphism ->
     local_theory -> local_theory
   val pretty: local_theory -> Pretty.T list
+  val add_thms_dynamic: binding * (Context.generic -> thm list) -> local_theory -> local_theory
   val set_defsort: sort -> local_theory -> local_theory
   val type_notation: bool -> Syntax.mode -> (typ * mixfix) list -> local_theory -> local_theory
   val notation: bool -> Syntax.mode -> (term * mixfix) list -> local_theory -> local_theory
   val class_alias: binding -> class -> local_theory -> local_theory
   val type_alias: binding -> string -> local_theory -> local_theory
   val const_alias: binding -> string -> local_theory -> local_theory
-  val activate: string * morphism -> (morphism * bool) option -> morphism ->
-    local_theory -> local_theory
-  val activate_nonbrittle: string * morphism -> (morphism * bool) option -> morphism ->
-    local_theory -> local_theory
   val init: Name_Space.naming -> operations -> Proof.context -> local_theory
   val exit: local_theory -> Proof.context
   val exit_global: local_theory -> theory
   val exit_result: (morphism -> 'a -> 'b) -> 'a * local_theory -> 'b * Proof.context
   val exit_result_global: (morphism -> 'a -> 'b) -> 'a * local_theory -> 'b * theory
+  val init_target: Name_Space.naming -> operations -> (local_theory -> local_theory) ->
+    local_theory -> Binding.scope * local_theory
+  val open_target: local_theory -> Binding.scope * local_theory
+  val close_target: local_theory -> local_theory
 end;
 
 structure Local_Theory: LOCAL_THEORY =
@@ -79,26 +87,28 @@ struct
 type operations =
  {define: bool -> (binding * mixfix) * (Attrib.binding * term) -> local_theory ->
     (term * (string * thm)) * local_theory,
-  notes: string ->
-    (Attrib.binding * (thm list * Attrib.src list) list) list ->
-    local_theory -> (string * thm list) list * local_theory,
+  notes: string -> (Attrib.binding * Attrib.thms) list -> local_theory ->
+    (string * thm list) list * local_theory,
   abbrev: Syntax.mode -> (binding * mixfix) * term -> local_theory ->
     (term * term) * local_theory,
   declaration: {syntax: bool, pervasive: bool} -> declaration -> local_theory -> local_theory,
-  subscription: string * morphism -> (morphism * bool) option -> morphism ->
+  theory_registration: string * morphism -> (morphism * bool) option -> morphism ->
+     local_theory -> local_theory,
+  locale_dependency: string * morphism -> (morphism * bool) option -> morphism ->
      local_theory -> local_theory,
   pretty: local_theory -> Pretty.T list,
   exit: local_theory -> Proof.context};
 
 type lthy =
- {naming: Name_Space.naming,
+ {background_naming: Name_Space.naming,
   operations: operations,
   after_close: local_theory -> local_theory,
   brittle: bool,
   target: Proof.context};
 
-fun make_lthy (naming, operations, after_close, brittle, target) : lthy =
-  {naming = naming, operations = operations, after_close = after_close, brittle = brittle, target = target};
+fun make_lthy (background_naming, operations, after_close, brittle, target) : lthy =
+  {background_naming = background_naming, operations = operations,
+    after_close = after_close, brittle = brittle, target = target};
 
 
 (* context data *)
@@ -115,12 +125,12 @@ fun assert lthy =
 val bottom_of = List.last o Data.get o assert;
 val top_of = hd o Data.get o assert;
 
-fun map_bottom f =
+fun map_top f =
   assert #>
-  Data.map (fn {naming, operations, after_close, brittle, target} :: parents =>
-    make_lthy (f (naming, operations, after_close, brittle, target)) :: parents);
+  Data.map (fn {background_naming, operations, after_close, brittle, target} :: parents =>
+    make_lthy (f (background_naming, operations, after_close, brittle, target)) :: parents);
 
-fun restore lthy = #target (top_of lthy) |> Data.put (Data.get lthy);
+fun reset lthy = #target (top_of lthy) |> Data.put (Data.get lthy);
 
 
 (* nested structure *)
@@ -137,56 +147,46 @@ fun assert_bottom b lthy =
     else lthy
   end;
 
-fun open_target naming operations after_close target =
-  assert target
-  |> Data.map (cons (make_lthy (naming, operations, after_close, true, target)));
-
-fun close_target lthy =
-  let
-    val _ = assert_bottom false lthy;
-    val ({after_close, ...} :: rest) = Data.get lthy;
-  in lthy |> Data.put rest |> restore |> after_close end;
-
 fun map_contexts f lthy =
   let val n = level lthy in
-    lthy |> (Data.map o map_index) (fn (i, {naming, operations, after_close, brittle, target}) =>
-      make_lthy (naming, operations, after_close, brittle,
-        target
-        |> Context_Position.set_visible false
-        |> f (n - i - 1)
-        |> Context_Position.restore_visible target))
-    |> f n
+    lthy |> (Data.map o map_index)
+      (fn (i, {background_naming, operations, after_close, brittle, target}) =>
+        make_lthy (background_naming, operations, after_close, brittle,
+          target
+          |> Context_Position.set_visible false
+          |> f (n - i - 1)
+          |> Context_Position.restore_visible target))
+      |> f n
   end;
 
 
 (* brittle context -- implicit for nested structures *)
 
 fun mark_brittle lthy =
-  if level lthy = 1
-  then map_bottom (fn (naming, operations, after_close, brittle, target) =>
-    (naming, operations, after_close, true, target)) lthy
+  if level lthy = 1 then
+    map_top (fn (background_naming, operations, after_close, _, target) =>
+      (background_naming, operations, after_close, true, target)) lthy
   else lthy;
 
 fun assert_nonbrittle lthy =
-  if #brittle (top_of lthy)
-  then error "Brittle local theory context"
+  if #brittle (top_of lthy) then error "Brittle local theory context"
   else lthy;
 
 
-(* naming *)
+(* naming for background theory *)
 
-val naming_of = #naming o top_of;
-val full_name = Name_Space.full_name o naming_of;
+val background_naming_of = #background_naming o top_of;
 
-fun map_naming f =
-  map_bottom (fn (naming, operations, after_close, brittle, target) =>
-    (f naming, operations, after_close, brittle, target));
+fun map_background_naming f =
+  map_top (fn (background_naming, operations, after_close, brittle, target) =>
+    (f background_naming, operations, after_close, brittle, target));
 
-val conceal = map_naming Name_Space.conceal;
-val new_group = map_naming Name_Space.new_group;
-val reset_group = map_naming Name_Space.reset_group;
+val restore_background_naming = map_background_naming o K o background_naming_of;
 
-val restore_naming = map_naming o K o naming_of;
+val full_name = Name_Space.full_name o background_naming_of;
+
+val new_group = map_background_naming Name_Space.new_group;
+val reset_group = map_background_naming Name_Space.reset_group;
 
 
 (* standard morphisms *)
@@ -194,7 +194,10 @@ val restore_naming = map_naming o K o naming_of;
 fun standard_morphism lthy ctxt =
   Proof_Context.norm_export_morphism lthy ctxt $>
   Morphism.binding_morphism "Local_Theory.standard_binding"
-    (Name_Space.transform_binding (naming_of lthy));
+    (Name_Space.transform_binding (Proof_Context.naming_of lthy));
+
+fun standard_morphism_theory lthy =
+  standard_morphism lthy (Proof_Context.init_global (Proof_Context.theory_of lthy));
 
 fun standard_form lthy ctxt x =
   Morphism.form (Morphism.transform (standard_morphism lthy ctxt) x);
@@ -211,11 +214,17 @@ fun raw_theory_result f lthy =
 fun raw_theory f = #2 o raw_theory_result (f #> pair ());
 
 fun background_theory_result f lthy =
-  lthy |> raw_theory_result (fn thy =>
-    thy
-    |> Sign.map_naming (K (naming_of lthy))
-    |> f
-    ||> Sign.restore_naming thy);
+  let
+    val naming =
+      background_naming_of lthy
+      |> Name_Space.transform_naming (Proof_Context.naming_of lthy);
+  in
+    lthy |> raw_theory_result (fn thy =>
+      thy
+      |> Sign.map_naming (K naming)
+      |> f
+      ||> Sign.restore_naming thy)
+  end;
 
 fun background_theory f = #2 o background_theory_result (f #> pair ());
 
@@ -251,11 +260,11 @@ fun propagate_ml_env (context as Context.Proof lthy) =
 
 val operations_of = #operations o top_of;
 
-
-(* primitives *)
-
 fun operation f lthy = f (operations_of lthy) lthy;
 fun operation2 f x y = operation (fn ops => f ops x y);
+
+
+(* primitives *)
 
 val pretty = operation #pretty;
 val abbrev = operation2 #abbrev;
@@ -263,14 +272,33 @@ val define = operation2 #define false;
 val define_internal = operation2 #define true;
 val notes_kind = operation2 #notes;
 val declaration = operation2 #declaration;
-fun subscription dep_morph mixin export =
-  assert_bottom true #> operation (fn ops => #subscription ops dep_morph mixin export);
+fun theory_registration dep_morph mixin export =
+  assert_bottom true #> operation (fn ops => #theory_registration ops dep_morph mixin export);
+fun locale_dependency dep_morph mixin export =
+  assert_bottom true #> operation (fn ops => #locale_dependency ops dep_morph mixin export);
 
 
-(* basic derived operations *)
+(* theorems *)
 
 val notes = notes_kind "";
 fun note (a, ths) = notes [(a, [(ths, [])])] #>> the_single;
+
+fun add_thms_dynamic (binding, f) lthy =
+  lthy
+  |> background_theory_result (fn thy => thy
+      |> Global_Theory.add_thms_dynamic' (Sign.inherit_naming thy lthy) (binding, f))
+  |-> (fn name =>
+    map_contexts (fn _ => fn ctxt =>
+      Proof_Context.transfer_facts (Proof_Context.theory_of ctxt) ctxt) #>
+    declaration {syntax = false, pervasive = false} (fn phi =>
+      let val binding' = Morphism.binding phi binding in
+        Context.mapping
+          (Global_Theory.alias_fact binding' name)
+          (Proof_Context.fact_alias binding' name)
+      end));
+
+
+(* default sort *)
 
 fun set_defsort S =
   declaration {syntax = true, pervasive = false}
@@ -282,55 +310,45 @@ fun set_defsort S =
 fun type_notation add mode raw_args lthy =
   let
     val args = map (apfst (Logic.type_map (Assumption.export_term lthy (target_of lthy)))) raw_args;
+    val args' = map (apsnd Mixfix.reset_pos) args;
+    val _ = lthy |> Context_Position.is_visible lthy ? Proof_Context.type_notation add mode args;
   in
     declaration {syntax = true, pervasive = false}
-      (Proof_Context.generic_type_notation add mode args) lthy
+      (Proof_Context.generic_type_notation add mode args') lthy
   end;
 
 fun notation add mode raw_args lthy =
   let
     val args = map (apfst (Assumption.export_term lthy (target_of lthy))) raw_args
+    val args' = map (apsnd Mixfix.reset_pos) args;
+    val _ = lthy |> Context_Position.is_visible lthy ? Proof_Context.notation add mode args;
   in
     declaration {syntax = true, pervasive = false}
-      (Proof_Context.generic_notation add mode args) lthy
+      (Proof_Context.generic_notation add mode args') lthy
   end;
 
 
 (* name space aliases *)
 
-fun alias global_alias local_alias b name =
+fun syntax_alias global_alias local_alias b name =
   declaration {syntax = true, pervasive = false} (fn phi =>
     let val b' = Morphism.binding phi b
     in Context.mapping (global_alias b' name) (local_alias b' name) end);
 
-val class_alias = alias Sign.class_alias Proof_Context.class_alias;
-val type_alias = alias Sign.type_alias Proof_Context.type_alias;
-val const_alias = alias Sign.const_alias Proof_Context.const_alias;
-
-
-(* activation of locale fragments *)
-
-fun activate_nonbrittle dep_morph mixin export =
-  map_bottom (fn (naming, operations, after_close, brittle, target) =>
-    (naming, operations, after_close, brittle,
-      (Context.proof_map ooo Locale.add_registration) dep_morph mixin export target));
-
-fun activate dep_morph mixin export =
-  mark_brittle #> activate_nonbrittle dep_morph mixin export;
+val class_alias = syntax_alias Sign.class_alias Proof_Context.class_alias;
+val type_alias = syntax_alias Sign.type_alias Proof_Context.type_alias;
+val const_alias = syntax_alias Sign.const_alias Proof_Context.const_alias;
 
 
 
-(** init and exit **)
+(** manage targets **)
 
-(* init *)
+(* outermost target *)
 
-fun init naming operations target =
+fun init background_naming operations target =
   target |> Data.map
-    (fn [] => [make_lthy (naming, operations, I, false, target)]
+    (fn [] => [make_lthy (background_naming, operations, I, false, target)]
       | _ => error "Local theory already initialized");
-
-
-(* exit *)
 
 val exit = operation #exit;
 val exit_global = Proof_Context.theory_of o exit;
@@ -347,5 +365,27 @@ fun exit_result_global f (x, lthy) =
     val thy_ctxt = Proof_Context.init_global thy;
     val phi = standard_morphism lthy thy_ctxt;
   in (f phi x, thy) end;
+
+
+(* nested targets *)
+
+fun init_target background_naming operations after_close lthy =
+  let
+    val _ = assert lthy;
+    val after_close' = Proof_Context.restore_naming lthy #> after_close;
+    val (scope, target) = Proof_Context.new_scope lthy;
+    val lthy' =
+      target
+      |> Data.map (cons (make_lthy (background_naming, operations, after_close', true, target)));
+  in (scope, lthy') end;
+
+fun open_target lthy =
+  init_target (background_naming_of lthy) (operations_of lthy) I lthy;
+
+fun close_target lthy =
+  let
+    val _ = assert_bottom false lthy;
+    val ({after_close, ...} :: rest) = Data.get lthy;
+  in lthy |> Data.put rest |> reset |> after_close end;
 
 end;

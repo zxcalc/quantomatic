@@ -1,5 +1,4 @@
 /*  Title:      Pure/GUI/gui_thread.scala
-    Module:     PIDE-GUI
     Author:     Makarius
 
 Evaluation within the GUI thread (for AWT/Swing).
@@ -49,9 +48,9 @@ object GUI_Thread
 
   /* delayed events */
 
-  def delay_first(delay: => Time)(event: => Unit): Simple_Thread.Delay =
-    Simple_Thread.delay_first(delay) { later { event } }
+  def delay_first(delay: => Time)(event: => Unit): Standard_Thread.Delay =
+    Standard_Thread.delay_first(delay) { later { event } }
 
-  def delay_last(delay: => Time)(event: => Unit): Simple_Thread.Delay =
-    Simple_Thread.delay_last(delay) { later { event } }
+  def delay_last(delay: => Time)(event: => Unit): Standard_Thread.Delay =
+    Standard_Thread.delay_last(delay) { later { event } }
 }

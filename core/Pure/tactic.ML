@@ -8,53 +8,48 @@ signature BASIC_TACTIC =
 sig
   val trace_goalno_tac: (int -> tactic) -> int -> tactic
   val rule_by_tactic: Proof.context -> tactic -> thm -> thm
-  val assume_tac: int -> tactic
+  val assume_tac: Proof.context -> int -> tactic
   val eq_assume_tac: int -> tactic
-  val compose_tac: (bool * thm * int) -> int -> tactic
+  val compose_tac: Proof.context -> (bool * thm * int) -> int -> tactic
   val make_elim: thm -> thm
-  val biresolve_tac: (bool * thm) list -> int -> tactic
-  val resolve_tac: thm list -> int -> tactic
-  val eresolve_tac: thm list -> int -> tactic
-  val forward_tac: thm list -> int -> tactic
-  val dresolve_tac: thm list -> int -> tactic
-  val atac: int -> tactic
-  val rtac: thm -> int -> tactic
-  val dtac: thm -> int -> tactic
-  val etac: thm -> int -> tactic
-  val ftac: thm -> int -> tactic
-  val ares_tac: thm list -> int -> tactic
-  val solve_tac: thm list -> int -> tactic
-  val bimatch_tac: (bool * thm) list -> int -> tactic
-  val match_tac: thm list -> int -> tactic
-  val ematch_tac: thm list -> int -> tactic
-  val dmatch_tac: thm list -> int -> tactic
-  val flexflex_tac: tactic
+  val biresolve0_tac: (bool * thm) list -> int -> tactic
+  val biresolve_tac: Proof.context -> (bool * thm) list -> int -> tactic
+  val resolve0_tac: thm list -> int -> tactic
+  val resolve_tac: Proof.context -> thm list -> int -> tactic
+  val eresolve0_tac: thm list -> int -> tactic
+  val eresolve_tac: Proof.context -> thm list -> int -> tactic
+  val forward_tac: Proof.context -> thm list -> int -> tactic
+  val dresolve0_tac: thm list -> int -> tactic
+  val dresolve_tac: Proof.context -> thm list -> int -> tactic
+  val ares_tac: Proof.context -> thm list -> int -> tactic
+  val solve_tac: Proof.context -> thm list -> int -> tactic
+  val bimatch_tac: Proof.context -> (bool * thm) list -> int -> tactic
+  val match_tac: Proof.context -> thm list -> int -> tactic
+  val ematch_tac: Proof.context -> thm list -> int -> tactic
+  val dmatch_tac: Proof.context -> thm list -> int -> tactic
+  val flexflex_tac: Proof.context -> tactic
   val distinct_subgoal_tac: int -> tactic
   val distinct_subgoals_tac: tactic
   val cut_tac: thm -> int -> tactic
   val cut_rules_tac: thm list -> int -> tactic
   val cut_facts_tac: thm list -> int -> tactic
   val filter_thms: (term * term -> bool) -> int * term * thm list -> thm list
-  val biresolution_from_nets_tac: ('a list -> (bool * thm) list) ->
-    bool -> 'a Net.net * 'a Net.net -> int -> tactic
-  val biresolve_from_nets_tac: (int * (bool * thm)) Net.net * (int * (bool * thm)) Net.net ->
-    int -> tactic
-  val bimatch_from_nets_tac: (int * (bool * thm)) Net.net * (int * (bool * thm)) Net.net ->
-    int -> tactic
-  val net_biresolve_tac: (bool * thm) list -> int -> tactic
-  val net_bimatch_tac: (bool * thm) list -> int -> tactic
-  val filt_resolve_tac: thm list -> int -> int -> tactic
-  val resolve_from_net_tac: (int * thm) Net.net -> int -> tactic
-  val match_from_net_tac: (int * thm) Net.net -> int -> tactic
-  val net_resolve_tac: thm list -> int -> tactic
-  val net_match_tac: thm list -> int -> tactic
+  val biresolution_from_nets_tac: Proof.context ->
+    ('a list -> (bool * thm) list) -> bool -> 'a Net.net * 'a Net.net -> int -> tactic
+  val biresolve_from_nets_tac: Proof.context ->
+    (int * (bool * thm)) Net.net * (int * (bool * thm)) Net.net -> int -> tactic
+  val bimatch_from_nets_tac: Proof.context ->
+    (int * (bool * thm)) Net.net * (int * (bool * thm)) Net.net -> int -> tactic
+  val filt_resolve_from_net_tac: Proof.context -> int -> (int * thm) Net.net -> int -> tactic
+  val resolve_from_net_tac: Proof.context -> (int * thm) Net.net -> int -> tactic
+  val match_from_net_tac: Proof.context -> (int * thm) Net.net -> int -> tactic
   val subgoals_of_brl: bool * thm -> int
   val lessb: (bool * thm) * (bool * thm) -> bool
   val rename_tac: string list -> int -> tactic
   val rotate_tac: int -> int -> tactic
   val defer_tac: int -> tactic
   val prefer_tac: int -> tactic
-  val filter_prems_tac: (term -> bool) -> int -> tactic
+  val filter_prems_tac: Proof.context -> (term -> bool) -> int -> tactic
 end;
 
 signature TACTIC =
@@ -63,8 +58,6 @@ sig
   val insert_tagged_brl: 'a * (bool * thm) ->
     ('a * (bool * thm)) Net.net * ('a * (bool * thm)) Net.net ->
       ('a * (bool * thm)) Net.net * ('a * (bool * thm)) Net.net
-  val build_netpair: (int * (bool * thm)) Net.net * (int * (bool * thm)) Net.net ->
-    (bool * thm) list -> (int * (bool * thm)) Net.net * (int * (bool * thm)) Net.net
   val delete_tagged_brl: bool * thm ->
     ('a * (bool * thm)) Net.net * ('a * (bool * thm)) Net.net ->
       ('a * (bool * thm)) Net.net * ('a * (bool * thm)) Net.net
@@ -101,7 +94,7 @@ fun rule_by_tactic ctxt tac rl =
      thus (REPEAT (resolve_tac rules i)) stops once subgoal i disappears. *)
 
 (*Solve subgoal i by assumption*)
-fun assume_tac i = PRIMSEQ (Thm.assumption i);
+fun assume_tac ctxt i = PRIMSEQ (Thm.assumption (SOME ctxt) i);
 
 (*Solve subgoal i by assumption, using no unification*)
 fun eq_assume_tac i = PRIMITIVE (Thm.eq_assumption i);
@@ -111,48 +104,45 @@ fun eq_assume_tac i = PRIMITIVE (Thm.eq_assumption i);
 
 (*The composition rule/state: no lifting or var renaming.
   The arg = (bires_flg, orule, m);  see Thm.bicompose for explanation.*)
-fun compose_tac arg i =
-  PRIMSEQ (Thm.bicompose {flatten = true, match = false, incremented = false} arg i);
+fun compose_tac ctxt arg i =
+  PRIMSEQ (Thm.bicompose (SOME ctxt) {flatten = true, match = false, incremented = false} arg i);
 
 (*Converts a "destruct" rule like P&Q==>P to an "elimination" rule
   like [| P&Q; P==>R |] ==> R *)
 fun make_elim rl = zero_var_indexes (rl RS revcut_rl);
 
 (*Attack subgoal i by resolution, using flags to indicate elimination rules*)
-fun biresolve_tac brules i = PRIMSEQ (Thm.biresolution false brules i);
+fun biresolve0_tac brules i = PRIMSEQ (Thm.biresolution NONE false brules i);
+fun biresolve_tac ctxt brules i = PRIMSEQ (Thm.biresolution (SOME ctxt) false brules i);
 
 (*Resolution: the simple case, works for introduction rules*)
-fun resolve_tac rules = biresolve_tac (map (pair false) rules);
+fun resolve0_tac rules = biresolve0_tac (map (pair false) rules);
+fun resolve_tac ctxt rules = biresolve_tac ctxt (map (pair false) rules);
 
 (*Resolution with elimination rules only*)
-fun eresolve_tac rules = biresolve_tac (map (pair true) rules);
+fun eresolve0_tac rules = biresolve0_tac (map (pair true) rules);
+fun eresolve_tac ctxt rules = biresolve_tac ctxt (map (pair true) rules);
 
 (*Forward reasoning using destruction rules.*)
-fun forward_tac rls = resolve_tac (map make_elim rls) THEN' assume_tac;
+fun forward_tac ctxt rls = resolve_tac ctxt (map make_elim rls) THEN' assume_tac ctxt;
 
 (*Like forward_tac, but deletes the assumption after use.*)
-fun dresolve_tac rls = eresolve_tac (map make_elim rls);
+fun dresolve0_tac rls = eresolve0_tac (map make_elim rls);
+fun dresolve_tac ctxt rls = eresolve_tac ctxt (map make_elim rls);
 
-(*Shorthand versions: for resolution with a single theorem*)
-val atac    =   assume_tac;
-fun rtac rl =  resolve_tac [rl];
-fun dtac rl = dresolve_tac [rl];
-fun etac rl = eresolve_tac [rl];
-fun ftac rl =  forward_tac [rl];
+(*Use an assumption or some rules*)
+fun ares_tac ctxt rules = assume_tac ctxt ORELSE' resolve_tac ctxt rules;
 
-(*Use an assumption or some rules ... A popular combination!*)
-fun ares_tac rules = assume_tac  ORELSE'  resolve_tac rules;
-
-fun solve_tac rules = resolve_tac rules THEN_ALL_NEW assume_tac;
+fun solve_tac ctxt rules = resolve_tac ctxt rules THEN_ALL_NEW assume_tac ctxt;
 
 (*Matching tactics -- as above, but forbid updating of state*)
-fun bimatch_tac brules i = PRIMSEQ (Thm.biresolution true brules i);
-fun match_tac rules  = bimatch_tac (map (pair false) rules);
-fun ematch_tac rules = bimatch_tac (map (pair true) rules);
-fun dmatch_tac rls   = ematch_tac (map make_elim rls);
+fun bimatch_tac ctxt brules i = PRIMSEQ (Thm.biresolution (SOME ctxt) true brules i);
+fun match_tac ctxt rules = bimatch_tac ctxt (map (pair false) rules);
+fun ematch_tac ctxt rules = bimatch_tac ctxt (map (pair true) rules);
+fun dmatch_tac ctxt rls = ematch_tac ctxt (map make_elim rls);
 
 (*Smash all flex-flex disagreement pairs in the proof state.*)
-val flexflex_tac = PRIMSEQ Thm.flexflex_rule;
+fun flexflex_tac ctxt = PRIMSEQ (Thm.flexflex_rule (SOME ctxt));
 
 (*Remove duplicate subgoals.*)
 val permute_tac = PRIMITIVE oo Thm.permute_prems;
@@ -181,7 +171,7 @@ fun distinct_subgoals_tac state =
 
 (*The conclusion of the rule gets assumed in subgoal i,
   while subgoal i+1,... are the premises of the rule.*)
-fun cut_tac rule i = rtac cut_rl i THEN rtac rule (i + 1);
+fun cut_tac rule i = resolve0_tac [cut_rl] i THEN resolve0_tac [rule] (i + 1);
 
 (*"Cut" a list of rules into the goal.  Their premises will become new
   subgoals.*)
@@ -202,7 +192,7 @@ fun filter_thms could (limit, prem, ths) =
       fun filtr (limit, []) = []
         | filtr (limit, th::ths) =
             if limit=0 then  []
-            else if could(pb, concl_of th)  then th :: filtr(limit-1, ths)
+            else if could(pb, Thm.concl_of th)  then th :: filtr(limit-1, ths)
             else filtr(limit,ths)
   in  filtr(limit,ths)  end;
 
@@ -217,11 +207,7 @@ fun insert_tagged_brl (kbrl as (k, (eres, th))) (inet, enet) =
     (case try Thm.major_prem_of th of
       SOME prem => (inet, Net.insert_term (K false) (prem, kbrl) enet)
     | NONE => error "insert_tagged_brl: elimination rule with no premises")
-  else (Net.insert_term (K false) (concl_of th, kbrl) inet, enet);
-
-(*build a pair of nets for biresolution*)
-fun build_netpair netpair brls =
-    fold_rev insert_tagged_brl (tag_list 1 brls) netpair;
+  else (Net.insert_term (K false) (Thm.concl_of th, kbrl) inet, enet);
 
 (*delete one kbrl from the pair of nets*)
 fun eq_kbrl ((_, (_, th)), (_, (_, th'))) = Thm.eq_thm_prop (th, th')
@@ -238,67 +224,55 @@ fun delete_tagged_brl (brl as (eres, th)) (inet, enet) =
 (*biresolution using a pair of nets rather than rules.
     function "order" must sort and possibly filter the list of brls.
     boolean "match" indicates matching or unification.*)
-fun biresolution_from_nets_tac order match (inet,enet) =
+fun biresolution_from_nets_tac ctxt order match (inet, enet) =
   SUBGOAL
-    (fn (prem,i) =>
-      let val hyps = Logic.strip_assums_hyp prem
-          and concl = Logic.strip_assums_concl prem
-          val kbrls = Net.unify_term inet concl @ maps (Net.unify_term enet) hyps
-      in PRIMSEQ (Thm.biresolution match (order kbrls) i) end);
+    (fn (prem, i) =>
+      let
+        val hyps = Logic.strip_assums_hyp prem;
+        val concl = Logic.strip_assums_concl prem;
+        val kbrls = Net.unify_term inet concl @ maps (Net.unify_term enet) hyps;
+      in PRIMSEQ (Thm.biresolution (SOME ctxt) match (order kbrls) i) end);
 
 (*versions taking pre-built nets.  No filtering of brls*)
-val biresolve_from_nets_tac = biresolution_from_nets_tac order_list false;
-val bimatch_from_nets_tac   = biresolution_from_nets_tac order_list true;
+fun biresolve_from_nets_tac ctxt = biresolution_from_nets_tac ctxt order_list false;
+fun bimatch_from_nets_tac ctxt = biresolution_from_nets_tac ctxt order_list true;
 
-(*fast versions using nets internally*)
-val net_biresolve_tac =
-    biresolve_from_nets_tac o build_netpair(Net.empty,Net.empty);
-
-val net_bimatch_tac =
-    bimatch_from_nets_tac o build_netpair(Net.empty,Net.empty);
 
 (*** Simpler version for resolve_tac -- only one net, and no hyps ***)
 
 (*insert one tagged rl into the net*)
 fun insert_krl (krl as (k,th)) =
-  Net.insert_term (K false) (concl_of th, krl);
+  Net.insert_term (K false) (Thm.concl_of th, krl);
 
 (*build a net of rules for resolution*)
 fun build_net rls =
   fold_rev insert_krl (tag_list 1 rls) Net.empty;
 
 (*resolution using a net rather than rules; pred supports filt_resolve_tac*)
-fun filt_resolution_from_net_tac match pred net =
-  SUBGOAL
-    (fn (prem,i) =>
-      let val krls = Net.unify_term net (Logic.strip_assums_concl prem)
-      in
-         if pred krls
-         then PRIMSEQ
-                (Thm.biresolution match (map (pair false) (order_list krls)) i)
-         else no_tac
-      end);
+fun filt_resolution_from_net_tac ctxt match pred net =
+  SUBGOAL (fn (prem, i) =>
+    let val krls = Net.unify_term net (Logic.strip_assums_concl prem) in
+      if pred krls then
+        PRIMSEQ (Thm.biresolution (SOME ctxt) match (map (pair false) (order_list krls)) i)
+      else no_tac
+    end);
 
 (*Resolve the subgoal using the rules (making a net) unless too flexible,
    which means more than maxr rules are unifiable.      *)
-fun filt_resolve_tac rules maxr =
-    let fun pred krls = length krls <= maxr
-    in  filt_resolution_from_net_tac false pred (build_net rules)  end;
+fun filt_resolve_from_net_tac ctxt maxr net =
+  let fun pred krls = length krls <= maxr
+  in filt_resolution_from_net_tac ctxt false pred net end;
 
 (*versions taking pre-built nets*)
-val resolve_from_net_tac = filt_resolution_from_net_tac false (K true);
-val match_from_net_tac = filt_resolution_from_net_tac true (K true);
-
-(*fast versions using nets internally*)
-val net_resolve_tac = resolve_from_net_tac o build_net;
-val net_match_tac = match_from_net_tac o build_net;
+fun resolve_from_net_tac ctxt = filt_resolution_from_net_tac ctxt false (K true);
+fun match_from_net_tac ctxt = filt_resolution_from_net_tac ctxt true (K true);
 
 
 (*** For Natural Deduction using (bires_flg, rule) pairs ***)
 
 (*The number of new subgoals produced by the brule*)
-fun subgoals_of_brl (true,rule)  = nprems_of rule - 1
-  | subgoals_of_brl (false,rule) = nprems_of rule;
+fun subgoals_of_brl (true, rule) = Thm.nprems_of rule - 1
+  | subgoals_of_brl (false, rule) = Thm.nprems_of rule;
 
 (*Less-than test: for sorting to minimize number of new subgoals*)
 fun lessb (brl1,brl2) = subgoals_of_brl brl1 < subgoals_of_brl brl2;
@@ -306,7 +280,7 @@ fun lessb (brl1,brl2) = subgoals_of_brl brl1 < subgoals_of_brl brl2;
 
 (*Renaming of parameters in a subgoal*)
 fun rename_tac xs i =
-  case Library.find_first (not o Symbol_Pos.is_identifier) xs of
+  case find_first (not o Symbol_Pos.is_identifier) xs of
       SOME x => error ("Not an identifier: " ^ x)
     | NONE => PRIMITIVE (Thm.rename_params_rule (xs, i));
 
@@ -315,24 +289,27 @@ fun rename_tac xs i =
 fun rotate_tac 0 i = all_tac
   | rotate_tac k i = PRIMITIVE (Thm.rotate_rule k i);
 
-(*Rotates the given subgoal to be the last.*)
+(*Rotate the given subgoal to be the last.*)
 fun defer_tac i = PRIMITIVE (Thm.permute_prems (i - 1) 1);
 
-(*Rotates the given subgoal to be the first.*)
+(*Rotate the given subgoal to be the first.*)
 fun prefer_tac i = PRIMITIVE (Thm.permute_prems (i - 1) 1 #> Thm.permute_prems 0 ~1);
 
-(* remove premises that do not satisfy p; fails if all prems satisfy p *)
-fun filter_prems_tac p =
-  let fun Then NONE tac = SOME tac
-        | Then (SOME tac) tac' = SOME(tac THEN' tac');
-      fun thins H (tac,n) =
-        if p H then (tac,n+1)
-        else (Then tac (rotate_tac n THEN' etac thin_rl),0);
-  in SUBGOAL(fn (subg,n) =>
-       let val Hs = Logic.strip_assums_hyp subg
-       in case fst(fold thins Hs (NONE,0)) of
-            NONE => no_tac | SOME tac => tac n
-       end)
+(*Remove premises that do not satisfy pred; fails if all prems satisfy pred.*)
+fun filter_prems_tac ctxt pred =
+  let
+    fun Then NONE tac = SOME tac
+      | Then (SOME tac) tac' = SOME (tac THEN' tac');
+    fun thins H (tac, n) =
+      if pred H then (tac, n + 1)
+      else (Then tac (rotate_tac n THEN' eresolve_tac ctxt [thin_rl]), 0);
+  in
+    SUBGOAL (fn (goal, i) =>
+      let val Hs = Logic.strip_assums_hyp goal in
+        (case fst (fold thins Hs (NONE, 0)) of
+          NONE => no_tac
+        | SOME tac => tac i)
+      end)
   end;
 
 end;

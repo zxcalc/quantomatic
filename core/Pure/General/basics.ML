@@ -32,6 +32,7 @@ sig
   val the_default: 'a -> 'a option -> 'a
   val perhaps: ('a -> 'a option) -> 'a -> 'a
   val merge_options: 'a option * 'a option -> 'a option
+  val eq_option: ('a * 'b -> bool) -> 'a option * 'b option -> bool
 
   (*partiality*)
   val try: ('a -> 'b) -> 'a -> 'b option
@@ -93,11 +94,15 @@ fun perhaps f x = the_default x (f x);
 
 fun merge_options (x, y) = if is_some x then x else y;
 
+fun eq_option eq (SOME x, SOME y) = eq (x, y)
+  | eq_option _ (NONE, NONE) = true
+  | eq_option _ _ = false;
+
 
 (* partiality *)
 
 fun try f x = SOME (f x)
-  handle exn => if Exn.is_interrupt exn then reraise exn else NONE;
+  handle exn => if Exn.is_interrupt exn then Exn.reraise exn else NONE;
 
 fun can f x = is_some (try f x);
 

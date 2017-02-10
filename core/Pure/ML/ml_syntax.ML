@@ -1,7 +1,7 @@
 (*  Title:      Pure/ML/ml_syntax.ML
     Author:     Makarius
 
-Basic ML syntax operations.
+Concrete ML syntax for basic values.
 *)
 
 signature ML_SYNTAX =
@@ -20,6 +20,7 @@ sig
   val print_strings: string list -> string
   val print_properties: Properties.T -> string
   val print_position: Position.T -> string
+  val print_range: Position.range -> string
   val make_binding: string * Position.T -> string
   val print_indexname: indexname -> string
   val print_class: class -> string
@@ -58,27 +59,39 @@ fun print_list f = enclose "[" "]" o commas o map f;
 fun print_option f NONE = "NONE"
   | print_option f (SOME x) = "SOME (" ^ f x ^ ")";
 
+fun print_chr s =
+  if Symbol.is_char s then
+    (case ord s of
+      34 => "\\\""
+    | 92 => "\\\\"
+    | 9 => "\\t"
+    | 10 => "\\n"
+    | 11 => "\\f"
+    | 13 => "\\r"
+    | c =>
+        if c < 32 then "\\^" ^ chr (c + 64)
+        else if c < 127 then s
+        else "\\" ^ string_of_int c)
+  else error ("Bad character: " ^ quote s);
+
 fun print_char s =
-  if not (Symbol.is_char s) then s
-  else if s = "\"" then "\\\""
-  else if s = "\\" then "\\\\"
-  else if s = "\t" then "\\t"
-  else if s = "\n" then "\\n"
-  else if s = "\f" then "\\f"
-  else if s = "\r" then "\\r"
-  else
-    let val c = ord s in
-      if c < 32 then "\\^" ^ chr (c + ord "@")
-      else if c < 127 then s
-      else "\\" ^ string_of_int c
-    end;
+  if Symbol.is_char s then print_chr s
+  else if Symbol.is_utf8 s then translate_string print_chr s
+  else s;
 
 val print_string = quote o implode o map print_char o Symbol.explode;
 val print_strings = print_list print_string;
 
 val print_properties = print_list (print_pair print_string print_string);
-fun print_position pos = "Position.of_properties " ^ print_properties (Position.properties_of pos);
-fun make_binding (name, pos) = "Binding.make " ^ print_pair print_string print_position (name, pos);
+
+fun print_position pos =
+  "Position.of_properties " ^ print_properties (Position.properties_of pos);
+
+fun print_range range =
+  "Position.range_of_properties " ^ print_properties (Position.properties_of_range range);
+
+fun make_binding (name, pos) =
+  "Binding.make " ^ print_pair print_string print_position (name, pos);
 
 val print_indexname = print_pair print_string print_int;
 
@@ -109,5 +122,9 @@ fun pretty_string max_len str =
       if length body <= max_len then body
       else take (Int.max (max_len, 0)) body @ ["..."];
   in Pretty.str (quote (implode (map print_char body'))) end;
+
+val _ =
+  ML_system_pp (fn depth => fn _ => fn str =>
+    Pretty.to_polyml (pretty_string (FixedInt.toInt (depth * 100)) str));
 
 end;

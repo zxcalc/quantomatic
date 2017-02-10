@@ -6,64 +6,68 @@ Parsers for complex specifications.
 
 signature PARSE_SPEC =
 sig
-  val attribs: Attrib.src list parser
-  val opt_attribs: Attrib.src list parser
   val thm_name: string -> Attrib.binding parser
   val opt_thm_name: string -> Attrib.binding parser
-  val spec: (Attrib.binding * string) parser
-  val specs: (Attrib.binding * string list) parser
-  val alt_specs: (Attrib.binding * string) list parser
-  val where_alt_specs: (Attrib.binding * string) list parser
-  val xthm: (Facts.ref * Attrib.src list) parser
-  val xthms1: (Facts.ref * Attrib.src list) list parser
-  val name_facts: (Attrib.binding * (Facts.ref * Attrib.src list) list) list parser
+  val name_facts: (Attrib.binding * (Facts.ref * Token.src list) list) list parser
+  val simple_spec: (Attrib.binding * string) parser
+  val simple_specs: (Attrib.binding * string list) parser
+  val if_assumes: string list parser
+  val multi_specs: Specification.multi_specs_cmd parser
+  val where_multi_specs: Specification.multi_specs_cmd parser
+  val specification:
+    ((binding * string option * mixfix) list * Specification.multi_specs_cmd) parser
   val constdecl: (binding * string option * mixfix) parser
-  val constdef: ((binding * string option * mixfix) option * (Attrib.binding * string)) parser
   val includes: (xstring * Position.T) list parser
   val locale_fixes: (binding * string option * mixfix) list parser
   val locale_insts: (string option list * (Attrib.binding * string) list) parser
   val class_expression: string list parser
-  val locale_prefix: bool -> (string * bool) parser
+  val locale_prefix: (string * bool) parser
   val locale_keyword: string parser
-  val locale_expression: bool -> Expression.expression parser
+  val locale_expression: Expression.expression parser
   val context_element: Element.context parser
+  val statement': (string * string list) list list parser
+  val if_statement': (string * string list) list list parser
   val statement: (Attrib.binding * (string * string list) list) list parser
-  val general_statement: (Element.context list * Element.statement) parser
-  val statement_keyword: string parser
+  val if_statement: (Attrib.binding * (string * string list) list) list parser
+  val cond_statement: (bool * (Attrib.binding * (string * string list) list) list) parser
+  val obtains: Element.obtains parser
+  val long_statement: (Element.context list * Element.statement) parser
+  val long_statement_keyword: string parser
+  val overloaded: bool parser
 end;
 
 structure Parse_Spec: PARSE_SPEC =
 struct
 
-(* theorem specifications *)
+(* simple specifications *)
 
-val attrib = Parse.position Parse.liberal_name -- Parse.!!! Parse.args >> uncurry Args.src;
-val attribs = Parse.$$$ "[" |-- Parse.list attrib --| Parse.$$$ "]";
-val opt_attribs = Scan.optional attribs [];
-
-fun thm_name s = Parse.binding -- opt_attribs --| Parse.$$$ s;
+fun thm_name s = Parse.binding -- Parse.opt_attribs --| Parse.$$$ s;
 
 fun opt_thm_name s =
-  Scan.optional ((Parse.binding -- opt_attribs || attribs >> pair Binding.empty) --| Parse.$$$ s)
-    Attrib.empty_binding;
+  Scan.optional
+    ((Parse.binding -- Parse.opt_attribs || Parse.attribs >> pair Binding.empty) --| Parse.$$$ s)
+    Binding.empty_atts;
 
-val spec = opt_thm_name ":" -- Parse.prop;
-val specs = opt_thm_name ":" -- Scan.repeat1 Parse.prop;
+val simple_spec = opt_thm_name ":" -- Parse.prop;
+val simple_specs = opt_thm_name ":" -- Scan.repeat1 Parse.prop;
 
-val alt_specs =
+val name_facts = Parse.and_list1 (opt_thm_name "=" -- Parse.thms1);
+
+
+(* structured specifications *)
+
+val if_assumes =
+  Scan.optional (Parse.$$$ "if" |-- Parse.!!! (Parse.and_list1 (Scan.repeat1 Parse.prop) >> flat))
+    [];
+
+val multi_specs =
   Parse.enum1 "|"
-    (spec --| Scan.option (Scan.ahead (Parse.name || Parse.$$$ "[") -- Parse.!!! (Parse.$$$ "|")));
+    ((opt_thm_name ":" -- Parse.prop -- if_assumes -- Parse.for_fixes >> Scan.triple1) --|
+      Scan.option (Scan.ahead (Parse.name || Parse.$$$ "[") -- Parse.!!! (Parse.$$$ "|")));
 
-val where_alt_specs = Parse.where_ |-- Parse.!!! alt_specs;
+val where_multi_specs = Parse.where_ |-- Parse.!!! multi_specs;
 
-val xthm =
-  Parse.$$$ "[" |-- attribs --| Parse.$$$ "]" >> pair (Facts.named "") ||
-  (Parse.literal_fact >> Facts.Fact ||
-    Parse.position Parse.xname -- Scan.option Attrib.thm_sel >> Facts.Named) -- opt_attribs;
-
-val xthms1 = Scan.repeat1 xthm;
-
-val name_facts = Parse.and_list1 (opt_thm_name "=" -- xthms1);
+val specification = Parse.vars -- where_multi_specs;
 
 
 (* basic constant specifications *)
@@ -73,19 +77,17 @@ val constdecl =
     (Parse.where_ >> K (NONE, NoSyn) ||
       Parse.$$$ "::" |-- Parse.!!! ((Parse.typ >> SOME) -- Parse.opt_mixfix' --| Parse.where_) ||
       Scan.ahead (Parse.$$$ "(") |-- Parse.!!! (Parse.mixfix' --| Parse.where_ >> pair NONE))
-  >> Parse.triple2;
-
-val constdef = Scan.option constdecl -- (opt_thm_name ":" -- Parse.prop);
+  >> Scan.triple2;
 
 
 (* locale and context elements *)
 
-val includes = Parse.$$$ "includes" |-- Parse.!!! (Scan.repeat1 (Parse.position Parse.xname));
+val includes = Parse.$$$ "includes" |-- Parse.!!! (Scan.repeat1 (Parse.position Parse.name));
 
 val locale_fixes =
   Parse.and_list1 (Parse.binding -- Scan.option (Parse.$$$ "::" |-- Parse.typ) -- Parse.mixfix
-    >> (single o Parse.triple1) ||
-  Parse.params >> map (fn (x, y) => (x, y, NoSyn))) >> flat;
+    >> (single o Scan.triple1) ||
+  Parse.params) >> flat;
 
 val locale_insts =
   Scan.optional
@@ -103,7 +105,7 @@ val loc_element =
     >> Element.Assumes ||
   Parse.$$$ "defines" |-- Parse.!!! (Parse.and_list1 (opt_thm_name ":" -- Parse.propp))
     >> Element.Defines ||
-  Parse.$$$ "notes" |-- Parse.!!! (Parse.and_list1 (opt_thm_name "=" -- xthms1))
+  Parse.$$$ "notes" |-- Parse.!!! (Parse.and_list1 (opt_thm_name "=" -- Parse.thms1))
     >> (curry Element.Notes "");
 
 fun plus1_unless test scan =
@@ -115,11 +117,9 @@ val instance = Parse.where_ |--
 
 in
 
-fun locale_prefix mandatory =
+val locale_prefix =
   Scan.optional
-    (Parse.name --
-      (Parse.$$$ "!" >> K true || Parse.$$$ "?" >> K false || Scan.succeed mandatory) --|
-      Parse.$$$ ":")
+    (Parse.name -- (Scan.option (Parse.$$$ "?") >> is_none) --| Parse.$$$ ":")
     ("", false);
 
 val locale_keyword =
@@ -128,10 +128,11 @@ val locale_keyword =
 
 val class_expression = plus1_unless locale_keyword Parse.class;
 
-fun locale_expression mandatory =
+val locale_expression =
   let
-    val expr2 = Parse.position Parse.xname;
-    val expr1 = locale_prefix mandatory -- expr2 --
+    val expr2 = Parse.position Parse.name;
+    val expr1 =
+      locale_prefix -- expr2 --
       Scan.optional instance (Expression.Named []) >> (fn ((p, l), i) => (l, (p, i)));
     val expr0 = plus1_unless locale_keyword expr1;
   in expr0 -- Scan.optional (Parse.$$$ "for" |-- Parse.!!! locale_fixes) [] end;
@@ -143,18 +144,36 @@ end;
 
 (* statements *)
 
+val statement' = Parse.and_list1 (Scan.repeat1 Parse.propp);
+val if_statement' = Scan.optional (Parse.$$$ "if" |-- Parse.!!! statement') [];
+
 val statement = Parse.and_list1 (opt_thm_name ":" -- Scan.repeat1 Parse.propp);
+val if_statement = Scan.optional (Parse.$$$ "if" |-- Parse.!!! statement) [];
+
+val cond_statement =
+  Parse.$$$ "if" |-- Parse.!!! statement >> pair true ||
+  Parse.$$$ "when" |-- Parse.!!! statement >> pair false ||
+  Scan.succeed (true, []);
 
 val obtain_case =
-  Parse.parbinding -- (Scan.optional (Parse.simple_fixes --| Parse.where_) [] --
-    (Parse.and_list1 (Scan.repeat1 Parse.prop) >> flat));
+  Parse.parbinding --
+    (Scan.optional (Parse.and_list1 Parse.vars --| Parse.where_ >> flat) [] --
+      (Parse.and_list1 (Scan.repeat1 Parse.prop) >> flat));
 
-val general_statement =
-  statement >> (fn x => ([], Element.Shows x)) ||
+val obtains = Parse.enum1 "|" obtain_case;
+
+val long_statement =
   Scan.repeat context_element --
-   (Parse.$$$ "obtains" |-- Parse.!!! (Parse.enum1 "|" obtain_case) >> Element.Obtains ||
+   (Parse.$$$ "obtains" |-- Parse.!!! obtains >> Element.Obtains ||
     Parse.$$$ "shows" |-- Parse.!!! statement >> Element.Shows);
 
-val statement_keyword = Parse.$$$ "obtains" || Parse.$$$ "shows";
+val long_statement_keyword =
+  locale_keyword || Parse.$$$ "obtains" || Parse.$$$ "shows";
+
+
+(* options *)
+
+val overloaded =
+  Scan.optional (Parse.$$$ "(" -- Parse.$$$ "overloaded" -- Parse.$$$ ")" >> K true) false;
 
 end;

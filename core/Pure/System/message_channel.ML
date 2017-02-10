@@ -26,7 +26,7 @@ fun chunk ss =
 
 fun message name raw_props body =
   let
-    val robust_props = map (pairself YXML.embed_controls) raw_props;
+    val robust_props = map (apply2 YXML.embed_controls) raw_props;
     val header = YXML.string_of (XML.Elem ((name, robust_props), []));
   in Message (chunk [header] @ chunk body) end;
 
@@ -51,24 +51,19 @@ fun message_output mbox channel =
         [] => (flush channel; continue NONE)
       | msgs => received timeout msgs)
     and received _ (NONE :: _) = flush channel
-      | received timeout (SOME msg :: rest) =
-          (output_message channel msg; received flush_timeout rest)
+      | received _ (SOME msg :: rest) = (output_message channel msg; received flush_timeout rest)
       | received timeout [] = continue timeout;
   in fn () => continue NONE end;
 
 fun make channel =
-  if Multithreading.available then
-    let
-      val mbox = Mailbox.create ();
-      val thread = Simple_Thread.fork false (message_output mbox channel);
-      fun send msg = Mailbox.send mbox (SOME msg);
-      fun shutdown () =
-        (Mailbox.send mbox NONE; Mailbox.await_empty mbox; Simple_Thread.join thread);
-    in Message_Channel {send = send, shutdown = shutdown} end
-  else
-    let
-      fun send msg = (output_message channel msg; flush channel);
-    in Message_Channel {send = send, shutdown = fn () => ()} end;
+  let
+    val mbox = Mailbox.create ();
+    val thread =
+      Standard_Thread.fork {name = "channel", stack_limit = NONE, interrupts = false}
+        (message_output mbox channel);
+    fun send msg = Mailbox.send mbox (SOME msg);
+    fun shutdown () =
+      (Mailbox.send mbox NONE; Mailbox.await_empty mbox; Standard_Thread.join thread);
+  in Message_Channel {send = send, shutdown = shutdown} end;
 
 end;
-

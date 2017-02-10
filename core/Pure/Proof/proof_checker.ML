@@ -38,7 +38,7 @@ fun is_equal t t' =
 
 fun pretty_prf thy vs Hs prf =
   let val prf' = prf |> Proofterm.prf_subst_bounds (map Free vs) |>
-    Proofterm.prf_subst_pbounds (map (Hyp o prop_of) Hs)
+    Proofterm.prf_subst_pbounds (map (Hyp o Thm.prop_of) Hs)
   in
     (Proof_Syntax.pretty_proof (Syntax.init_pretty_global thy) prf',
      Syntax.pretty_term_global thy (Reconstruct.prop_of prf'))
@@ -78,8 +78,8 @@ fun thm_of_proof thy =
           let
             val tvars = Term.add_tvars (Thm.full_prop_of thm) [] |> rev;
             val (fmap, thm') = Thm.varifyT_global' [] thm;
-            val ctye = map (pairself (Thm.ctyp_of thy))
-              (map TVar tvars @ map (fn ((_, S), ixn) => TVar (ixn, S)) fmap ~~ Ts)
+            val ctye =
+              (tvars @ map (fn ((_, S), ixn) => (ixn, S)) fmap ~~ map (Thm.global_ctyp_of thy) Ts);
           in
             Thm.instantiate (ctye, []) (forall_intr_vars (Thm.forall_intr_frees thm'))
           end;
@@ -106,21 +106,21 @@ fun thm_of_proof thy =
                 val (x, names') = Name.variant s names;
                 val thm = thm_of ((x, T) :: vs, names') Hs prf
               in
-                Thm.forall_intr (Thm.cterm_of thy (Free (x, T))) thm
+                Thm.forall_intr (Thm.global_cterm_of thy (Free (x, T))) thm
               end
 
           | thm_of (vs, names) Hs (prf % SOME t) =
               let
                 val thm = thm_of (vs, names) Hs prf;
-                val ct = Thm.cterm_of thy (Term.subst_bounds (map Free vs, t));
+                val ct = Thm.global_cterm_of thy (Term.subst_bounds (map Free vs, t));
               in
                 Thm.forall_elim ct thm
                 handle THM (s, _, _) => appl_error thy pretty_term vs Hs s prf t
               end
 
-          | thm_of (vs, names) Hs (AbsP (s, SOME t, prf)) =
+          | thm_of (vs, names) Hs (AbsP (_, SOME t, prf)) =
               let
-                val ct = Thm.cterm_of thy (Term.subst_bounds (map Free vs, t));
+                val ct = Thm.global_cterm_of thy (Term.subst_bounds (map Free vs, t));
                 val thm = thm_of (vs, names) (Thm.assume ct :: Hs) prf;
               in
                 Thm.implies_intr ct thm
@@ -135,7 +135,7 @@ fun thm_of_proof thy =
                 handle THM (s, _, _) => appl_error thy pretty_prf (fst vars) Hs s prf prf'
               end
 
-          | thm_of _ _ (Hyp t) = Thm.assume (Thm.cterm_of thy t)
+          | thm_of _ _ (Hyp t) = Thm.assume (Thm.global_cterm_of thy t)
 
           | thm_of _ _ _ = error "thm_of_proof: partial proof term";
 

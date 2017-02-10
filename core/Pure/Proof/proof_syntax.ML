@@ -14,7 +14,7 @@ sig
   val read_term: theory -> bool -> typ -> string -> term
   val read_proof: theory -> bool -> bool -> string -> Proofterm.proof
   val proof_syntax: Proofterm.proof -> theory -> theory
-  val proof_of: bool -> thm -> Proofterm.proof
+  val proof_of: Proof.context -> bool -> thm -> Proofterm.proof
   val pretty_proof: Proof.context -> Proofterm.proof -> Pretty.T
   val pretty_proof_of: Proof.context -> bool -> thm -> Pretty.T
 end;
@@ -30,6 +30,7 @@ val paramsT = Type ("params", []);
 val idtT = Type ("idt", []);
 val aT = TFree (Name.aT, []);
 
+
 (** constants for theorems and axioms **)
 
 fun add_proof_atom_consts names thy =
@@ -37,7 +38,10 @@ fun add_proof_atom_consts names thy =
   |> Sign.root_path
   |> Sign.add_consts (map (fn name => (Binding.qualified_name name, proofT, NoSyn)) names);
 
+
 (** constants for application and abstraction **)
+
+fun mixfix (sy, ps, p) = Mixfix (Input.string sy, ps, p, Position.no_range);
 
 fun add_proof_syntax thy =
   thy
@@ -46,29 +50,29 @@ fun add_proof_syntax thy =
   |> Sign.add_types_global
     [(Binding.make ("proof", @{here}), 0, NoSyn)]
   |> fold (snd oo Sign.declare_const_global)
-    [((Binding.make ("Appt", @{here}), [proofT, aT] ---> proofT), Mixfix ("(1_ %/ _)", [4, 5], 4)),
-     ((Binding.make ("AppP", @{here}), [proofT, proofT] ---> proofT), Mixfix ("(1_ %%/ _)", [4, 5], 4)),
+    [((Binding.make ("Appt", @{here}), [proofT, aT] ---> proofT), mixfix ("(1_ \<cdot>/ _)", [4, 5], 4)),
+     ((Binding.make ("AppP", @{here}), [proofT, proofT] ---> proofT), mixfix ("(1_ \<bullet>/ _)", [4, 5], 4)),
      ((Binding.make ("Abst", @{here}), (aT --> proofT) --> proofT), NoSyn),
      ((Binding.make ("AbsP", @{here}), [propT, proofT --> proofT] ---> proofT), NoSyn),
      ((Binding.make ("Hyp", @{here}), propT --> proofT), NoSyn),
      ((Binding.make ("Oracle", @{here}), propT --> proofT), NoSyn),
      ((Binding.make ("OfClass", @{here}), (Term.a_itselfT --> propT) --> proofT), NoSyn),
-     ((Binding.make ("MinProof", @{here}), proofT), Delimfix "?")]
+     ((Binding.make ("MinProof", @{here}), proofT), Mixfix.mixfix "?")]
   |> Sign.add_nonterminals_global
     [Binding.make ("param", @{here}),
      Binding.make ("params", @{here})]
   |> Sign.add_syntax Syntax.mode_default
-    [("_Lam", [paramsT, proofT] ---> proofT, Mixfix ("(1Lam _./ _)", [0, 3], 3)),
-     ("_Lam0", [paramT, paramsT] ---> paramsT, Mixfix ("_/ _", [1, 0], 0)),
-     ("_Lam0", [idtT, paramsT] ---> paramsT, Mixfix ("_/ _", [1, 0], 0)),
-     ("_Lam1", [idtT, propT] ---> paramT, Mixfix ("_: _", [0, 0], 0)),
-     ("", paramT --> paramT, Delimfix "'(_')"),
-     ("", idtT --> paramsT, Delimfix "_"),
-     ("", paramT --> paramsT, Delimfix "_")]
-  |> Sign.add_syntax (Symbol.xsymbolsN, true)
-    [("_Lam", [paramsT, proofT] ---> proofT, Mixfix ("(1\<^bold>\<lambda>_./ _)", [0, 3], 3)),
-     (Lexicon.mark_const "Appt", [proofT, aT] ---> proofT, Mixfix ("(1_ \<cdot>/ _)", [4, 5], 4)),
-     (Lexicon.mark_const "AppP", [proofT, proofT] ---> proofT, Mixfix ("(1_ \<bullet>/ _)", [4, 5], 4))]
+    [("_Lam", [paramsT, proofT] ---> proofT, mixfix ("(1\<^bold>\<lambda>_./ _)", [0, 3], 3)),
+     ("_Lam0", [paramT, paramsT] ---> paramsT, mixfix ("_/ _", [1, 0], 0)),
+     ("_Lam0", [idtT, paramsT] ---> paramsT, mixfix ("_/ _", [1, 0], 0)),
+     ("_Lam1", [idtT, propT] ---> paramT, mixfix ("_: _", [0, 0], 0)),
+     ("", paramT --> paramT, Mixfix.mixfix "'(_')"),
+     ("", idtT --> paramsT, Mixfix.mixfix "_"),
+     ("", paramT --> paramsT, Mixfix.mixfix "_")]
+  |> Sign.add_syntax (Print_Mode.ASCII, true)
+    [("_Lam", [paramsT, proofT] ---> proofT, mixfix ("(1Lam _./ _)", [0, 3], 3)),
+     (Lexicon.mark_const "Appt", [proofT, aT] ---> proofT, mixfix ("(1_ %/ _)", [4, 5], 4)),
+     (Lexicon.mark_const "AppP", [proofT, proofT] ---> proofT, mixfix ("(1_ %%/ _)", [4, 5], 4))]
   |> Sign.add_trrules (map Syntax.Parse_Print_Rule
     [(Ast.mk_appl (Ast.Constant "_Lam")
         [Ast.mk_appl (Ast.Constant "_Lam0")
@@ -197,7 +201,7 @@ fun cterm_of_proof thy prf =
       |> add_proof_atom_consts
         (map (Long_Name.append "axm") axm_names @ map (Long_Name.append "thm") thm_names);
   in
-    (cterm_of thy' (term_of_proof prf), proof_of_term thy true o Thm.term_of)
+    (Thm.global_cterm_of thy' (term_of_proof prf), proof_of_term thy true o Thm.term_of)
   end;
 
 fun read_term thy topsort =
@@ -211,7 +215,10 @@ fun read_term thy topsort =
       |> Proof_Context.init_global
       |> Proof_Context.allow_dummies
       |> Proof_Context.set_mode Proof_Context.mode_schematic
-      |> topsort ? (Config.put Type_Infer_Context.const_sorts false #> Proof_Context.set_defsort []);
+      |> topsort ?
+        (Proof_Context.set_defsort [] #>
+         Config.put Type_Infer.object_logic false #>
+         Config.put Type_Infer_Context.const_sorts false);
   in
     fn ty => fn s =>
       (if ty = propT then Syntax.parse_prop else Syntax.parse_term) ctxt s
@@ -235,9 +242,9 @@ fun proof_syntax prf =
       (map (Long_Name.append "thm") thm_names @ map (Long_Name.append "axm") axm_names)
   end;
 
-fun proof_of full thm =
+fun proof_of ctxt full raw_thm =
   let
-    val thy = Thm.theory_of_thm thm;
+    val thm = Thm.transfer (Proof_Context.theory_of ctxt) raw_thm;
     val prop = Thm.full_prop_of thm;
     val prf = Thm.proof_of thm;
     val prf' =
@@ -245,7 +252,7 @@ fun proof_of full thm =
         (PThm (_, ((_, prop', _), body)), _) =>
           if prop = prop' then Proofterm.join_proof body else prf
       | _ => prf)
-  in if full then Reconstruct.reconstruct_proof thy prop prf' else prf' end;
+  in if full then Reconstruct.reconstruct_proof ctxt prop prf' else prf' end;
 
 fun pretty_proof ctxt prf =
   Proof_Context.pretty_term_abbrev
@@ -253,6 +260,6 @@ fun pretty_proof ctxt prf =
     (term_of_proof prf);
 
 fun pretty_proof_of ctxt full th =
-  pretty_proof ctxt (proof_of full th);
+  pretty_proof ctxt (proof_of ctxt full th);
 
 end;

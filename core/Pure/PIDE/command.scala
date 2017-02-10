@@ -10,13 +10,16 @@ package isabelle
 
 import scala.collection.mutable
 import scala.collection.immutable.SortedMap
+import scala.util.parsing.input.CharSequenceReader
 
 
 object Command
 {
   type Edit = (Option[Command], Option[Command])
-  type Blob = Exn.Result[(Document.Node.Name, Option[(SHA1.Digest, Symbol.Text_Chunk)])]
 
+  type Blob = Exn.Result[(Document.Node.Name, Option[(SHA1.Digest, Symbol.Text_Chunk)])]
+  type Blobs_Info = (List[Blob], Int)
+  val no_blobs: Blobs_Info = (Nil, -1)
 
 
   /** accumulated results from prover **/
@@ -27,8 +30,8 @@ object Command
   {
     type Entry = (Long, XML.Tree)
     val empty = new Results(SortedMap.empty)
-    def make(es: List[Results.Entry]): Results = (empty /: es)(_ + _)
-    def merge(rs: List[Results]): Results = (empty /: rs)(_ ++ _)
+    def make(args: TraversableOnce[Results.Entry]): Results = (empty /: args)(_ + _)
+    def merge(args: TraversableOnce[Results]): Results = (empty /: args)(_ ++ _)
   }
 
   final class Results private(private val rep: SortedMap[Long, XML.Tree])
@@ -128,7 +131,7 @@ object Command
     lazy val protocol_status: Protocol.Status =
     {
       val warnings =
-        if (results.iterator.exists(p => Protocol.is_warning(p._2)))
+        if (results.iterator.exists(p => Protocol.is_warning(p._2) || Protocol.is_legacy(p._2)))
           List(Markup(Markup.WARNING, Nil))
         else Nil
       val errors =
@@ -146,12 +149,6 @@ object Command
       if (markups1.is_empty) None
       else Some(new State(other_command, Nil, Results.empty, markups1))
     }
-
-    def eq_content(other: State): Boolean =
-      command.source == other.command.source &&
-      status == other.status &&
-      results == other.results &&
-      markups == other.markups
 
     private def add_status(st: Markup): State =
       copy(status = st :: status)
@@ -189,8 +186,7 @@ object Command
               def bad(): Unit = Output.warning("Ignored report message: " + msg)
 
               msg match {
-                case XML.Elem(
-                    Markup(name, atts @ Position.Reported(id, chunk_name, symbol_range)), args) =>
+                case XML.Elem(Markup(name, atts @ Position.Identified(id, chunk_name)), args) =>
 
                   val target =
                     if (self_id(id) && command.chunks.isDefinedAt(chunk_name))
@@ -198,8 +194,8 @@ object Command
                     else if (chunk_name == Symbol.Text_Chunk.Default) other_id(id)
                     else None
 
-                  target match {
-                    case Some((target_name, target_chunk)) =>
+                  (target, atts) match {
+                    case (Some((target_name, target_chunk)), Position.Range(symbol_range)) =>
                       target_chunk.incorporate(symbol_range) match {
                         case Some(range) =>
                           val props = Position.purge(atts)
@@ -207,7 +203,7 @@ object Command
                           state.add_markup(false, target_name, info)
                         case None => bad(); state
                       }
-                    case None =>
+                    case _ =>
                       // silently ignore excessive reports
                       state
                   }
@@ -232,7 +228,8 @@ object Command
               if (Protocol.is_inlined(message)) {
                 for {
                   (chunk_name, chunk) <- command.chunks.iterator
-                  range <- Protocol.message_positions(self_id, chunk_name, chunk, message)
+                  range <- Protocol_Message.positions(
+                    self_id, command.span.position, chunk_name, chunk, message)
                 } st = st.add_markup(false, chunk_name, Text.Info(range, message2))
               }
               st
@@ -250,39 +247,18 @@ object Command
 
   /* make commands */
 
-  def name(span: List[Token]): String =
-    span.find(_.is_command) match { case Some(tok) => tok.source case _ => "" }
-
-  private def source_span(span: List[Token]): (String, List[Token]) =
-  {
-    val source: String =
-      span match {
-        case List(tok) => tok.source
-        case _ => span.map(_.source).mkString
-      }
-
-    val span1 = new mutable.ListBuffer[Token]
-    var i = 0
-    for (Token(kind, s) <- span) {
-      val n = s.length
-      val s1 = source.substring(i, i + n)
-      span1 += Token(kind, s1)
-      i += n
-    }
-    (source, span1.toList)
-  }
-
   def apply(
     id: Document_ID.Command,
     node_name: Document.Node.Name,
-    blobs: List[Blob],
-    span: List[Token]): Command =
+    blobs_info: Blobs_Info,
+    span: Command_Span.Span): Command =
   {
-    val (source, span1) = source_span(span)
-    new Command(id, node_name, blobs, span1, source, Results.empty, Markup_Tree.empty)
+    val (source, span1) = span.compact_source
+    new Command(id, node_name, blobs_info, span1, source, Results.empty, Markup_Tree.empty)
   }
 
-  val empty: Command = Command(Document_ID.none, Document.Node.Name.empty, Nil, Nil)
+  val empty: Command =
+    Command(Document_ID.none, Document.Node.Name.empty, no_blobs, Command_Span.empty)
 
   def unparsed(
     id: Document_ID.Command,
@@ -290,8 +266,8 @@ object Command
     results: Results,
     markup: Markup_Tree): Command =
   {
-    val (source1, span) = source_span(List(Token(Token.Kind.UNPARSED, source)))
-    new Command(id, Document.Node.Name.empty, Nil, span, source1, results, markup)
+    val (source1, span1) = Command_Span.unparsed(source).compact_source
+    new Command(id, Document.Node.Name.empty, no_blobs, span1, source1, results, markup)
   }
 
   def unparsed(source: String): Command =
@@ -326,38 +302,114 @@ object Command
         (cmds1.iterator zip cmds2.iterator).forall({ case (c1, c2) => c1.id == c2.id })
     }
   }
+
+
+  /* blobs: inlined errors and auxiliary files */
+
+  private def clean_tokens(tokens: List[Token]): List[(Token, Int)] =
+  {
+    val markers = Set("%", "--", Symbol.comment, Symbol.comment_decoded)
+    def clean(toks: List[(Token, Int)]): List[(Token, Int)] =
+      toks match {
+        case (t1, i1) :: (t2, i2) :: rest =>
+          if (t1.is_keyword && markers(t1.source)) clean(rest)
+          else (t1, i1) :: clean((t2, i2) :: rest)
+        case _ => toks
+      }
+    clean(tokens.zipWithIndex.filter({ case (t, _) => t.is_proper }))
+  }
+
+  private def find_file(tokens: List[(Token, Int)]): Option[(String, Int)] =
+    if (tokens.exists({ case (t, _) => t.is_command })) {
+      tokens.dropWhile({ case (t, _) => !t.is_command }).
+        collectFirst({ case (t, i) if t.is_embedded => (t.content, i) })
+    }
+    else None
+
+  def span_files(syntax: Outer_Syntax, span: Command_Span.Span): (List[String], Int) =
+    syntax.load_command(span.name) match {
+      case Some(exts) =>
+        find_file(clean_tokens(span.content)) match {
+          case Some((file, i)) =>
+            if (exts.isEmpty) (List(file), i)
+            else (exts.map(ext => file + "." + ext), i)
+          case None => (Nil, -1)
+        }
+      case None => (Nil, -1)
+    }
+
+  def blobs_info(
+    resources: Resources,
+    syntax: Outer_Syntax,
+    get_blob: Document.Node.Name => Option[Document.Blob],
+    can_import: Document.Node.Name => Boolean,
+    node_name: Document.Node.Name,
+    span: Command_Span.Span): Blobs_Info =
+  {
+    span.name match {
+      // inlined errors
+      case Thy_Header.THEORY =>
+        val header =
+          resources.check_thy_reader("", node_name,
+            new CharSequenceReader(Token.implode(span.content)), Token.Pos.command)
+        val errors =
+          for ((imp, pos) <- header.imports if !can_import(imp)) yield {
+            val msg =
+              "Bad theory import " +
+                Markup.Path(imp.node).markup(quote(imp.toString)) + Position.here(pos)
+            Exn.Exn(ERROR(msg)): Command.Blob
+          }
+        (errors, -1)
+
+      // auxiliary files
+      case _ =>
+        val (files, index) = span_files(syntax, span)
+        val blobs =
+          files.map(file =>
+            (Exn.capture {
+              val name =
+                Document.Node.Name(resources.append(node_name.master_dir, Path.explode(file)))
+              val blob = get_blob(name).map(blob => ((blob.bytes.sha1_digest, blob.chunk)))
+              (name, blob)
+            }).user_error)
+        (blobs, index)
+    }
+  }
 }
 
 
 final class Command private(
     val id: Document_ID.Command,
     val node_name: Document.Node.Name,
-    val blobs: List[Command.Blob],
-    val span: List[Token],
+    val blobs_info: Command.Blobs_Info,
+    val span: Command_Span.Span,
     val source: String,
     val init_results: Command.Results,
     val init_markup: Markup_Tree)
 {
+  override def toString: String = id + "/" + span.kind.toString
+
+
   /* classification */
 
+  def is_proper: Boolean = span.kind.isInstanceOf[Command_Span.Command_Span]
+  def is_ignored: Boolean = span.kind == Command_Span.Ignored_Span
+
   def is_undefined: Boolean = id == Document_ID.none
-  val is_unparsed: Boolean = span.exists(_.is_unparsed)
-  val is_unfinished: Boolean = span.exists(_.is_unfinished)
-
-  val is_ignored: Boolean = !span.exists(_.is_proper)
-  val is_malformed: Boolean = !is_ignored && (!span.head.is_command || span.exists(_.is_error))
-  def is_command: Boolean = !is_ignored && !is_malformed
-
-  def name: String = Command.name(span)
-
-  override def toString =
-    id + "/" + (if (is_command) name else if (is_ignored) "IGNORED" else "MALFORMED")
+  val is_unparsed: Boolean = span.content.exists(_.is_unparsed)
+  val is_unfinished: Boolean = span.content.exists(_.is_unfinished)
 
 
   /* blobs */
 
+  def blobs: List[Command.Blob] = blobs_info._1
+  def blobs_index: Int = blobs_info._2
+
   def blobs_names: List[Document.Node.Name] =
     for (Exn.Res((name, _)) <- blobs) yield name
+
+  def blobs_undefined: List[Document.Node.Name] =
+    for (Exn.Res((name, None)) <- blobs) yield name
 
   def blobs_defined: List[(Document.Node.Name, SHA1.Digest)] =
     for (Exn.Res((name, Some((digest, _)))) <- blobs) yield (name, digest)
@@ -373,13 +425,14 @@ final class Command private(
   val chunks: Map[Symbol.Text_Chunk.Name, Symbol.Text_Chunk] =
     ((Symbol.Text_Chunk.Default -> chunk) ::
       (for (Exn.Res((name, Some((_, file)))) <- blobs)
-        yield (Symbol.Text_Chunk.File(name.node) -> file))).toMap
+        yield Symbol.Text_Chunk.File(name.node) -> file)).toMap
 
   def length: Int = source.length
   def range: Text.Range = chunk.range
 
   val proper_range: Text.Range =
-    Text.Range(0, (length /: span.reverse.iterator.takeWhile(_.is_improper))(_ - _.source.length))
+    Text.Range(0,
+      (length /: span.content.reverse.iterator.takeWhile(_.is_improper))(_ - _.source.length))
 
   def source(range: Text.Range): String = source.substring(range.start, range.stop)
 

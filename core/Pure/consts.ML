@@ -27,7 +27,7 @@ sig
   val intern: T -> xstring -> string
   val intern_syntax: T -> xstring -> string
   val check_const: Context.generic -> T -> xstring * Position.T list -> term * Position.report list
-  val certify: Context.pretty -> Type.tsig -> bool -> T -> term -> term  (*exception TYPE*)
+  val certify: Context.generic -> Type.tsig -> bool -> T -> term -> term  (*exception TYPE*)
   val typargs: T -> string * typ -> typ list
   val instance: T -> string * typ list -> typ
   val declare: Context.generic -> binding * typ -> T -> T
@@ -83,8 +83,15 @@ fun update_abbrevs mode abbrs =
   Symtab.map_default (mode, empty_abbrevs) (Item_Net.update abbrs);
 
 fun retrieve_abbrevs (Consts {rev_abbrevs, ...}) modes =
-  let val nets = map_filter (Symtab.lookup rev_abbrevs) modes
-  in fn t => maps (fn net => Item_Net.retrieve net t) nets end;
+  let val nets = map_filter (Symtab.lookup rev_abbrevs) modes in
+    fn t =>
+      let
+        val retrieve =
+          if Term.could_beta_eta_contract t
+          then Item_Net.retrieve
+          else Item_Net.retrieve_matching
+      in maps (fn net => retrieve net t) nets end
+  end;
 
 
 (* dest consts *)
@@ -155,11 +162,11 @@ fun check_const context consts (xname, ps) =
 
 (* certify *)
 
-fun certify pp tsig do_expand consts =
+fun certify context tsig do_expand consts =
   let
     fun err msg (c, T) =
       raise TYPE (msg ^ " " ^ quote c ^ " :: " ^
-        Syntax.string_of_typ (Syntax.init_pretty pp) T, [], []);
+        Syntax.string_of_typ (Syntax.init_pretty context) T, [], []);
     val certT = Type.cert_typ tsig;
     fun cert tm =
       let
@@ -272,9 +279,8 @@ in
 
 fun abbreviate context tsig mode (b, raw_rhs) consts =
   let
-    val pp = Context.pretty_generic context;
-    val cert_term = certify pp tsig false consts;
-    val expand_term = certify pp tsig true consts;
+    val cert_term = certify context tsig false consts;
+    val expand_term = certify context tsig true consts;
     val force_expand = mode = Print_Mode.internal;
 
     val _ = Term.exists_subterm Term.is_Var raw_rhs andalso

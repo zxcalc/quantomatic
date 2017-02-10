@@ -22,7 +22,7 @@ fun update_timings props =
   (case Markup.parse_command_timing_properties props of
     SOME ({file, offset, name}, time) =>
       Symtab.map_default (file, Inttab.empty)
-        (Inttab.map_default (offset, (name, time)) (fn (_, t) => (name, Time.+ (t, time))))
+        (Inttab.map_default (offset, (name, time)) (fn (_, t) => (name, t + time)))
   | NONE => I);
 
 fun approximative_id name pos =
@@ -51,7 +51,7 @@ fun session_timing name verbose f x =
     val y = f x;
     val timing = Timing.result start;
 
-    val threads = string_of_int (Multithreading.max_threads_value ());
+    val threads = string_of_int (Multithreading.max_threads ());
     val factor = Time.toReal (#cpu timing) / Time.toReal (#elapsed timing)
       |> Real.fmt (StringCvt.FIX (SOME 2));
 
@@ -81,10 +81,15 @@ fun protocol_message props output =
           val name = the_default "" (Properties.get args Markup.nameN);
           val pos = Position.of_properties args;
           val {elapsed, ...} = Markup.parse_timing_properties args;
+          val is_significant =
+            Timing.is_relevant_time elapsed andalso
+            elapsed >= Options.default_seconds "command_timing_threshold";
         in
-          (case approximative_id name pos of
-            SOME id => inline_message (#2 function) (Markup.command_timing_properties id elapsed)
-          | NONE => ())
+          if is_significant then
+            (case approximative_id name pos of
+              SOME id => inline_message (#2 function) (Markup.command_timing_properties id elapsed)
+            | NONE => ())
+          else ()
         end
       else
         (case Markup.dest_loading_theory props of
@@ -95,80 +100,103 @@ fun protocol_message props output =
 
 (* build *)
 
-local
-
-fun use_theories last_timing options =
-  Thy_Info.use_theories {
-      document = Present.document_enabled (Options.string options "document"),
-      last_timing = last_timing,
-      master_dir = Path.current}
-    |> Unsynchronized.setmp print_mode
-        (space_explode "," (Options.string options "print_mode") @ print_mode_value ())
-    |> Unsynchronized.setmp Goal.parallel_proofs (Options.int options "parallel_proofs")
-    |> Unsynchronized.setmp Multithreading.trace (Options.int options "threads_trace")
-    |> Multithreading.max_threads_setmp (Options.int options "threads")
-    |> Unsynchronized.setmp Future.ML_statistics true
-    |> Unsynchronized.setmp Pretty.margin_default (Options.int options "pretty_margin")
-    |> Unsynchronized.setmp Toplevel.timing (Options.bool options "timing");
-
-fun use_theories_condition last_timing (options, thys) =
-  let val condition = space_explode "," (Options.string options "condition") in
-    (case filter_out (can getenv_strict) condition of
-      [] =>
-        (Options.set_default options;
-         use_theories last_timing options (map (rpair Position.none) thys))
-    | conds =>
-        Output.physical_stderr ("Skipping theories " ^ commas_quote thys ^
-          " (undefined " ^ commas conds ^ ")\n"))
+fun build_theories symbols last_timing master_dir (options, thys) =
+  let
+    val condition = space_explode "," (Options.string options "condition");
+    val conds = filter_out (can getenv_strict) condition;
+  in
+    if null conds then
+      (if Options.bool options "checkpoint" then ML_Heap.share_common_data () else ();
+        Options.set_default options;
+        Isabelle_Process.init_options ();
+        (Thy_Info.use_theories {
+          document = Present.document_enabled (Options.string options "document"),
+          symbols = symbols,
+          last_timing = last_timing,
+          master_dir = master_dir}
+        |>
+          (case Options.string options "profiling" of
+            "" => I
+          | "time" => profile_time
+          | "allocations" => profile_allocations
+          | bad => error ("Bad profiling option: " ^ quote bad))
+        |> Unsynchronized.setmp print_mode
+            (space_explode "," (Options.string options "print_mode") @ print_mode_value ())) thys)
+    else
+      Output.physical_stderr ("Skipping theories " ^ commas_quote (map #1 thys) ^
+        " (undefined " ^ commas conds ^ ")\n")
   end;
 
-in
+fun build args_file =
+  let
+    val _ = SHA1.test_samples ();
 
-fun build args_file = Command_Line.tool0 (fn () =>
-    let
-      val _ = SHA1_Samples.test ();
+    val (symbol_codes, (command_timings, (do_output, (verbose, (browser_info,
+          (document_files, (graph_file, (parent_name, (chapter, (name, theories)))))))))) =
+      File.read (Path.explode args_file) |> YXML.parse_body |>
+        let open XML.Decode in
+          pair (list (pair string int)) (pair (list properties) (pair bool
+            (pair bool (pair string (pair (list (pair string string)) (pair string
+              (pair string (pair string (pair string
+              ((list (pair Options.decode (list (string #> rpair Position.none))))))))))))))
+        end;
 
-      val (command_timings, (do_output, (options, (verbose, (browser_info,
-          (document_files, (parent_name, (chapter, (name, theories))))))))) =
-        File.read (Path.explode args_file) |> YXML.parse_body |>
-          let open XML.Decode in
-            pair (list properties) (pair bool (pair Options.decode (pair bool (pair string
-              (pair (list (pair string string)) (pair string (pair string (pair string
-                ((list (pair Options.decode (list string))))))))))))
-          end;
+    val symbols = HTML.make_symbols symbol_codes;
+    val _ = Options.load_default ();
+    val _ = Isabelle_Process.init_options ();
 
-      val _ = Options.set_default options;
+    val _ = writeln ("\fSession.name = " ^ name);
+    val _ =
+      Session.init
+        symbols
+        do_output
+        (Options.default_bool "browser_info")
+        (Path.explode browser_info)
+        (Options.default_string "document")
+        (Options.default_string "document_output")
+        (Present.document_variants (Options.default_string "document_variants"))
+        (map (apply2 Path.explode) document_files)
+        (Path.explode graph_file)
+        parent_name (chapter, name)
+        verbose;
 
-      val _ = writeln ("\fSession.name = " ^ name);
-      val _ =
-        Session.init do_output
-          (Options.bool options "browser_info")
-          (Path.explode browser_info)
-          (Options.string options "document")
-          (Options.bool options "document_graph")
-          (Options.string options "document_output")
-          (Present.document_variants (Options.string options "document_variants"))
-          (map (pairself Path.explode) document_files)
-          parent_name (chapter, name)
-          verbose;
+    val last_timing = lookup_timings (fold update_timings command_timings empty_timings);
 
-      val last_timing = lookup_timings (fold update_timings command_timings empty_timings);
+    val res1 =
+      theories |>
+        (List.app (build_theories symbols last_timing Path.current)
+          |> session_timing name verbose
+          |> Unsynchronized.setmp Private_Output.protocol_message_fn protocol_message
+          |> Exn.capture);
+    val res2 = Exn.capture Session.finish ();
+    val _ = Par_Exn.release_all [res1, res2];
 
-      val res1 =
-        theories |>
-          (List.app (use_theories_condition last_timing)
-            |> session_timing name verbose
-            |> Unsynchronized.setmp Outer_Syntax.batch_mode true
-            |> Unsynchronized.setmp Output.protocol_message_fn protocol_message
-            |> Multithreading.max_threads_setmp (Options.int options "threads")
-            |> Exn.capture);
-      val res2 = Exn.capture Session.finish ();
-      val _ = Par_Exn.release_all [res1, res2];
+    val _ = Options.reset_default ();
+  in () end;
 
-      val _ = Options.reset_default ();
-      val _ = if do_output then () else exit 0;
-    in () end);
 
-end;
+(* PIDE protocol *)
+
+val _ =
+  Isabelle_Process.protocol_command "build_theories"
+    (fn [id, symbol_codes_yxml, master_dir, theories_yxml] =>
+      let
+        val symbols =
+          YXML.parse_body symbol_codes_yxml
+          |> let open XML.Decode in list (pair string int) end
+          |> HTML.make_symbols;
+        val theories =
+          YXML.parse_body theories_yxml |>
+            let open XML.Decode
+            in list (pair Options.decode (list (string #> rpair Position.none))) end;
+        val res1 =
+          Exn.capture (fn () =>
+            theories |> List.app (build_theories symbols (K NONE) (Path.explode master_dir))) ();
+        val res2 = Exn.capture Session.shutdown ();
+        val result =
+          (Par_Exn.release_all [res1, res2]; "") handle exn =>
+            (Runtime.exn_message exn handle _ (*sic!*) =>
+              "Exception raised, but failed to print details!");
+    in Output.protocol_message (Markup.build_theories_result id) [result] end);
 
 end;

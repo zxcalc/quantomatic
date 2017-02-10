@@ -18,36 +18,39 @@ signature PRINT_MODE =
 sig
   include BASIC_PRINT_MODE
   val input: string
+  val ASCII: string
   val internal: string
   val setmp: string list -> ('a -> 'b) -> 'a -> 'b
   val with_modes: string list -> ('a -> 'b) -> 'a -> 'b
   val closure: ('a -> 'b) -> 'a -> 'b
+  val add_modes: string list -> unit
 end;
 
 structure Print_Mode: PRINT_MODE =
 struct
 
 val input = "input";
+val ASCII = "ASCII";
 val internal = "internal";
 
 val print_mode = Unsynchronized.ref ([]: string list);
-val tag = Universal.tag () : string list option Universal.tag;
+val print_mode_var = Thread_Data.var () : string list Thread_Data.var;
 
 fun print_mode_value () =
   let val modes =
-    (case Thread.getLocal tag of
-      SOME (SOME modes) => modes
-    | _ => ! print_mode)
+    (case Thread_Data.get print_mode_var of
+      SOME modes => modes
+    | NONE => ! print_mode)
   in subtract (op =) [input, internal] modes end;
 
 fun print_mode_active mode = member (op =) (print_mode_value ()) mode;
 
-fun setmp modes f x =
-  let val orig_modes = (case Thread.getLocal tag of SOME (SOME ms) => SOME ms | _ => NONE)
-  in setmp_thread_data tag orig_modes (SOME modes) f x end;
+fun setmp modes f x = Thread_Data.setmp print_mode_var (SOME modes) f x;
 
 fun with_modes modes f x = setmp (modes @ print_mode_value ()) f x;
 fun closure f = with_modes [] f;
+
+fun add_modes modes = Unsynchronized.change print_mode (append modes);
 
 end;
 

@@ -9,9 +9,12 @@ signature LOGIC =
 sig
   val all_const: typ -> term
   val all: term -> term -> term
+  val dependent_all_name: string * term -> term -> term
   val is_all: term -> bool
   val dest_all: term -> (string * typ) * term
   val list_all: (string * typ) list * term -> term
+  val all_constraint: (string -> typ option) -> string * string -> term -> term
+  val dependent_all_constraint: (string -> typ option) -> string * string -> term -> term
   val mk_equals: term * term -> term
   val dest_equals: term -> term * term
   val implies: term
@@ -23,6 +26,10 @@ sig
   val strip_prems: int * term list * term -> term list * term
   val count_prems: term -> int
   val nth_prem: int * term -> term
+  val close_term: (string * term) list -> term -> term
+  val close_prop: (string * term) list -> term list -> term -> term
+  val close_prop_constraint: (string -> typ option) ->
+    (string * string) list -> term list -> term -> term
   val true_prop: term
   val conjunction: term
   val mk_conjunction: term * term -> term
@@ -61,8 +68,8 @@ sig
   val rlist_abs: (string * typ) list * term -> term
   val incr_tvar_same: int -> typ Same.operation
   val incr_tvar: int -> typ -> typ
-  val incr_indexes_same: typ list * int -> term Same.operation
-  val incr_indexes: typ list * int -> term -> term
+  val incr_indexes_same: string list * typ list * int -> term Same.operation
+  val incr_indexes: string list * typ list * int -> term -> term
   val lift_abs: int -> term -> term -> term
   val lift_all: int -> term -> term -> term
   val strip_assums_hyp: term -> term list
@@ -97,6 +104,13 @@ fun all_const T = Const ("Pure.all", (T --> propT) --> propT);
 
 fun all v t = all_const (Term.fastype_of v) $ lambda v t;
 
+fun dependent_all_name (x, v) t =
+  let
+    val x' = if x = "" then Term.term_name v else x;
+    val T = Term.fastype_of v;
+    val t' = Term.abstract_over (v, t);
+  in if Term.is_dependent t' then all_const T $ Abs (x', T, t') else t end;
+
 fun is_all (Const ("Pure.all", _) $ Abs _) = true
   | is_all _ = false;
 
@@ -107,6 +121,34 @@ fun dest_all (Const ("Pure.all", _) $ Abs (abs as (_, T, _))) =
 
 fun list_all ([], t) = t
   | list_all ((a, T) :: vars, t) = all_const T $ Abs (a, T, list_all (vars, t));
+
+
+(* operations before type-inference *)
+
+local
+
+fun abs_body default_type z tm =
+  let
+    fun abs lev (Abs (x, T, b)) = Abs (x, T, abs (lev + 1) b)
+      | abs lev (t $ u) = abs lev t $ abs lev u
+      | abs lev (a as Free (x, T)) =
+          if x = z then
+            Type.constraint (the_default dummyT (default_type x))
+              (Type.constraint T (Bound lev))
+          else a
+      | abs _ a = a;
+  in abs 0 (Term.incr_boundvars 1 tm) end;
+
+in
+
+fun all_constraint default_type (y, z) t =
+  all_const dummyT $ Abs (y, dummyT, abs_body default_type z t);
+
+fun dependent_all_constraint default_type (y, z) t =
+  let val t' = abs_body default_type z t
+  in if Term.is_dependent t' then all_const dummyT $ Abs (y, dummyT, t') else t end;
+
+end;
 
 
 (** equality **)
@@ -164,6 +206,16 @@ fun nth_prem (1, Const ("Pure.imp", _) $ A $ _) = A
   B1 ==> ... Bn ==> C   goes to   ([B1, ..., Bn], C)    *)
 fun strip_horn A = (strip_imp_prems A, strip_imp_concl A);
 
+
+(* close -- omit vacuous quantifiers *)
+
+val close_term = fold_rev Term.dependent_lambda_name;
+
+fun close_prop xs As B =
+  fold_rev dependent_all_name xs (list_implies (As, B));
+
+fun close_prop_constraint default_type xs As B =
+  fold_rev (dependent_all_constraint default_type) xs (list_implies (As, B));
 
 
 (** conjunction **)
@@ -367,14 +419,18 @@ fun incr_tvar k T = incr_tvar_same k T handle Same.SAME => T;
 
 (*For all variables in the term, increment indexnames and lift over the Us
     result is ?Gidx(B.(lev+n-1),...,B.lev) where lev is abstraction level *)
-fun incr_indexes_same ([], 0) = Same.same
-  | incr_indexes_same (Ts, k) =
+fun incr_indexes_same ([], [], 0) = Same.same
+  | incr_indexes_same (fixed, Ts, k) =
       let
         val n = length Ts;
         val incrT = incr_tvar_same k;
 
         fun incr lev (Var ((x, i), T)) =
               combound (Var ((x, i + k), Ts ---> Same.commit incrT T), lev, n)
+          | incr lev (Free (x, T)) =
+              if member (op =) fixed x then
+                combound (Free (x, Ts ---> Same.commit incrT T), lev, n)
+              else Free (x, incrT T)
           | incr lev (Abs (x, T, body)) =
               (Abs (x, incrT T, incr (lev + 1) body handle Same.SAME => body)
                 handle Same.SAME => Abs (x, T, incr (lev + 1) body))
@@ -382,7 +438,6 @@ fun incr_indexes_same ([], 0) = Same.same
               (incr lev t $ (incr lev u handle Same.SAME => u)
                 handle Same.SAME => t $ incr lev u)
           | incr _ (Const (c, T)) = Const (c, incrT T)
-          | incr _ (Free (x, T)) = Free (x, incrT T)
           | incr _ (Bound _) = raise Same.SAME;
       in incr 0 end;
 
@@ -397,14 +452,14 @@ fun lift_abs inc =
   let
     fun lift Ts (Const ("Pure.imp", _) $ _ $ B) t = lift Ts B t
       | lift Ts (Const ("Pure.all", _) $ Abs (a, T, B)) t = Abs (a, T, lift (T :: Ts) B t)
-      | lift Ts _ t = incr_indexes (rev Ts, inc) t;
+      | lift Ts _ t = incr_indexes ([], rev Ts, inc) t;
   in lift [] end;
 
 fun lift_all inc =
   let
     fun lift Ts ((c as Const ("Pure.imp", _)) $ A $ B) t = c $ A $ lift Ts B t
       | lift Ts ((c as Const ("Pure.all", _)) $ Abs (a, T, B)) t = c $ Abs (a, T, lift (T :: Ts) B t)
-      | lift Ts _ t = incr_indexes (rev Ts, inc) t;
+      | lift Ts _ t = incr_indexes ([], rev Ts, inc) t;
   in lift [] end;
 
 (*Strips assumptions in goal, yielding list of hypotheses.   *)
@@ -418,12 +473,12 @@ fun strip_assums_hyp B =
 
 (*Strips assumptions in goal, yielding conclusion.   *)
 fun strip_assums_concl (Const("Pure.imp", _) $ H $ B) = strip_assums_concl B
-  | strip_assums_concl (Const("Pure.all",_)$Abs(a,T,t)) = strip_assums_concl t
+  | strip_assums_concl (Const("Pure.all", _) $ Abs (a, T, t)) = strip_assums_concl t
   | strip_assums_concl B = B;
 
 (*Make a list of all the parameters in a subgoal, even if nested*)
 fun strip_params (Const("Pure.imp", _) $ H $ B) = strip_params B
-  | strip_params (Const("Pure.all",_)$Abs(a,T,t)) = (a,T) :: strip_params t
+  | strip_params (Const("Pure.all", _) $ Abs (a, T, t)) = (a, T) :: strip_params t
   | strip_params B = [];
 
 (*test for nested meta connectives in prems*)

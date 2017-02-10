@@ -15,19 +15,67 @@ import scala.util.matching.Regex
 
 object Thy_Header extends Parse.Parser
 {
-  val HEADER = "header"
+  /* bootstrap keywords */
+
+  type Keywords = List[(String, Keyword.Spec)]
+  type Abbrevs = List[(String, String)]
+
+  val CHAPTER = "chapter"
+  val SECTION = "section"
+  val SUBSECTION = "subsection"
+  val SUBSUBSECTION = "subsubsection"
+  val PARAGRAPH = "paragraph"
+  val SUBPARAGRAPH = "subparagraph"
+  val TEXT = "text"
+  val TXT = "txt"
+  val TEXT_RAW = "text_raw"
+
   val THEORY = "theory"
   val IMPORTS = "imports"
   val KEYWORDS = "keywords"
+  val ABBREVS = "abbrevs"
   val AND = "and"
   val BEGIN = "begin"
 
-  private val lexicon =
-    Scan.Lexicon("%", "(", ")", ",", "::", ";", "==",
-      AND, BEGIN, HEADER, IMPORTS, KEYWORDS, THEORY)
+  private val bootstrap_header: Keywords =
+    List(
+      ("%", Keyword.no_spec),
+      ("(", Keyword.no_spec),
+      (")", Keyword.no_spec),
+      (",", Keyword.no_spec),
+      ("::", Keyword.no_spec),
+      ("=", Keyword.no_spec),
+      (AND, Keyword.no_spec),
+      (BEGIN, Keyword.quasi_command_spec),
+      (IMPORTS, Keyword.quasi_command_spec),
+      (KEYWORDS, Keyword.quasi_command_spec),
+      (ABBREVS, Keyword.quasi_command_spec),
+      (CHAPTER, (((Keyword.DOCUMENT_HEADING, Nil), Nil))),
+      (SECTION, (((Keyword.DOCUMENT_HEADING, Nil), Nil))),
+      (SUBSECTION, (((Keyword.DOCUMENT_HEADING, Nil), Nil))),
+      (SUBSUBSECTION, (((Keyword.DOCUMENT_HEADING, Nil), Nil))),
+      (PARAGRAPH, (((Keyword.DOCUMENT_HEADING, Nil), Nil))),
+      (SUBPARAGRAPH, (((Keyword.DOCUMENT_HEADING, Nil), Nil))),
+      (TEXT, (((Keyword.DOCUMENT_BODY, Nil), Nil))),
+      (TXT, (((Keyword.DOCUMENT_BODY, Nil), Nil))),
+      (TEXT_RAW, (((Keyword.DOCUMENT_RAW, Nil), Nil))),
+      (THEORY, ((Keyword.THY_BEGIN, Nil), List("theory"))),
+      ("ML", ((Keyword.THY_DECL, Nil), List("ML"))))
+
+  private val bootstrap_keywords =
+    Keyword.Keywords.empty.add_keywords(bootstrap_header)
+
+  lazy val bootstrap_syntax: Outer_Syntax =
+    Outer_Syntax.init().add_keywords(bootstrap_header)
 
 
-  /* theory file name */
+  /* file name */
+
+  val PURE = "Pure"
+  val ML_BOOTSTRAP = "ML_Bootstrap"
+  val ML_ROOT = "ML_Root"
+  val ml_roots = List("ROOT0.ML" -> "ML_Root0", "ROOT.ML" -> ML_ROOT)
+  val bootstrap_thys = List(PURE, ML_BOOTSTRAP).map(a => a -> ("Bootstrap_" + a))
 
   private val Base_Name = new Regex(""".*?([^/\\:]+)""")
   private val Thy_Name = new Regex(""".*?([^/\\:]+)\.thy""")
@@ -38,54 +86,71 @@ object Thy_Header extends Parse.Parser
   def thy_name(s: String): Option[String] =
     s match { case Thy_Name(name) => Some(name) case _ => None }
 
+  def thy_name_bootstrap(s: String): Option[String] =
+    s match {
+      case Thy_Name(name) =>
+        Some(bootstrap_thys.collectFirst({ case (a, b) if a == name => b }).getOrElse(name))
+      case Base_Name(name) => ml_roots.collectFirst({ case (a, b) if a == name => b })
+      case _ => None
+    }
+
 
   /* header */
 
   val header: Parser[Thy_Header] =
   {
-    val file_name = atom("file name", _.is_name)
-
     val opt_files =
-      keyword("(") ~! (rep1sep(name, keyword(",")) <~ keyword(")")) ^^ { case _ ~ x => x } |
+      $$$("(") ~! (rep1sep(name, $$$(",")) <~ $$$(")")) ^^ { case _ ~ x => x } |
       success(Nil)
+
     val keyword_spec =
       atom("outer syntax keyword specification", _.is_name) ~ opt_files ~ tags ^^
       { case x ~ y ~ z => ((x, y), z) }
 
     val keyword_decl =
       rep1(string) ~
-      opt(keyword("::") ~! keyword_spec ^^ { case _ ~ x => x }) ~
-      opt(keyword("==") ~! name ^^ { case _ ~ x => x }) ^^
-      { case xs ~ y ~ z => xs.map((_, y, z)) }
+      opt($$$("::") ~! keyword_spec ^^ { case _ ~ x => x }) ^^
+      { case xs ~ y => xs.map((_, y.getOrElse(Keyword.no_spec))) }
+
     val keyword_decls =
-      keyword_decl ~ rep(keyword(AND) ~! keyword_decl ^^ { case _ ~ x => x }) ^^
+      keyword_decl ~ rep($$$(AND) ~! keyword_decl ^^ { case _ ~ x => x }) ^^
       { case xs ~ yss => (xs :: yss).flatten }
 
-    val file =
-      keyword("(") ~! (file_name ~ keyword(")")) ^^ { case _ ~ (x ~ _) => (x, false) } |
-      file_name ^^ (x => (x, true))
+    val abbrevs =
+      rep1(text ~ ($$$("=") ~! text) ^^ { case a ~ (_ ~ b) => (a, b) })
 
     val args =
-      theory_name ~
-      (opt(keyword(IMPORTS) ~! (rep1(theory_xname))) ^^
+      position(theory_name) ~
+      (opt($$$(IMPORTS) ~! rep1(position(theory_name))) ^^
         { case None => Nil case Some(_ ~ xs) => xs }) ~
-      (opt(keyword(KEYWORDS) ~! keyword_decls) ^^
+      (opt($$$(KEYWORDS) ~! keyword_decls) ^^
         { case None => Nil case Some(_ ~ xs) => xs }) ~
-      keyword(BEGIN) ^^
-      { case x ~ ys ~ zs ~ _ => Thy_Header(x, ys, zs) }
+      (opt($$$(ABBREVS) ~! abbrevs) ^^
+        { case None => Nil case Some(_ ~ xs) => xs }) ~
+      $$$(BEGIN) ^^
+      { case x ~ ys ~ zs ~ ws ~ _ => Thy_Header(x, ys, zs, ws) }
 
-    (keyword(HEADER) ~ tags) ~!
-      ((document_source ~ rep(keyword(";")) ~ keyword(THEORY) ~ tags) ~> args) ^^
-        { case _ ~ x => x } |
-    (keyword(THEORY) ~ tags) ~! args ^^ { case _ ~ x => x }
+    val heading =
+      (command(CHAPTER) |
+        command(SECTION) |
+        command(SUBSECTION) |
+        command(SUBSUBSECTION) |
+        command(PARAGRAPH) |
+        command(SUBPARAGRAPH) |
+        command(TEXT) |
+        command(TXT) |
+        command(TEXT_RAW)) ~
+      tags ~! document_source
+
+    (rep(heading) ~ command(THEORY) ~ tags) ~! args ^^ { case _ ~ x => x }
   }
 
 
   /* read -- lazy scanning */
 
-  def read(reader: Reader[Char]): Thy_Header =
+  def read(reader: Reader[Char], start: Token.Pos): Thy_Header =
   {
-    val token = Token.Parsers.token(lexicon, _ => false)
+    val token = Token.Parsers.token(bootstrap_keywords)
     val toks = new mutable.ListBuffer[Token]
 
     @tailrec def scan_to_begin(in: Reader[Char])
@@ -99,36 +164,29 @@ object Thy_Header extends Parse.Parser
     }
     scan_to_begin(reader)
 
-    parse(commit(header), Token.reader(toks.toList)) match {
+    parse(commit(header), Token.reader(toks.toList, start)) match {
       case Success(result, _) => result
       case bad => error(bad.toString)
     }
   }
 
-  def read(source: CharSequence): Thy_Header =
-    read(new CharSequenceReader(source))
-
-
-  /* keywords */
-
-  type Keywords = List[(String, Option[((String, List[String]), List[String])], Option[String])]
+  def read(source: CharSequence, start: Token.Pos): Thy_Header =
+    read(new CharSequenceReader(source), start)
 }
 
 
 sealed case class Thy_Header(
-  name: String,
-  imports: List[String],
-  keywords: Thy_Header.Keywords)
+  name: (String, Position.T),
+  imports: List[(String, Position.T)],
+  keywords: Thy_Header.Keywords,
+  abbrevs: Thy_Header.Abbrevs)
 {
-  def map(f: String => String): Thy_Header =
-    Thy_Header(f(name), imports.map(f), keywords)
-
   def decode_symbols: Thy_Header =
   {
     val f = Symbol.decode _
-    Thy_Header(f(name), imports.map(f),
-      keywords.map({ case (a, b, c) =>
-        (f(a), b.map({ case ((x, y), z) => ((f(x), y.map(f)), z.map(f))  }), c.map(f)) }))
+    Thy_Header((f(name._1), name._2),
+      imports.map({ case (a, b) => (f(a), b) }),
+      keywords.map({ case (a, ((b, c), d)) => (f(a), ((f(b), c.map(f)), d.map(f))) }),
+      abbrevs.map({ case (a, b) => (f(a), f(b)) }))
   }
 }
-

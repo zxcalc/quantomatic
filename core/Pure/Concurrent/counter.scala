@@ -1,5 +1,4 @@
 /*  Title:      Pure/Concurrent/counter.scala
-    Module:     PIDE
     Author:     Makarius
 
 Synchronized counter for unique identifiers < 0.
@@ -28,4 +27,3 @@ final class Counter private
 
   override def toString: String = count.toString
 }
-

@@ -71,7 +71,7 @@ fun connected_with _ ([]: nt_tag list) relatives = relatives
   N.B. that the chains parameter has the form [(from, [to])];
   prod_count is of type "int option" and is only updated if it is <> NONE*)
 fun add_prods _ chains lambdas prod_count [] = (chains, lambdas, prod_count)
-  | add_prods prods chains lambdas prod_count ((lhs, new_prod as (rhs, name, pri)) :: ps) =
+  | add_prods prods chains lambdas prod_count ((lhs, new_prod as (rhs, _, pri)) :: ps) =
       let
         val chain_from =
           (case (pri, rhs) of
@@ -95,7 +95,7 @@ fun add_prods _ chains lambdas prod_count [] = (chains, lambdas, prod_count)
           if is_none new_chain then ([], lambdas)
           else
             let (*lookahead of chain's source*)
-              val ((from_nts, from_tks), _) = Array.sub (prods, the new_chain);
+              val ((_, from_tks), _) = Array.sub (prods, the new_chain);
 
               (*copy from's lookahead to chain's destinations*)
               fun copy_lookahead [] added = added
@@ -195,7 +195,7 @@ fun add_prods _ chains lambdas prod_count [] = (chains, lambdas, prod_count)
                           (added_lambdas, added_starts)
                       | process_nts (nt :: nts) added_lambdas added_starts =
                           let
-                            val (lookahead as (old_nts, old_tks), nt_prods) = Array.sub (prods, nt);
+                            val ((old_nts, old_tks), nt_prods) = Array.sub (prods, nt);
 
                             (*existing productions whose lookahead may depend on l*)
                             val tk_prods =
@@ -235,7 +235,7 @@ fun add_prods _ chains lambdas prod_count [] = (chains, lambdas, prod_count)
           in propagate_lambda (subtract (op =) lambdas lambdas') added_starts lambdas' end;
 
         (*insert production into grammar*)
-        val (added_starts', prod_count') =
+        val (added_starts', _) =
           if is_some chain_from
           then (added_starts', prod_count)  (*don't store chain production*)
           else
@@ -255,7 +255,7 @@ fun add_prods _ chains lambdas prod_count [] = (chains, lambdas, prod_count)
 
               (*add lhs NT to list of dependent NTs in lookahead*)
               fun add_nts [] = ()
-                | add_nts (nt :: nts) =
+                | add_nts (nt :: _) =
                     let val ((old_nts, old_tks), ps) = Array.sub (prods, nt) in
                       if member (op =) old_nts lhs then ()
                       else Array.update (prods, nt, ((lhs :: old_nts, old_tks), ps))
@@ -429,7 +429,7 @@ fun pretty_gram (Gram {tags, prods, chains, ...}) =
             map prod_of_chain (these (AList.lookup (op =) chains tag));
       in map (pretty_prod name) nt_prods end;
 
-  in maps pretty_nt (sort_wrt fst (Symtab.dest tags)) end;
+  in maps pretty_nt (sort_by fst (Symtab.dest tags)) end;
 
 
 
@@ -567,7 +567,7 @@ fun get_RHS' min_prec max_prec =
   filter (fn (_, _, prec: int) => prec >= min_prec andalso prec < max_prec);
 
 (*Make states using a list of rhss*)
-fun mk_states i min_prec lhs_ID rhss =
+fun mk_states i lhs_ID rhss =
   let fun mk_state (rhs, id, prod_prec) = (lhs_ID, prod_prec, [], rhs, id, i);
   in map mk_state rhss end;
 
@@ -604,11 +604,11 @@ fun getS A max_prec NONE Si =
             A = B andalso prec > min_prec andalso prec <= max_prec
           | _ => false) Si;
 
-fun get_states Estate i ii A max_prec =
+fun get_states Estate j A max_prec =
   filter
     (fn (_, _, _, Nonterminal (B, prec) :: _, _, _) => A = B andalso prec <= max_prec
       | _ => false)
-    (Array.sub (Estate, ii));
+    (Array.sub (Estate, j));
 
 
 fun movedot_term c (A, j, ts, Terminal a :: sa, id, i) =
@@ -654,7 +654,7 @@ fun PROCESSS prods chains Estate i c states =
   let
     fun all_prods_for nt = prods_for prods chains true c [nt];
 
-    fun processS used [] (Si, Sii) = (Si, Sii)
+    fun processS _ [] (Si, Sii) = (Si, Sii)
       | processS used (S :: States) (Si, Sii) =
           (case S of
             (_, _, _, Nonterminal (nt, min_prec) :: _, _, _) =>
@@ -669,12 +669,12 @@ fun PROCESSS prods chains Estate i c states =
                         let
                           val tk_prods = all_prods_for nt;
                           val States' =
-                            mk_states i min_prec nt (get_RHS' min_prec used_prec tk_prods);
+                            mk_states i nt (get_RHS' min_prec used_prec tk_prods);
                         in (update_prec (nt, min_prec) used, movedot_lambda l S @ States') end
                   | NONE => (*nonterminal is parsed for the first time*)
                       let
                         val tk_prods = all_prods_for nt;
-                        val States' = mk_states i min_prec nt (get_RHS min_prec tk_prods);
+                        val States' = mk_states i nt (get_RHS min_prec tk_prods);
                       in (Inttab.update (nt, (min_prec, [])) used, States') end);
               in
                 processS used' (new_states @ States) (S :: Si, Sii)
@@ -692,7 +692,7 @@ fun PROCESSS prods chains Estate i c states =
                     val States' = map (movedot_nonterm tt) Slist;
                   in processS used' (States' @ States) (S :: Si, Sii) end
                 else
-                  let val Slist = get_states Estate i j A prec
+                  let val Slist = get_states Estate j A prec
                   in processS used (map (movedot_nonterm tt) Slist @ States) (S :: Si, Sii) end
               end)
   in processS Inttab.empty states ([], []) end;

@@ -8,10 +8,14 @@ package isabelle
 
 
 import java.net.{URL, MalformedURLException}
+import java.util.zip.GZIPInputStream
 
 
 object Url
 {
+  def escape(name: String): String =
+    (for (c <- name.iterator) yield if (c == '\'') "%27" else new String(Array(c))).mkString
+
   def apply(name: String): URL =
   {
     try { new URL(name) }
@@ -26,11 +30,19 @@ object Url
     try { Url(name).openStream.close; true }
     catch { case ERROR(_) => false }
 
-  def read(name: String): String =
+
+  /* read */
+
+  private def read(url: URL, gzip: Boolean): String =
   {
-    val stream = Url(name).openStream
-    try { File.read_stream(stream) }
+    val stream = url.openStream
+    try { File.read_stream(if (gzip) new GZIPInputStream(stream) else stream) }
     finally { stream.close }
   }
-}
 
+  def read(url: URL): String = read(url, false)
+  def read_gzip(url: URL): String = read(url, true)
+
+  def read(name: String): String = read(Url(name), false)
+  def read_gzip(name: String): String = read(Url(name), true)
+}

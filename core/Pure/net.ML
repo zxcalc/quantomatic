@@ -154,20 +154,15 @@ fun delete_term_safe eq entry net = delete_term eq entry net handle DELETE => ne
 
 (*** Retrieval functions for discrimination nets ***)
 
-exception ABSENT;
-
-fun the_atom atoms a =
-  (case Symtab.lookup atoms a of
-    NONE => raise ABSENT
-  | SOME net => net);
-
 (*Return the list of items at the given node, [] if no such node*)
 fun lookup (Leaf xs) [] = xs
   | lookup (Leaf _) (_ :: _) = []  (*non-empty keys and empty net*)
-  | lookup (Net {comb, var, atoms}) (CombK :: keys) = lookup comb keys
-  | lookup (Net {comb, var, atoms}) (VarK :: keys) = lookup var keys
-  | lookup (Net {comb, var, atoms}) (AtomK a :: keys) =
-      lookup (the_atom atoms a) keys handle ABSENT => [];
+  | lookup (Net {comb, ...}) (CombK :: keys) = lookup comb keys
+  | lookup (Net {var, ...}) (VarK :: keys) = lookup var keys
+  | lookup (Net {atoms, ...}) (AtomK a :: keys) =
+      (case Symtab.lookup atoms a of
+        SOME net => lookup net keys
+      | NONE => []);
 
 
 (*Skipping a term in a net.  Recursively skip 2 levels if a combination*)
@@ -180,7 +175,9 @@ fun net_skip (Leaf _) nets = nets
 
 (*conses the linked net, if present, to nets*)
 fun look1 (atoms, a) nets =
-  the_atom atoms a :: nets handle ABSENT => nets;
+  (case Symtab.lookup atoms a of
+    NONE => nets
+  | SOME net => net :: nets);
 
 (*Return the nodes accessible from the term (cons them before nets)
   "unif" signifies retrieval for unification rather than matching.

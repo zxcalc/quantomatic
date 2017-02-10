@@ -45,15 +45,16 @@ fun register name description pr =
   report ());
 
 val _ =
-  Query_Operation.register "print_operation" (fn {state, args, output_result} =>
-    let
-      val _ = Toplevel.context_of state handle Toplevel.UNDEF => error "Unknown context";
-      fun err s = Pretty.mark_str (Markup.bad, s);
-      fun print name =
-        (case AList.lookup (op =) (Synchronized.value print_operations) name of
-          SOME (_, pr) => (pr state handle Toplevel.UNDEF => [err "Unknown context"])
-        | NONE => [err ("Unknown print operation: " ^ quote name)]);
-    in output_result (Pretty.string_of (Pretty.chunks (maps print args))) end);
+  Query_Operation.register {name = "print_operation", pri = Task_Queue.urgent_pri}
+    (fn {state, args, writeln_result, ...} =>
+      let
+        val _ = Toplevel.context_of state handle Toplevel.UNDEF => error "Unknown context";
+        fun err s = Pretty.mark_str (Markup.bad, s);
+        fun print name =
+          (case AList.lookup (op =) (Synchronized.value print_operations) name of
+            SOME (_, pr) => (pr state handle Toplevel.UNDEF => [err "Unknown context"])
+          | NONE => [err ("Unknown print operation: " ^ quote name)]);
+      in writeln_result (Pretty.string_of (Pretty.chunks (maps print args))) end);
 
 end;
 
@@ -75,8 +76,4 @@ val _ =
   register "theorems" "theorems of local theory or proof context"
     (Isar_Cmd.pretty_theorems false);
 
-val _ =
-  register "state" "proof state" Toplevel.pretty_state;
-
 end;
-

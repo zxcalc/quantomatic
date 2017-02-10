@@ -13,11 +13,13 @@ sig
   val unknownT: string
   type T
   val empty: T
+  val names: T -> string list
   val markup: T -> string * Position.T -> Markup.T
   val typ: T -> string -> string
   val bool: T -> string -> bool
   val int: T -> string -> int
   val real: T -> string -> real
+  val seconds: T -> string -> Time.time
   val string: T -> string -> string
   val put_bool: string -> bool -> T -> T
   val put_int: string -> int -> T -> T
@@ -32,6 +34,7 @@ sig
   val default_bool: string -> bool
   val default_int: string -> int
   val default_real: string -> real
+  val default_seconds: string -> Time.time
   val default_string: string -> string
   val default_put_bool: string -> bool -> unit
   val default_put_int: string -> int -> unit
@@ -58,6 +61,8 @@ val unknownT = "unknown";
 datatype T = Options of {pos: Position.T, typ: string, value: string} Symtab.table;
 
 val empty = Options Symtab.empty;
+
+fun names (Options tab) = sort_strings (Symtab.keys tab);
 
 
 (* check *)
@@ -109,14 +114,15 @@ fun get T parse options name =
 
 (* internal lookup and update *)
 
-val bool = get boolT (try Markup.parse_bool);
-val int = get intT (try Markup.parse_int);
-val real = get realT (try Markup.parse_real);
+val bool = get boolT (try Value.parse_bool);
+val int = get intT (try Value.parse_int);
+val real = get realT (try Value.parse_real);
+val seconds = Time.fromReal oo real;
 val string = get stringT SOME;
 
-val put_bool = put boolT Markup.print_bool;
-val put_int = put intT Markup.print_int;
-val put_real = put realT Markup.print_real;
+val put_bool = put boolT Value.print_bool;
+val put_int = put intT Value.print_int;
+val put_real = put realT Value.print_real;
 val put_string = put stringT I;
 
 
@@ -188,6 +194,7 @@ fun default_typ name = typ (default ()) name;
 fun default_bool name = bool (default ()) name;
 fun default_int name = int (default ()) name;
 fun default_real name = real (default ()) name;
+fun default_seconds name = seconds (default ()) name;
 fun default_string name = string (default ()) name;
 
 val default_put_bool = change_default put_bool;
@@ -208,11 +215,11 @@ fun load_default () =
   | name =>
       let val path = Path.explode name in
         (case try File.read path of
-          SOME s => (set_default (decode (YXML.parse_body s)); ignore (try File.rm path))
+          SOME s => set_default (decode (YXML.parse_body s))
         | NONE => ())
       end);
 
 val _ = load_default ();
+val _ = ML_Print_Depth.set_print_depth (default_int "ML_print_depth");
 
 end;
-

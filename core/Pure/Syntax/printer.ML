@@ -86,7 +86,7 @@ datatype symb =
   TypArg of int |
   String of bool * string |
   Break of int |
-  Block of int * symb list;
+  Block of Syntax_Ext.block_info * symb list;
 
 type prtabs = (string * ((symb list * int * int) list) Symtab.table) list;
 
@@ -110,12 +110,12 @@ fun xprod_to_fmt (Syntax_Ext.XProd (_, _, "", _)) = NONE
               apfst (cons (arg s_p)) (xsyms_to_syms xsyms)
           | xsyms_to_syms (Syntax_Ext.Space s :: xsyms) =
               apfst (cons (String (false, s))) (xsyms_to_syms xsyms)
-          | xsyms_to_syms (Syntax_Ext.Bg i :: xsyms) =
+          | xsyms_to_syms (Syntax_Ext.Bg info :: xsyms) =
               let
                 val (bsyms, xsyms') = xsyms_to_syms xsyms;
                 val (syms, xsyms'') = xsyms_to_syms xsyms';
               in
-                (Block (i, bsyms) :: syms, xsyms'')
+                (Block (info, bsyms) :: syms, xsyms'')
               end
           | xsyms_to_syms (Syntax_Ext.Brk i :: xsyms) =
               apfst (cons (Break i)) (xsyms_to_syms xsyms)
@@ -202,13 +202,13 @@ fun pretty type_mode curried ctxt tabs trf markup_trans markup_extern ast0 =
               then Pretty.marks_str (m @ [Lexicon.literal_markup s], s)
               else Pretty.str s;
           in (T :: Ts, args') end
-      | synT m (Block (i, bsymbs) :: symbs, args) =
+      | synT m (Block ({markup, consistent, unbreakable, indent}, bsymbs) :: symbs, args) =
           let
             val (bTs, args') = synT m (bsymbs, args);
             val (Ts, args'') = synT m (symbs, args');
             val T =
-              if i < 0 then Pretty.unbreakable (Pretty.block bTs)
-              else Pretty.blk (i, bTs);
+              Pretty.markup_block {markup = markup, consistent = consistent, indent = indent} bTs
+              |> unbreakable ? Pretty.unbreakable;
           in (T :: Ts, args'') end
       | synT m (Break i :: symbs, args) =
           let
@@ -217,8 +217,8 @@ fun pretty type_mode curried ctxt tabs trf markup_trans markup_extern ast0 =
           in (T :: Ts, args') end
 
     and parT m (pr, args, p, p': int) = #1 (synT m
-          (if p > p' orelse (show_brackets andalso p' <> 1000 andalso not (is_chain pr))
-           then [Block (1, String (false, "(") :: pr @ [String (false, ")")])]
+          (if p > p' orelse (show_brackets andalso p' <> 1000 andalso not (is_chain pr)) then
+            [Block (Syntax_Ext.block_indent 1, String (false, "(") :: pr @ [String (false, ")")])]
            else pr, args))
 
     and atomT a = Pretty.marks_str (markup_extern a)

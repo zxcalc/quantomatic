@@ -28,12 +28,6 @@ sig
   val funpow: int -> ('a -> 'a) -> 'a -> 'a
   val funpow_yield: int -> ('a -> 'b * 'a) -> 'a -> 'b list * 'a
 
-  (*user errors*)
-  exception ERROR of string
-  val error: string -> 'a
-  val cat_error: string -> string -> 'a
-  val assert_all: ('a -> bool) -> 'a list -> ('a -> string) -> unit
-
   (*pairs*)
   val pair: 'a -> 'b -> 'a * 'b
   val rpair: 'a -> 'b -> 'b * 'a
@@ -45,7 +39,7 @@ sig
   val swap: 'a * 'b -> 'b * 'a
   val apfst: ('a -> 'b) -> 'a * 'c -> 'b * 'c
   val apsnd: ('a -> 'b) -> 'c * 'a -> 'c * 'b
-  val pairself: ('a -> 'b) -> 'a * 'a -> 'b * 'b
+  val apply2: ('a -> 'b) -> 'a * 'a -> 'b * 'b
 
   (*booleans*)
   val equal: ''a -> ''a -> bool
@@ -54,8 +48,6 @@ sig
   val andf: ('a -> bool) * ('a -> bool) -> 'a -> bool
   val exists: ('a -> bool) -> 'a list -> bool
   val forall: ('a -> bool) -> 'a list -> bool
-  val setmp_CRITICAL: 'a Unsynchronized.ref -> 'a -> ('b -> 'c) -> 'b -> 'c
-  val setmp_thread_data: 'a Universal.tag -> 'a -> 'a -> ('b -> 'c) -> 'b -> 'c
 
   (*lists*)
   val single: 'a -> 'a list
@@ -102,8 +94,6 @@ sig
   val fold_product: ('a -> 'b -> 'c -> 'c) -> 'a list -> 'b list -> 'c -> 'c
   val map2: ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
   val fold2: ('a -> 'b -> 'c -> 'c) -> 'a list -> 'b list -> 'c -> 'c
-  val fold_rev2: ('a -> 'b -> 'c -> 'c) -> 'a list -> 'b list -> 'c -> 'c
-  val forall2: ('a -> 'b -> bool) -> 'a list -> 'b list -> bool
   val map_split: ('a -> 'b * 'c) -> 'a list -> 'b list * 'c list
   val zip_options: 'a list -> 'b option list -> ('a * 'b) list
   val ~~ : 'a list * 'b list -> ('a * 'b) list
@@ -117,6 +107,7 @@ sig
   val prefixes: 'a list -> 'a list list
   val suffixes1: 'a list -> 'a list list
   val suffixes: 'a list -> 'a list list
+  val trim: ('a -> bool) -> 'a list -> 'a list
 
   (*integers*)
   val upto: int * int -> int list
@@ -155,6 +146,7 @@ sig
   val trim_line: string -> string
   val replicate_string: int -> string -> string
   val translate_string: (string -> string) -> string -> string
+  val align_right: string -> int -> string -> string
   val match_string: string -> string -> bool
 
   (*reals*)
@@ -197,15 +189,10 @@ sig
   val sort: ('a * 'a -> order) -> 'a list -> 'a list
   val sort_distinct: ('a * 'a -> order) -> 'a list -> 'a list
   val sort_strings: string list -> string list
-  val sort_wrt: ('a -> string) -> 'a list -> 'a list
+  val sort_by: ('a -> string) -> 'a list -> 'a list
   val tag_list: int -> 'a list -> (int * 'a) list
   val untag_list: (int * 'a) list -> 'a list
   val order_list: (int * 'a) list -> 'a list
-
-  (*random numbers*)
-  exception RANDOM
-  val random: unit -> real
-  val random_range: int -> int -> int
 
   (*misc*)
   val divide_and_conquer: ('a -> 'a list * ('b list -> 'b)) -> 'a -> 'b
@@ -219,8 +206,6 @@ sig
   eqtype stamp
   val stamp: unit -> stamp
   structure Any: sig type T = exn end
-  val cd: string -> unit
-  val pwd: unit -> string
   val getenv: string -> string
   val getenv_strict: string -> string
 end;
@@ -260,22 +245,6 @@ fun funpow_yield (0 : int) _ x = ([], x)
   | funpow_yield n f x = x |> f ||>> funpow_yield (n - 1) f |>> op ::;
 
 
-(* user errors *)
-
-exception ERROR of string;
-fun error msg = raise ERROR msg;
-
-fun cat_error "" msg = error msg
-  | cat_error msg "" = error msg
-  | cat_error msg1 msg2 = error (msg1 ^ "\n" ^ msg2);
-
-fun assert_all pred list msg =
-  let
-    fun ass [] = ()
-      | ass (x :: xs) = if pred x then ass xs else error (msg x);
-  in ass list end;
-
-
 (* pairs *)
 
 fun pair x y = (x, y);
@@ -292,7 +261,7 @@ fun swap (x, y) = (y, x);
 
 fun apfst f (x, y) = (f x, y);
 fun apsnd f (x, y) = (x, f y);
-fun pairself f (x, y) = (f x, f y);
+fun apply2 f (x, y) = (f x, f y);
 
 
 (* booleans *)
@@ -307,20 +276,6 @@ fun p andf q = fn x => p x andalso q x;
 
 val exists = List.exists;
 val forall = List.all;
-
-
-(* flags *)
-
-fun setmp_CRITICAL flag value f x =
-  NAMED_CRITICAL "setmp" (fn () => Unsynchronized.setmp flag value f x);
-
-fun setmp_thread_data tag orig_data data f x =
-  uninterruptible (fn restore_attributes => fn () =>
-    let
-      val _ = Thread.setLocal (tag, data);
-      val result = Exn.capture (restore_attributes f) x;
-      val _ = Thread.setLocal (tag, orig_data);
-    in Exn.release result end) ();
 
 
 
@@ -538,19 +493,11 @@ fun map2 _ [] [] = []
   | map2 f (x :: xs) (y :: ys) = f x y :: map2 f xs ys
   | map2 _ _ _ = raise ListPair.UnequalLengths;
 
-fun fold2 f [] [] z = z
+fun fold2 _ [] [] z = z
   | fold2 f (x :: xs) (y :: ys) z = fold2 f xs ys (f x y z)
-  | fold2 f _ _ _ = raise ListPair.UnequalLengths;
+  | fold2 _ _ _ _ = raise ListPair.UnequalLengths;
 
-fun fold_rev2 f [] [] z = z
-  | fold_rev2 f (x :: xs) (y :: ys) z = f x y (fold_rev2 f xs ys z)
-  | fold_rev2 f _ _ _ = raise ListPair.UnequalLengths;
-
-fun forall2 P [] [] = true
-  | forall2 P (x :: xs) (y :: ys) = P x y andalso forall2 P xs ys
-  | forall2 P _ _ = raise ListPair.UnequalLengths;
-
-fun map_split f [] = ([], [])
+fun map_split _ [] = ([], [])
   | map_split f (x :: xs) =
       let
         val (y, w) = f x;
@@ -613,6 +560,7 @@ fun prefixes xs = [] :: prefixes1 xs;
 fun suffixes1 xs = map rev (prefixes1 (rev xs));
 fun suffixes xs = [] :: suffixes1 xs;
 
+fun trim pred = take_prefix pred #> #2 #> take_suffix pred #> #1;
 
 
 (** integers **)
@@ -648,15 +596,15 @@ fun radixstring (base, zerochar, num) =
 
 
 local
-  val zero = ord "0";
-  val small = 10000: int;
-  val small_table = Vector.tabulate (small, Int.toString);
+  val zero = Char.ord #"0";
+  val small_int = 10000: int;
+  val small_int_table = Vector.tabulate (small_int, Int.toString);
 in
 
 fun string_of_int i =
   if i < 0 then Int.toString i
   else if i < 10 then chr (zero + i)
-  else if i < small then Vector.sub (small_table, i)
+  else if i < small_int then Vector.sub (small_int_table, i)
   else Int.toString i;
 
 end;
@@ -672,7 +620,7 @@ fun string_of_indexname (a, 0) = a
 
 fun read_radix_int radix cs =
   let
-    val zero = ord "0";
+    val zero = Char.ord #"0";
     val limit = zero + radix;
     fun scan (num, []) = (num, [])
       | scan (num, c :: cs) =
@@ -732,9 +680,9 @@ fun unenclose str = String.substring (str, 1, size str - 2);
 (*simple quoting (does not escape special chars)*)
 val quote = enclose "\"" "\"";
 
-val cartouche = enclose "\\<open>" "\\<close>";
+val cartouche = enclose "\<open>" "\<close>";
 
-fun space_implode a bs = implode (separate a bs);
+val space_implode = String.concatWith;
 
 val commas = space_implode ", ";
 val commas_quote = commas o map quote;
@@ -772,6 +720,12 @@ fun replicate_string (0: int) _ = ""
       else replicate_string (k div 2) (a ^ a) ^ a;
 
 fun translate_string f = String.translate (f o String.str);
+
+fun align_right c k s =
+  let
+    val _ = if size c <> 1 orelse size s > k
+      then raise Fail "align_right" else ()
+  in replicate_string (k - size s) c ^ s end;
 
 (*crude matching of str against simple glob pat*)
 fun match_string pat str =
@@ -981,7 +935,7 @@ fun sort ord = mergesort false ord;
 fun sort_distinct ord = mergesort true ord;
 
 val sort_strings = sort string_ord;
-fun sort_wrt key xs = sort (string_ord o pairself key) xs;
+fun sort_by key xs = sort (string_ord o apply2 key) xs;
 
 
 (* items tagged by integer index *)
@@ -998,31 +952,7 @@ fun untag_list [] = []
       else x :: untag_list rest;
 
 (*return list elements in original order*)
-fun order_list list = untag_list (sort (int_ord o pairself fst) list);
-
-
-
-(** random numbers **)
-
-exception RANDOM;
-
-fun rmod x y = x - y * Real.realFloor (x / y);
-
-local
-  val a = 16807.0;
-  val m = 2147483647.0;
-  val random_seed = Unsynchronized.ref 1.0;
-in
-
-fun random () = CRITICAL (fn () =>
-  let val r = rmod (a * ! random_seed) m
-  in (random_seed := r; r) end);
-
-end;
-
-fun random_range l h =
-  if h < l orelse l < 0 then raise RANDOM
-  else l + Real.floor (rmod (random ()) (real (h - l + 1)));
+fun order_list list = untag_list (sort (int_ord o apply2 fst) list);
 
 
 
@@ -1063,7 +993,7 @@ fun partition_eq (eq: 'a * 'a -> bool) =
 (* serial numbers and abstract stamps *)
 
 type serial = int;
-val serial = Multithreading.serial;
+val serial = Counter.make ();
 val serial_string = string_of_int o serial;
 
 datatype stamp = Stamp of serial;
@@ -1075,12 +1005,6 @@ fun stamp () = Stamp (serial ());
 (*note that the builtin exception datatype may be extended by new
   constructors at any time*)
 structure Any = struct type T = exn end;
-
-
-(* current directory *)
-
-val cd = OS.FileSys.chDir;
-val pwd = OS.FileSys.getDir;
 
 
 (* getenv *)

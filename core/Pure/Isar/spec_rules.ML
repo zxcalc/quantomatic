@@ -21,7 +21,7 @@ end;
 structure Spec_Rules: SPEC_RULES =
 struct
 
-(* maintain rules *)
+(* rules *)
 
 datatype rough_classification = Unknown | Equational | Inductive | Co_Inductive;
 type spec = rough_classification * (term list * thm list);
@@ -40,15 +40,34 @@ structure Rules = Generic_Data
   val merge = Item_Net.merge;
 );
 
-val get = Item_Net.content o Rules.get o Context.Proof;
-val get_global = Item_Net.content o Rules.get o Context.Theory;
 
-val retrieve = Item_Net.retrieve o Rules.get o Context.Proof;
-val retrieve_global = Item_Net.retrieve o Rules.get o Context.Theory;
+(* get *)
+
+fun get_generic context =
+  let
+    val thy = Context.theory_of context;
+    val transfer = Global_Theory.transfer_theories thy;
+  in Item_Net.content (Rules.get context) |> (map o apsnd o apsnd o map) transfer end;
+
+val get = get_generic o Context.Proof;
+val get_global = get_generic o Context.Theory;
+
+
+(* retrieve *)
+
+fun retrieve_generic context =
+  Item_Net.retrieve (Rules.get context)
+  #> (map o apsnd o apsnd o map) (Thm.transfer (Context.theory_of context));
+
+val retrieve = retrieve_generic o Context.Proof;
+val retrieve_global = retrieve_generic o Context.Theory;
+
+
+(* add *)
 
 fun add class (ts, ths) lthy =
   let
-    val cts = map (Thm.cterm_of (Proof_Context.theory_of lthy)) ts;
+    val cts = map (Thm.cterm_of lthy) ts;
   in
     lthy |> Local_Theory.declaration {syntax = false, pervasive = true}
       (fn phi =>
@@ -56,11 +75,12 @@ fun add class (ts, ths) lthy =
           val (ts', ths') =
             Morphism.fact phi (map Drule.mk_term cts @ ths)
             |> chop (length cts)
-            |>> map (Thm.term_of o Drule.dest_term);
+            |>> map (Thm.term_of o Drule.dest_term)
+            ||> map Thm.trim_context;
         in Rules.map (Item_Net.update (class, (ts', ths'))) end)
   end;
 
 fun add_global class spec =
-  Context.theory_map (Rules.map (Item_Net.update (class, spec)));
+  Context.theory_map (Rules.map (Item_Net.update (class, (apsnd o map) Thm.trim_context spec)));
 
 end;

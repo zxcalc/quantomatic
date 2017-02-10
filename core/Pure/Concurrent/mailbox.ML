@@ -25,7 +25,7 @@ fun send (Mailbox mailbox) msg = Synchronized.change mailbox (cons msg);
 
 fun receive timeout (Mailbox mailbox) =
   Synchronized.timed_access mailbox
-    (fn _ => Option.map (fn t => (Time.+ (Time.now (), t))) timeout)
+    (fn _ => Option.map (fn t => Time.now () + t) timeout)
     (fn [] => NONE | msgs => SOME (msgs, []))
   |> these |> rev;
 

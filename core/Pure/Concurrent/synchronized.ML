@@ -33,29 +33,30 @@ fun var name x = Var
   cond = ConditionVar.conditionVar (),
   var = Unsynchronized.ref x};
 
-fun value (Var {var, ...}) = ! var;
+fun value (Var {name, lock, var, ...}) =
+  Multithreading.synchronized name lock (fn () => ! var);
 
 
 (* synchronized access *)
 
 fun timed_access (Var {name, lock, cond, var}) time_limit f =
-  Simple_Thread.synchronized name lock (fn () =>
+  Multithreading.synchronized name lock (fn () =>
     let
       fun try_change () =
         let val x = ! var in
           (case f x of
             NONE =>
-              (case Multithreading.sync_wait NONE (time_limit x) cond lock of
+              (case Multithreading.sync_wait (time_limit x) cond lock of
                 Exn.Res true => try_change ()
               | Exn.Res false => NONE
-              | Exn.Exn exn => reraise exn)
+              | Exn.Exn exn => Exn.reraise exn)
           | SOME (y, x') =>
-              uninterruptible (fn _ => fn () =>
+              Thread_Attributes.uninterruptible (fn _ => fn () =>
                 (var := x'; ConditionVar.broadcast cond; SOME y)) ())
         end;
     in try_change () end);
 
-fun guarded_access var f = the (timed_access var (K NONE) f);
+fun guarded_access var f = the (timed_access var (fn _ => NONE) f);
 
 
 (* unconditional change *)

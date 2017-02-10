@@ -6,6 +6,7 @@ Interactive Simplifier trace.
 
 signature SIMPLIFIER_TRACE =
 sig
+  val disable: Proof.context -> Proof.context
   val add_term_breakpoint: term -> Context.generic -> Context.generic
   val add_thm_breakpoint: thm -> Context.generic -> Context.generic
 end
@@ -62,6 +63,13 @@ structure Data = Generic_Data
 
 val get_data = Data.get o Context.Proof
 val put_data = Context.proof_map o Data.put
+
+val disable =
+  Config.put simp_trace false #>
+  (Context.proof_map o Data.map)
+    (fn {max_depth, mode = _, interactive, parent, memory, breakpoints} =>
+      {max_depth = max_depth, mode = Disabled, interactive = interactive, parent = parent,
+        memory = memory, breakpoints = breakpoints});
 
 val get_breakpoints = #breakpoints o get_data
 
@@ -172,8 +180,8 @@ fun mk_generic_result markup text triggered (payload : unit -> payload) ctxt =
         val {props = more_props, pretty} = payload ()
         val props =
           [(textN, text),
-           (memoryN, Markup.print_bool memory),
-           (parentN, Markup.print_int parent)]
+           (memoryN, Value.print_bool memory),
+           (parentN, Value.print_int parent)]
         val data =
           Pretty.string_of (Pretty.markup (markup', props @ more_props) [pretty])
       in
@@ -395,17 +403,17 @@ val _ = Theory.setup
 
 val _ =
   Isabelle_Process.protocol_command "Simplifier_Trace.reply"
-    (fn [s, r] =>
+    (fn [serial_string, reply] =>
       let
-        val serial = Markup.parse_int s
-        fun lookup_delete tab =
-          (Inttab.lookup tab serial, Inttab.delete_safe serial tab)
-        fun apply_result (SOME promise) = Future.fulfill promise r
-          | apply_result NONE = () (* FIXME handle protocol failure, just like in active.ML? *)
+        val serial = Value.parse_int serial_string
+        val result =
+          Synchronized.change_result futures
+            (fn tab => (Inttab.lookup tab serial, Inttab.delete_safe serial tab))
       in
-        (Synchronized.change_result futures lookup_delete |> apply_result)
-          handle exn => if Exn.is_interrupt exn then () (*sic!*) else reraise exn
-      end)
+        (case result of
+          SOME promise => Future.fulfill promise reply
+        | NONE => ()) (* FIXME handle protocol failure, just like in active.ML (!?) *)
+      end handle exn => if Exn.is_interrupt exn then () (*sic!*) else Exn.reraise exn)
 
 
 

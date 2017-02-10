@@ -15,11 +15,11 @@ sig
   val parse_files: string -> (theory -> Token.file list) parser
   val provide: Path.T * SHA1.digest -> theory -> theory
   val provide_parse_files: string -> (theory -> Token.file list * theory) parser
-  val loaded_files: theory -> Path.T list
   val loaded_files_current: theory -> bool
   val begin_theory: Path.T -> Thy_Header.header -> theory list -> theory
-  val load_thy: bool -> (Toplevel.transition -> Time.time option) -> int -> Path.T ->
-    Thy_Header.header -> Position.T -> string -> theory list -> theory * (unit -> unit) * int
+  val load_thy: bool -> HTML.symbols -> (Toplevel.transition -> Time.time option) -> int ->
+    Path.T -> Thy_Header.header -> Position.T -> string -> theory list ->
+    theory * (unit -> unit) * int
 end;
 
 structure Resources: RESOURCES =
@@ -69,7 +69,8 @@ fun check_thy dir thy_name =
     val {name = (name, pos), imports, keywords} =
       Thy_Header.read (Path.position master_file) text;
     val _ = thy_name <> name andalso
-      error ("Bad file name " ^ Path.print path ^ " for theory " ^ quote name ^ Position.here pos);
+      error ("Bad theory name " ^ quote name ^
+        " for file " ^ Path.print path ^ Position.here pos);
   in
    {master = (master_file, SHA1.digest text), text = text, theory_pos = pos,
     imports = imports, keywords = keywords}
@@ -83,9 +84,10 @@ fun parse_files cmd =
     (case Token.get_files tok of
       [] =>
         let
+          val keywords = Thy_Header.get_keywords thy;
           val master_dir = master_directory thy;
           val pos = Token.pos_of tok;
-          val src_paths = Keyword.command_files cmd (Path.explode name);
+          val src_paths = Keyword.command_files keywords cmd (Path.explode name);
         in map (Command.read_file master_dir pos) src_paths end
     | files => map Exn.release files));
 
@@ -116,30 +118,25 @@ fun loaded_files_current thy =
         NONE => false
       | SOME ((_, id'), _) => id = id'));
 
-(*Proof General legacy*)
-fun loaded_files thy =
-  let val {master_dir, provided, ...} = Files.get thy
-  in map (File.full_path master_dir o #1) provided end;
-
 
 (* load theory *)
 
 fun begin_theory master_dir {name, imports, keywords} parents =
   Theory.begin_theory name parents
   |> put_deps master_dir imports
-  |> fold Thy_Header.declare_keyword keywords;
+  |> Thy_Header.add_keywords keywords;
 
-fun excursion master_dir last_timing init elements =
+fun excursion keywords master_dir last_timing init elements =
   let
-    fun prepare_span span =
-      Thy_Syntax.span_content span
-      |> Command.read init master_dir []
+    fun prepare_span st span =
+      Command_Span.content span
+      |> Command.read keywords (Command.read_thy st) master_dir init ([], ~1)
       |> (fn tr => Toplevel.put_timing (last_timing tr) tr);
 
     fun element_result span_elem (st, _) =
       let
-        val elem = Thy_Syntax.map_element prepare_span span_elem;
-        val (results, st') = Toplevel.element_result elem st;
+        val elem = Thy_Syntax.map_element (prepare_span st) span_elem;
+        val (results, st') = Toplevel.element_result keywords elem st;
         val pos' = Toplevel.pos_of (Thy_Syntax.last_element elem);
       in (results, (st', pos')) end;
 
@@ -149,40 +146,34 @@ fun excursion master_dir last_timing init elements =
     val thy = Toplevel.end_theory end_pos end_state;
   in (results, thy) end;
 
-fun load_thy document last_timing update_time master_dir header text_pos text parents =
+fun load_thy document symbols last_timing update_time master_dir header text_pos text parents =
   let
-    val time = ! Toplevel.timing;
+    val (name, _) = #name header;
+    val keywords =
+      fold (curry Keyword.merge_keywords o Thy_Header.get_keywords) parents
+        (Keyword.add_keywords (#keywords header) Keyword.empty_keywords);
 
-    val {name = (name, _), ...} = header;
-    val _ = Thy_Header.define_keywords header;
-
-    val lexs = Keyword.get_lexicons ();
-    val toks = Thy_Syntax.parse_tokens lexs text_pos text;
-    val spans = Thy_Syntax.parse_spans toks;
-    val elements = Thy_Syntax.parse_elements spans;
+    val toks = Token.explode keywords text_pos text;
+    val spans = Outer_Syntax.parse_spans toks;
+    val elements = Thy_Syntax.parse_elements keywords spans;
 
     fun init () =
       begin_theory master_dir header parents
       |> Present.begin_theory update_time
-          (fn () => HTML.html_mode (implode o map Thy_Syntax.present_span) spans);
+        (fn () => implode (map (HTML.present_span symbols keywords) spans));
 
-    val _ = if time then writeln ("\n**** Starting theory " ^ quote name ^ " ****") else ();
     val (results, thy) =
-      cond_timeit time "" (fn () => excursion master_dir last_timing init elements);
-    val _ = if time then writeln ("**** Finished theory " ^ quote name ^ " ****\n") else ();
+      cond_timeit true ("theory " ^ quote name)
+        (fn () => excursion keywords master_dir last_timing init elements);
 
     fun present () =
       let
         val res = filter_out (Toplevel.is_ignored o #1) (maps Toplevel.join_results results);
-        val ((minor, _), outer_syntax) = Outer_Syntax.get_syntax ();
       in
         if exists (Toplevel.is_skipped_proof o #2) res then
           warning ("Cannot present theory with skipped proofs: " ^ quote name)
         else
-          let val tex_source =
-            Thy_Output.present_thy minor Keyword.command_tags
-              (Outer_Syntax.is_markup outer_syntax) res toks
-            |> Buffer.content;
+          let val tex_source = Thy_Output.present_thy thy res toks |> Buffer.content;
           in if document then Present.theory_output name tex_source else () end
       end;
 
@@ -193,50 +184,54 @@ fun load_thy document last_timing update_time master_dir header text_pos text pa
 
 local
 
-fun check_path strict ctxt dir (name, pos) =
+fun err msg pos = error (msg ^ Position.here pos);
+
+fun check_path check_file ctxt dir (name, pos) =
   let
     val _ = Context_Position.report ctxt pos Markup.language_path;
 
-    val path = Path.append dir (Path.explode name)
-      handle ERROR msg => error (msg ^ Position.here pos);
-
+    val path = Path.append dir (Path.explode name) handle ERROR msg => err msg pos;
+    val _ = Path.expand path handle ERROR msg => err msg pos;
     val _ = Context_Position.report ctxt pos (Markup.path (Path.smart_implode path));
     val _ =
-      if can Path.expand path andalso File.exists path then ()
-      else
-        let
-          val path' = perhaps (try Path.expand) path;
-          val msg = "Bad file: " ^ Path.print path' ^ Position.here pos;
-        in
-          if strict then error msg
-          else if Context_Position.is_visible ctxt then
-            Output.report
-              [Markup.markup (Markup.bad |> Markup.properties (Position.properties_of pos)) msg]
-          else ()
-        end;
+      (case check_file of
+        NONE => path
+      | SOME check => (check path handle ERROR msg => err msg pos));
   in path end;
 
-fun file_antiq strict ctxt (name, pos) =
+fun document_antiq check_file ctxt (name, pos) =
   let
     val dir = master_directory (Proof_Context.theory_of ctxt);
-    val _ = check_path strict ctxt dir (name, pos);
+    val _ = check_path check_file ctxt dir (name, pos);
   in
     space_explode "/" name
-    |> map Thy_Output.verb_text
-    |> space_implode (Thy_Output.verb_text "/" ^ "\\discretionary{}{}{}")
+    |> map Latex.output_ascii
+    |> space_implode (Latex.output_ascii "/" ^ "\\discretionary{}{}{}")
+    |> enclose "\\isatt{" "}"
   end;
+
+fun ML_antiq check_file ctxt (name, pos) =
+  let val path = check_path check_file ctxt Path.current (name, pos);
+  in "Path.explode " ^ ML_Syntax.print_string (Path.implode path) end;
 
 in
 
 val _ = Theory.setup
- (Thy_Output.antiquotation @{binding file} (Scan.lift (Parse.position Parse.path))
-    (file_antiq true o #context) #>
-  Thy_Output.antiquotation @{binding file_unchecked} (Scan.lift (Parse.position Parse.path))
-    (file_antiq false o #context) #>
+ (Thy_Output.antiquotation @{binding path} (Scan.lift (Parse.position Parse.path))
+    (document_antiq NONE o #context) #>
+  Thy_Output.antiquotation @{binding file} (Scan.lift (Parse.position Parse.path))
+    (document_antiq (SOME File.check_file) o #context) #>
+  Thy_Output.antiquotation @{binding dir} (Scan.lift (Parse.position Parse.path))
+    (document_antiq (SOME File.check_dir) o #context) #>
   ML_Antiquotation.value @{binding path}
-    (Args.context -- Scan.lift (Parse.position Parse.path) >> (fn (ctxt, arg) =>
-      let val path = check_path true ctxt Path.current arg
-      in "Path.explode " ^ ML_Syntax.print_string (Path.implode path) end)));
+    (Args.context -- Scan.lift (Parse.position Parse.path)
+      >> uncurry (ML_antiq NONE)) #>
+  ML_Antiquotation.value @{binding file}
+    (Args.context -- Scan.lift (Parse.position Parse.path)
+      >> uncurry (ML_antiq (SOME File.check_file))) #>
+  ML_Antiquotation.value @{binding dir}
+    (Args.context -- Scan.lift (Parse.position Parse.path)
+      >> uncurry (ML_antiq (SOME File.check_dir))));
 
 end;
 

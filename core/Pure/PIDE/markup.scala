@@ -1,5 +1,4 @@
 /*  Title:      Pure/PIDE/markup.scala
-    Module:     PIDE
     Author:     Makarius
 
 Quasi-abstract markup elements.
@@ -42,6 +41,9 @@ object Markup
   val KIND = "kind"
   val Kind = new Properties.String(KIND)
 
+  val SERIAL = "serial"
+  val Serial = new Properties.Long(SERIAL)
+
   val INSTANCE = "instance"
   val Instance = new Properties.String(INSTANCE)
 
@@ -69,23 +71,32 @@ object Markup
       if (markup.name == name) Prop.unapply(markup.properties) else None
   }
 
+  class Markup_Long(val name: String, prop: String)
+  {
+    private val Prop = new Properties.Long(prop)
+
+    def apply(i: Long): Markup = Markup(name, Prop(i))
+    def unapply(markup: Markup): Option[Long] =
+      if (markup.name == name) Prop.unapply(markup.properties) else None
+  }
+
 
   /* formal entities */
 
   val BINDING = "binding"
   val ENTITY = "entity"
-  val DEF = "def"
-  val REF = "ref"
 
   object Entity
   {
+    val Def = new Properties.Long("def")
+    val Ref = new Properties.Long("ref")
+
     def unapply(markup: Markup): Option[(String, String)] =
       markup match {
         case Markup(ENTITY, props) =>
-          (props, props) match {
-            case (Kind(kind), Name(name)) => Some((kind, name))
-            case _ => None
-          }
+          val kind = Kind.unapply(props).getOrElse("")
+          val name = Name.unapply(props).getOrElse("")
+          Some((kind, name))
         case _ => None
       }
   }
@@ -100,6 +111,7 @@ object Markup
   /* position */
 
   val LINE = "line"
+  val END_LINE = "line"
   val OFFSET = "offset"
   val END_OFFSET = "end_offset"
   val FILE = "file"
@@ -113,6 +125,26 @@ object Markup
 
   val POSITION_PROPERTIES = Set(LINE, OFFSET, END_OFFSET, FILE, ID)
   val POSITION = "position"
+
+
+  /* expression */
+
+  val EXPRESSION = "expression"
+  object Expression
+  {
+    def unapply(markup: Markup): Option[String] =
+      markup match {
+        case Markup(EXPRESSION, Kind(kind)) => Some(kind)
+        case Markup(EXPRESSION, _) => Some("")
+        case _ => None
+      }
+  }
+
+
+  /* citation */
+
+  val CITATION = "citation"
+  val Citation = new Markup_String(CITATION, NAME)
 
 
   /* embedded languages */
@@ -150,11 +182,47 @@ object Markup
   val URL = "url"
   val Url = new Markup_String(URL, NAME)
 
+  val DOC = "doc"
+  val Doc = new Markup_String(DOC, NAME)
+
 
   /* pretty printing */
 
-  val Block = new Markup_Int("block", "indent")
-  val Break = new Markup_Int("break", "width")
+  val Consistent = new Properties.Boolean("consistent")
+  val Indent = new Properties.Int("indent")
+  val Width = new Properties.Int("width")
+
+  object Block
+  {
+    val name = "block"
+    def apply(c: Boolean, i: Int): Markup =
+      Markup(name,
+        (if (c) Consistent(c) else Nil) :::
+        (if (i != 0) Indent(i) else Nil))
+    def unapply(markup: Markup): Option[(Boolean, Int)] =
+      if (markup.name == name) {
+        val c = Consistent.unapply(markup.properties).getOrElse(false)
+        val i = Indent.unapply(markup.properties).getOrElse(0)
+        Some((c, i))
+      }
+      else None
+  }
+
+  object Break
+  {
+    val name = "break"
+    def apply(w: Int, i: Int): Markup =
+      Markup(name,
+        (if (w != 0) Width(w) else Nil) :::
+        (if (i != 0) Indent(i) else Nil))
+    def unapply(markup: Markup): Option[(Int, Int)] =
+      if (markup.name == name) {
+        val w = Width.unapply(markup.properties).getOrElse(0)
+        val i = Indent.unapply(markup.properties).getOrElse(0)
+        Some((w, i))
+      }
+      else None
+  }
 
   val ITEM = "item"
   val BULLET = "bullet"
@@ -169,7 +237,7 @@ object Markup
   val HIDDEN = "hidden"
 
 
-  /* logical entities */
+  /* misc entities */
 
   val CLASS = "class"
   val TYPE_NAME = "type_name"
@@ -198,6 +266,7 @@ object Markup
 
   val SORTING = "sorting"
   val TYPING = "typing"
+  val CLASS_PARAMETER = "class_parameter"
 
   val ATTRIBUTE = "attribute"
   val METHOD = "method"
@@ -219,7 +288,14 @@ object Markup
   val TEXT_FOLD = "text_fold"
 
 
-  /* ML syntax */
+  /* Markdown document structure */
+
+  val MARKDOWN_PARAGRAPH = "markdown_paragraph"
+  val Markdown_List = new Markup_String("markdown_list", "kind")
+  val Markdown_Item = new Markup_Int("markdown_item", "depth")
+
+
+  /* ML */
 
   val ML_KEYWORD1 = "ML_keyword1"
   val ML_KEYWORD2 = "ML_keyword2"
@@ -238,6 +314,8 @@ object Markup
   val ML_STRUCTURE = "ML_structure"
   val ML_TYPING = "ML_typing"
 
+  val ML_BREAKPOINT = "ML_breakpoint"
+
 
   /* outer syntax */
 
@@ -249,11 +327,10 @@ object Markup
   val IMPROPER = "improper"
   val OPERATOR = "operator"
   val STRING = "string"
-  val ALTSTRING = "altstring"
+  val ALT_STRING = "alt_string"
   val VERBATIM = "verbatim"
   val CARTOUCHE = "cartouche"
   val COMMENT = "comment"
-  val CONTROL = "control"
 
 
   /* timing */
@@ -294,12 +371,18 @@ object Markup
   val COMMAND_TIMING = "command_timing"
 
 
-  /* toplevel */
+  /* command indentation */
 
-  val SUBGOALS = "subgoals"
-  val PROOF_STATE = "proof_state"
+  object Command_Indent
+  {
+    val name = "command_indent"
+    def unapply(markup: Markup): Option[Int] =
+      if (markup.name == name) Indent.unapply(markup.properties) else None
+  }
 
-  val STATE = "state"
+
+  /* goals */
+
   val GOAL = "goal"
   val SUBGOAL = "subgoal"
 
@@ -330,18 +413,16 @@ object Markup
 
   /* messages */
 
-  val SERIAL = "serial"
-  val Serial = new Properties.Long(SERIAL)
-
-  val MESSAGE = "message"
-
   val INIT = "init"
   val STATUS = "status"
   val REPORT = "report"
   val RESULT = "result"
   val WRITELN = "writeln"
+  val STATE = "state"
+  val INFORMATION = "information"
   val TRACING = "tracing"
   val WARNING = "warning"
+  val LEGACY = "legacy"
   val ERROR = "error"
   val PROTOCOL = "protocol"
   val SYSTEM = "system"
@@ -350,25 +431,31 @@ object Markup
   val EXIT = "exit"
 
   val WRITELN_MESSAGE = "writeln_message"
+  val STATE_MESSAGE = "state_message"
+  val INFORMATION_MESSAGE = "information_message"
   val TRACING_MESSAGE = "tracing_message"
   val WARNING_MESSAGE = "warning_message"
+  val LEGACY_MESSAGE = "legacy_message"
   val ERROR_MESSAGE = "error_message"
 
-  val messages =
-    Map(WRITELN -> WRITELN_MESSAGE, TRACING -> TRACING_MESSAGE,
-        WARNING -> WARNING_MESSAGE, ERROR -> ERROR_MESSAGE)
+  val messages = Map(
+    WRITELN -> WRITELN_MESSAGE,
+    STATE -> STATE_MESSAGE,
+    INFORMATION -> INFORMATION_MESSAGE,
+    TRACING -> TRACING_MESSAGE,
+    WARNING -> WARNING_MESSAGE,
+    LEGACY -> LEGACY_MESSAGE,
+    ERROR -> ERROR_MESSAGE)
+
   val message: String => String = messages.withDefault((s: String) => s)
 
   val Return_Code = new Properties.Int("return_code")
-
-  val LEGACY = "legacy"
 
   val NO_REPORT = "no_report"
 
   val BAD = "bad"
 
   val INTENSIFY = "intensify"
-  val INFORMATION = "information"
 
 
   /* active areas */
@@ -383,6 +470,8 @@ object Markup
 
   val DIALOG = "dialog"
   val Result = new Properties.String(RESULT)
+
+  val JEDIT_ACTION = "jedit_action"
 
 
   /* protocol message functions */
@@ -440,26 +529,50 @@ object Markup
       }
   }
 
+  val LOADING_THEORY = "loading_theory"
   object Loading_Theory
   {
     def unapply(props: Properties.T): Option[String] =
       props match {
-        case List((FUNCTION, "loading_theory"), (NAME, name)) => Some(name)
+        case List((FUNCTION, LOADING_THEORY), (NAME, name)) => Some(name)
         case _ => None
       }
   }
 
-  object Use_Theories_Result
+  val BUILD_THEORIES_RESULT = "build_theories_result"
+  object Build_Theories_Result
   {
-    def unapply(props: Properties.T): Option[(String, Boolean)] =
+    def unapply(props: Properties.T): Option[String] =
       props match {
-        case List((FUNCTION, "use_theories_result"),
-          ("id", id), ("ok", Properties.Value.Boolean(ok))) => Some((id, ok))
+        case List((FUNCTION, BUILD_THEORIES_RESULT), (ID, id)) => Some(id)
         case _ => None
       }
   }
 
   val PRINT_OPERATIONS = "print_operations"
+
+
+  /* debugger output */
+
+  val DEBUGGER_STATE = "debugger_state"
+  object Debugger_State
+  {
+    def unapply(props: Properties.T): Option[String] =
+      props match {
+        case List((FUNCTION, DEBUGGER_STATE), (NAME, name)) => Some(name)
+        case _ => None
+      }
+  }
+
+  val DEBUGGER_OUTPUT = "debugger_output"
+  object Debugger_Output
+  {
+    def unapply(props: Properties.T): Option[String] =
+      props match {
+        case List((FUNCTION, DEBUGGER_OUTPUT), (NAME, name)) => Some(name)
+        case _ => None
+      }
+  }
 
 
   /* simplifier trace */
@@ -485,4 +598,11 @@ object Markup
 
 
 sealed case class Markup(name: String, properties: Properties.T)
+{
+  def markup(s: String): String =
+    YXML.string_of_tree(XML.Elem(this, List(XML.Text(s))))
 
+  def update_properties(more_props: Properties.T): Markup =
+    if (more_props.isEmpty) this
+    else Markup(name, (more_props :\ properties) { case (p, ps) => Properties.put(ps, p) })
+}

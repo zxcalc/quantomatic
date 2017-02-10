@@ -1,5 +1,4 @@
 /*  Title:      Pure/PIDE/text.scala
-    Module:     PIDE
     Author:     Fabian Immler, TU Munich
     Author:     Makarius
 
@@ -34,13 +33,13 @@ object Text
     }
   }
 
-  sealed case class Range(val start: Offset, val stop: Offset)
+  sealed case class Range(start: Offset, stop: Offset)
   {
     // denotation: {start} Un {i. start < i & i < stop}
     if (start > stop)
       error("Bad range: [" + start.toString + ":" + stop.toString + "]")
 
-    override def toString = "[" + start.toString + ":" + stop.toString + "]"
+    override def toString: String = "[" + start.toString + ":" + stop.toString + "]"
 
     def length: Int = stop - start
 
@@ -50,6 +49,8 @@ object Text
 
     def is_singularity: Boolean = start == stop
     def inflate_singularity: Range = if (is_singularity) Range(start, start + 1) else this
+
+    def touches(i: Offset): Boolean = start <= i && i <= stop
 
     def contains(i: Offset): Boolean = start == i || start < i && i < stop
     def contains(that: Range): Boolean = this.contains(that.start) && that.stop <= this.stop
@@ -116,13 +117,13 @@ object Text
         case other: Perspective => ranges == other.ranges
         case _ => false
       }
-    override def toString = ranges.toString
+    override def toString: String = ranges.toString
   }
 
 
   /* information associated with text range */
 
-  sealed case class Info[A](val range: Text.Range, val info: A)
+  sealed case class Info[A](range: Text.Range, info: A)
   {
     def restrict(r: Text.Range): Info[A] = Info(range.restrict(r), info)
     def try_restrict(r: Text.Range): Option[Info[A]] = range.try_restrict(r).map(Info(_, info))
@@ -141,7 +142,7 @@ object Text
 
   final class Edit private(val is_insert: Boolean, val start: Offset, val text: String)
   {
-    override def toString =
+    override def toString: String =
       (if (is_insert) "Insert(" else "Remove(") + (start, text).toString + ")"
 
 

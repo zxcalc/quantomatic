@@ -1,17 +1,21 @@
 /*  Title:      Pure/ROOT.scala
-    Module:     PIDE
     Author:     Makarius
 
 Root of isabelle package.
 */
 
-package object isabelle extends isabelle.Basic_Library
+package object isabelle
 {
-  object Distribution     /*filled-in by makedist*/
-  {
-    val version = "Isabelle2014: August 2014"
-    val is_identified = true
-    val is_official = true
-  }
-}
+  val ERROR = Exn.ERROR
+  val error = Exn.error _
+  val cat_error = Exn.cat_error _
 
+  def using[A <: { def close() }, B](x: A)(f: A => B): B = Library.using(x)(f)
+  val space_explode = Library.space_explode _
+  val split_lines = Library.split_lines _
+  val cat_lines = Library.cat_lines _
+  val terminate_lines = Library.terminate_lines _
+  val quote = Library.quote _
+  val commas = Library.commas _
+  val commas_quote = Library.commas_quote _
+}

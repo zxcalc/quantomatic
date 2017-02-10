@@ -21,7 +21,7 @@ val lexicon = Scan.make_lexicon
 
 fun read scan s =
   (case
-      Symbol_Pos.explode (s, Position.none) |>
+      Symbol_Pos.explode0 s |>
       Lexicon.tokenize lexicon false |>
       filter Lexicon.is_proper |>
       Scan.read Lexicon.stopper scan of

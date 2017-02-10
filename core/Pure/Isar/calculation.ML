@@ -7,17 +7,17 @@ Generic calculational proofs.
 signature CALCULATION =
 sig
   val print_rules: Proof.context -> unit
-  val get_calculation: Proof.state -> thm list option
+  val check: Proof.state -> thm list option
   val trans_add: attribute
   val trans_del: attribute
   val sym_add: attribute
   val sym_del: attribute
   val symmetric: attribute
   val also: thm list option -> bool -> Proof.state -> Proof.state Seq.result Seq.seq
-  val also_cmd: (Facts.ref * Attrib.src list) list option ->
+  val also_cmd: (Facts.ref * Token.src list) list option ->
     bool -> Proof.state -> Proof.state Seq.result Seq.seq
   val finally: thm list option -> bool -> Proof.state -> Proof.state Seq.result Seq.seq
-  val finally_cmd: (Facts.ref * Attrib.src list) list option -> bool ->
+  val finally_cmd: (Facts.ref * Token.src list) list option -> bool ->
     Proof.state -> Proof.state Seq.result Seq.seq
   val moreover: bool -> Proof.state -> Proof.state
   val ultimately: bool -> Proof.state -> Proof.state
@@ -28,9 +28,11 @@ struct
 
 (** calculation data **)
 
+type calculation = {result: thm list, level: int, serial: serial, pos: Position.T};
+
 structure Data = Generic_Data
 (
-  type T = (thm Item_Net.T * thm list) * (thm list * int) option;
+  type T = (thm Item_Net.T * thm list) * calculation option;
   val empty = ((Thm.elim_rules, []), NONE);
   val extend = I;
   fun merge (((trans1, sym1), _), ((trans2, sym2), _)) =
@@ -38,10 +40,11 @@ structure Data = Generic_Data
 );
 
 val get_rules = #1 o Data.get o Context.Proof;
+val get_calculation = #2 o Data.get o Context.Proof;
 
 fun print_rules ctxt =
   let
-    val pretty_thm = Display.pretty_thm_item ctxt;
+    val pretty_thm = Thm.pretty_thm_item ctxt;
     val (trans, sym) = get_rules ctxt;
   in
    [Pretty.big_list "transitivity rules:" (map pretty_thm (Item_Net.content trans)),
@@ -51,17 +54,43 @@ fun print_rules ctxt =
 
 (* access calculation *)
 
-fun get_calculation state =
-  (case #2 (Data.get (Context.Proof (Proof.context_of state))) of
+fun check_calculation state =
+  (case get_calculation (Proof.context_of state) of
     NONE => NONE
-  | SOME (thms, lev) => if lev = Proof.level state then SOME thms else NONE);
+  | SOME calculation =>
+      if #level calculation = Proof.level state then SOME calculation else NONE);
+
+val check = Option.map #result o check_calculation;
 
 val calculationN = "calculation";
 
-fun put_calculation calc =
-  `Proof.level #-> (fn lev => Proof.map_context (Context.proof_map
-     (Data.map (apsnd (K (Option.map (rpair lev) calc))))))
-  #> Proof.put_thms false (calculationN, calc);
+fun update_calculation calc state =
+  let
+    fun report def serial pos =
+      Context_Position.report (Proof.context_of state)
+        (Position.thread_data ())
+          (Markup.entity calculationN ""
+            |> Markup.properties (Position.entity_properties_of def serial pos));
+    val calculation =
+      (case calc of
+        NONE => NONE
+      | SOME result =>
+          (case check_calculation state of
+            NONE =>
+              let
+                val level = Proof.level state;
+                val serial = serial ();
+                val pos = Position.thread_data ();
+                val _ = report true serial pos;
+              in SOME {result = result, level = level, serial = serial, pos = pos} end
+          | SOME {level, serial, pos, ...} =>
+              (report false serial pos;
+                SOME {result = result, level = level, serial = serial, pos = pos})));
+  in
+    state
+    |> (Proof.map_context o Context.proof_map o Data.map o apsnd) (K calculation)
+    |> Proof.map_context (Proof_Context.put_thms false (calculationN, calc))
+  end;
 
 
 
@@ -74,22 +103,24 @@ val trans_del = Thm.declaration_attribute (Data.map o apfst o apfst o Item_Net.r
 
 val sym_add =
   Thm.declaration_attribute (fn th =>
-    (Data.map o apfst o apsnd) (Thm.add_thm th) #>
+    (Data.map o apfst o apsnd) (Thm.add_thm (Thm.trim_context th)) #>
     Thm.attribute_declaration (Context_Rules.elim_query NONE) th);
 
 val sym_del =
   Thm.declaration_attribute (fn th =>
-    (Data.map o apfst o apsnd) (Thm.del_thm th) #>
+    (Data.map o apfst o apsnd) (Thm.del_thm (Thm.trim_context th)) #>
     Thm.attribute_declaration Context_Rules.rule_del th);
 
 
 (* symmetric *)
 
-val symmetric = Thm.rule_attribute (fn x => fn th =>
-  (case Seq.chop 2 (Drule.multi_resolves [th] (#2 (#1 (Data.get x)))) of
-    ([th'], _) => Drule.zero_var_indexes th'
-  | ([], _) => raise THM ("symmetric: no unifiers", 1, [th])
-  | _ => raise THM ("symmetric: multiple unifiers", 1, [th])));
+val symmetric =
+  Thm.rule_attribute [] (fn context => fn th =>
+    (case Seq.chop 2
+        (Drule.multi_resolves (SOME (Context.proof_of context)) [th] (#2 (#1 (Data.get context)))) of
+      ([th'], _) => Drule.zero_var_indexes th'
+    | ([], _) => raise THM ("symmetric: no unifiers", 1, [th])
+    | _ => raise THM ("symmetric: multiple unifiers", 1, [th])));
 
 
 (* concrete syntax *)
@@ -110,19 +141,27 @@ val _ = Theory.setup
 (** proof commands **)
 
 fun assert_sane final =
-  if final then Proof.assert_forward else Proof.assert_forward_or_chain;
+  if final then Proof.assert_forward
+  else
+    Proof.assert_forward_or_chain #>
+    tap (fn state =>
+      if can Proof.assert_chain state then
+        Context_Position.report (Proof.context_of state) (Position.thread_data ()) Markup.improper
+      else ());
 
 fun maintain_calculation int final calc state =
   let
-    val state' = put_calculation (SOME calc) state;
+    val state' = state
+      |> update_calculation (SOME calc)
+      |> Proof.improper_reset_facts;
     val ctxt' = Proof.context_of state';
     val _ =
       if int then
         Proof_Context.pretty_fact ctxt'
           (Proof_Context.full_name ctxt' (Binding.name calculationN), calc)
-        |> Pretty.string_of |> Output.urgent_message
+        |> Pretty.string_of |> writeln
       else ();
-  in state' |> final ? (put_calculation NONE #> Proof.chain_facts calc) end;
+  in state' |> final ? (update_calculation NONE #> Proof.chain_facts calc) end;
 
 
 (* also and finally *)
@@ -130,11 +169,11 @@ fun maintain_calculation int final calc state =
 fun calculate prep_rules final raw_rules int state =
   let
     val ctxt = Proof.context_of state;
-    val pretty_thm = Display.pretty_thm ctxt;
-    val pretty_thm_item = Display.pretty_thm_item ctxt;
+    val pretty_thm = Thm.pretty_thm ctxt;
+    val pretty_thm_item = Thm.pretty_thm_item ctxt;
 
     val strip_assums_concl = Logic.strip_assums_concl o Thm.prop_of;
-    val eq_prop = op aconv o pairself (Envir.beta_eta_contract o strip_assums_concl);
+    val eq_prop = op aconv o apply2 (Envir.beta_eta_contract o strip_assums_concl);
     fun check_projection ths th =
       (case find_index (curry eq_prop th) ths of
         ~1 => Seq.Result [th]
@@ -155,7 +194,7 @@ fun calculate prep_rules final raw_rules int state =
             (case ths of
               [] => Item_Net.content (#1 (get_rules ctxt))
             | th :: _ => Item_Net.retrieve (#1 (get_rules ctxt)) (strip_assums_concl th)))
-        |> Seq.of_list |> Seq.maps (Drule.multi_resolve ths)
+        |> Seq.of_list |> Seq.maps (Drule.multi_resolve (SOME ctxt) ths)
         |> Seq.map (check_projection ths))
         (Seq.single (Seq.Error (fn () =>
           (Pretty.string_of o Pretty.block o Pretty.fbreaks)
@@ -164,7 +203,7 @@ fun calculate prep_rules final raw_rules int state =
 
     val facts = Proof.the_facts (assert_sane final state);
     val (initial, calculations) =
-      (case get_calculation state of
+      (case check state of
         NONE => (true, Seq.single (Seq.Result facts))
       | SOME calc => (false, combine (calc @ facts)));
 
@@ -187,7 +226,7 @@ fun collect final int state =
   let
     val facts = Proof.the_facts (assert_sane final state);
     val (initial, thms) =
-      (case get_calculation state of
+      (case check state of
         NONE => (true, [])
       | SOME thms => (false, thms));
     val calc = thms @ facts;
@@ -196,33 +235,5 @@ fun collect final int state =
 
 val moreover = collect false;
 val ultimately = collect true;
-
-
-(* outer syntax *)
-
-val calc_args =
-  Scan.option (@{keyword "("} |-- Parse.!!! ((Parse_Spec.xthms1 --| @{keyword ")"})));
-
-val _ =
-  Outer_Syntax.command @{command_spec "also"} "combine calculation and current facts"
-    (calc_args >> (Toplevel.proofs' o also_cmd));
-
-val _ =
-  Outer_Syntax.command @{command_spec "finally"}
-    "combine calculation and current facts, exhibit result"
-    (calc_args >> (Toplevel.proofs' o finally_cmd));
-
-val _ =
-  Outer_Syntax.command @{command_spec "moreover"} "augment calculation by current facts"
-    (Scan.succeed (Toplevel.proof' moreover));
-
-val _ =
-  Outer_Syntax.command @{command_spec "ultimately"}
-    "augment calculation by current facts, exhibit result"
-    (Scan.succeed (Toplevel.proof' ultimately));
-
-val _ =
-  Outer_Syntax.improper_command @{command_spec "print_trans_rules"} "print transitivity rules"
-    (Scan.succeed (Toplevel.unknown_context o Toplevel.keep (print_rules o Toplevel.context_of)));
 
 end;
