@@ -30,15 +30,20 @@ case class DStep(name: DSName,
 
   def layout: DStep = {
     val layoutProc = new ForceLayout
-    layoutProc.maxIterations = 50
+    layoutProc.maxIterations = 400
     layoutProc.keepCentered = false
+    layoutProc.nodeCharge = 0.0
+    //layoutProc.edgeLength = 0.1
+    layoutProc.gravity = 0.0
+
 
     graph.verts.foreach { v =>
-      if (graph.isBoundary(v) || !rule.rhs.verts.contains(v)) layoutProc.lockVertex(v)
+      if (graph.isBoundary(v) || (graph.vdata(v).coord != (0.0,0.0) && graph.vdata(v).coord != (0.0,-1.0))) layoutProc.lockVertex(v)
+      //if (graph.isBoundary(v) || !rule.rhs.verts.contains(v)) layoutProc.lockVertex(v)
     }
 
     // layout the graph before acquiring the lock, so many can be done in parallel
-    val graph1 = layoutProc.layout(graph, randomCoords = false)
+    val graph1 = layoutProc.layout(graph, randomCoords = false).snapToGrid()
     copy(graph = graph1)
   }
 }

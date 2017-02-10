@@ -16,7 +16,7 @@ class ForceLayout extends GraphLayout with Constraints {
   //var charge: VName => Double = (v => if (graph.vdata(v).isWireVertex) 3.0 else 5.0)
   var nodeCharge = 5.0
 
-  def charge(v:VName) = if (graph.vdata(v).isWireVertex) 1.0 else nodeCharge
+  def charge(v:VName) = if (graph.vdata(v).isWireVertex && nodeCharge != 0.0) 1.0 else nodeCharge
 
   // spring strength on edges
   var strength = 2.5

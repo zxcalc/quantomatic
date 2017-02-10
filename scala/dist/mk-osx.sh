@@ -11,13 +11,17 @@ rm -rf $APP
 echo Rebuilding the core heap...
 (cd ../core; ../scala/dist/osx-dist/poly --use build_heap.ML)
 
-echo Running SBT...
-sbt appbundle
+echo Running SBT to make jar...
+sbt package
+
+echo Running ant to make app...
+ant bundle-quanto
 
 echo Including resources...
-cp -f dist/osx-dist/Info.plist $BUNDLE/
+# cp -f dist/osx-dist/Info.plist $BUNDLE/
 cp -f ../core/run_protocol.ML $BUNDLE/Resources/
 cp -f dist/ml.xml $BUNDLE/Resources/
+cp -f dist/scala.xml $BUNDLE/Resources/
 
 # This dummy file lets the frontend know it is running inside
 # an OS X application bundle.

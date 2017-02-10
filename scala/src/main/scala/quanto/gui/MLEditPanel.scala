@@ -21,7 +21,7 @@ class MLEditPanel extends BorderPanel with HasDocument {
   val mlModeXml = if (Globals.isBundle) new File("ml.xml").getAbsolutePath
                   else getClass.getResource("ml.xml").getPath
   sml.setProperty("file", mlModeXml)
-  println(sml.getProperty("file"))
+  //println(sml.getProperty("file"))
   val mlCode = StandaloneTextArea.createTextArea()
   //mlCode.setFont(new Font("Menlo", Font.PLAIN, 14))
 
@@ -30,18 +30,18 @@ class MLEditPanel extends BorderPanel with HasDocument {
 
   mlCode.setBuffer(buf)
 
-//  mlCode.addKeyListener(new KeyAdapter {
-//    override def keyPressed(e: KeyEvent) {
-//      if (e.getModifiers == CommandMask) e.getKeyChar match {
-//        case 'x' => Registers.cut(mlCode, '$')
-//        case 'c' => Registers.copy(mlCode, '$')
-//        case 'v' => Registers.paste(mlCode, '$')
-//        case _ =>
-//      }
-//    }
-//  })
+  mlCode.addKeyListener(new KeyAdapter {
+    override def keyPressed(e: KeyEvent) {
+      if (e.getModifiers == CommandMask) e.getKeyChar match {
+        case 'x' => Registers.cut(mlCode, '$')
+        case 'c' => Registers.copy(mlCode, '$')
+        case 'v' => Registers.paste(mlCode, '$')
+        case _ =>
+      }
+    }
+  })
 
-  val document = new MLDocument(this, mlCode)
+  val document = new CodeDocument("ML Code", "ML", this, mlCode)
 
   val textPanel = new BorderPanel {
     peer.add(mlCode, BorderLayout.CENTER)

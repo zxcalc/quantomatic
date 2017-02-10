@@ -159,11 +159,7 @@ structure GHZW_Enum = GraphEnumerator(structure Theory = GHZW_Theory)
 
 structure GHZW_Metric = WeightedArityMetric(
   structure Graph = GHZW_Theory.Graph
-<<<<<<< HEAD
   fun weight_for_data (Graph.NVert GHZW_Data.ZERO) = 1
-=======
-  fun weight_for_data (Graph.NVert GHZW_Data.ZERO) = 1
->>>>>>> simple-graph
     | weight_for_data _ = 5
 )
 

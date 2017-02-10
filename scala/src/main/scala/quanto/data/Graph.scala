@@ -21,6 +21,9 @@ with GraphException
 class CyclicBBoxParentException(bb: BBName, bbp: BBName) extends
 Exception("Adding parent " + bbp + " to bbox " + bb + " introduces cycle.")
 
+class PluggingException(msg: String) extends
+Exception(msg)
+
 case class GraphSearchContext(exploredV: Set[VName], exploredE: Set[EName])
 
 class GraphLoadException(message: String, cause: Throwable = null)
@@ -144,7 +147,7 @@ case class Graph(
   def snapToGrid() = {
 
     def roundCoord(d : Double) = {
-      (math.rint(d * 4.0)) / 4.0 // rounds to .25
+      math.rint(d * 4.0) / 4.0 // rounds to .25
     }
 
     val snapped_vdata = vdata.mapValues {vd =>
@@ -330,7 +333,7 @@ case class Graph(
       bbdata=bbdata1,inBBox=inBBox1,bboxParent=bboxParent1)
   }
 
-  def renameAvoiding(g: Graph): Graph = {
+  def renameAvoiding1(g: Graph): (Graph, Map[VName,VName], Map[EName,EName], Map[BBName,BBName]) = {
     val vrn = verts.foldLeft((Map[VName,VName](), g.verts)) { case ((mp,avoid), x) =>
       val x1 = avoid.freshWithSuggestion(x)
       (mp + (x -> x1), avoid + x1)
@@ -346,8 +349,10 @@ case class Graph(
       (mp + (x -> x1), avoid + x1)
     }._1
 
-    rename(vrn,ern,brn)
+    (rename(vrn,ern,brn), vrn, ern, brn)
   }
+
+  def renameAvoiding(g: Graph): Graph = renameAvoiding1(g)._1
 
   // append the given graph. note that its names should already be fresh
   def appendGraph(g: Graph) = {
@@ -374,6 +379,46 @@ case class Graph(
       bbdata = bbdata ++ g1.bbdata,
       bboxParent = bboxParent ++ g1.bboxParent
     )
+  }
+
+  def plugBoundaries(b1: VName, b2: VName) = {
+    // pull a boundary edge, which we'll inherit the data from
+    val be = inEdges(b2).headOption.getOrElse(
+      outEdges(b2).headOption.getOrElse (
+        throw new PluggingException("Target boundary is an isolated point.")))
+    val beData = edata(be)
+
+    // figure out who should be the source and target
+    val (s,t) = (
+      predVerts(b1).headOption, succVerts(b1).headOption,
+      predVerts(b2).headOption, succVerts(b2).headOption) match {
+      case (None, Some(t1), Some(s1), None) => (s1,t1)
+      case (Some(s1), None, None, Some(t1)) => (s1,t1)
+      case (Some(s1), None, Some(t1), None) if !beData.isDirected => (s1,t1)
+      case (None, Some(s1), None, Some(t1)) if !beData.isDirected => (s1,t1)
+      case _ => throw new PluggingException("Bad boundary arity")
+    }
+
+    this.deleteVertex(b1).deleteVertex(b2).addEdge(be, beData, (s,t))
+  }
+
+  // add g to this graph, plugging 'b' in this graph into 'bg' in g.
+  def plugGraph(g: Graph, b: VName, bg: VName) = {
+    // freshen target graph w.r.t. source
+    val (g1, vrn, _, _) = g.renameAvoiding1(this)
+    val bg1 = vrn(bg)
+
+    // re-position g relative to this graph, using the boundaries as a guide
+    val bgcoord = g1.vdata(bg1).coord
+    val bcoord = vdata(b).coord
+    val dx = bcoord._1 - bgcoord._1
+    val dy = bcoord._2 - bgcoord._2
+
+    var g2 = g1.verts.foldLeft(g1) { (g1,v) =>
+      g1.updateVData(v) { d => d.withCoord (d.coord._1 + dx, d.coord._2 + dy) }
+    }
+
+    this.appendGraph(g2).plugBoundaries(b, bg1)
   }
 
   override def toString = {

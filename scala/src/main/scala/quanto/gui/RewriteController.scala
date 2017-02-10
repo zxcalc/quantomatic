@@ -49,7 +49,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
           "graph" -> Graph.toJson(panel.LhsView.graph, theory),
           "vertices" -> JsonArray(sel.toVector.map(v => JsonString(v.toString)))
         ))
-      resp.map { case Success(JsonString(stack)) => pullRewrite(rd, stack); case _ => }
+      resp.map { case Success(JsonString(stack)) => pullRewrite(queryId, rd, stack); case _ => }
     }
 
     resultLock.release()
@@ -59,7 +59,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 
   def restartSearch() { rules = rules }
 
-  private def pullRewrite(rd: RuleDesc, stack: String) {
+  private def pullRewrite(qid: Int, rd: RuleDesc, stack: String) {
     val resp = QuantoDerive.core ? Call(panel.project.theory.coreName, "rewrite", "pull_rewrite",
       JsonObject("stack" -> JsonString(stack)))
     resp.map {
@@ -76,14 +76,15 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 
         resultLock.acquire()
 
-        if (resultSet.rules.contains(rd)) {
+        // make sure this rewrite query is still in progress, and the rule hasn't been manually removed by the user
+        if (qid == queryId && resultSet.rules.contains(rd)) {
           resultSet += rd -> step
 
-          if (resultSet.numResults(rd) < 50) pullRewrite(rd, stack)
+          if (resultSet.numResults(rd) < 50) pullRewrite(qid, rd, stack)
           else QuantoDerive.core ! Call(theory.coreName, "rewrite", "delete_rewrite_stack",
             JsonObject("stack" -> JsonString(stack)))
         } else {
-          // clean up if this rule has been removed from the result list
+          // clean up if this rule has been removed from the result list, or if this rewrite query has expired
           QuantoDerive.core ! Call(theory.coreName, "rewrite", "delete_rewrite_stack",
             JsonObject("stack" -> JsonString(stack)))
         }

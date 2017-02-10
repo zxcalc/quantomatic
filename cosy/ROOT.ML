@@ -11,16 +11,16 @@ PolyML.Project.depend_on_files [cosyRootDir^"/../core/ROOT.ML", cosyRootDir^"/RO
 
 val cosyRootDir = OS.FileSys.getDir();
 
-PolyML.Project.make "default_gens.ML";
-PolyML.Project.make "metric.ML";
+use "default_gens.ML";
+use "metric.ML";
 
-PolyML.Project.make "graph_equiv.ML";
-PolyML.Project.make "eq_class_tab.ML";
-PolyML.Project.make "default_rws.ML";
-PolyML.Project.make "fast_graph_enum.ML";
-PolyML.Project.make "tensor_equiv.ML";
+use "graph_equiv.ML";
+use "eq_class_tab.ML";
+use "default_rws.ML";
+use "fast_graph_enum.ML";
+use "tensor_equiv.ML";
 
-PolyML.Project.make "theories.ML";
+use "theories.ML";
 
 
 

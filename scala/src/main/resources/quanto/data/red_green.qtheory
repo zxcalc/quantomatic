@@ -43,6 +43,48 @@
         "type" : "Z",
         "value" : ""
       }
+    },
+    "hadamard" : {
+      "value" : {
+        "path" : "$.value",
+        "validate_with_core" : false,
+        "latex_constants" : false,
+        "type" : "string"
+      },
+      "style" : {
+        "label" : {
+          "position" : "inside",
+          "fg_color" : [ 0.0, 0.2, 0.0 ]
+        },
+        "stroke_color" : [ 0.0, 0.0, 0.0 ],
+        "fill_color" : [ 1.0, 1.0, 0.0 ],
+        "shape" : "rectangle"
+      },
+      "default_data" : {
+        "type" : "hadamard",
+        "value" : ""
+      }
+    },
+    "var" : {
+      "value" : {
+        "path" : "$.value",
+        "validate_with_core" : false,
+        "latex_constants" : false,
+        "type" : "string"
+      },
+      "style" : {
+        "label" : {
+          "position" : "inside",
+          "fg_color" : [ 0.0, 0.0, 0.0 ]
+        },
+        "stroke_color" : [ 0.0, 0.0, 0.0 ],
+        "fill_color" : [ 0.6, 1.0, 0.8 ],
+        "shape" : "rectangle"
+      },
+      "default_data" : {
+        "type" : "var",
+        "value" : ""
+      }
     }
   },
   "edge_types" : {

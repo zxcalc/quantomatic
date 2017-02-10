@@ -1,23 +1,26 @@
 structure RG_Data =
 struct
   val pretty_theory_name = Pretty.str "red_green"
-  type psubst = LinratMatcher.psubst
-  type subst  = LinratMatcher.subst
+  type psubst = LinratAngleMatcher.psubst
+  type subst  = LinratAngleMatcher.subst
 
   datatype nvdata = Xnd of LinratAngleExpr.T (* Red: defined using H of Z *) 
                   | Znd of LinratAngleExpr.T (* Green *)
                   | Hnd (* Hadamard node *)
+                  | Var of string
   val default_nvdata = Znd LinratAngleExpr.zero
 
   fun default_nvdata_of_typestring s =
     case s of "X" => Xnd LinratAngleExpr.zero
             | "Z" => Znd LinratAngleExpr.zero
             | "hadamard" => Hnd
+            | "var" => Var ""
             | _ => raise unknown_typestring_exp s
 
   fun nvdata_eq (Hnd, Hnd) = true
     | nvdata_eq (Znd a, Znd b) = LinratAngleExpr.eq a b
     | nvdata_eq (Xnd a, Xnd b) = LinratAngleExpr.eq a b
+    | nvdata_eq (Var s, Var t) = (s = t)
     | nvdata_eq _ = false
       
   fun pretty_nvdata (Xnd a) = 
@@ -25,18 +28,21 @@ struct
     | pretty_nvdata (Znd a) = 
       Pretty.block [Pretty.str "Z(", LinratAngleExpr.pretty a, Pretty.str ")"]
     | pretty_nvdata Hnd = Pretty.str "H"
+    | pretty_nvdata (Var s) = Pretty.block [Pretty.str "Var(", Pretty.str s, Pretty.str ")"]
   
   fun match_nvdata (Hnd, Hnd) m = SOME m
-    | match_nvdata (Znd a1,Znd a2) m = LinratMatcher.match (a1,a2) m
-    | match_nvdata (Xnd a1,Xnd a2) m = LinratMatcher.match (a1,a2) m
+    | match_nvdata (Znd a1,Znd a2) m = LinratAngleMatcher.match (a1,a2) m
+    | match_nvdata (Xnd a1,Xnd a2) m = LinratAngleMatcher.match (a1,a2) m
+    | match_nvdata (Var s, Var t) m = if s = t then SOME m else NONE
     | match_nvdata _ _ = NONE
 
   fun subst_in_nvdata sub Hnd = (sub, Hnd)
+    | subst_in_nvdata sub (Var s) = (sub, Var s)
     | subst_in_nvdata u (Xnd a) =
-        let val (sub',a') = LinratMatcher.subst_in_expr u a
+        let val (sub',a') = LinratAngleMatcher.subst_in_expr u a
         in (sub', Xnd a') end
     | subst_in_nvdata u (Znd a) =
-        let val (sub',a') = LinratMatcher.subst_in_expr u a
+        let val (sub',a') = LinratAngleMatcher.subst_in_expr u a
         in (sub', Znd a') end
 
   open EmptyEdgeData
@@ -50,8 +56,8 @@ struct
          ) nvtab
   in
     fun init_psubst_from_data p_data t_data =
-      LinratMatcher.init_psubst_from_names (pull_names p_data, pull_names t_data)
+      LinratAngleMatcher.init_psubst_from_names (pull_names p_data, pull_names t_data)
   end
   
-  fun solve_psubst ps = Seq.single (LinratMatcher.solve_psubst ps)
+  fun solve_psubst ps = Seq.single (LinratAngleMatcher.solve_psubst ps)
 end

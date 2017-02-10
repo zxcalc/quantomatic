@@ -11,6 +11,8 @@ import quanto.util.json._
  * @author Aleks Kissinger
  */
 abstract class VData extends GraphElementData {
+  def annotation : JsonObject
+
   /**
    * Get coordinates of vertex
    * @throws JsonAccessException
@@ -76,6 +78,9 @@ case class NodeV(
   /** Create a copy of the current vertex with the new value */
   def withValue(s: String) =
     copy(data = data.setPath(theory.vertexTypes(typ).value.path, s).setPath("$.label", s).asObject)
+
+  def withTyp(s: String) =
+    copy(data = data.setPath("$.type", s).asObject)
 
   def isWireVertex = false
   def isBoundary = false

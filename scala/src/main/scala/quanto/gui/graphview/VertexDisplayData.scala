@@ -5,9 +5,16 @@ import java.awt.{FontMetrics, Color, Shape}
 import math._
 import quanto.data._
 import quanto.gui._
+import quanto.core.data.TexConstants
 
 case class VDisplay(shape: Shape, color: Color, label: Option[LabelDisplayData]) {
-  def pointHit(pt: Point2D) = shape.contains(pt)
+  def pointHit(pt: Point2D) = {
+    val bnd = shape.getBounds2D
+    pt.getX >= bnd.getMinX - GraphView.VertexSelectionTolerence &&
+      pt.getX <= bnd.getMaxX + GraphView.VertexSelectionTolerence &&
+      pt.getY >= bnd.getMinY - GraphView.VertexSelectionTolerence &&
+      pt.getY <= bnd.getMaxY + GraphView.VertexSelectionTolerence
+  }
   def rectHit(r: Rectangle2D) = shape.intersects(r)
 }
 
@@ -51,7 +58,11 @@ trait VertexDisplayData { self: GraphView =>
       vertexDisplay(v) = data match {
         case vertexData : NodeV =>
           val style = vertexData.typeInfo.style
-          val text = vertexData.value.stringValue
+          val text = if(zoom < GraphView.zoomCutOut &&
+                     vertexData.value.stringValue != "")
+                       "~"
+                     else
+                       TexConstants.translate(vertexData.value.stringValue)
             /*vertexData.typeInfo.value.typ match {
             case Theory.ValueType.String => vertexData.value
             case _ => ""

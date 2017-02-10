@@ -1,4 +1,4 @@
-(* A wrapper for matching bang graphs against concrete graphs
+(* A wrapper for matching bang graphs against bang graphs
  * see docs/matching_algo for details
  *
  * This implements the "Lazy !-Box Expansion" algorithm
@@ -266,14 +266,12 @@ struct
   val log_e_nset = log_p E.NSet.pretty
   val log_b_nset = log_p B.NSet.pretty
 
-  fun init_with_fixed pat tgt pat_fix_tags tgt_fix_tags = let
+  fun init' pat tgt pat_fix_tags tgt_fix_tags = let
     val toplevel_bbs = B.NSet.filter (not o (Graph.bbox_has_parents pat))
                                      (Graph.get_bboxes pat)
-    val all_tags = F.NSet.union_merge (BFFn.get_cod_set pat_fix_tags)
-                                      (BFFn.get_cod_set tgt_fix_tags)
     val pat_fixed = BFFn.get_dom_set pat_fix_tags
-  in
-    MatchState {
+    in
+     MatchState {
       init_pat        = pat,
       bbox_ops        = [],
       wild_bboxes     = B.NSet.empty,
@@ -287,7 +285,10 @@ struct
     }
   end
 
-  fun init pat tgt = init_with_fixed pat tgt BFFn.empty BFFn.empty
+  (*fun init_with_fixed pat tgt pat_fix_tags tgt_fix_tags =
+    init' pat tgt pat_fix_tags tgt_fix_tags []*)
+
+  fun init pat tgt = init' pat tgt BFFn.empty BFFn.empty
 
   fun schedule_new lvl bms = let
     val ms = get_inner_state bms
@@ -544,6 +545,14 @@ struct
              Seq.maps do_bb_match (Seq.of_list (B.NSet.list_of candidates))
            end
 
+  (* number of concrete vertices adjacent to bbox. We always choose the bbox with
+   * the most concrete nodes adjacent to expand next. *)
+  fun concrete_nhd_size g bb = 
+    V.NSet.cardinality (V.NSet.filter
+      (not o Graph.is_bboxed g)
+      (Graph.get_adj_vertices_to_set g
+        (Graph.get_vertices_in_bbox g bb)))
+
   fun bbox_expand_branch b (lvl,ms) =
     let
       fun do_kill ms =
@@ -553,8 +562,8 @@ struct
         match_loop' (lvl+1,ms |> expand_pat_bbox lvl b
                               |> schedule_new lvl)
     in
-      Seq.append (Seq.maps do_kill (Seq.single ms))
-                 (Seq.maps do_expand (Seq.single ms))
+      Seq.append (Seq.maps do_expand (Seq.single ms))
+                 (Seq.maps do_kill (Seq.single ms))
     end
   and bbox_copy_branch b (lvl,ms) =
     let
@@ -571,9 +580,9 @@ struct
                  (Seq.maps do_cfix (Seq.single ms))
     end
   and choose_next_bbox (lvl,ms) =
-    case B.NSet.get_local_bot (get_expandable_bbs ms)
+    case B.NSet.maximize (concrete_nhd_size (get_pat ms)) (get_expandable_bbs ms)
       of SOME b => bbox_expand_branch b (lvl,ms)
-       | NONE => (case B.NSet.get_local_bot (get_copyable_bbs ms)
+       | NONE => (case B.NSet.maximize (concrete_nhd_size (get_pat ms)) (get_copyable_bbs ms)
                     of SOME b => bbox_copy_branch b (lvl,ms)
                      | NONE => finish_match (lvl,ms))
   and match_loop' x =
@@ -613,7 +622,17 @@ struct
   fun match pat tgt =
     match_normalised (Graph.normalise pat) (Graph.normalise tgt)
 
-  fun match_with_initial_nodes pat tgt nmap = match pat tgt
+  fun match_with_prematch pat tgt prematch = let
+    val (pat',tgt') = (Graph.normalise pat, Graph.normalise tgt)
+    val ms = schedule_all_concrete (Graph.get_vertices tgt') (init pat' tgt')
+    val ms' = VVInj.fold (fn pair => fn ms =>
+      update_inner_state (fn ims =>
+        case InnerMatchSearch.match_new_nv ms pair ims
+          of SOME ims' => ims'
+           | NONE => ims) ms) prematch ms
+  in
+    find_matches ms'
+  end
 
   fun match_subgraph_normalised pat tgt tgt_verts = let
     val _ = log_graph 3 0 "GreedyMatchSearch: normalised pattern" pat

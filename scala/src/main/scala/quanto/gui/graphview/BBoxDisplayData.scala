@@ -14,11 +14,11 @@ case class BBDisplay(rect: Rectangle2D) {
 
   def pointHit(pt: Point2D) = rect.contains(pt)
   def cornerHit(pt : Point2D) = corner.contains(pt)
-  def insideRect(other_rect: Rectangle2D) : Boolean = {
-    other_rect.getMinX <= rect.getMinX &&
-    other_rect.getMinY <= rect.getMinY &&
-    other_rect.getMaxX >= rect.getMaxX &&
-    other_rect.getMaxY >= rect.getMaxY
+  def insideRect(otherRect: Rectangle2D) : Boolean = {
+    otherRect.getMinX <= rect.getMinX &&
+    otherRect.getMinY <= rect.getMinY &&
+    otherRect.getMaxX >= rect.getMaxX &&
+    otherRect.getMaxY >= rect.getMaxY
   }
 }
 
