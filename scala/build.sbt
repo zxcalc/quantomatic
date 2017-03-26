@@ -26,6 +26,8 @@ libraryDependencies += "org.scala-lang.modules" % "scala-swing_2.11" % "1.0.1"
 
 libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value
 
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.5"
+
 //EclipseKeys.withSource := true
 
 //exportJars := true
