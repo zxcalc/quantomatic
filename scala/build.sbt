@@ -20,7 +20,7 @@ libraryDependencies += "com.fasterxml.jackson.core" % "jackson-core" % "2.1.2"
 
 libraryDependencies += "com.fasterxml.jackson.module" % "jackson-module-scala" % "2.1.2"
 
-libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.0.M5b" % "test"
+libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test"
 
 libraryDependencies += "org.scala-lang.modules" % "scala-swing_2.11" % "1.0.1"
 

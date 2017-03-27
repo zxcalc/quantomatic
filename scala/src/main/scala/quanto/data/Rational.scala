@@ -14,8 +14,12 @@ class Rational(numerator : Int, denominator : Int) extends Ordered[Rational] {
   def -(r : Rational) = Rational(n * r.d - r.n * d, d * r.d)
   def *(r : Rational) = Rational(n * r.n, d * r.d)
   def *(i : Int) = Rational(n * i, d)
-  def equals(r : Rational) = { n == r.n && d == r.d }
-  def compare(r : Rational) = { n * r.d - r.n * d }
+  def mod(i : Int) = Rational(n % (d * i), d)
+  override def equals(r : Any) = r match {
+    case r1 : Rational => n == r1.n && d == r1.d
+    case _ => false
+  }
+  override def compare(r : Rational) = { n * r.d - r.n * d }
   def isZero = n == 0
 
   override def toString = if (d == 1) n.toString else "(" + n + "/" + d + ")"

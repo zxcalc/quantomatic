@@ -12,9 +12,19 @@ class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
   def *(r : Rational): AngleExpression =
     AngleExpression(const * r, coeffs.mapValues(x => x * r))
 
+  def *(i : Int): AngleExpression = this * Rational(i)
+
   def +(e : AngleExpression) = AngleExpression(const + e.const, e.coeffs.foldLeft(coeffs) {
     case (m, (k,v)) => m + (k -> (v + m.getOrElse(k, Rational(0))))
   })
+
+  def -(e: AngleExpression) = this + (e * -1)
+
+  override def equals(that : Any) = that match {
+    case e : AngleExpression =>
+      const == e.const && coeffs == e.coeffs
+    case _ => false
+  }
 
   override def toString = {
     var fst = true
@@ -27,12 +37,12 @@ class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
     coeffs.foreach { case (x,c) =>
       if (fst) {
         fst = false
-        s = s + c.toString + " " + x
+        s = s + (if (c == Rational(1)) "" else c.toString + " ") + x
       } else {
         if (c < Rational(0)) {
-          s = s + " - " + (c * -1).toString + " " + x
+          s = s + " - " + (if (c == Rational(-1)) "" else (c * -1).toString + " ") + x
         } else {
-          s = s + " + " + c.toString + " " + x
+          s = s + " + " + (if (c == Rational(1)) "" else c.toString + " ") + x
         }
       }
     }
@@ -45,8 +55,9 @@ class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
 
 object AngleExpression {
   def apply(const : Rational, coeffs : Map[String,Rational] = Map()) =
-    new AngleExpression(const, coeffs.filter { case (_,c) => !c.isZero })
+    new AngleExpression(const mod 2, coeffs.filter { case (_,c) => !c.isZero })
 
+  val ZERO = AngleExpression(Rational(0))
   val ONE_PI = AngleExpression(Rational(1))
 
   def parse(s : String) = AngleExpressionParser.p(s)
@@ -57,38 +68,42 @@ object AngleExpression {
     def INT_OPT : Parser[Int] = INT.? ^^ { _.getOrElse(1) }
     def IDENT : Parser[String] = """[\\a-zA-Z_][a-zA-Z0-9_]*""".r ^^ { _.toString }
     def PI : Parser[Unit] = """\\?[pP][iI]""".r ^^ { _ => Unit }
-    def SYM(s : String) : Parser[Unit] = s ^^ { _ => Unit }
+
 
     def coeff : Parser[Rational] =
-      INT ~ SYM("/") ~ INT ^^ { case n ~ _ ~ d => Rational(n,d) } |
-        SYM("(") ~ coeff ~ SYM(")") ^^ { case _ ~ c ~ _ => c } |
-        INT ^^ { n => Rational(n) }
+      INT ~ "/" ~ INT ^^ { case n ~ _ ~ d => Rational(n,d) } |
+      "(" ~ coeff ~ ")" ^^ { case _ ~ c ~ _ => c } |
+      INT ^^ { n => Rational(n) }
 
 
     def frac : Parser[AngleExpression] =
-      INT_OPT ~ SYM("*").? ~ PI ~ SYM("/") ~ INT ^^ { case n ~ _ ~ _ ~ _ ~ d => AngleExpression(Rational(n,d)) } |
-        INT_OPT ~ SYM("*").? ~ IDENT ~ SYM("/") ~ INT ^^ {
-          case n ~ _ ~ x ~ _ ~ d => AngleExpression(Rational(0), Map(x -> Rational(n,d)))
-        }
+      INT_OPT ~ "*".? ~ PI ~ "/" ~ INT ^^ { case n ~ _ ~ _ ~ _ ~ d => AngleExpression(Rational(n,d)) } |
+      INT_OPT ~ "*".? ~ IDENT ~ "/" ~ INT ^^ {
+        case n ~ _ ~ x ~ _ ~ d => AngleExpression(Rational(0), Map(x -> Rational(n,d)))
+      }
 
     def term : Parser[AngleExpression] =
       frac |
-        SYM("-") ~ term ^^ { case _ ~ t => t * Rational(-1) } |
-        coeff ~ SYM("*").? ~ PI ^^ { case c ~ _ ~ _ => AngleExpression(c) } |
-        PI ^^ { _ => AngleExpression.ONE_PI } |
-        coeff ~ SYM("*").? ~ IDENT ^^ { case c ~ _ ~ x => AngleExpression(Rational(0), Map(x -> c)) } |
-        IDENT ^^ { case x => AngleExpression(Rational(0), Map(x -> Rational(1))) } |
-        SYM("(") ~ term ~ SYM(")") ^^ { case _ ~ t ~ _ => t }
+      "-" ~ term ^^ { case _ ~ t => t * -1 } |
+      coeff ~ "*".? ~ PI ^^ { case c ~ _ ~ _ => AngleExpression(c) } |
+      PI ^^ { _ => ONE_PI } |
+      coeff ~ "*".? ~ IDENT ^^ { case c ~ _ ~ x => AngleExpression(Rational(0), Map(x -> c)) } |
+      IDENT ^^ { case x => AngleExpression(Rational(0), Map(x -> Rational(1))) } |
+      coeff ^^ { AngleExpression(_) } |
+      "(" ~ expr ~ ")" ^^ { case _ ~ t ~ _ => t }
 
     def term1 : Parser[AngleExpression] =
-      SYM("+") ~ term ^^ { case _ ~ t => t } |
-      SYM("-") ~ term ^^ { case _ ~ t => t * Rational(-1) }
+      "+" ~ term ^^ { case _ ~ t => t } |
+      "-" ~ term ^^ { case _ ~ t => t * -1 }
 
     def terms : Parser[AngleExpression] =
       term1 ~ terms ^^ { case s ~ t => s + t } |
       term1
 
-    def expr : Parser[AngleExpression] = term ~ terms ^^ { case s ~ t => s + t } | term
+    def expr : Parser[AngleExpression] =
+      term ~ terms ^^ { case s ~ t => s + t } |
+      term |
+      "" ^^ { _ => ZERO }
 
     def p(s : String) = parse(expr, s) match {
       case Success(e, _) => e
