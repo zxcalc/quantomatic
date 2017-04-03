@@ -2,6 +2,8 @@ package quanto.data
 
 // ported from linrat_angle_expr.ML
 
+import quanto.util.Rational
+
 import scala.util.parsing.combinator._
 
 class AngleParseException(message: String)
@@ -19,6 +21,11 @@ class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
   })
 
   def -(e: AngleExpression) = this + (e * -1)
+
+  def subst(v : String, e : AngleExpression) = {
+    val c = coeffs.getOrElse(v,Rational(0))
+    this - AngleExpression(Rational(0), Map(v -> c)) + (e * c)
+  }
 
   override def equals(that : Any) = that match {
     case e : AngleExpression =>

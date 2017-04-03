@@ -3,6 +3,7 @@ package quanto.data.test
 import org.scalatest._
 import quanto.data._
 import AngleExpression._
+import quanto.util.Rational
 
 class AngleExpressionSpec extends FlatSpec {
   behavior of "A rational number"
@@ -144,5 +145,12 @@ class AngleExpressionSpec extends FlatSpec {
     assert(parse("- a - b") === (a * -1) - b)
     assert(parse("-(a + b)") === (a * -1) - b)
     assert(parse("-(a - b)") === b - a)
+  }
+
+  it should "do substitutions correctly" in {
+    val e1 = parse("x - 2 y")
+    val e2 = parse("a + b - c")
+    assert(e1.subst("x", e2) === parse("a + b - c - 2y"))
+    assert(e1.subst("y", e2) === parse("x - 2a - 2b + 2c"))
   }
 }

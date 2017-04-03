@@ -20,5 +20,5 @@ object RichCubicCurve {
       (dist*dist*dist) * c3
   }
 
-  implicit def cubicCurveToRichCubicCurve(curve: CubicCurve2D) = new RichCubicCurve(curve)
+  implicit def cubicCurveToRichCubicCurve(curve: CubicCurve2D): RichCubicCurve = new RichCubicCurve(curve)
 }
