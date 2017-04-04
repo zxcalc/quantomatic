@@ -20,25 +20,29 @@ class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
     case (m, (k,v)) => m + (k -> (v + m.getOrElse(k, Rational(0))))
   })
 
-  def -(e: AngleExpression) = this + (e * -1)
+  def -(e: AngleExpression) : AngleExpression = this + (e * -1)
 
-  def subst(v : String, e : AngleExpression) = {
+  def subst(v : String, e : AngleExpression) : AngleExpression = {
     val c = coeffs.getOrElse(v,Rational(0))
     this - AngleExpression(Rational(0), Map(v -> c)) + (e * c)
   }
 
-  override def equals(that : Any) = that match {
+  def subst(mp : Map[String, AngleExpression]): AngleExpression =
+    mp.foldLeft(this) { case (e, (v,e1)) => e.subst(v,e1) }
+
+  override def equals(that: Any): Boolean = that match {
     case e : AngleExpression =>
       const == e.const && coeffs == e.coeffs
     case _ => false
   }
 
-  override def toString = {
+  override def toString: String = {
     var fst = true
     var s = ""
-    if (const != Rational(0)) {
+    if (!const.isZero) {
       fst = false
-      s += const.toString + " \\pi"
+      if (const.isOne) s += "\\pi"
+      else s += const.toString + " \\pi"
     }
 
     coeffs.foreach { case (x,c) =>

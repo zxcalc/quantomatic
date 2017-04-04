@@ -8,24 +8,28 @@ class Rational(numerator : Int, denominator : Int) extends Ordered[Rational] {
   private val r = Rational.gcd(numerator,denominator)
   private val dsn = if (denominator < 0) -1 else 1
 
-  val n = dsn * numerator/r
-  val d = dsn * denominator/r
+  val n: Int = dsn * numerator/r
+  val d: Int = dsn * denominator/r
 
   def +(r : Rational) = Rational(n * r.d + r.n * d, d * r.d)
   def -(r : Rational) = Rational(n * r.d - r.n * d, d * r.d)
   def *(r : Rational) = Rational(n * r.n, d * r.d)
   def *(i : Int) = Rational(n * i, d)
   def /(r : Rational) = Rational(n * r.d, d * r.n)
-  def mod(i : Int) = Rational(n % (d * i), d)
+  def mod(i : Int): Rational =
+    if (n < 0) Rational((n % (d * i)) + (d * i), d)
+    else Rational(n % (d * i), d)
+
   def inv = Rational(d,n)
-  override def equals(r : Any) = r match {
+  override def equals(r : Any):Boolean = r match {
     case r1 : Rational => n == r1.n && d == r1.d
     case _ => false
   }
-  override def compare(r : Rational) = { n * r.d - r.n * d }
-  def isZero = n == 0
+  override def compare(r : Rational): Int = { n * r.d - r.n * d }
+  def isZero: Boolean = n == 0
+  def isOne: Boolean = n == 1 && d == 1
 
-  override def toString = if (d == 1) n.toString else "(" + n + "/" + d + ")"
+  override def toString:String = if (d == 1) n.toString else "(" + n + "/" + d + ")"
 
 }
 

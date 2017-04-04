@@ -6,7 +6,7 @@ import quanto.util._
 
 class AngleExpressionMatcher(pVars : Vector[String], tVars : Vector[String], mat : RationalMatrix) {
   def addMatch(pExpr : AngleExpression, tExpr : AngleExpression) : Option[AngleExpressionMatcher] = {
-    val r1 = pVars.map { v => pExpr.coeffs.getOrElse(v, Rational(0)) * -1 }
+    val r1 = pVars.map { v => pExpr.coeffs.getOrElse(v, Rational(0)) }
     val r2 = tVars.map { v => tExpr.coeffs.getOrElse(v, Rational(0)) }
     val row = r1 ++ r2 :+ (tExpr.const - pExpr.const)
     mat.gaussUpdate(row).map { m => new AngleExpressionMatcher(pVars, tVars, m) }
