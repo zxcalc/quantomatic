@@ -41,4 +41,13 @@ class AngleExpressionMatcherSpec extends FlatSpec {
     assert(parse("b + c").subst(mp) === parse("z + pi"))
     assert(parse("a - c").subst(mp) === parse("4 x"))
   }
+
+  it should "fail for impossible matches" in {
+    var m = AngleExpressionMatcher(Vector("a", "b", "c"), Vector("x", "y", "z"))
+    m = m.addMatch(parse("a"), parse("x")).get
+    m = m.addMatch(parse("b"), parse("y")).get
+
+    val m1 = m.addMatch(parse("a + b"), parse("z"))
+    assert(m1 === None)
+  }
 }

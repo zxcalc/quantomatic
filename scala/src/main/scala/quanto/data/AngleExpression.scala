@@ -10,6 +10,7 @@ class AngleParseException(message: String)
   extends Exception(message)
 
 class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
+  lazy val vars = coeffs.keySet
 
   def *(r : Rational): AngleExpression =
     AngleExpression(const * r, coeffs.mapValues(x => x * r))
@@ -65,7 +66,8 @@ class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
 }
 
 object AngleExpression {
-  def apply(const : Rational, coeffs : Map[String,Rational] = Map()) =
+  def apply(const : Rational = Rational(0),
+            coeffs : Map[String,Rational] = Map()) =
     new AngleExpression(const mod 2, coeffs.filter { case (_,c) => !c.isZero })
 
   val ZERO = AngleExpression(Rational(0))
@@ -116,7 +118,7 @@ object AngleExpression {
       term |
       "" ^^ { _ => ZERO }
 
-    def p(s : String) = parse(expr, s) match {
+    def p(s : String) = parseAll(expr, s) match {
       case Success(e, _) => e
       case Failure(msg, _) => throw new AngleParseException(msg)
       case Error(msg, _) => throw new AngleParseException(msg)

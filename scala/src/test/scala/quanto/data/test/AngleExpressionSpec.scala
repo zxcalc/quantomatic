@@ -147,6 +147,11 @@ class AngleExpressionSpec extends FlatSpec {
     assert(parse("-(a - b)") === b - a)
   }
 
+  it should "throw an exception on failed parse" in {
+    intercept[AngleParseException] { parse("x + ") }
+    intercept[AngleParseException] { parse("%") }
+  }
+
   it should "do substitutions correctly" in {
     val e1 = parse("x - 2 y")
     val e2 = parse("a + b - c")

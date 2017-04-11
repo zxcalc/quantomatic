@@ -279,6 +279,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     graph.vdata(v) match {
       case data: NodeV =>
         val oldVal = data.value.stringValue
+
         graph = graph.updateVData(v) { _ => data.withValue(str) }
         view.invalidateVertex(v)
         graph.adjacentEdges(v).foreach { view.invalidateEdge }
@@ -398,12 +399,12 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
                     Dialog.showInput(
                       title = "Vertex type",
                       message = "Vertex type",
-                      initial = data.typ).map { newTyp => setVertexTyp(v, newTyp) }
+                      initial = data.typ).foreach { newTyp => setVertexTyp(v, newTyp) }
                   } else {
                     Dialog.showInput(
                       title = "Vertex data",
                       message = "Vertex data",
-                      initial = data.value.stringValue).map { newVal => setVertexValue(v, newVal) }
+                      initial = data.value.stringValue).foreach { newVal => setVertexValue(v, newVal) }
                   }
                   view.repaint()
 

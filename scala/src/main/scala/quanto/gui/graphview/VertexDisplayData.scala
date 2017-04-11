@@ -58,11 +58,9 @@ trait VertexDisplayData { self: GraphView =>
       vertexDisplay(v) = data match {
         case vertexData : NodeV =>
           val style = vertexData.typeInfo.style
-          val text = if(zoom < GraphView.zoomCutOut &&
-                     vertexData.value.stringValue != "")
-                       "~"
-                     else
-                       TexConstants.translate(vertexData.value.stringValue)
+          val label = if (vertexData.hasAngle) vertexData.angle.toString else vertexData.value.stringValue
+          val text = if(zoom < GraphView.zoomCutOut && label != "") "~"
+                     else TexConstants.translate(label)
             /*vertexData.typeInfo.value.typ match {
             case Theory.ValueType.String => vertexData.value
             case _ => ""

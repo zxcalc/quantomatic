@@ -1,6 +1,8 @@
 package quanto.data
 
+import quanto.data.Theory.ValueType
 import quanto.util.json._
+import quanto.data.AngleExpression
 
 /**
  * An abstract class which provides a general interface for accessing
@@ -71,20 +73,30 @@ case class NodeV(
     case _ => JsonString("")
   }
 
-  def withCoord(c: (Double,Double)) =
-    copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
-  
-  /** Create a copy of the current vertex with the new value */
-  def withValue(s: String) =
-    copy(data = data.setPath("$.value", s).asObject)
 
-  def withTyp(s: String) =
-    copy(data = data.setPath("$.type", s).asObject)
+  // if the theory says this node should have an angle, try to parse it from value,
+  // and store it in "angle". If it should have an angle, but parsing fails, set
+  // angle to "0".
+  lazy val (angle: AngleExpression, hasAngle: Boolean) =
+    if (theory.vertexTypes(typ).value.typ == ValueType.AngleExpr)
+     try { (AngleExpression.parse(value.stringValue), true) }
+     catch { case _: AngleParseException => (AngleExpression(), true) }
+    else (AngleExpression(), false)
 
-  def isWireVertex = false
-  def isBoundary = false
+    def withCoord(c: (Double,Double)) =
+      copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
 
-  override def toJson =
+    /** Create a copy of the current vertex with the new value */
+    def withValue(s: String) =
+      copy(data = data.setPath("$.value", s).asObject)
+
+    def withTyp(s: String) =
+      copy(data = data.setPath("$.type", s).asObject)
+
+    def isWireVertex = false
+    def isBoundary = false
+
+    override def toJson =
     if (data == theory.defaultVertexData)
       JsonObject("annotation" -> annotation).noEmpty
     else

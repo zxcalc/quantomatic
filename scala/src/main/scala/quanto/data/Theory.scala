@@ -57,6 +57,7 @@ object Theory {
 
   object ValueType extends Enumeration with JsonEnumConversions {
     val String = Value("string")
+    val AngleExpr = Value("angle_expr")
     val LongString = Value("long_string")
     val Enum = Value("enum")
     val Empty = Value("empty")

@@ -96,9 +96,16 @@ case class Graph(
   def predVerts(vn: VName) = inEdges(vn).map(source(_))
   def succVerts(vn: VName) = outEdges(vn).map(target(_))
   def contents(bbn: BBName) = inBBox.codf(bbn)
+  def bboxesContaining(vn: VName) = inBBox.domf(vn)
   def isBoundary(vn: VName) = vdata(vn) match {
     case _: WireV => (inEdges(vn).size + outEdges(vn).size) <= 1
     case _ => false
+  }
+
+  def vars = vdata.values.foldLeft(Set.empty[String]) {
+    case (vs, d: NodeV) =>
+      vs ++ d.angle.vars
+    case (vs,_) => vs
   }
 
   /** Returns a set of edge names adjacent to vn */
@@ -694,7 +701,7 @@ object Graph {
 
       for (i <- 1 to nbboxes) {
         val randomVSet = (1 to sqrt(nverts).toInt).foldLeft(Set[VName]()) { (s,_) =>
-          s + varray(rand.nextInt(varray.size))
+          s + varray(rand.nextInt(varray.length))
         }
 
         randomGraph = randomGraph.newBBox(BBData(), randomVSet, None)
@@ -716,8 +723,8 @@ object Graph {
     // must have at least two verts to add edges since no self-loops allowed
     if (nverts > 1)
       for(j <- 1 to nedges) {
-        val x = rand.nextInt(varray.size)
-        val y = rand.nextInt(varray.size - 1)
+        val x = rand.nextInt(varray.length)
+        val y = rand.nextInt(varray.length - 1)
         val s = varray(x)
         val t = varray(if (y >= x) y+1 else y)
         randomGraph = randomGraph.newEdge(DirEdge(), if (s <= t) (s,t) else (t,s))
