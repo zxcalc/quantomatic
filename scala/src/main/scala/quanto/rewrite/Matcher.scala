@@ -2,7 +2,7 @@ package quanto.rewrite
 import quanto.data._
 
 object Matcher {
-  def findMatches(pat: Graph, tgt: Graph): Stream[Match] = {
+  def findMatches(pat: Graph, tgt: Graph, restrictTo: Set[VName]): Stream[Match] = {
     val patVars = Vector()
     val tgtVars = Vector()
     val patNodes = pat.verts.filter(!pat.vdata(_).isWireVertex)
@@ -12,7 +12,7 @@ object Matcher {
     }
 
     val ms = MatchState(Match(pat, tgt), finished=false,
-      patNodes, patWires, Set.empty, concrete,
+      patNodes, patWires, Set.empty, concrete, restrictTo,
       AngleExpressionMatcher(patVars,tgtVars))
 
     // TODO: !-boxes
@@ -20,5 +20,8 @@ object Matcher {
       if (ms1.finished) Stream(ms1.m) else Stream()
     }
   }
+
+  def findMatches(pat: Graph, tgt: Graph): Stream[Match] =
+    findMatches(pat, tgt, tgt.verts)
 
 }
