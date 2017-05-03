@@ -82,6 +82,12 @@ extends Ordered[AdjMat]
       vecs = vecs :+ r.toVector
     }
 
+    for (i <- green) {
+      val r = idx until idx + i
+      idx += i
+      vecs = vecs :+ r.toVector
+    }
+
     AdjMat.productPerms(vecs).map { p => bVec ++ p }
   }
 
