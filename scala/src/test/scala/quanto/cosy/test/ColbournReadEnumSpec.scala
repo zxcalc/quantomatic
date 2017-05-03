@@ -81,6 +81,22 @@ class ColbournReadEnumSpec extends FlatSpec {
     amat = amat.addVertex(Vector(false, false, true, true))
 
     // the next green node should be connectable to either red node, or the one remaining boundary
-    assert(amat.validConnections.length === 2*2*2)
+    assert(amat.validConnections(bipartite = true).length === 2*2*2)
+
+    // the next green node should be connectable to any node, or the one remaining boundary
+    assert(amat.validConnections(bipartite = false).length === 2*2*2*2)
+  }
+
+  behavior of "Graph enumerator"
+
+  // numbers of graphs with 0-5 vertices: 1, 1, 2, 4, 11, 34
+  // from: https://oeis.org/A000088
+  it should "give correct number of untyped graphs" in {
+    assert(ColbournReadEnum.enumerate(1,0,0,0, bipartite = false).size === 1)
+    assert(ColbournReadEnum.enumerate(1,0,0,1, bipartite = false).size === 1+1)
+    assert(ColbournReadEnum.enumerate(1,0,0,2, bipartite = false).size === 1+1+2)
+    assert(ColbournReadEnum.enumerate(1,0,0,3, bipartite = false).size === 1+1+2+4)
+    assert(ColbournReadEnum.enumerate(1,0,0,4, bipartite = false).size === 1+1+2+4+11)
+    assert(ColbournReadEnum.enumerate(1,0,0,5, bipartite = false).size === 1+1+2+4+11+34)
   }
 }

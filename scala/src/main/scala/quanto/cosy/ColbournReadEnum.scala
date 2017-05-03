@@ -88,7 +88,8 @@ extends Ordered[AdjMat]
 
   // return a list of all the valid ways to connect a new node to the graph, which respect the
   // bipartite structure, and maintain boundaries with arity at most 1
-  def validConnections: Vector[Vector[Boolean]] = {
+  def validConnections(bipartite: Boolean): Vector[Vector[Boolean]] = {
+    val bnd = red.isEmpty && green.isEmpty
     val notRed = red.isEmpty || green.nonEmpty
     val notGreen = green.isEmpty
 
@@ -96,18 +97,34 @@ extends Ordered[AdjMat]
       if (i >= size) Vector(Vector())
       else {
         val rest = validConnectionsFrom(i + 1)
-        if (
-          (i < numBoundaries && !mat(i).contains(true)) ||
-          (i >= numBoundaries && i < numBoundaries + numRed && notRed) ||
-          (i >= numBoundaries + numRed && notGreen)
+        if ((i < numBoundaries && !mat(i).contains(true)) ||
+            (i >= numBoundaries && i < numBoundaries + numRed && (notRed || !bipartite)) ||
+            (i >= numBoundaries + numRed && (notGreen || !bipartite))
         )
-          rest.map(false +: _) ++ rest.map(true +: _)
+          rest.map(false +: _) ++
+            (if (bnd) Vector(true +: Vector.fill(size - i - 1)(false))
+            else rest.map(true +: _))
         else
           rest.map(false +: _)
       }
 
     validConnectionsFrom(0)
   }
+
+  // return a list of all the ways to connect a new node to the graph
+//  def validConnections: Vector[Vector[Boolean]] = {
+//    val bnd = red.isEmpty && green.isEmpty
+//    def validConnectionsFrom(i: Int): Vector[Vector[Boolean]] =
+//      if (i >= size) Vector(Vector())
+//      else {
+//        val rest = validConnectionsFrom(i + 1)
+//        rest.map(false +: _) ++
+//          (if (bnd) Vector(true +: Vector.fill(size - i - 1)(false))
+//          else rest.map(true +: _))
+//      }
+//
+//    validConnectionsFrom(0)
+//  }
 
 
   // a matrix is canonical if it is lexicographically smaller than any vertex permutation
@@ -117,7 +134,7 @@ extends Ordered[AdjMat]
   def isComplete: Boolean = (0 until numBoundaries).forall(i => mat(i).contains(true))
 
   override def toString: String = {
-    var pipes = Array.fill(size+1)(0)
+    val pipes = Array.fill(size+1)(0)
     var idx = numBoundaries
     for (r <- red) {
       pipes(idx) += 1
@@ -128,14 +145,14 @@ extends Ordered[AdjMat]
       idx += g
     }
 
-    val sep = pipes.take(size).foldRight("") { (p, rest) => "-+-"*p + "---" + rest } + "-+-"*pipes(size) + "\n"
+    val sep = pipes.take(size).foldRight("") { (p, rest) => "+"*p + "---" + rest } + "+"*pipes(size) + "\n"
 
 
     "\n" + mat.indices.foldRight("") { (i,str) =>
       sep * pipes(i) +
       mat(i).indices.foldRight("") { (j, rowStr) =>
-        " | " * pipes(j) + (if (mat(i)(j)) " 1 " else " 0 ") + rowStr
-      } + " | " * pipes(size) + "\n" + str
+        "|" * pipes(j) + (if (mat(i)(j)) " 1 " else " 0 ") + rowStr
+      } + "|" * pipes(size) + "\n" + str
     } + sep * pipes(size)
   }
 }
@@ -156,7 +173,8 @@ object AdjMat {
 }
 
 object ColbournReadEnum {
-  def enumerate(numRedTypes: Int, numGreenTypes: Int, maxBoundaries: Int, maxVertices: Int): Stream[AdjMat] = {
+  def enumerate(numRedTypes: Int, numGreenTypes: Int, maxBoundaries: Int,
+                maxVertices: Int, bipartite: Boolean = true): Stream[AdjMat] = {
     if (numRedTypes == 0 && numGreenTypes == 0) throw new GraphEnumException("must have at least one node type")
     def enum1(bnd: Int, verts: Int, amat: AdjMat): Stream[AdjMat] =
       if (amat.isCanonical) {
@@ -165,11 +183,6 @@ object ColbournReadEnum {
           amat.nextType match {
             case Some(amat1) =>
               enum1(0, verts, amat1)
-//              if (verts > 0) { // add current node type in all possible ways
-//                amat1.validConnections.foldRight(Stream[AdjMat]()){ (c, rest) =>
-//                  enum1(0, verts - 1, amat1.addVertex(c)) #::: rest
-//                }
-//              } else Stream()
             case None =>
               if (amat.isComplete) Stream(amat)
               else Stream()
@@ -177,11 +190,12 @@ object ColbournReadEnum {
         ) #::: (
           // add boundaries in all possible ways
           if (bnd > 0) {
-            amat.validConnections.foldRight(Stream[AdjMat]()){ (c, rest) =>
+            amat.validConnections(bipartite).foldRight(Stream[AdjMat]()){ (c, rest) =>
               enum1(bnd - 1, verts, amat.addVertex(c)) #::: rest
             }
-          } else if (verts > 0 && (amat.red.nonEmpty || amat.green.nonEmpty)) { // add current node type in all possible ways
-            amat.validConnections.foldRight(Stream[AdjMat]()){ (c, rest) =>
+          // add current node type in all possible ways
+          } else if (verts > 0 && (amat.red.nonEmpty || amat.green.nonEmpty)) {
+            amat.validConnections(bipartite).foldRight(Stream[AdjMat]()){ (c, rest) =>
               enum1(0, verts - 1, amat.addVertex(c)) #::: rest
             }
           } else Stream()
