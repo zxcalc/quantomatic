@@ -1,4 +1,4 @@
-package quanto.util
+package quanto.cosy
 
 /**
   * An iso-free graph enumeration procedure, based on the one described in Colbourn and Read (1979)
@@ -64,8 +64,8 @@ extends Ordered[AdjMat]
 
   // compare this matrix with itself, but with the rows and columns permuted according to "perm"
   def compareWithPerm(perm: Vector[Int]): Int = {
-    for (i <- 0 to size)
-      for (j <- i to size)
+    for (i <- 0 until size)
+      for (j <- i until size)
         if (mat(i)(j) < mat(perm(i))(perm(j))) return -1
         else if (mat(i)(j) > mat(perm(i))(perm(j))) return 1
     0
@@ -120,10 +120,14 @@ extends Ordered[AdjMat]
     for (r <- red) pipes = (r + pipes.head) :: pipes
     for (g <- green) pipes = (g + pipes.head) :: pipes
     val pipeSet = pipes.toSet
+    val sep = mat.indices.foldRight("") { (i,s) =>
+      (if (pipeSet.contains(i)) "-+----" else "---") + s
+    } + "\n"
 
-    mat.indices.foldRight("") { (i,str) =>
+    "\n" + mat.indices.foldRight("") { (i,str) =>
+      (if (pipeSet.contains(i)) sep else "") +
       mat(i).indices.foldRight("") { (j, rowStr) =>
-        (if (pipeSet.contains(i)) " | " else "") + (if (mat(i)(j)) " 1 " else " 0 ")
+        (if (pipeSet.contains(j)) " | " else "") + (if (mat(i)(j)) " 1 " else " 0 ") + rowStr
       } + "\n" + str
     }
   }
