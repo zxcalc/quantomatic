@@ -48,10 +48,10 @@ extends Ordered[AdjMat]
     }
   }
 
-  // compare the upper triangular part of this matrix, lexicographically
+  // compare the lower triangular part of this matrix, lexicographically
   def compare(that: AdjMat): Int = {
-    for (i <- 0 to size)
-      for (j <- i to size)
+    for (i <- 0 until size)
+      for (j <- 0 to i)
         if (mat(i)(j) < that.mat(i)(j)) return -1
         else if (mat(i)(j) > that.mat(i)(j)) return 1
     0
@@ -60,7 +60,7 @@ extends Ordered[AdjMat]
   // compare this matrix with itself, but with the rows and columns permuted according to "perm"
   def compareWithPerm(perm: Vector[Int]): Int = {
     for (i <- 0 until size)
-      for (j <- i until size)
+      for (j <- 0 to i)
         if (mat(i)(j) < mat(perm(i))(perm(j))) return -1
         else if (mat(i)(j) > mat(perm(i))(perm(j))) return 1
     0
@@ -117,25 +117,26 @@ extends Ordered[AdjMat]
   def isComplete: Boolean = (0 until numBoundaries).forall(i => mat(i).contains(true))
 
   override def toString: String = {
-    var pipes = List[Int](numBoundaries)
-    for (r <- red) pipes = (r + pipes.head) :: pipes
-    for (g <- green) pipes = (g + pipes.head) :: pipes
-    val pipeSet = pipes.toSet
+    var pipes = Array.fill(size+1)(0)
+    var idx = numBoundaries
+    for (r <- red) {
+      pipes(idx) += 1
+      idx += r
+    }
+    for (g <- green) {
+      pipes(idx) += 1
+      idx += g
+    }
 
-    val sep = mat.indices.foldRight("") { (i,s) =>
-      (if (pipeSet.contains(i)) ".+.. ." else ". .") + s
-    } + "\n"
-    val bsep = mat.indices.foldRight("") { (i,s) =>
-      (if (pipeSet.contains(i)) "-+----" else "---") + s
-    } + "\n"
+    val sep = pipes.take(size).foldRight("") { (p, rest) => "-+-"*p + "---" + rest } + "-+-"*pipes(size) + "\n"
+
 
     "\n" + mat.indices.foldRight("") { (i,str) =>
-      (if (i == numBoundaries || i == numBoundaries + numRed) bsep else if (pipeSet.contains(i)) sep else "") +
+      sep * pipes(i) +
       mat(i).indices.foldRight("") { (j, rowStr) =>
-        (if (j == numBoundaries || j == numBoundaries + numRed) " | " else if (pipeSet.contains(j)) " : " else "") +
-          (if (mat(i)(j)) " 1 " else " 0 ") + rowStr
-      } + "\n" + str
-    }
+        " | " * pipes(j) + (if (mat(i)(j)) " 1 " else " 0 ") + rowStr
+      } + " | " * pipes(size) + "\n" + str
+    } + sep * pipes(size)
   }
 }
 
@@ -160,30 +161,28 @@ object ColbournReadEnum {
     def enum1(bnd: Int, verts: Int, amat: AdjMat): Stream[AdjMat] =
       if (amat.isCanonical) {
         (
-          // put the current matrix on the stream, if complete
-          if (amat.isComplete) Stream(amat)
-          else Stream()
-        ) ++ (
-          // advancing to the next type of vertex, and adding in all possible ways
+          // advancing to the next type of node
           amat.nextType match {
             case Some(amat1) =>
-              if (verts > 0) { // add current node type in all possible ways
-                amat.validConnections.foldRight(Stream[AdjMat]()){ (c, rest) =>
-                  enum1(0, verts - 1, amat1.addVertex(c)) ++ rest
-                }
-              } else Stream()
-            case None => Stream()
+              enum1(0, verts, amat1)
+//              if (verts > 0) { // add current node type in all possible ways
+//                amat1.validConnections.foldRight(Stream[AdjMat]()){ (c, rest) =>
+//                  enum1(0, verts - 1, amat1.addVertex(c)) #::: rest
+//                }
+//              } else Stream()
+            case None =>
+              if (amat.isComplete) Stream(amat)
+              else Stream()
           }
-        ) ++ (
+        ) #::: (
           // add boundaries in all possible ways
           if (bnd > 0) {
             amat.validConnections.foldRight(Stream[AdjMat]()){ (c, rest) =>
-              val amat1 = if (bnd == 1) amat.addVertex(c).nextType.get else amat.addVertex(c)
-              enum1(bnd - 1, verts, amat1) ++ rest
+              enum1(bnd - 1, verts, amat.addVertex(c)) #::: rest
             }
-          } else if (verts > 0) { // add current node type in all possible ways
+          } else if (verts > 0 && (amat.red.nonEmpty || amat.green.nonEmpty)) { // add current node type in all possible ways
             amat.validConnections.foldRight(Stream[AdjMat]()){ (c, rest) =>
-              enum1(0, verts - 1, amat.addVertex(c)) ++ rest
+              enum1(0, verts - 1, amat.addVertex(c)) #::: rest
             }
           } else Stream()
         )
