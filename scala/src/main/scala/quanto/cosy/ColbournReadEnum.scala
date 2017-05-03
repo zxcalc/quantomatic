@@ -7,6 +7,9 @@ package quanto.cosy
   */
 
 
+class GraphEnumException(msg: String) extends Exception(msg)
+
+
 // store an undirected graph as a symmetric adjacency matrix
 case class AdjMat(numRedTypes: Int,
                   numGreenTypes: Int,
@@ -19,14 +22,6 @@ extends Ordered[AdjMat]
   lazy val size: Int = mat.length
   lazy val numRed = red.sum
   lazy val numGreen = green.sum
-
-//  def copy(numRedTypes: Int = numRedTypes,
-//           numGreenTypes: Int = numGreenTypes,
-//           numBoundaries: Int = numBoundaries,
-//           red: Vector[Int] = red,
-//           green: Vector[Int] = green,
-//           mat: Vector[Vector[Boolean]] = mat): AdjMat =
-//    new AdjMat(numRedTypes,numGreenTypes,numBoundaries,red,green,mat)
 
   // advance to the next type of vertex added by the addVertex method. The order is boundaries,
   // then each red type, then each green type.
@@ -98,7 +93,7 @@ extends Ordered[AdjMat]
     val notGreen = green.isEmpty
 
     def validConnectionsFrom(i: Int): Vector[Vector[Boolean]] =
-      if (i >= size) Vector()
+      if (i >= size) Vector(Vector())
       else {
         val rest = validConnectionsFrom(i + 1)
         if (
@@ -126,14 +121,19 @@ extends Ordered[AdjMat]
     for (r <- red) pipes = (r + pipes.head) :: pipes
     for (g <- green) pipes = (g + pipes.head) :: pipes
     val pipeSet = pipes.toSet
+
     val sep = mat.indices.foldRight("") { (i,s) =>
+      (if (pipeSet.contains(i)) ".+.. ." else ". .") + s
+    } + "\n"
+    val bsep = mat.indices.foldRight("") { (i,s) =>
       (if (pipeSet.contains(i)) "-+----" else "---") + s
     } + "\n"
 
     "\n" + mat.indices.foldRight("") { (i,str) =>
-      (if (pipeSet.contains(i)) sep else "") +
+      (if (i == numBoundaries || i == numBoundaries + numRed) bsep else if (pipeSet.contains(i)) sep else "") +
       mat(i).indices.foldRight("") { (j, rowStr) =>
-        (if (pipeSet.contains(j)) " | " else "") + (if (mat(i)(j)) " 1 " else " 0 ") + rowStr
+        (if (j == numBoundaries || j == numBoundaries + numRed) " | " else if (pipeSet.contains(j)) " : " else "") +
+          (if (mat(i)(j)) " 1 " else " 0 ") + rowStr
       } + "\n" + str
     }
   }
@@ -156,30 +156,36 @@ object AdjMat {
 
 object ColbournReadEnum {
   def enumerate(numRedTypes: Int, numGreenTypes: Int, maxBoundaries: Int, maxVertices: Int): Stream[AdjMat] = {
+    if (numRedTypes == 0 && numGreenTypes == 0) throw new GraphEnumException("must have at least one node type")
     def enum1(bnd: Int, verts: Int, amat: AdjMat): Stream[AdjMat] =
       if (amat.isCanonical) {
         (
           // put the current matrix on the stream, if complete
-          if (amat.isComplete)
-            Stream(amat)
+          if (amat.isComplete) Stream(amat)
           else Stream()
+        ) ++ (
+          // advancing to the next type of vertex, and adding in all possible ways
+          amat.nextType match {
+            case Some(amat1) =>
+              if (verts > 0) { // add current node type in all possible ways
+                amat.validConnections.foldRight(Stream[AdjMat]()){ (c, rest) =>
+                  enum1(0, verts - 1, amat1.addVertex(c)) ++ rest
+                }
+              } else Stream()
+            case None => Stream()
+          }
         ) ++ (
           // add boundaries in all possible ways
           if (bnd > 0) {
             amat.validConnections.foldRight(Stream[AdjMat]()){ (c, rest) =>
-              enum1(bnd - 1, verts, amat.addVertex(c)) ++ rest
+              val amat1 = if (bnd == 1) amat.addVertex(c).nextType.get else amat.addVertex(c)
+              enum1(bnd - 1, verts, amat1) ++ rest
             }
           } else if (verts > 0) { // add current node type in all possible ways
             amat.validConnections.foldRight(Stream[AdjMat]()){ (c, rest) =>
               enum1(0, verts - 1, amat.addVertex(c)) ++ rest
             }
           } else Stream()
-        ) ++ (
-          // advancing to the next type of vertex
-          amat.nextType match {
-            case Some(amat1) => enum1(0, verts, amat1)
-            case None => Stream()
-          }
         )
       } else Stream()
 
