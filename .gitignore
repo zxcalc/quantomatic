@@ -24,3 +24,6 @@ core/heaps
 .ensime_lucene
 lib_managed/
 *.gen.ML
+\.vscode/
+\.idea/
+out/
