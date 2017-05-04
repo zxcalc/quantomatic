@@ -111,21 +111,26 @@ extends Ordered[AdjMat]
     validConnectionsFrom(0)
   }
 
-  // return a list of all the ways to connect a new node to the graph
-//  def validConnections: Vector[Vector[Boolean]] = {
-//    val bnd = red.isEmpty && green.isEmpty
-//    def validConnectionsFrom(i: Int): Vector[Vector[Boolean]] =
-//      if (i >= size) Vector(Vector())
-//      else {
-//        val rest = validConnectionsFrom(i + 1)
-//        rest.map(false +: _) ++
-//          (if (bnd) Vector(true +: Vector.fill(size - i - 1)(false))
-//          else rest.map(true +: _))
-//      }
-//
-//    validConnectionsFrom(0)
-//  }
+  def componentOf(v: Int, seen: Set[Int] = Set()): Set[Int] = {
+    (0 until size).foldRight(seen + v) { (w, seen1) =>
+      if (seen1.contains(w) || !mat(v)(w)) seen1
+      else seen1.union(componentOf(w, seen1))
+    }
+  }
 
+  def isConnected: Boolean = size == 0 || componentOf(0).size == size
+
+  // check if there exists an automorphism which interchanges red and green nodes. Note types and boundary
+  // order are ignored.
+  // (mainly used for testing)
+  def isColorSymmetric: Boolean = if (numRed != numGreen) false else {
+    val fix = (numBoundaries until numBoundaries + numRed).toVector
+
+    for (p1 <- AdjMat.perms((0 until numBoundaries).toVector);
+         p2 <- AdjMat.perms((numBoundaries + numRed until size).toVector))
+      if (compareWithPerm(p1 ++ p2 ++ fix) == 0) return true
+    false
+  }
 
   // a matrix is canonical if it is lexicographically smaller than any vertex permutation
   def isCanonical: Boolean = validPerms.forall { p => compareWithPerm(p) <= 0 }
