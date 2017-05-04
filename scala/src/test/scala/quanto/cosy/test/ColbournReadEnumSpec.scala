@@ -53,7 +53,7 @@ class ColbournReadEnumSpec extends FlatSpec {
     amat = amat.addVertex(Vector(false, false, true, true))
 
     println("Non-canonical matrix:\n" + amat)
-    assert(!amat.isCanonical)
+    assert(!amat.isCanonical())
   }
 
   it should "correctly identify a canonical matrix" in {
@@ -67,7 +67,7 @@ class ColbournReadEnumSpec extends FlatSpec {
     amat = amat.addVertex(Vector(false, false, true, true))
 
     println("Canonical matrix:\n" + amat)
-    assert(amat.isCanonical)
+    assert(amat.isCanonical())
   }
 
   it should "correctly identify a color-symmetric matrix" in {

@@ -67,7 +67,7 @@ extends Ordered[AdjMat]
   }
 
   // return all the vertex-permutations which respect type and keep boundary fixed
-  def validPerms: Vector[Vector[Int]] = {
+  def validPerms(permuteBoundary: Boolean): Vector[Vector[Int]] = {
     var idx = numBoundaries
     val bVec = (0 until idx).toVector
     var vecs = Vector[Vector[Int]]()
@@ -83,8 +83,12 @@ extends Ordered[AdjMat]
       vecs = vecs :+ r.toVector
     }
 
-    AdjMat.productPerms(vecs).map { p => bVec ++ p }
+    if (permuteBoundary) AdjMat.productPerms(bVec +: vecs)
+    else AdjMat.productPerms(vecs).map(bVec ++ _)
   }
+
+  // a matrix is canonical if it is lexicographically smaller than any vertex permutation
+  def isCanonical(permuteBoundary: Boolean = false): Boolean = validPerms(permuteBoundary).forall { p => compareWithPerm(p) <= 0 }
 
   // return a list of all the valid ways to connect a new node to the graph, which respect the
   // bipartite structure, and maintain boundaries with arity at most 1
@@ -132,9 +136,6 @@ extends Ordered[AdjMat]
     false
   }
 
-  // a matrix is canonical if it is lexicographically smaller than any vertex permutation
-  def isCanonical: Boolean = validPerms.forall { p => compareWithPerm(p) <= 0 }
-
   // returns true if all boundaries are connected to something
   def isComplete: Boolean = (0 until numBoundaries).forall(i => mat(i).contains(true))
 
@@ -178,11 +179,11 @@ object AdjMat {
 }
 
 object ColbournReadEnum {
-  def enumerate(numRedTypes: Int, numGreenTypes: Int, maxBoundaries: Int,
-                maxVertices: Int, bipartite: Boolean = true): Stream[AdjMat] = {
+  def enumerate(numRedTypes: Int, numGreenTypes: Int, maxBoundaries: Int, maxVertices: Int,
+                bipartite: Boolean = true, permuteBoundary: Boolean = false): Stream[AdjMat] = {
     if (numRedTypes == 0 && numGreenTypes == 0) throw new GraphEnumException("must have at least one node type")
     def enum1(bnd: Int, verts: Int, amat: AdjMat): Stream[AdjMat] =
-      if (amat.isCanonical) {
+      if (amat.isCanonical(permuteBoundary)) {
         (
           // advancing to the next type of node
           amat.nextType match {
