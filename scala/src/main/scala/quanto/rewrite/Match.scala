@@ -11,13 +11,15 @@ case class Match(pattern: Graph,
                  bbops: List[BBOp] = List(),
                  subst: Map[String,AngleExpression] = Map()) {
 
-  protected val factory = new Match(_,_,_,_,_,_,_)
+//  protected val factory = new Match(_,_,_,_,_,_,_)
+//
+//  def copy(pattern: Graph = this.pattern,
+//           target: Graph = this.target,
+//           vmap: PFun[VName,VName] = this.vmap,
+//           emap: PFun[EName,EName] = this.emap,
+//           bbmap: PFun[BBName,BBName] = this.bbmap,
+//           subst: Map[String,AngleExpression] = this.subst): Match =
+//    factory(pattern,target,vmap,emap,bbmap,bbops,subst)
 
-  def copy(pattern: Graph = this.pattern,
-           target: Graph = this.target,
-           vmap: PFun[VName,VName] = this.vmap,
-           emap: PFun[EName,EName] = this.emap,
-           bbmap: PFun[BBName,BBName] = this.bbmap,
-           subst: Map[String,AngleExpression] = this.subst): Match =
-    factory(pattern,target,vmap,emap,bbmap,bbops,subst)
+  def addEdge(ep: EName, et: EName) = copy(emap = emap + (ep -> et))
 }

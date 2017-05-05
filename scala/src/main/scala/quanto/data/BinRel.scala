@@ -29,6 +29,14 @@ trait BinRel[A,B] extends IterableLike[(A,B), BinRel[A,B]] {
   def +(kv: (A,B)): BinRel[A,B]
 
   /**
+    * Check if an element is in a relation
+    *
+    * @param kv element to be checked
+    * @return boolean
+    */
+  def contains(kv: (A,B)): Boolean
+
+  /**
    * Remove an element from relation
    * 
    * @param kv element to be removed
@@ -140,6 +148,8 @@ class MapPairBinRel[A,B](domMap: Map[A,TreeSet[B]], codMap: Map[B,TreeSet[A]])
       codMap + (kv._2 -> (codMap.getOrElse(kv._2, TreeSet()(domOrd)) + kv._1))
     )
   }
+
+  def contains(kv: (A,B)) = domf.get(kv._1).contains(kv._2)
 
   def unmap(kv: (A,B)) = {
     new MapPairBinRel[A,B](

@@ -12,16 +12,16 @@ case class MatchState(
                        tVerts: Set[VName],
                        angleMatcher: AngleExpressionMatcher) {
 
-  def copy(m: Match = this.m,
-           finished: Boolean = this.finished,
-           uNodes: Set[VName] = this.uNodes,
-           uWires: Set[VName] = this.uWires,
-           pNodes: Set[VName] = this.pNodes,
-           psNodes: Set[VName] = this.psNodes,
-           tVerts: Set[VName] = this.tVerts,
-           angleMatcher: AngleExpressionMatcher = this.angleMatcher) =
-    MatchState(m,finished,uNodes,uWires,pNodes,psNodes,
-      tVerts,angleMatcher)
+//  def copy(m: Match = this.m,
+//           finished: Boolean = this.finished,
+//           uNodes: Set[VName] = this.uNodes,
+//           uWires: Set[VName] = this.uWires,
+//           pNodes: Set[VName] = this.pNodes,
+//           psNodes: Set[VName] = this.psNodes,
+//           tVerts: Set[VName] = this.tVerts,
+//           angleMatcher: AngleExpressionMatcher = this.angleMatcher) =
+//    MatchState(m,finished,uNodes,uWires,pNodes,psNodes,
+//      tVerts,angleMatcher)
 
 
   def matchPending(): Stream[MatchState] = {
@@ -64,7 +64,7 @@ case class MatchState(
           }
         }
       case None =>
-        if (m.target.adjacentEdges(nt).forall(m.emap.codSet.contains(_)))
+        if (m.target.adjacentEdges(nt).forall(m.emap.codSet.contains))
           copy(pNodes = pNodes - nt).matchMain()
         else
           matchMain()
@@ -81,9 +81,48 @@ case class MatchState(
     }
   }
 
-  def matchNewNode(np: VName, nt: VName): Option[MatchState] = None
+  def matchNewNode(np: VName, nt: VName): Option[MatchState] = {
+    // TODO
+    None
+  }
 
-  def matchNewWire(np:VName, ep:EName, nt:VName, et:EName): Option[MatchState] = None
+  /**
+   * Try to recursively add wire to matching, starting with the given head
+   * vertex and edge. Return NONE on failure.
+   *
+   * @param vp already-matched vertex
+   * @param ep unmatched edge incident to vp (other end must be in P, Uw or Un)
+   * @param vt target of vp
+   * @param et unmatched edge incident to vt
+   */
+  def matchNewWire(vp:VName, ep:EName, vt:VName, et:EName): Option[MatchState] = {
+    val pdir = m.pattern.edata(ep).isDirected
+    val tdir = m.target.edata(et).isDirected
+    val pOutEdge = m.pattern.source(ep) == vp
+    val tOutEdge = m.target.source(et) == vt
+
+    // match directedness and, if the edge is directed, direction
+    if ((pdir && tdir && pOutEdge == tOutEdge) || (!pdir && !tdir)) {
+      val newVp = m.pattern.edgeGetOtherVertex(ep, vp)
+      val newVt = m.target.edgeGetOtherVertex(et, vt)
+
+      if (pNodes contains newVp) {
+        if (m.vmap contains (newVp -> newVt))
+          Some(copy(psNodes = psNodes + newVp, m = m.addEdge(ep, et)))
+        else None
+      } else if (tVerts contains newVt) {
+        (m.pattern.vdata(newVp), m.target.vdata(newVt)) match {
+          case (_: WireV, _: WireV) =>
+            // TODO
+            None
+          case (pdata: NodeV, tdata: NodeV) =>
+            // TODO
+            None
+          case _ => None
+        }
+      } else None
+    } else None
+  }
 
 
 

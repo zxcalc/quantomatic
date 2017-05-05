@@ -39,6 +39,8 @@ class PFun[A,B]
     new PFun(f + kv,finv1)
   }
 
+  def contains(kv: (A,B)) = f.get(kv._1).contains(kv._2)
+
   def unmap(kv: (A, B)) = f.get(kv._1) match {
     case Some(v) if v == kv._2 =>
       val domSet = finv(v)
