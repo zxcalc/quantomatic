@@ -71,6 +71,7 @@ case class MatchState(
     }
   }
 
+
   def matchAndScheduleNew(np: VName): Stream[MatchState] = {
     val tNodes = tVerts.filter(!m.target.vdata(_).isWireVertex)
     tNodes.foldRight(Stream[MatchState]()) { (nt, stream) =>
@@ -81,14 +82,36 @@ case class MatchState(
     }
   }
 
+  /**
+    * Match a new node vertex
+    *
+    * (ported from the ML function match_new_nv)
+    *
+    * @param np node vertex in the pattern
+    * @param nt node vertex in the target
+    * @return
+    */
   def matchNewNode(np: VName, nt: VName): Option[MatchState] = {
-    // TODO
-    None
+    (m.pattern.vdata(np), m.target.vdata(nt)) match {
+      case (pd: NodeV, td: NodeV) =>
+        angleMatcher.addMatch(pd.angle, td.angle).map { angleMatcher1 =>
+          copy(
+            m = m.addVertex(np -> nt),
+            uNodes = uNodes - np,
+            pNodes = pNodes + np,
+            psNodes = psNodes + np,
+            tVerts = tVerts - nt
+          )
+        }
+      case _ => None // should not happen. TODO: issue a warning?
+    }
   }
 
   /**
    * Try to recursively add wire to matching, starting with the given head
    * vertex and edge. Return NONE on failure.
+   *
+   * (ported from the ML function tryadd_wire)
    *
    * @param vp already-matched vertex
    * @param ep unmatched edge incident to vp (other end must be in P, Uw or Un)
@@ -108,22 +131,43 @@ case class MatchState(
 
       if (pNodes contains newVp) {
         if (m.vmap contains (newVp -> newVt))
-          Some(copy(psNodes = psNodes + newVp, m = m.addEdge(ep, et)))
+          Some(copy(psNodes = psNodes + newVp, m = m.addEdge(ep -> et, newVp -> newVt)))
         else None
       } else if (tVerts contains newVt) {
         (m.pattern.vdata(newVp), m.target.vdata(newVt)) match {
           case (_: WireV, _: WireV) =>
-            // TODO
-            None
+            (m.pattern.wireVertexGetOtherEdge(newVp, ep), m.target.wireVertexGetOtherEdge(newVt, et)) match {
+              case (Some(newEp), Some(newEt)) =>
+                copy(
+                  m = m.addEdge(ep -> et, newVp -> newVt),
+                  tVerts = tVerts - newVt,
+                  uNodes = uNodes - newVp
+                ).matchNewWire(newVp, newEp, newVt, newEt)
+              case (Some(_), None) => None
+              case (None, _) =>
+                Some(copy(
+                  m = m.addEdge(ep -> et, newVp -> newVt),
+                  tVerts = tVerts - newVt,
+                  uNodes = uNodes - newVp
+                ))
+            }
           case (pdata: NodeV, tdata: NodeV) =>
-            // TODO
-            None
+            if (uNodes contains newVp) {
+              angleMatcher.addMatch(pdata.angle, tdata.angle).map { angleMatcher1 =>
+                copy(
+                  m = m.addEdge(ep -> et, newVp -> newVt),
+                  tVerts = tVerts - newVt,
+                  uNodes = uNodes - newVp,
+                  pNodes = pNodes + newVp,
+                  psNodes = psNodes + newVp,
+                  angleMatcher = angleMatcher1
+                )
+              }
+            } else None
           case _ => None
         }
       } else None
     } else None
   }
-
-
 
 }

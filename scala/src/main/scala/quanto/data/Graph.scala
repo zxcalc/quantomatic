@@ -130,6 +130,14 @@ case class Graph(
     else source(e)
 
   /**
+    * Get the other edge connected to this wire vertex, if there is one
+    * @param w a wire vertex
+    * @param e an edge
+    * @return an edge, optionally
+    */
+  def wireVertexGetOtherEdge(w: VName, e: EName): Option[EName] = (adjacentEdges(w) - e).headOption
+
+  /**
    * Partition of all edges into sets, s.t. they connect the same two vertices
    * regardless of edge direction
    */
