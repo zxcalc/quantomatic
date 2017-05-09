@@ -5,11 +5,20 @@ import quanto.util._
 
 
 class AngleExpressionMatcher(pVars : Vector[String], tVars : Vector[String], mat : RationalMatrix) {
+  val pvSet = pVars.toSet
+  val tvSet = tVars.toSet
+
   def addMatch(pExpr : AngleExpression, tExpr : AngleExpression) : Option[AngleExpressionMatcher] = {
-    val r1 = pVars.map { v => pExpr.coeffs.getOrElse(v, Rational(0)) }
-    val r2 = tVars.map { v => tExpr.coeffs.getOrElse(v, Rational(0)) }
+    val pVars1 = pVars ++ (pExpr.vars -- pvSet).toVector
+    val tVars1 = tVars ++ (tExpr.vars -- tvSet).toVector
+
+    val r1 = pVars1.map { v => pExpr.coeffs.getOrElse(v, Rational(0)) }
+    val r2 = tVars1.map { v => tExpr.coeffs.getOrElse(v, Rational(0)) }
     val row = r1 ++ r2 :+ (tExpr.const - pExpr.const)
-    mat.gaussUpdate(row).map { m => new AngleExpressionMatcher(pVars, tVars, m) }
+
+    mat.padTo(pVars1.length, tVars1.length).gaussUpdate(row).map { mat1 =>
+      new AngleExpressionMatcher(pVars1, tVars1, mat1)
+    }
   }
 
 

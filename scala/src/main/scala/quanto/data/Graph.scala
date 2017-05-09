@@ -14,6 +14,14 @@ class SafeDeleteVertexException(name: VName, reason: String) extends
 Exception("Unable to safely delete " + name + ", because " + reason)
 with GraphException
 
+class EdgeOtherVertexException(edge: EName, vertex: VName) extends
+Exception("Edge: " + edge + " is not connected to vertex: " + vertex)
+with GraphException
+
+class WireOtherEdgeException(wire: VName, edge: EName) extends
+Exception("Wire: " + wire + " is not connected to edge: " + edge)
+with GraphException
+
 class DanglingEdgeException(edge: EName, endPoint: VName) extends
 Exception("Edge: " + edge + " has no endpoint: " + endPoint + " in graph")
 with GraphException
@@ -127,7 +135,8 @@ case class Graph(
     */
   def edgeGetOtherVertex(e: EName, v: VName): VName =
     if (source(e) == v) target(e)
-    else source(e)
+    else if (target(e) == v) source(e)
+    else throw new EdgeOtherVertexException(e, v)
 
   /**
     * Get the other edge connected to this wire vertex, if there is one
@@ -135,7 +144,11 @@ case class Graph(
     * @param e an edge
     * @return an edge, optionally
     */
-  def wireVertexGetOtherEdge(w: VName, e: EName): Option[EName] = (adjacentEdges(w) - e).headOption
+  def wireVertexGetOtherEdge(w: VName, e: EName): Option[EName] = {
+    val adj = adjacentEdges(w)
+    if (adj contains e) (adj - e).headOption
+    else throw new WireOtherEdgeException(w, e)
+  }
 
   /**
    * Partition of all edges into sets, s.t. they connect the same two vertices

@@ -5,9 +5,8 @@
     "X" : {
       "value" : {
         "path" : "$.value",
-        "validate_with_core" : false,
-        "latex_constants" : false,
-        "type" : "string"
+        "latex_constants" : true,
+        "type" : "angle_expr"
       },
       "style" : {
         "label" : {
@@ -26,9 +25,8 @@
     "Z" : {
       "value" : {
         "path" : "$.value",
-        "validate_with_core" : false,
-        "latex_constants" : false,
-        "type" : "string"
+        "latex_constants" : true,
+        "type" : "angle_expr"
       },
       "style" : {
         "label" : {
@@ -47,7 +45,6 @@
     "hadamard" : {
       "value" : {
         "path" : "$.value",
-        "validate_with_core" : false,
         "latex_constants" : false,
         "type" : "string"
       },
@@ -68,7 +65,6 @@
     "var" : {
       "value" : {
         "path" : "$.value",
-        "validate_with_core" : false,
         "latex_constants" : false,
         "type" : "string"
       },
@@ -91,7 +87,6 @@
     "string" : {
       "value" : {
         "path" : "$.value",
-        "validate_with_core" : false,
         "latex_constants" : false,
         "type" : "string"
       },

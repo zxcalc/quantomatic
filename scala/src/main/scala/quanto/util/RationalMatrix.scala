@@ -28,11 +28,23 @@ class RationalMatrix(val mat: Vector[Vector[Rational]], val line : Int, val cons
   def apply(i : Int): Vector[Rational] = mat(i)
   def rows = mat
 
-  def insertVar = new RationalMatrix(mat.map { row => ins(row, line) }, line+1, constModulo)
-  def insertConst = new RationalMatrix(mat.map { row => ins(row, row.length-1) }, line, constModulo)
+  //def insertVar = new RationalMatrix(mat.map { row => ins(row, line) }, line+1, constModulo)
+  //def insertConst = new RationalMatrix(mat.map { row => ins(row, row.length-1) }, line, constModulo)
 
-  private def ins(row : Vector[Rational], i : Int) : Vector[Rational] =
-    row.take(i) ++ (Rational(0) +: row.takeRight(row.length - i))
+  def padTo(vCols: Int, cCols: Int) = {
+    val m = vCols - line
+    val n = cCols - (numCols - line - 1)
+    if (m >= 0 && n >= 0)
+      new RationalMatrix(mat.map { row =>
+        row.slice(0, line) ++ Vector.fill(m)(Rational(0)) ++
+        row.slice(line, row.length - 1) ++ Vector.fill(n)(Rational(0)) :+
+        row(row.length - 1)
+      }, line + vCols, constModulo)
+    else this
+  }
+
+//  private def ins(row : Vector[Rational], i : Int) : Vector[Rational] =
+//    row.take(i) ++ (Rational(0) +: row.takeRight(row.length - i))
 
   def isReduced: Boolean = {
     var p = -1

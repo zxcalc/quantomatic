@@ -516,8 +516,8 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
         val coord = coordToString(trans_coord)
 
         val data = vd match {
-          case vertexData : NodeV => if (vertexData.value.stringValue == "") ""
-                                     else "$" + vertexData.value.stringValue + "$"
+          case vertexData : NodeV => if (vertexData.value == "") ""
+                                     else "$" + vertexData.value + "$"
           case _ => ""
         }
 

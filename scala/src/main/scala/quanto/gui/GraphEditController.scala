@@ -278,7 +278,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   private def setVertexValue(v: VName, str: String) {
     graph.vdata(v) match {
       case data: NodeV =>
-        val oldVal = data.value.stringValue
+        val oldVal = data.value
 
         graph = graph.updateVData(v) { _ => data.withValue(str) }
         view.invalidateVertex(v)
@@ -404,7 +404,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
                     Dialog.showInput(
                       title = "Vertex data",
                       message = "Vertex data",
-                      initial = data.value.stringValue).foreach { newVal => setVertexValue(v, newVal) }
+                      initial = data.value).foreach { newVal => setVertexValue(v, newVal) }
                   }
                   view.repaint()
 

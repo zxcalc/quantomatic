@@ -7,13 +7,21 @@ object Matcher {
     val tgtVars = Vector()
     val patNodes = pat.verts.filter(!pat.vdata(_).isWireVertex)
     val patWires = pat.verts.filter(pat.vdata(_).isWireVertex)
-    val concrete = pat.verts.filter{ v =>
-      !pat.vdata(v).isWireVertex && pat.bboxesContaining(v).isEmpty
-    }
 
-    val ms = MatchState(Match(pat, tgt), finished=false,
-      patNodes, patWires, Set.empty, concrete, restrictTo,
-      AngleExpressionMatcher(patVars,tgtVars))
+    // TODO: how is this set used? (tVerts?)
+//    val concrete = pat.verts.filter{ v =>
+//      !pat.vdata(v).isWireVertex && pat.bboxesContaining(v).isEmpty
+//    }
+
+    val ms = MatchState(
+      m = Match(pat, tgt),
+      finished=false,
+      uNodes = patNodes,
+      uWires = patWires,
+      pNodes = Set.empty,
+      psNodes = Set.empty,
+      tVerts = restrictTo,
+      angleMatcher = AngleExpressionMatcher(patVars,tgtVars))
 
     // TODO: !-boxes
     ms.matchPending().flatMap { ms1 =>

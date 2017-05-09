@@ -2,7 +2,6 @@ package quanto.data
 
 import quanto.data.Theory.ValueType
 import quanto.util.json._
-import quanto.data.AngleExpression
 
 /**
  * An abstract class which provides a general interface for accessing
@@ -67,19 +66,19 @@ case class NodeV(
   def typeInfo = theory.vertexTypes(typ)
 
   // support input of old-style graphs, where data may be stored at value/pretty
-  val value: Json = data ? "value" match {
-    case str : JsonString => str
-    case obj : JsonObject => obj.getOrElse("pretty", JsonString(""))
-    case _ => JsonString("")
+  val value: String = data ? "value" match {
+    case str : JsonString => str.stringValue
+    case obj : JsonObject => obj.getOrElse("pretty", JsonString("")).stringValue
+    case _ => ""
   }
 
 
   // if the theory says this node should have an angle, try to parse it from value,
   // and store it in "angle". If it should have an angle, but parsing fails, set
   // angle to "0".
-  lazy val (angle: AngleExpression, hasAngle: Boolean) =
+  val (angle: AngleExpression, hasAngle: Boolean) =
     if (theory.vertexTypes(typ).value.typ == ValueType.AngleExpr)
-     try { (AngleExpression.parse(value.stringValue), true) }
+     try { (AngleExpression.parse(value), true) }
      catch { case _: AngleParseException => (AngleExpression(), true) }
     else (AngleExpression(), false)
 

@@ -1,7 +1,6 @@
 package quanto.rewrite
 import quanto.data._
 
-
 case class MatchState(
                        m: Match,
                        finished: Boolean,
@@ -12,17 +11,7 @@ case class MatchState(
                        tVerts: Set[VName],
                        angleMatcher: AngleExpressionMatcher) {
 
-//  def copy(m: Match = this.m,
-//           finished: Boolean = this.finished,
-//           uNodes: Set[VName] = this.uNodes,
-//           uWires: Set[VName] = this.uWires,
-//           pNodes: Set[VName] = this.pNodes,
-//           psNodes: Set[VName] = this.psNodes,
-//           tVerts: Set[VName] = this.tVerts,
-//           angleMatcher: AngleExpressionMatcher = this.angleMatcher) =
-//    MatchState(m,finished,uNodes,uWires,pNodes,psNodes,
-//      tVerts,angleMatcher)
-
+  //def uNodes: Set[VName] = m.pattern.verts -- m.vmap.domSet
 
   def matchPending(): Stream[MatchState] = {
     matchCircles().flatMap(_.matchMain())
@@ -32,19 +21,27 @@ case class MatchState(
   def matchCircles(): Stream[MatchState] =
     Stream(this)
 
-  def matchMain(): Stream[MatchState] = {
+  // TODO: should this be made tail-recursive?
+  final def matchMain(): Stream[MatchState] = {
     psNodes.headOption match {
-      case Some(v) => continueMatchingFrom(v)
+      case Some(np) =>
+        if (pVertexMayBeCompleted(np)) copy(psNodes = psNodes - np).matchNhd(np)
+        else Stream()
       case None => uNodes.headOption match {
-        case Some(v) => matchAndScheduleNew(v)
-        case None => Stream(this)
+        case Some(np) =>
+          val tNodes = tVerts.filter(!m.target.vdata(_).isWireVertex)
+          tNodes.foldRight(Stream[MatchState]()) { (nt, stream) =>
+            matchNewNode(np, nt) match {
+              case Some(ms1) => ms1.matchMain() ++ stream
+              case None => stream
+            }
+          }
+        case None =>
+          if (m.isTotal) Stream(copy(m = m.copy(subst = angleMatcher.toMap), finished = true))
+          else Stream(this)
       }
     }
   }
-
-  def continueMatchingFrom(np: VName): Stream[MatchState] =
-    if (pVertexMayBeCompleted(np)) copy(psNodes = psNodes - np).matchNhd(np)
-    else Stream()
 
   // TODO: stub
   def pVertexMayBeCompleted(v: VName) = true
@@ -71,17 +68,6 @@ case class MatchState(
     }
   }
 
-
-  def matchAndScheduleNew(np: VName): Stream[MatchState] = {
-    val tNodes = tVerts.filter(!m.target.vdata(_).isWireVertex)
-    tNodes.foldRight(Stream[MatchState]()) { (nt, stream) =>
-      matchNewNode(np, nt) match {
-        case Some(ms1) => ms1.matchMain() ++ stream
-        case None => stream
-      }
-    }
-  }
-
   /**
     * Match a new node vertex
     *
@@ -94,16 +80,29 @@ case class MatchState(
   def matchNewNode(np: VName, nt: VName): Option[MatchState] = {
     (m.pattern.vdata(np), m.target.vdata(nt)) match {
       case (pd: NodeV, td: NodeV) =>
-        angleMatcher.addMatch(pd.angle, td.angle).map { angleMatcher1 =>
-          copy(
-            m = m.addVertex(np -> nt),
-            uNodes = uNodes - np,
-            pNodes = pNodes + np,
-            psNodes = psNodes + np,
-            tVerts = tVerts - nt
-          )
-        }
-      case _ => None // should not happen. TODO: issue a warning?
+        if (pd.typ == td.typ) {
+          if (pd.hasAngle)
+            angleMatcher.addMatch(pd.angle, td.angle).map { angleMatcher1 =>
+              copy(
+                m = m.addVertex(np -> nt),
+                uNodes = uNodes - np,
+                pNodes = pNodes + np,
+                psNodes = psNodes + np,
+                tVerts = tVerts - nt,
+                angleMatcher = angleMatcher1
+              )
+            }
+          else if (pd.value == td.value)
+            Some(copy(
+              m = m.addVertex(np -> nt),
+              uNodes = uNodes - np,
+              pNodes = pNodes + np,
+              psNodes = psNodes + np,
+              tVerts = tVerts - nt
+            ))
+          else None
+        } else None
+      case _ => throw new MatchException("matchNewNode called on a non-node")
     }
   }
 
@@ -131,7 +130,7 @@ case class MatchState(
 
       if (pNodes contains newVp) {
         if (m.vmap contains (newVp -> newVt))
-          Some(copy(psNodes = psNodes + newVp, m = m.addEdge(ep -> et, newVp -> newVt)))
+          Some(copy(psNodes = psNodes + newVp, m = m.addEdge(ep -> et)))
         else None
       } else if (tVerts contains newVt) {
         (m.pattern.vdata(newVp), m.target.vdata(newVt)) match {
@@ -141,28 +140,19 @@ case class MatchState(
                 copy(
                   m = m.addEdge(ep -> et, newVp -> newVt),
                   tVerts = tVerts - newVt,
-                  uNodes = uNodes - newVp
+                  uWires = uWires - newVp
                 ).matchNewWire(newVp, newEp, newVt, newEt)
               case (Some(_), None) => None
               case (None, _) =>
                 Some(copy(
                   m = m.addEdge(ep -> et, newVp -> newVt),
                   tVerts = tVerts - newVt,
-                  uNodes = uNodes - newVp
+                  uWires = uWires - newVp
                 ))
             }
-          case (pdata: NodeV, tdata: NodeV) =>
+          case (_: NodeV, _: NodeV) =>
             if (uNodes contains newVp) {
-              angleMatcher.addMatch(pdata.angle, tdata.angle).map { angleMatcher1 =>
-                copy(
-                  m = m.addEdge(ep -> et, newVp -> newVt),
-                  tVerts = tVerts - newVt,
-                  uNodes = uNodes - newVp,
-                  pNodes = pNodes + newVp,
-                  psNodes = psNodes + newVp,
-                  angleMatcher = angleMatcher1
-                )
-              }
+              matchNewNode(newVp, newVt).map { ms => copy(m = ms.m.addEdge(ep -> et)) }
             } else None
           case _ => None
         }

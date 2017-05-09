@@ -63,7 +63,7 @@ class RationalMatrixSpec extends FlatSpec {
   }
 
   it should "insert new variables" in {
-    val m1 = new RationalMatrix(Vector(Vector(1,2,3,4), Vector(2,2,2,2), Vector(2,1,3,1)), 2).insertVar
+    val m1 = new RationalMatrix(Vector(Vector(1,2,3,4), Vector(2,2,2,2), Vector(2,1,3,1)), 2).padTo(3,1)
     val m2 = new RationalMatrix(Vector(Vector(1,2,0,3,4), Vector(2,2,0,2,2), Vector(2,1,0,3,1)), 3)
     println(m1)
     println(m2)
@@ -72,7 +72,7 @@ class RationalMatrixSpec extends FlatSpec {
   }
 
   it should "insert new constants" in {
-    val m1 = new RationalMatrix(Vector(Vector(1,2,3,4), Vector(2,2,2,2), Vector(2,1,3,1)), 2).insertConst
+    val m1 = new RationalMatrix(Vector(Vector(1,2,3,4), Vector(2,2,2,2), Vector(2,1,3,1)), 2).padTo(2,2)
     val m2 = new RationalMatrix(Vector(Vector(1,2,3,0,4), Vector(2,2,2,0,2), Vector(2,1,3,0,1)), 2)
     println(m1)
     println(m2)
