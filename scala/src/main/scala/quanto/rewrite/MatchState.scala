@@ -2,16 +2,15 @@ package quanto.rewrite
 import quanto.data._
 
 case class MatchState(
-                       m: Match,
-                       finished: Boolean,
-                       uNodes: Set[VName],
-                       uWires: Set[VName],
-                       pNodes: Set[VName],
-                       psNodes: Set[VName],
-                       tVerts: Set[VName],
-                       angleMatcher: AngleExpressionMatcher) {
+                       m: Match,            // the match being built
+                       pNodes: Set[VName],  // nodes with partially-mapped neighbourhood
+                       psNodes: Set[VName], // same, but scheduled for completion
+                       tVerts: Set[VName],  // restriction of the range of the match in the target graph
+                       angleMatcher: AngleExpressionMatcher  // state of matched angle data
+                     ) {
 
-  //def uNodes: Set[VName] = m.pattern.verts -- m.vmap.domSet
+  lazy val uNodes: Set[VName] = (m.pattern.verts -- m.vmap.domSet).filter { v => !m.pattern.vdata(v).isWireVertex }
+  lazy val uWires: Set[VName] = (m.pattern.verts -- m.vmap.domSet).filter { v => m.pattern.vdata(v).isWireVertex }
 
   def matchPending(): Stream[MatchState] = {
     matchCircles().flatMap(_.matchMain())
@@ -37,8 +36,8 @@ case class MatchState(
             }
           }
         case None =>
-          if (m.isTotal) Stream(copy(m = m.copy(subst = angleMatcher.toMap), finished = true))
-          else Stream(this)
+          if (m.isTotal) Stream(copy(m = m.copy(subst = angleMatcher.toMap)))
+          else Stream()
       }
     }
   }
@@ -85,7 +84,6 @@ case class MatchState(
             angleMatcher.addMatch(pd.angle, td.angle).map { angleMatcher1 =>
               copy(
                 m = m.addVertex(np -> nt),
-                uNodes = uNodes - np,
                 pNodes = pNodes + np,
                 psNodes = psNodes + np,
                 tVerts = tVerts - nt,
@@ -95,7 +93,6 @@ case class MatchState(
           else if (pd.value == td.value)
             Some(copy(
               m = m.addVertex(np -> nt),
-              uNodes = uNodes - np,
               pNodes = pNodes + np,
               psNodes = psNodes + np,
               tVerts = tVerts - nt
@@ -139,15 +136,13 @@ case class MatchState(
               case (Some(newEp), Some(newEt)) =>
                 copy(
                   m = m.addEdge(ep -> et, newVp -> newVt),
-                  tVerts = tVerts - newVt,
-                  uWires = uWires - newVp
+                  tVerts = tVerts - newVt
                 ).matchNewWire(newVp, newEp, newVt, newEt)
               case (Some(_), None) => None
               case (None, _) =>
                 Some(copy(
                   m = m.addEdge(ep -> et, newVp -> newVt),
-                  tVerts = tVerts - newVt,
-                  uWires = uWires - newVp
+                  tVerts = tVerts - newVt
                 ))
             }
           case (_: NodeV, _: NodeV) =>

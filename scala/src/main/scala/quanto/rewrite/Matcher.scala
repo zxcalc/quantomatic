@@ -5,8 +5,8 @@ object Matcher {
   def findMatches(pat: Graph, tgt: Graph, restrictTo: Set[VName]): Stream[Match] = {
     val patVars = Vector()
     val tgtVars = Vector()
-    val patNodes = pat.verts.filter(!pat.vdata(_).isWireVertex)
-    val patWires = pat.verts.filter(pat.vdata(_).isWireVertex)
+//    val patNodes = pat.verts.filter(!pat.vdata(_).isWireVertex)
+//    val patWires = pat.verts.filter(pat.vdata(_).isWireVertex)
 
     // TODO: how is this set used? (tVerts?)
 //    val concrete = pat.verts.filter{ v =>
@@ -15,18 +15,15 @@ object Matcher {
 
     val ms = MatchState(
       m = Match(pat, tgt),
-      finished=false,
-      uNodes = patNodes,
-      uWires = patWires,
       pNodes = Set.empty,
       psNodes = Set.empty,
       tVerts = restrictTo,
       angleMatcher = AngleExpressionMatcher(patVars,tgtVars))
 
     // TODO: !-boxes
-    ms.matchPending().flatMap { ms1 =>
-      if (ms1.finished) Stream(ms1.m) else Stream()
-    }
+
+    // extract the match from each successful MatchState
+    ms.matchPending().map { _.m }
   }
 
   def findMatches(pat: Graph, tgt: Graph): Stream[Match] =

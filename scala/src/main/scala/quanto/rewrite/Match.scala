@@ -42,8 +42,21 @@ case class Match(pattern: Graph,
   // TODO: bbox check
   def isHomomorphism =
     emap.forall { case (ep, et) =>
-      vmap.get(pattern.source(ep)).contains(target.source(et)) &&
-      vmap.get(pattern.target(ep)).contains(target.target(et))
+      (pattern.edata(ep).isDirected && target.edata(et).isDirected &&
+        vmap.get(pattern.source(ep)).contains(target.source(et)) &&
+        vmap.get(pattern.target(ep)).contains(target.target(et))
+      ) ||
+      (!pattern.edata(ep).isDirected && !target.edata(et).isDirected &&
+        (
+          (
+            vmap.get(pattern.source(ep)).contains(target.source(et)) &&
+            vmap.get(pattern.target(ep)).contains(target.target(et))
+          ) ||
+          (
+            vmap.get(pattern.source(ep)).contains(target.target(et)) &&
+            vmap.get(pattern.target(ep)).contains(target.source(et))
+          )
+        ))
     }
 
   def isTotal: Boolean =
