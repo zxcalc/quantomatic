@@ -8,22 +8,24 @@ case class MatchState(
                        tVerts: Set[VName],   // restriction of the range of the match in the target graph
                        angleMatcher: AngleExpressionMatcher,  // state of matched angle data
                        pNodes: Set[VName] = Set(),            // nodes with partially-mapped neighbourhood
-                       psNodes: Set[VName] = Set()            // same, but scheduled for completion
+                       psNodes: Set[VName] = Set(),           // same, but scheduled for completion
+                       candidateNodes: Option[Set[VName]] = None,   // nodes to try matching in the target
+                       candidateWires: Option[Set[EName]] = None    // wires to try matching in the target
                      ) {
 
   lazy val uNodes: Set[VName] = (m.pattern.verts -- m.vmap.domSet).filter { v => !m.pattern.vdata(v).isWireVertex }
   lazy val uWires: Set[VName] = (m.pattern.verts -- m.vmap.domSet).filter { v => m.pattern.vdata(v).isWireVertex }
 
-  def matchPending(): Stream[MatchState] = {
-    matchCircles().flatMap(_.matchMain())
+  def matchPending(): Stream[Match] = {
+    matchCircles().map(_.matchMain()).getOrElse(Stream())
   }
 
   // TODO: stub
-  def matchCircles(): Stream[MatchState] =
-    Stream(this)
+  def matchCircles(): Option[MatchState] =
+    Some(this)
 
-  // TODO: should this be made tail-recursive?
-  final def matchMain(rest: Stream[MatchState] = Stream()): Stream[MatchState] = {
+  // TODO: This might blow up the stack on big graphs. Consider converting to Iterator or @tailrec
+  final def matchMain(): Stream[Match] = {
     psNodes.headOption match {
       case Some(np) =>
         if (pVertexMayBeCompleted(np)) {
@@ -32,33 +34,47 @@ case class MatchState(
             uWires.contains(m.pattern.edgeGetOtherVertex(e, np))
           } match {
             case Some(ep) =>
-              m.target.adjacentEdges(nt).filter { e =>
-                tVerts.contains(m.target.edgeGetOtherVertex(e,nt))
-              }.foldRight(rest) { (et, rest1) =>
-                matchNewWire(np,ep,nt,et) match {
-                  case Some(ms1) => ms1.matchMain(rest1)
-                  case None => rest1
-                }
+              candidateWires match {
+                case None =>
+                  copy(candidateWires = Some(m.target.adjacentEdges(nt).filter { e =>
+                    tVerts.contains(m.target.edgeGetOtherVertex(e,nt))
+                  })).matchMain()
+                case Some(candidateWires1) =>
+                  if (candidateWires1.isEmpty) Stream()
+                  else {
+                    (matchNewWire(np, ep, nt, candidateWires1.head) match {
+                      case Some(ms1) => ms1.copy(candidateWires = None).matchMain()
+                      case None => Stream()
+                    }) #::: copy(candidateWires = Some(candidateWires1.tail)).matchMain()
+                  }
               }
             case None =>
               if (m.target.adjacentEdges(nt).forall(m.emap.codSet.contains))
-                copy(pNodes = pNodes - np, psNodes = psNodes - np).matchMain(rest)
+                copy(pNodes = pNodes - np, psNodes = psNodes - np).matchMain()
               else
-                copy(psNodes = psNodes - np).matchMain(rest)
+                copy(psNodes = psNodes - np).matchMain()
           }
-        } else rest
+        } else Stream()
       case None => uNodes.headOption match {
         case Some(np) =>
-          val tNodes = tVerts.filter(!m.target.vdata(_).isWireVertex)
-          tNodes.foldRight(rest) { (nt, rest1) =>
-            matchNewNode(np, nt) match {
-              case Some(ms1) => ms1.matchMain(rest1)
-              case None => rest1
-            }
+          candidateNodes match {
+            case None =>
+              copy(candidateNodes = Some(tVerts.filter(!m.target.vdata(_).isWireVertex))).matchMain()
+            case Some(candidateNodes1) =>
+              if (candidateNodes1.isEmpty) Stream()
+              else {
+                (matchNewNode(np, candidateNodes1.head) match {
+                  case Some(ms1) => ms1.copy(candidateNodes = None).matchMain()
+                  case None => Stream()
+                }) #::: copy(candidateNodes = Some(candidateNodes1.tail)).matchMain()
+              }
           }
         case None =>
-          if (m.isTotal) copy(m = m.copy(subst = angleMatcher.toMap)) #:: rest
-          else rest
+          if (m.isTotal) {
+            if (MatchState.countMatches) MatchState.matchCounter += 1
+            Stream(m.copy(subst = angleMatcher.toMap))
+          }
+          else Stream()
       }
     }
   }
@@ -153,5 +169,20 @@ case class MatchState(
       } else None
     } else None
   }
+}
 
+object MatchState {
+  // for testing e.g. laziness in a single thread
+  private var matchCounter = 0
+  private var countMatches = false
+
+  def startCountingMatches() = {
+    matchCounter = 0
+    countMatches = true
+  }
+
+  def matchCount(): Int = {
+    countMatches = false
+    matchCounter
+  }
 }

@@ -33,6 +33,20 @@ class MatcherSpec extends FlatSpec {
     assert(matches.size === 1)
   }
 
+  it should "match a graph with two nodes on itself twice" in {
+    val g = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z", "value": ""}},
+        |    "v1": {"data": {"type": "Z", "value": ""}}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+    val matches = Matcher.findMatches(g, g)
+    assert(matches.size === 2)
+  }
+
   it should "not match if the type is wrong" in {
     val g1 = Graph.fromJson(Json.parse(
       """
@@ -320,8 +334,53 @@ class MatcherSpec extends FlatSpec {
         |}
       """.stripMargin), thy = rg)
     val matches = Matcher.findMatches(g1, g2)
+
     assert(matches.size === 2)
     assert(matches.forall { _.isTotal })
     assert(matches.forall { _.isHomomorphism })
+  }
+
+  it should "pull matches lazily" in {
+    val g1 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z"}}
+        |  },
+        |  "wire_vertices": ["w0", "w1", "w2"],
+        |  "dir_edges": {
+        |    "e0": {"src": "w0", "tgt": "v0"},
+        |    "e1": {"src": "v0", "tgt": "w1"},
+        |    "e2": {"src": "v0", "tgt": "w2"}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+    val g2 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z"}},
+        |    "v1": {"data": {"type": "X"}},
+        |    "v2": {"data": {"type": "X"}},
+        |    "v3": {"data": {"type": "X"}}
+        |  },
+        |  "wire_vertices": ["w0", "w1", "w2"],
+        |  "dir_edges": {
+        |    "e0": {"src": "w0", "tgt": "v0"},
+        |    "e1": {"src": "v0", "tgt": "w1"},
+        |    "e2": {"src": "v0", "tgt": "w2"},
+        |    "e3": {"src": "v1", "tgt": "w0"},
+        |    "e4": {"src": "w1", "tgt": "v2"},
+        |    "e5": {"src": "w2", "tgt": "v3"}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+
+    MatchState.startCountingMatches()
+    val matches = Matcher.findMatches(g1, g2)
+    matches.head
+    matches.tail.head
+    val c = MatchState.matchCount()
+    assert(c === 2)
   }
 }

@@ -20,8 +20,7 @@ object Matcher {
 
     // TODO: !-boxes
 
-    // extract the match from each successful MatchState
-    ms.matchPending().map { _.m }
+    ms.matchPending()
   }
 
   def findMatches(pat: Graph, tgt: Graph): Stream[Match] =
