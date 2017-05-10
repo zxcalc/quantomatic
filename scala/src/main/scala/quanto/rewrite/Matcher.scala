@@ -15,8 +15,6 @@ object Matcher {
 
     val ms = MatchState(
       m = Match(pat, tgt),
-      pNodes = Set.empty,
-      psNodes = Set.empty,
       tVerts = restrictTo,
       angleMatcher = AngleExpressionMatcher(patVars,tgtVars))
 
