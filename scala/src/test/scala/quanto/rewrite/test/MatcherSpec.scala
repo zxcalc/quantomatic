@@ -116,8 +116,6 @@ class MatcherSpec extends FlatSpec {
     assert(matches.size === 1)
     assert(matches.forall { _.isTotal })
     assert(matches.forall { _.isHomomorphism })
-
-    matches.foreach { println }
   }
 
   it should "match a graph with one wire on itself twice" in {

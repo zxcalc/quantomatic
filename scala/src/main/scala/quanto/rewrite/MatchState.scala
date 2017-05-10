@@ -1,8 +1,12 @@
 package quanto.rewrite
 import quanto.data._
 
+import scala.annotation.tailrec
+
 case class MatchState(
                        m: Match,            // the match being built
+                       //currentNode: Option[VName], // node currently pointed to
+                       //currentTgt: Set[VName],     // candidates for matching current node
                        pNodes: Set[VName],  // nodes with partially-mapped neighbourhood
                        psNodes: Set[VName], // same, but scheduled for completion
                        tVerts: Set[VName],  // restriction of the range of the match in the target graph
@@ -21,51 +25,77 @@ case class MatchState(
     Stream(this)
 
   // TODO: should this be made tail-recursive?
-  final def matchMain(): Stream[MatchState] = {
-    psNodes.headOption match {
+
+
+  final def matchMain(currentNode: Option[VName] = None, rest: Stream[MatchState] = Stream()): Stream[MatchState] = {
+    currentNode match {
       case Some(np) =>
-        if (pVertexMayBeCompleted(np)) copy(psNodes = psNodes - np).matchNhd(np)
-        else Stream()
-      case None => uNodes.headOption match {
-        case Some(np) =>
-          val tNodes = tVerts.filter(!m.target.vdata(_).isWireVertex)
-          tNodes.foldRight(Stream[MatchState]()) { (nt, stream) =>
-            matchNewNode(np, nt) match {
-              case Some(ms1) => ms1.matchMain() ++ stream
-              case None => stream
+        val nt = m.vmap(np)
+        m.pattern.adjacentEdges(np).find { e =>
+          uWires.contains(m.pattern.edgeGetOtherVertex(e, np))
+        } match {
+          case Some(ep) =>
+            m.target.adjacentEdges(nt).filter { e =>
+              tVerts.contains(m.target.edgeGetOtherVertex(e,nt))
+            }.foldRight(rest) { (et, stream) =>
+              matchNewWire(np,ep,nt,et) match {
+                case Some(ms1) => ms1.matchMain(currentNode = Some(np), rest = stream)
+                case None => stream
+              }
             }
-          }
-        case None =>
-          if (m.isTotal) Stream(copy(m = m.copy(subst = angleMatcher.toMap)))
-          else Stream()
+          case None =>
+            if (m.target.adjacentEdges(nt).forall(m.emap.codSet.contains))
+              copy(pNodes = pNodes - nt).matchMain(rest = rest)
+            else
+              matchMain(rest = rest)
+        }
+      case None => psNodes.headOption match {
+        case Some(np) =>
+          if (pVertexMayBeCompleted(np)) copy(psNodes = psNodes - np).matchMain(currentNode = Some(np), rest)
+          else rest
+        case None => uNodes.headOption match {
+          case Some(np) =>
+            val tNodes = tVerts.filter(!m.target.vdata(_).isWireVertex)
+            tNodes.foldRight(rest) { (nt, stream) =>
+              matchNewNode(np, nt) match {
+                case Some(ms1) => ms1.matchMain(rest = stream)
+                case None => stream
+              }
+            }
+          case None =>
+            if (m.isTotal) copy(m = m.copy(subst = angleMatcher.toMap)) #:: rest
+            else rest
+        }
       }
     }
+
+
   }
 
   // TODO: stub
   def pVertexMayBeCompleted(v: VName) = true
 
-  def matchNhd(np: VName): Stream[MatchState] = {
-    val nt = m.vmap(np)
-    m.pattern.adjacentEdges(np).find { e =>
-      uWires.contains(m.pattern.edgeGetOtherVertex(e, np))
-    } match {
-      case Some(ep) =>
-        m.target.adjacentEdges(nt).filter { e =>
-            tVerts.contains(m.target.edgeGetOtherVertex(e,nt))
-        }.foldRight(Stream[MatchState]()) { (et, stream) =>
-          matchNewWire(np,ep,nt,et) match {
-            case Some(ms1) => ms1.matchNhd(np) ++ stream
-            case None => stream
-          }
-        }
-      case None =>
-        if (m.target.adjacentEdges(nt).forall(m.emap.codSet.contains))
-          copy(pNodes = pNodes - nt).matchMain()
-        else
-          matchMain()
-    }
-  }
+//  def matchNhd(np: VName, rest: Stream[MatchState]): Stream[MatchState] = {
+//    val nt = m.vmap(np)
+//    m.pattern.adjacentEdges(np).find { e =>
+//      uWires.contains(m.pattern.edgeGetOtherVertex(e, np))
+//    } match {
+//      case Some(ep) =>
+//        m.target.adjacentEdges(nt).filter { e =>
+//            tVerts.contains(m.target.edgeGetOtherVertex(e,nt))
+//        }.foldRight(rest) { (et, stream) =>
+//          matchNewWire(np,ep,nt,et) match {
+//            case Some(ms1) => ms1.matchNhd(np, rest = stream)
+//            case None => stream
+//          }
+//        }
+//      case None =>
+//        if (m.target.adjacentEdges(nt).forall(m.emap.codSet.contains))
+//          copy(pNodes = pNodes - nt).matchMain(rest = rest)
+//        else
+//          matchMain(rest = rest)
+//    }
+//  }
 
   /**
     * Match a new node vertex
