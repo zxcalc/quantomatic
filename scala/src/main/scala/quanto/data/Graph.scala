@@ -8,35 +8,13 @@ import collection.mutable.ArrayBuffer
 import quanto.util._
 import java.awt.datatransfer.{DataFlavor, Transferable}
 
-trait GraphException extends Exception
-
-class SafeDeleteVertexException(name: VName, reason: String) extends
-Exception("Unable to safely delete " + name + ", because " + reason)
-with GraphException
-
-class EdgeOtherVertexException(edge: EName, vertex: VName) extends
-Exception("Edge: " + edge + " is not connected to vertex: " + vertex)
-with GraphException
-
-class WireOtherEdgeException(wire: VName, edge: EName) extends
-Exception("Wire: " + wire + " is not connected to edge: " + edge)
-with GraphException
-
-class DanglingEdgeException(edge: EName, endPoint: VName) extends
-Exception("Edge: " + edge + " has no endpoint: " + endPoint + " in graph")
-with GraphException
-
-class CyclicBBoxParentException(bb: BBName, bbp: BBName) extends
-Exception("Adding parent " + bbp + " to bbox " + bb + " introduces cycle.")
-
-class PluggingException(msg: String) extends
-Exception(msg)
+class GraphException(msg: String, cause: Throwable = null) extends Exception(msg, cause)
+class PluggingException(msg: String) extends GraphException(msg)
 
 case class GraphSearchContext(exploredV: Set[VName], exploredE: Set[EName])
 
 class GraphLoadException(message: String, cause: Throwable = null)
-extends Exception(message, cause)
-with GraphException
+extends GraphException(message, cause)
 
 
 case class Graph(
@@ -105,10 +83,11 @@ case class Graph(
   def succVerts(vn: VName): Set[VName] = outEdges(vn).map(target(_))
   def contents(bbn: BBName): Set[VName] = inBBox.codf(bbn)
   def bboxesContaining(vn: VName): Set[BBName] = inBBox.domf(vn)
-  def isBoundary(vn: VName): Boolean = vdata(vn) match {
-    case _: WireV => (inEdges(vn).size + outEdges(vn).size) <= 1
-    case _ => false
-  }
+  def isBoundary(vn: VName): Boolean =
+    vdata(vn).isWireVertex && (inEdges(vn).size + outEdges(vn).size) <= 1
+  def isCircle(vn: VName): Boolean =
+    vdata(vn).isWireVertex && inEdges(vn).size == 1 && inEdges(vn) == outEdges(vn)
+
 
   def vars: Set[String] = vdata.values.foldLeft(Set.empty[String]) {
     case (vs, d: NodeV) =>
@@ -136,7 +115,7 @@ case class Graph(
   def edgeGetOtherVertex(e: EName, v: VName): VName =
     if (source(e) == v) target(e)
     else if (target(e) == v) source(e)
-    else throw new EdgeOtherVertexException(e, v)
+    else throw new GraphException("Edge: " + e + " is not connected to vertex: " + v)
 
   /**
     * Get the other edge connected to this wire vertex, if there is one
@@ -147,7 +126,7 @@ case class Graph(
   def wireVertexGetOtherEdge(w: VName, e: EName): Option[EName] = {
     val adj = adjacentEdges(w)
     if (adj contains e) (adj - e).headOption
-    else throw new WireOtherEdgeException(w, e)
+    else throw new GraphException("Wire: " + w + " is not connected to edge: " + e)
   }
 
   /**
@@ -171,7 +150,7 @@ case class Graph(
 
   def addVertex(vn: VName, data: VData): Graph = {
     if (vdata contains vn)
-      throw new DuplicateVertexNameException(vn) with GraphException
+      throw new DuplicateVertexNameException(vn)
 
     copy(vdata = vdata + (vn -> data))
   }
@@ -200,11 +179,11 @@ case class Graph(
 
   def addEdge(en: EName, data: EData, vns: (VName, VName)): Graph = {
     if (edata contains en)
-      throw new DuplicateEdgeNameException(en) with GraphException
+      throw new DuplicateEdgeNameException(en)
     if (!vdata.contains(vns._1))
-      throw new DanglingEdgeException(en, vns._1)
+      throw new GraphException("Edge: " + en + " has no endpoint: " + vns._1 + " in graph")
     if (!vdata.contains(vns._1))
-      throw new DanglingEdgeException(en, vns._2)
+      throw new GraphException("Edge: " + en + " has no endpoint: " + vns._2 + " in graph")
 
     copy(
       edata = edata + (en -> data),
@@ -220,7 +199,7 @@ case class Graph(
 
   def addBBox(bbn: BBName, data: BBData, contents: Set[VName] = Set[VName](), parent: Option[BBName] = None): Graph = {
     if (bbdata contains bbn)
-      throw new DuplicateBBoxNameException(bbn) with GraphException
+      throw new DuplicateBBoxNameException(bbn)
 
     val g1 = copy(
       bbdata = bbdata + (bbn -> data),
@@ -270,7 +249,8 @@ case class Graph(
       case Some(bbParent) =>
         bbP += (bb -> bbParent)
         val newP = bbParent :: bboxParents(bbParent)
-        if (newP.contains(bb)) throw new CyclicBBoxParentException(bb, bbParent)
+        if (newP.contains(bb))
+          throw new GraphException("Adding parent " + bbParent + " to bbox " + bb + " introduces cycle.")
 
         newP
       case None =>
@@ -315,9 +295,9 @@ case class Graph(
 
   def safeDeleteVertex(vn: VName): Graph = {
     if (source.codf(vn).nonEmpty || target.codf(vn).nonEmpty)
-      throw new SafeDeleteVertexException(vn, "vertex has adjancent edges")
+      throw new GraphException("Unable to safely delete " + vn + ", because vertex has adjancent edges")
     if (inBBox.domf(vn).nonEmpty)
-      throw new SafeDeleteVertexException(vn, "vertex is in one or more bboxes")
+      throw new GraphException("Unable to safely delete " + vn + ", because vertex is in one or more bboxes")
     copy(vdata = vdata - vn, inBBox = inBBox.unmapDom(vn))
   }
 

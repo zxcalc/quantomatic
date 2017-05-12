@@ -4,77 +4,136 @@ import quanto.data._
 import scala.annotation.tailrec
 
 case class MatchState(
-                       m: Match,             // the match being built
-                       tVerts: Set[VName],   // restriction of the range of the match in the target graph
-                       angleMatcher: AngleExpressionMatcher,  // state of matched angle data
-                       pNodes: Set[VName] = Set(),            // nodes with partially-mapped neighbourhood
-                       psNodes: Set[VName] = Set(),           // same, but scheduled for completion
-                       candidateNodes: Option[Set[VName]] = None,   // nodes to try matching in the target
-                       candidateWires: Option[Set[EName]] = None    // wires to try matching in the target
+                       m: Match,                                  // the match being built
+                       tVerts: Set[VName],                        // restriction of the range of the match
+                       angleMatcher: AngleExpressionMatcher,      // state of matched angle data
+                       pNodes: Set[VName] = Set(),                // nodes with partially-mapped neighbourhood
+                       psNodes: Set[VName] = Set(),               // same, but scheduled for completion
+                       candidateNodes: Option[Set[VName]] = None, // nodes to try matching in the target
+                       candidateEdges: Option[Set[EName]] = None, // edges to try matching in the target
+                       candidateWires: Option[Set[VName]] = None, // wire-vertices to try matching bare wires on
+                       nextState: Option[MatchState] = None       // next state to try after search terminates
                      ) {
 
-  lazy val uNodes: Set[VName] = (m.pattern.verts -- m.vmap.domSet).filter { v => !m.pattern.vdata(v).isWireVertex }
-  lazy val uWires: Set[VName] = (m.pattern.verts -- m.vmap.domSet).filter { v => m.pattern.vdata(v).isWireVertex }
+  val uVerts: Set[VName]   = m.pattern.verts -- m.vmap.domSet
+  val uCircles: Set[VName] = uVerts.filter(m.pattern.isCircle)
+  lazy val uNodes: Set[VName] = uVerts.filter { v => !m.pattern.vdata(v).isWireVertex }
+  lazy val uWires: Set[VName] = uVerts.filter { v => m.pattern.vdata(v).isWireVertex }
+  lazy val uBareWires: Set[VName] =
+    uVerts.filter { v =>
+      m.pattern.isBoundary(v) &&
+      (m.pattern.succVerts(v).headOption match {
+        case Some(v1) => m.pattern.isBoundary(v1)
+        case None => false
+      })
+    }
 
-  def matchPending(): Stream[Match] = {
-    matchCircles().map(_.matchMain()).getOrElse(Stream())
-  }
 
-  // TODO: stub
-  def matchCircles(): Option[MatchState] =
-    Some(this)
 
-  // TODO: This might blow up the stack on big graphs. Consider converting to Iterator or @tailrec
-  final def matchMain(): Stream[Match] = {
-    psNodes.headOption match {
-      case Some(np) =>
-        if (pVertexMayBeCompleted(np)) {
-          val nt = m.vmap(np)
-          m.pattern.adjacentEdges(np).find { e =>
-            uWires.contains(m.pattern.edgeGetOtherVertex(e, np))
-          } match {
-            case Some(ep) =>
-              candidateWires match {
-                case None =>
-                  copy(candidateWires = Some(m.target.adjacentEdges(nt).filter { e =>
-                    tVerts.contains(m.target.edgeGetOtherVertex(e,nt))
-                  })).matchMain()
-                case Some(candidateWires1) =>
-                  if (candidateWires1.isEmpty) Stream()
-                  else {
-                    (matchNewWire(np, ep, nt, candidateWires1.head) match {
-                      case Some(ms1) => ms1.copy(candidateWires = None).matchMain()
-                      case None => Stream()
-                    }) #::: copy(candidateWires = Some(candidateWires1.tail)).matchMain()
+  /**
+    * This is the main match loop. It maintains its own stack (via nextState), so it can be tail-recursive.
+    *
+    * @return the next match and if there could be more matches, the next MatchState in the search tree
+    */
+  @tailrec
+  final def nextMatch(): Option[(Match, Option[MatchState])] = {
+    // if unmatched circles are found in the pattern, match them first
+    if (uCircles.nonEmpty) {
+      val tCircles = tVerts.filter(m.target.isCircle)
+      if (uCircles.size > tCircles.size) nextState match { case Some(next) => next.nextMatch(); case None => None }
+      else {
+        copy(m = uCircles.zip(tCircles).foldRight(m) { case ((pc, tc), m1) =>
+          val pce = m.pattern.inEdges(pc).head
+          val tce = m.target.inEdges(tc).head
+          m.addEdge(pce -> tce, pc -> tc)
+        }).nextMatch()
+      }
+
+    // if there is a scheduled node, try to match its neighbourhood in every possible way
+    } else if (psNodes.nonEmpty) {
+      val np = psNodes.head
+
+      if (pVertexMayBeCompleted(np)) {
+        val nt = m.vmap(np)
+        // get the next matchable edge in the neighbourhood of np
+        val epOpt = m.pattern.adjacentEdges(np).find { e => uWires.contains(m.pattern.edgeGetOtherVertex(e, np)) }
+        epOpt match {
+          // if there is an matchable edge in nhd(np), try to match it in every possible way
+          // to an edge in the neighbourhood of nt
+          case Some(ep) =>
+            candidateEdges match {
+              case None =>
+                copy(candidateEdges = Some(m.target.adjacentEdges(nt).filter { e =>
+                  !m.emap.codSet.contains(e) &&
+                  tVerts.contains(m.target.edgeGetOtherVertex(e, nt))
+                })).nextMatch()
+              case Some(candidateEdges1) =>
+                if (candidateEdges1.isEmpty) {
+                  nextState match {
+                    case Some(ms1) => ms1.nextMatch()
+                    case None => None
                   }
-              }
-            case None =>
-              if (m.target.adjacentEdges(nt).forall(m.emap.codSet.contains))
-                copy(pNodes = pNodes - np, psNodes = psNodes - np).matchMain()
-              else
-                copy(psNodes = psNodes - np).matchMain()
-          }
-        } else Stream()
-      case None => uNodes.headOption match {
-        case Some(np) =>
-          candidateNodes match {
-            case None =>
-              copy(candidateNodes = Some(tVerts.filter(!m.target.vdata(_).isWireVertex))).matchMain()
-            case Some(candidateNodes1) =>
-              if (candidateNodes1.isEmpty) Stream()
-              else {
-                (matchNewNode(np, candidateNodes1.head) match {
-                  case Some(ms1) => ms1.copy(candidateNodes = None).matchMain()
-                  case None => Stream()
-                }) #::: copy(candidateNodes = Some(candidateNodes1.tail)).matchMain()
-              }
-          }
+                } else {
+                  val next = copy(candidateEdges = Some(candidateEdges1.tail))
+                  matchNewWire(np, ep, nt, candidateEdges1.head) match {
+                    case Some(ms1) => ms1.copy(candidateEdges = None, nextState = Some(next)).nextMatch()
+                    case None => next.nextMatch()
+                  }
+                }
+            }
+          // If there are no matchable edges in nhd(np), de-schedule np. If emap is now surjective on nhd(nt),
+          // then additionally mark np as done.
+          case None =>
+            if (m.target.adjacentEdges(nt).forall(m.emap.codSet.contains))
+              copy(pNodes = pNodes - np, psNodes = psNodes - np).nextMatch()
+            else
+              copy(psNodes = psNodes - np).nextMatch()
+        }
+      } else {
+        // any match mapping np -> nt is doomed, so continue to the next possibility
+        nextState match {
+          case Some(ms1) => ms1.nextMatch()
+          case None => None
+        }
+      }
+
+
+    // if there are no scheduled nodes, pick a new unmatched node in the pattern, match it in every possible way
+    // and schedule its neighbourhood for matching
+    } else if (uNodes.nonEmpty) {
+      val np = uNodes.head
+      candidateNodes match {
         case None =>
-          if (m.isTotal) {
-            if (MatchState.countMatches) MatchState.matchCounter += 1
-            Stream(m.copy(subst = angleMatcher.toMap))
+          copy(candidateNodes = Some(tVerts.filter { v =>
+            !m.target.vdata(v).isWireVertex
+          })).nextMatch()
+        case Some(candidateNodes1) =>
+          if (candidateNodes1.isEmpty) {
+            nextState match {
+              case Some(ms1) => ms1.nextMatch()
+              case None => None
+            }
+          } else {
+            val next = copy(candidateNodes = Some(candidateNodes1.tail))
+            matchNewNode(np, candidateNodes1.head) match {
+              case Some(ms1) => ms1.copy(candidateNodes = None, nextState = Some(next)).nextMatch()
+              case None => next.nextMatch()
+            }
           }
-          else Stream()
+      }
+
+    // if there is nothing left to do, check if the match is complete and return it if so. If not, continue
+    // the search from nextState
+    } else {
+      if (m.isTotal) {
+        if (MatchState.countMatches) MatchState.matchCounter += 1
+        val ms = copy(m = m.copy(subst = angleMatcher.toMap))
+        Some((ms.m, nextState))
+      } else {
+        nextState match {
+          case Some(ms1) => ms1.nextMatch()
+          case None => None
+        }
       }
     }
   }
@@ -150,14 +209,12 @@ case class MatchState(
             (m.pattern.wireVertexGetOtherEdge(newVp, ep), m.target.wireVertexGetOtherEdge(newVt, et)) match {
               case (Some(newEp), Some(newEt)) =>
                 copy(
-                  m = m.addEdge(ep -> et, newVp -> newVt),
-                  tVerts = tVerts - newVt
+                  m = m.addEdge(ep -> et, newVp -> newVt)
                 ).matchNewWire(newVp, newEp, newVt, newEt)
               case (Some(_), None) => None
               case (None, _) =>
                 Some(copy(
-                  m = m.addEdge(ep -> et, newVp -> newVt),
-                  tVerts = tVerts - newVt
+                  m = m.addEdge(ep -> et, newVp -> newVt)
                 ))
             }
           case (_: NodeV, _: NodeV) =>
