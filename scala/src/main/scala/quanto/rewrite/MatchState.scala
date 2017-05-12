@@ -42,11 +42,12 @@ case class MatchState(
       val tCircles = tVerts.filter(m.target.isCircle)
       if (uCircles.size > tCircles.size) nextState match { case Some(next) => next.nextMatch(); case None => None }
       else {
-        copy(m = uCircles.zip(tCircles).foldRight(m) { case ((pc, tc), m1) =>
+        val (m1, tVerts1) = uCircles.zip(tCircles).foldRight((m, tVerts)) { case ((pc, tc), (m0, tVerts0)) =>
           val pce = m.pattern.inEdges(pc).head
           val tce = m.target.inEdges(tc).head
-          m.addEdge(pce -> tce, pc -> tc)
-        }).nextMatch()
+          (m0.addEdge(pce -> tce, pc -> tc), tVerts0 - tc)
+        }
+        copy(m = m1, tVerts = tVerts1).nextMatch()
       }
 
     // if there is a scheduled node, try to match its neighbourhood in every possible way
@@ -119,6 +120,36 @@ case class MatchState(
               case Some(ms1) => ms1.copy(candidateNodes = None, nextState = Some(next)).nextMatch()
               case None => next.nextMatch()
             }
+          }
+      }
+
+    // if there are bare wires remaining, add them in all possible ways
+    } else if (uBareWires.nonEmpty) {
+      val pbw = uBareWires.head
+      candidateWires match {
+        case None =>
+          // pull all the candidates for matching this bare wire. Only take one wire-vertex per wire.
+          copy(candidateWires = Some(tVerts.filter { v =>
+            m.target.vdata(v).isWireVertex &&
+            (m.target.succVerts(v).headOption match {
+              case None => true
+              case Some(v1) => v == v1 || !m.target.vdata(v1).isWireVertex
+            })
+          })).nextMatch()
+        case Some(candidateWires1) =>
+          if (candidateWires1.isEmpty) {
+            nextState match {
+              case Some(ms1) => ms1.nextMatch()
+              case None => None
+            }
+          } else {
+            val tbw = candidateWires1.head
+            val next = copy(candidateWires = Some(candidateWires1.tail))
+            val newMap = m.bareWireMap + (tbw -> (pbw :: m.bareWireMap.getOrElse(tbw, List())))
+            copy(
+              m = m.copy(bareWireMap = newMap).addVertex(pbw -> tbw),
+              candidateWires = None,
+              nextState = Some(next)).nextMatch()
           }
       }
 
@@ -209,7 +240,8 @@ case class MatchState(
             (m.pattern.wireVertexGetOtherEdge(newVp, ep), m.target.wireVertexGetOtherEdge(newVt, et)) match {
               case (Some(newEp), Some(newEt)) =>
                 copy(
-                  m = m.addEdge(ep -> et, newVp -> newVt)
+                  m = m.addEdge(ep -> et, newVp -> newVt),
+                  tVerts = tVerts - newVt
                 ).matchNewWire(newVp, newEp, newVt, newEt)
               case (Some(_), None) => None
               case (None, _) =>

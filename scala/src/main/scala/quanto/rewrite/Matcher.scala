@@ -17,7 +17,7 @@ object Matcher {
     val tgtVars = Vector()
 
     val ms = MatchState(
-      m = Match(pat, tgt),
+      m = Match(pattern = pat, patternExpanded = pat, target = tgt),
       tVerts = restrictTo,
       angleMatcher = AngleExpressionMatcher(patVars,tgtVars))
 

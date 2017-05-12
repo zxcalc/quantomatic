@@ -580,6 +580,26 @@ case class Graph(
 
     g
   }
+
+  def expandWire(w: VName): (Graph, (VName, EName)) = {
+    val ed = adjacentEdges(w).headOption match {
+      case Some(e) => edata(e)
+      case None =>
+        throw new GraphException("attempted to expand wire " + w + ", which has no adjacent edges")
+    }
+
+    val newW = verts.freshWithSuggestion(w)
+    val newE = edges.freshWithSuggestion(Names.defaultEName)
+    val newBB = inBBox.domf(w).foldRight(inBBox) { (bb, mp) => mp + (newW -> bb) }
+    val g = addVertex(newW, vdata(w)).addEdge(newE, ed, w -> newW).copy(inBBox = newBB)
+    val g1 = outEdges(w).headOption match {
+      case Some(e) =>
+        g.deleteEdge(e).addEdge(e, ed, newW -> g.target(e))
+      case None => g
+    }
+
+    (g1, (newW, newE))
+  }
 }
 
 object Graph {
