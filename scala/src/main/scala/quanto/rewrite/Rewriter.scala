@@ -1,6 +1,6 @@
 package quanto.rewrite
 
 
-class Rewrite {
+class Rewriter {
 	
 }
