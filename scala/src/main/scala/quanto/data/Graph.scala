@@ -88,6 +88,19 @@ case class Graph(
   def isCircle(vn: VName): Boolean =
     vdata(vn).isWireVertex && inEdges(vn).size == 1 && inEdges(vn) == outEdges(vn)
 
+  def representsWire(vn: VName) = vdata(vn).isWireVertex &&
+    (predVerts(vn).headOption match {
+      case None => true
+      case Some(vn1) => vn == vn1 || !vdata(vn1).isWireVertex
+    })
+
+  def representsBareWire(vn: VName) =
+    isInput(vn) &&
+    (succVerts(vn).headOption match {
+      case None => false
+      case Some(vn1) => isOutput(vn1)
+    })
+
 
   def vars: Set[String] = vdata.values.foldLeft(Set.empty[String]) {
     case (vs, d: NodeV) =>

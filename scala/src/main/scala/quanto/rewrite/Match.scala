@@ -10,7 +10,7 @@ case class Match(pattern: Graph,
                  target: Graph,
                  vmap: PFun[VName,VName] = PFun(),
                  emap: PFun[EName,EName] = PFun(),
-                 bareWireMap: Map[VName, List[VName]] = Map(),
+                 bareWireMap: Map[VName, Vector[VName]] = Map(),
                  bbmap: PFun[BBName,BBName] = PFun(),
                  bbops: List[BBOp] = List(),
                  subst: Map[String,AngleExpression] = Map()) {
@@ -39,20 +39,22 @@ case class Match(pattern: Graph,
     */
   def normalize: Match = {
     bareWireMap.headOption match {
-      case Some((tw, pw :: pws)) =>
+      case Some((tw, pw +: pws)) =>
         val (target1, (newW, newE)) = target.expandWire(tw)
         val emap1 = emap + (pattern.outEdges(pw).head -> newE)
 
-        var vmap1 = vmap + (pattern.succVerts(pw).head -> newW)
+        var vmap1 = vmap
         for (pw1 <- vmap.codf(tw)) {
-          if (pw1 != pw && pattern.isInput(pw1)) vmap1 = vmap1 + (pw1 -> newW)
+          if (pattern.isInput(pw1)) vmap1 = vmap1 + (pw1 -> newW)
         }
+        vmap1 = vmap1 + (pw -> tw) + (pattern.succVerts(pw).head -> newW)
+
         copy(
           vmap = vmap1, emap = emap1,
           target = target1,
           bareWireMap = bareWireMap + (tw -> pws)
         ).normalize
-      case Some((_, List())) => copy(bareWireMap = bareWireMap.tail).normalize
+      case Some((_, Vector())) => copy(bareWireMap = bareWireMap.tail).normalize
       case None => this
     }
   }

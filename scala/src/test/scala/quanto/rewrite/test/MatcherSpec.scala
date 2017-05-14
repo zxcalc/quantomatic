@@ -526,4 +526,31 @@ class MatcherSpec extends FlatSpec {
     assert(matches.forall { _.isTotal })
     assert(matches.forall { _.isHomomorphism })
   }
+
+  it should "match 3 bare wires in 6 different ways" in {
+    val g1 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w0", "w1", "w2", "w3", "w4", "w5"],
+        |  "undir_edges": {
+        |    "e0": {"src": "w0", "tgt": "w1"},
+        |    "e1": {"src": "w2", "tgt": "w3"},
+        |    "e2": {"src": "w4", "tgt": "w5"}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+    val g2 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w0", "w1"],
+        |  "undir_edges": {
+        |    "e0": {"src": "w0", "tgt": "w1"}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+    val matches = Matcher.findMatches(g1, g2)
+    assert(matches.size === 6)
+    assert(matches.forall { _.isTotal })
+    assert(matches.forall { _.isHomomorphism })
+  }
 }

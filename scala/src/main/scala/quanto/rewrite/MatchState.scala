@@ -4,29 +4,24 @@ import quanto.data._
 import scala.annotation.tailrec
 
 case class MatchState(
-                       m: Match,                                  // the match being built
-                       tVerts: Set[VName],                        // restriction of the range of the match
-                       angleMatcher: AngleExpressionMatcher,      // state of matched angle data
-                       pNodes: Set[VName] = Set(),                // nodes with partially-mapped neighbourhood
-                       psNodes: Set[VName] = Set(),               // same, but scheduled for completion
-                       candidateNodes: Option[Set[VName]] = None, // nodes to try matching in the target
-                       candidateEdges: Option[Set[EName]] = None, // edges to try matching in the target
-                       candidateWires: Option[Set[VName]] = None, // wire-vertices to try matching bare wires on
-                       nextState: Option[MatchState] = None       // next state to try after search terminates
+                       m: Match,                                        // the match being built
+                       tVerts: Set[VName],                              // restriction of the range of the match
+                       angleMatcher: AngleExpressionMatcher,            // state of matched angle data
+                       uBareWires: Set[VName] = Set(),                  // bare wires in pattern that need to be matched
+                       pNodes: Set[VName] = Set(),                      // nodes with partially-mapped neighbourhood
+                       psNodes: Set[VName] = Set(),                     // same, but scheduled for completion
+                       sBBox: Option[BBName] = None,                    // a bbox scheduled for matching
+                       candidateNodes: Option[Set[VName]] = None,       // nodes to try matching in the target
+                       candidateEdges: Option[Set[EName]] = None,       // edges to try matching in the target
+                       candidateWires: Option[Set[(VName,Int)]] = None, // wire-vertices to try matching bare wires on
+                       candidateBBoxes: Option[Set[BBName]] = None,     // bboxes to try matching in the target
+                       nextState: Option[MatchState] = None             // next state to try after search terminates
                      ) {
 
   val uVerts: Set[VName]   = m.pattern.verts -- m.vmap.domSet
   val uCircles: Set[VName] = uVerts.filter(m.pattern.isCircle)
   lazy val uNodes: Set[VName] = uVerts.filter { v => !m.pattern.vdata(v).isWireVertex }
   lazy val uWires: Set[VName] = uVerts.filter { v => m.pattern.vdata(v).isWireVertex }
-  lazy val uBareWires: Set[VName] =
-    uVerts.filter { v =>
-      m.pattern.isBoundary(v) &&
-      (m.pattern.succVerts(v).headOption match {
-        case Some(v1) => m.pattern.isBoundary(v1)
-        case None => false
-      })
-    }
 
 
 
@@ -128,14 +123,13 @@ case class MatchState(
       val pbw = uBareWires.head
       candidateWires match {
         case None =>
-          // pull all the candidates for matching this bare wire. Only take one wire-vertex per wire.
-          copy(candidateWires = Some(tVerts.filter { v =>
-            m.target.vdata(v).isWireVertex &&
-            (m.target.succVerts(v).headOption match {
-              case None => true
-              case Some(v1) => v == v1 || !m.target.vdata(v1).isWireVertex
-            })
-          })).nextMatch()
+          // pull all the candidate locations for matching this bare wire. If a wire already has n bare wires matched
+          // on it, this is n+1 possible locations.
+          val cwires =
+            for (v <- tVerts if m.target.representsWire(v);
+                 i <- 0 to m.bareWireMap.get(v).map(_.length).getOrElse(0))
+              yield (v,i)
+          copy(candidateWires = Some(cwires.toSet)).nextMatch()
         case Some(candidateWires1) =>
           if (candidateWires1.isEmpty) {
             nextState match {
@@ -143,11 +137,13 @@ case class MatchState(
               case None => None
             }
           } else {
-            val tbw = candidateWires1.head
+            val (tbw,i) = candidateWires1.head
             val next = copy(candidateWires = Some(candidateWires1.tail))
-            val newMap = m.bareWireMap + (tbw -> (pbw :: m.bareWireMap.getOrElse(tbw, List())))
+            val wireV: Vector[VName] = m.bareWireMap.getOrElse(tbw, Vector())
+            val newMap = m.bareWireMap + (tbw -> ((wireV.take(i) :+ pbw) ++ wireV.takeRight(wireV.length - i)))
             copy(
-              m = m.copy(bareWireMap = newMap).addVertex(pbw -> tbw),
+              m = m.copy(bareWireMap = newMap),
+              uBareWires = uBareWires - pbw,
               candidateWires = None,
               nextState = Some(next)).nextMatch()
           }

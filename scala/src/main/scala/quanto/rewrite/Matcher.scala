@@ -19,6 +19,7 @@ object Matcher {
     val ms = MatchState(
       m = Match(pattern = pat, patternExpanded = pat, target = tgt),
       tVerts = restrictTo,
+      uBareWires = pat.verts.filter(pat.representsBareWire),
       angleMatcher = AngleExpressionMatcher(patVars,tgtVars))
 
     matchMain(ms)
