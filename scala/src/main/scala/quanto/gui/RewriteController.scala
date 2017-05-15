@@ -2,13 +2,13 @@ package quanto.gui
 
 import quanto.data._
 import quanto.data.Names._
-import scala.concurrent.Lock
+import quanto.rewrite._
+import scala.concurrent.{Future, Lock}
 import scala.swing._
 import scala.swing.event._
 import scala.swing.event.ButtonClicked
-import quanto.core.{Success, Call}
+import scala.util.{Success,Failure}
 import quanto.util.json._
-import akka.pattern.ask
 import scala.concurrent.ExecutionContext.Implicits.global
 import java.io.File
 import quanto.layout.ForceLayout
@@ -38,18 +38,20 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
     queryId += 1
 
     //for (i <- 0 to rules.length - 1) new DummyRuleSeach(i, queryId).start()
-    val sel = if (!panel.LhsView.selectedVerts.isEmpty) panel.LhsView.selectedVerts
+    val sel = if (panel.LhsView.selectedVerts.nonEmpty) panel.LhsView.selectedVerts
               else panel.LhsView.graph.verts
 
     for (rd <- rules) {
       val rule = Rule.fromJson(Json.parse(new File(panel.project.rootFolder + "/" + rd.name + ".qrule")), theory)
-      val resp = QuantoDerive.core ? Call(theory.coreName, "rewrite", "find_rewrites",
-        JsonObject(
-          "rule" -> Rule.toJson(if (rd.inverse) rule.inverse else rule, theory),
-          "graph" -> Graph.toJson(panel.LhsView.graph, theory),
-          "vertices" -> JsonArray(sel.toVector.map(v => JsonString(v.toString)))
-        ))
-      resp.map { case Success(JsonString(stack)) => pullRewrite(queryId, rd, stack); case _ => }
+      pullRewrite(Matcher.initialise(rule.lhs, panel.LhsView.graph, sel), rd, rule)
+
+//        QuantoDerive.core ? Call(theory.coreName, "rewrite", "find_rewrites",
+//        JsonObject(
+//          "rule" -> Rule.toJson(if (rd.inverse) rule.inverse else rule, theory),
+//          "graph" -> Graph.toJson(panel.LhsView.graph, theory),
+//          "vertices" -> JsonArray(sel.toVector.map(v => JsonString(v.toString)))
+//        ))
+//      resp.map { case Success(JsonString(stack)) => pullRewrite(queryId, rd, stack); case _ => }
     }
 
     resultLock.release()
@@ -59,41 +61,70 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 
   def restartSearch() { rules = rules }
 
-  private def pullRewrite(qid: Int, rd: RuleDesc, stack: String) {
-    val resp = QuantoDerive.core ? Call(panel.project.theory.coreName, "rewrite", "pull_rewrite",
-      JsonObject("stack" -> JsonString(stack)))
-    resp.map {
-      case Success(obj : JsonObject) =>
-        // layout the graph before acquiring the lock, so many can be done in parallel
+//  private def pullRewrite(qid: Int, rd: RuleDesc, stack: String) {
+//    val resp = QuantoDerive.core ? Call(panel.project.theory.coreName, "rewrite", "pull_rewrite",
+//      JsonObject("stack" -> JsonString(stack)))
+//    resp.map {
+//      case Success(obj : JsonObject) =>
+//        // layout the graph before acquiring the lock, so many can be done in parallel
+//        val step = DStep(
+//          name = DSName("s"),
+//          ruleName = rd.name,
+//          rule = Rule.fromJson(obj / "rule", theory),
+//          variant = if (rd.inverse) RuleInverse else RuleNormal,
+//          graph = Graph.fromJson(obj / "graph", theory)).layout
+//
+//        //println("found nodes: " + (rule.rhs.verts intersect graph.verts))
+//
+//        resultLock.acquire()
+//
+//        // make sure this rewrite query is still in progress, and the rule hasn't been manually removed by the user
+//        if (qid == queryId && resultSet.rules.contains(rd)) {
+//          resultSet += rd -> step
+//
+//          if (resultSet.numResults(rd) < 50) pullRewrite(qid, rd, stack)
+//          else QuantoDerive.core ! Call(theory.coreName, "rewrite", "delete_rewrite_stack",
+//            JsonObject("stack" -> JsonString(stack)))
+//        } else {
+//          // clean up if this rule has been removed from the result list, or if this rewrite query has expired
+//          QuantoDerive.core ! Call(theory.coreName, "rewrite", "delete_rewrite_stack",
+//            JsonObject("stack" -> JsonString(stack)))
+//        }
+//
+//        resultLock.release()
+//        refreshRewriteDisplay()
+//
+//      case Success(JsonNull) =>
+//      case _ =>
+//    }
+//  }
+
+  private def pullRewrite(ms: MatchState, rd: RuleDesc, rule: Rule) {
+    val resp: Future[Option[(Match, Option[MatchState])]] = Future { ms.nextMatch() }
+    resp.onComplete {
+      case Success(Some((m, msOpt))) =>
         val step = DStep(
           name = DSName("s"),
           ruleName = rd.name,
-          rule = Rule.fromJson(obj / "rule", theory),
+          rule = rule,
           variant = if (rd.inverse) RuleInverse else RuleNormal,
-          graph = Graph.fromJson(obj / "graph", theory)).layout
-
-        //println("found nodes: " + (rule.rhs.verts intersect graph.verts))
+          graph = Rewriter.rewrite(m, rule.rhs)).layout
 
         resultLock.acquire()
 
         // make sure this rewrite query is still in progress, and the rule hasn't been manually removed by the user
-        if (qid == queryId && resultSet.rules.contains(rd)) {
+        if (resultSet.rules.contains(rd)) {
           resultSet += rd -> step
 
-          if (resultSet.numResults(rd) < 50) pullRewrite(qid, rd, stack)
-          else QuantoDerive.core ! Call(theory.coreName, "rewrite", "delete_rewrite_stack",
-            JsonObject("stack" -> JsonString(stack)))
-        } else {
-          // clean up if this rule has been removed from the result list, or if this rewrite query has expired
-          QuantoDerive.core ! Call(theory.coreName, "rewrite", "delete_rewrite_stack",
-            JsonObject("stack" -> JsonString(stack)))
+          if (resultSet.numResults(rd) < 50) {
+            msOpt match { case Some(ms1) => pullRewrite(ms1, rd, rule); case None => }
+          }
         }
 
         resultLock.release()
         refreshRewriteDisplay()
-
-      case Success(JsonNull) =>
-      case _ =>
+      case Success(None) => // out of matches
+      case Failure(t) => println("An error occurred in the matcher: " + t.getMessage)
     }
   }
 
@@ -111,7 +142,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       } else {
         val sel = panel.ManualRewritePane.Rewrites.selection.items.seq.map(res => res.rule).toSet
         panel.ManualRewritePane.Rewrites.listData = resultSet.resultLines
-        for (i <- 0 to panel.ManualRewritePane.Rewrites.listData.length - 1) {
+        for (i <- panel.ManualRewritePane.Rewrites.listData.indices) {
           if (sel.contains(panel.ManualRewritePane.Rewrites.listData(i).rule))
             panel.ManualRewritePane.Rewrites.selection.indices += i
         }
@@ -140,7 +171,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       val currentRules = rules.toSet
       val newRules = d.result.filter(!currentRules.contains(_))
 
-      if (!newRules.isEmpty) rules ++= newRules
+      if (newRules.nonEmpty) rules ++= newRules
     case ButtonClicked(panel.ManualRewritePane.RemoveRuleButton) =>
       resultLock.acquire()
       panel.ManualRewritePane.Rewrites.selection.items.foreach { line => resultSet -= line.rule }
@@ -169,7 +200,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       resultLock.release()
       refreshRewriteDisplay()
     case ButtonClicked(panel.ManualRewritePane.ApplyButton) =>
-      selectedRule.map { rd => resultSet.currentResult(rd).map { step =>
+      selectedRule.foreach { rd => resultSet.currentResult(rd).map { step =>
         val parentOpt = panel.controller.state.step
 
         val stepFr = step.copy(name = panel.derivation.steps.freshWithSuggestion(DSName(rd.name.replaceFirst("^.*\\/", "") + "-0")))

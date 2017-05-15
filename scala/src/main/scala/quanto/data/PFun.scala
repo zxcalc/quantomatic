@@ -75,6 +75,10 @@ class PFun[A,B]
     }
   }
 
+  def restrictDom(s: Set[A]): PFun[A,B] = {
+    s.foldRight(PFun[A,B]()) { (k,mp) => get(k) match { case Some(v) => mp + (k -> v); case None => mp } }
+  }
+
   /** Same as '''unmapDom''' */
   def -(k: A) = unmapDom(k)
 

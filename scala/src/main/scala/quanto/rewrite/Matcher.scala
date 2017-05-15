@@ -11,18 +11,20 @@ object Matcher {
       case None => Stream()
     }
 
-  def findMatches(pat: Graph, tgt: Graph, restrictTo: Set[VName]): Stream[Match] = {
+  def initialise(pat: Graph, tgt: Graph, restrictTo: Set[VName]): MatchState = {
     // TODO: new free vars should be fresh w.r.t. vars in target
     val patVars = Vector()
     val tgtVars = Vector()
 
-    val ms = MatchState(
+    MatchState(
       m = Match(pattern = pat, patternExpanded = pat, target = tgt),
       tVerts = restrictTo,
       uBareWires = pat.verts.filter(pat.representsBareWire),
       angleMatcher = AngleExpressionMatcher(patVars,tgtVars))
+  }
 
-    matchMain(ms)
+  def findMatches(pat: Graph, tgt: Graph, restrictTo: Set[VName]): Stream[Match] = {
+    matchMain(initialise(pat, tgt, restrictTo))
   }
 
   def findMatches(pat: Graph, tgt: Graph): Stream[Match] =
