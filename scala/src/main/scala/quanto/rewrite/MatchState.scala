@@ -247,7 +247,7 @@ case class MatchState(
             }
           case (_: NodeV, _: NodeV) =>
             if (uNodes contains newVp) {
-              matchNewNode(newVp, newVt).map { ms => copy(m = ms.m.addEdge(ep -> et)) }
+              matchNewNode(newVp, newVt).map { ms => ms.copy(m = ms.m.addEdge(ep -> et)) }
             } else None
           case _ => None
         }

@@ -8,6 +8,9 @@ import quanto.util.json.Json
 class MatcherSpec extends FlatSpec {
   val rg = Theory.fromFile("red_green")
 
+  def loadGraph(name: String) =
+    Graph.fromJson(Json.parse(new Json.Input(Matcher.getClass.getResourceAsStream(name + ".qgraph"))), rg)
+
   behavior of "The matcher"
 
   it should "initialise a match search" in {
@@ -552,5 +555,32 @@ class MatcherSpec extends FlatSpec {
     assert(matches.size === 6)
     assert(matches.forall { _.isTotal })
     assert(matches.forall { _.isHomomorphism })
+  }
+
+  it should "match a graph with 2 components on itself" in {
+    val g1 = Graph.fromJson(Json.parse(
+    """
+      |{
+      |  "wire_vertices": ["b0", "w0"],
+      |  "node_vertices": {
+      |    "v0": {"data": {"type": "X"}},
+      |    "v1": {"data": {"type": "Z"}},
+      |    "v2": {"data": {"type": "X"}}
+      |  },
+      |  "undir_edges": {
+      |    "e0": {"src": "b0", "tgt": "v0"},
+      |    "e6": {"src": "v0", "tgt": "w0"},
+      |    "e7": {"src": "w0", "tgt": "v1"}
+      |  }
+      |}
+    """.stripMargin), thy = rg)
+    val matches = Matcher.findMatches(g1, g1)
+    assert(matches.nonEmpty)
+  }
+
+  it should "match a bialg LHS on itself" in {
+    val g1 = loadGraph("bialg-lhs")
+    val matches = Matcher.findMatches(g1, g1)
+    assert(matches.nonEmpty)
   }
 }
