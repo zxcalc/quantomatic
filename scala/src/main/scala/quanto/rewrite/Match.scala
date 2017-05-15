@@ -10,8 +10,8 @@ case class Match(pattern: Graph,
                  target: Graph,
                  vmap: PFun[VName,VName] = PFun(),
                  emap: PFun[EName,EName] = PFun(),
-                 bareWireMap: Map[VName, Vector[VName]] = Map(),
                  bbmap: PFun[BBName,BBName] = PFun(),
+                 bareWireMap: Map[VName, Vector[VName]] = Map(),
                  bbops: List[BBOp] = List(),
                  subst: Map[String,AngleExpression] = Map()) {
 
@@ -57,6 +57,17 @@ case class Match(pattern: Graph,
       case Some((_, Vector())) => copy(bareWireMap = bareWireMap.tail).normalize
       case None => this
     }
+  }
+
+  def freshenPattern: Match = {
+    val (p1, rnv, rne, rnbb) = pattern.renameAvoiding1(target)
+
+    copy(
+      pattern = p1,
+      vmap = vmap.foldRight(PFun[VName,VName]()) { case ((p,t),mp) => mp + (rnv(p) -> t) },
+      emap = emap.foldRight(PFun[EName,EName]()) { case ((p,t),mp) => mp + (rne(p) -> t) },
+      bbmap = bbmap.foldRight(PFun[BBName,BBName]()) { case ((p,t),mp) => mp + (rnbb(p) -> t) }
+    )
   }
 
   def isNormalized: Boolean = bareWireMap.isEmpty

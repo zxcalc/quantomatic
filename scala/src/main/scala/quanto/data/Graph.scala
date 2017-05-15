@@ -235,6 +235,14 @@ case class Graph(
     bboxParent.codf(bb)
 
 
+  def addToBBox(v: VName, bb: BBName): Graph = {
+    copy(inBBox = inBBox + (v,bb))
+  }
+
+  def addToBBoxes(v: VName, bboxes: Set[BBName]): Graph = {
+    copy(inBBox = bboxes.foldRight(inBBox) { (bb,mp) => mp + (v,bb) })
+  }
+
   /** Replace the contents of a bang box with new ones
     * NOTE: this affects parents as well. */
   def updateBBoxContents(bbn: BBName, newContents: Set[VName]): Graph = {
@@ -306,6 +314,8 @@ case class Graph(
     )
   }
 
+  def deleteEdges(es: Set[EName]): Graph = es.foldRight(this) { (e,g) => g.deleteEdge(e) }
+
   def safeDeleteVertex(vn: VName): Graph = {
     if (source.codf(vn).nonEmpty || target.codf(vn).nonEmpty)
       throw new GraphException("Unable to safely delete " + vn + ", because vertex has adjancent edges")
@@ -321,6 +331,8 @@ case class Graph(
 
     g.copy(vdata = vdata - vn, inBBox = inBBox.unmapDom(vn))
   }
+
+  def deleteVertices(vs: Set[VName]): Graph = vs.foldRight(this) { (v, g) => g.deleteVertex(v) }
 
   // data updaters
   def updateData(f: GData => GData): Graph = copy(data = f(data))
@@ -431,6 +443,21 @@ case class Graph(
     this.deleteVertex(b1).deleteVertex(b2).addEdge(be, beData, (s,t))
   }
 
+  // form a new graph by merging the given (non-empty) set of vertices into a new vertex with the given name
+  def mergeVertices(vs: Set[VName], newV: VName): Graph = {
+    val rep = vs.head
+    val bboxes = inBBox.directImage(vs)
+
+    val source1 = source.inverseImage(vs).foldRight(source) { (e, mp) => mp + (e -> newV) }
+    val target1 = target.inverseImage(vs).foldRight(target) { (e, mp) => mp + (e -> newV) }
+
+    this
+      .addVertex(newV, vdata(rep))
+      .copy(source = source1, target = target1)
+      .deleteVertices(vs)
+      .addToBBoxes(newV, bboxes)
+  }
+
   // add g to this graph, plugging 'b' in this graph into 'bg' in g.
   def plugGraph(g: Graph, b: VName, bg: VName): Graph = {
     // freshen target graph w.r.t. source
@@ -443,7 +470,7 @@ case class Graph(
     val dx = bcoord._1 - bgcoord._1
     val dy = bcoord._2 - bgcoord._2
 
-    var g2 = g1.verts.foldLeft(g1) { (g1,v) =>
+    val g2 = g1.verts.foldLeft(g1) { (g1,v) =>
       g1.updateVData(v) { d => d.withCoord (d.coord._1 + dx, d.coord._2 + dy) }
     }
 
