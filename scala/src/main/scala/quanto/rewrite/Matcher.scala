@@ -15,10 +15,17 @@ object Matcher {
     // TODO: new free vars should be fresh w.r.t. vars in target
     val patVars = Vector()
     val tgtVars = Vector()
+    val patN = pat.normalise
+    val tgtN = tgt.normalise
+    val restrict1 = restrictTo.foldRight(restrictTo) { (v, s) =>
+      if (tgtN.verts contains v) {
+        s union tgtN.adjacentVerts(v)
+      } else s
+    }
 
     MatchState(
-      m = Match(pattern = pat, patternExpanded = pat, target = tgt),
-      tVerts = restrictTo,
+      m = Match(pattern = patN, patternExpanded = patN, target = tgtN),
+      tVerts = restrict1,
       uBareWires = pat.verts.filter(pat.representsBareWire),
       angleMatcher = AngleExpressionMatcher(patVars,tgtVars))
   }

@@ -159,6 +159,36 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     assert(jsonGraphShouldBe === Graph.fromJson(Graph.toJson(jsonGraphShouldBe)))
   }
 
+  behavior of "Some more graphs"
+
+  it should "normalise" in {
+    val g1 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w0", "w1"],
+        |  "node_vertices": ["v0", "v1"],
+        |  "undir_edges": {
+        |    "e0": {"src": "v0", "tgt": "w0"},
+        |    "e1": {"src": "w0", "tgt": "w1"},
+        |    "e2": {"src": "w1", "tgt": "v1"}
+        |  }
+        |}
+      """.stripMargin))
+    val g2 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w0"],
+        |  "node_vertices": ["v0", "v1"],
+        |  "undir_edges": {
+        |    "e0": {"src": "v0", "tgt": "w0"},
+        |    "e2": {"src": "w0", "tgt": "v1"}
+        |  }
+        |}
+      """.stripMargin))
+
+    assert(g1.normalise === g2)
+  }
+
   behavior of "Depth-first traversal"
 
   val dftGraph = Graph.fromJson(

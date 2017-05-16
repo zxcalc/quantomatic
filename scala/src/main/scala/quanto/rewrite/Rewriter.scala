@@ -34,6 +34,6 @@ object Rewriter {
     val quotient = rhs.rename(vmap.toMap, emap.toMap, m1.bbmap.toMap)
 
     // compute the pushout as a union of the context with the quotiented domain of the matching
-    quotient.appendGraph(context)
+    quotient.appendGraph(context).minimise
   }
 }

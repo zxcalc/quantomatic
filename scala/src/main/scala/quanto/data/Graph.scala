@@ -8,6 +8,8 @@ import collection.mutable.ArrayBuffer
 import quanto.util._
 import java.awt.datatransfer.{DataFlavor, Transferable}
 
+import scala.annotation.tailrec
+
 class GraphException(msg: String, cause: Throwable = null) extends Exception(msg, cause)
 class PluggingException(msg: String) extends GraphException(msg)
 
@@ -81,6 +83,7 @@ case class Graph(
   def outEdges(vn: VName): Set[EName] = source.codf(vn)
   def predVerts(vn: VName): Set[VName] = inEdges(vn).map(source(_))
   def succVerts(vn: VName): Set[VName] = outEdges(vn).map(target(_))
+  def adjacentVerts(vn: VName): Set[VName] = predVerts(vn) union succVerts(vn)
   def contents(bbn: BBName): Set[VName] = inBBox.codf(bbn)
   def bboxesContaining(vn: VName): Set[BBName] = inBBox.domf(vn)
   def isBoundary(vn: VName): Boolean =
@@ -451,10 +454,10 @@ case class Graph(
     val source1 = source.inverseImage(vs).foldRight(source) { (e, mp) => mp + (e -> newV) }
     val target1 = target.inverseImage(vs).foldRight(target) { (e, mp) => mp + (e -> newV) }
 
-    this
-      .addVertex(newV, vdata(rep))
-      .copy(source = source1, target = target1)
-      .deleteVertices(vs)
+    val g1 = if (verts.contains(newV)) this else addVertex(newV, vdata(rep))
+
+    g1.copy(source = source1, target = target1)
+      .deleteVertices(vs - newV)
       .addToBBoxes(newV, bboxes)
   }
 
@@ -639,6 +642,73 @@ case class Graph(
     }
 
     (g1, (newW, newE))
+  }
+
+  def collapseWire(e: EName): Graph = {
+    val ws = Set(source(e), target(e))
+    deleteEdge(e).mergeVertices(ws, ws.min)
+  }
+
+  def edgeToWire(e: EName): Graph = {
+    val s = source(e)
+    val t = target(e)
+    val w = verts.fresh
+    val ed = edata(e)
+
+    this
+      .deleteEdge(e)
+      .addVertex(w, WireV(theory = ed.theory))
+      .newEdge(ed, s -> w)
+      .newEdge(ed, w -> t)
+  }
+
+  def wireToEdge(w: VName): Graph = {
+    val ies = inEdges(w)
+    val oes = outEdges(w)
+    if (ies.size == 1 && oes.size == 1) {
+      val ie = ies.head
+      val oe = oes.head
+
+      this
+        .deleteVertex(w)
+        .newEdge(edata(ie), source(ie) -> target(oe))
+    } else this
+  }
+
+  /**
+    * Put graph in normal form, where each (non-bare) wire has exactly 1 wire vertex
+    * @return
+    */
+  @tailrec
+  final def normalise: Graph = {
+    var ch = false
+    var g = this
+
+    for (e <- edges) {
+      val s = source(e)
+      val t = target(e)
+      (vdata(s), vdata(t)) match {
+        case (_: NodeV, _: NodeV) =>
+          g = g.edgeToWire(e)
+          ch = true
+        case (_: WireV, _: WireV) =>
+          if (!isBoundary(s) || !isBoundary(t)) {
+            g = g.collapseWire(e)
+            ch = true
+          }
+        case _ => // do nothing
+      }
+    }
+
+    if (ch) g.normalise
+    else g
+  }
+
+  def minimise: Graph = {
+    verts.foldRight(normalise) { (v, g) =>
+      if (g.vdata(v).isWireVertex) g.wireToEdge(v)
+      else g
+    }
   }
 }
 
