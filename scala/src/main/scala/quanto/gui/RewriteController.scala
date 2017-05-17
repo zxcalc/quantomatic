@@ -103,12 +103,14 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
     val resp: Future[Option[(Match, Option[MatchState])]] = Future { ms.nextMatch() }
     resp.onComplete {
       case Success(Some((m, msOpt))) =>
+        val (graph1, rule1) = Rewriter.rewrite(m, rule.rhs)
+
         val step = DStep(
           name = DSName("s"),
           ruleName = rd.name,
-          rule = rule,
+          rule = rule1,
           variant = if (rd.inverse) RuleInverse else RuleNormal,
-          graph = Rewriter.rewrite(m, rule.rhs)).layout
+          graph = graph1.normalise).layout
 
         resultLock.acquire()
 

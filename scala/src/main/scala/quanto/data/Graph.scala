@@ -663,15 +663,18 @@ case class Graph(
   }
 
   def wireToEdge(w: VName): Graph = {
-    val ies = inEdges(w)
-    val oes = outEdges(w)
-    if (ies.size == 1 && oes.size == 1) {
-      val ie = ies.head
-      val oe = oes.head
+    val es = adjacentEdges(w)
+    if (es.size == 2) {
+      val (e1, e2) = (es.min, es.max)
+
+      // direct edge in the same direction as the minimum of the two edges connected to w
+      val endPoints =
+        if (target(e1) == w) (source(e1), edgeGetOtherVertex(e2,w))
+        else (edgeGetOtherVertex(e2,w), target(e1))
 
       this
         .deleteVertex(w)
-        .newEdge(edata(ie), source(ie) -> target(oe))
+        .addEdge(e1, edata(e1), endPoints)
     } else this
   }
 
@@ -705,7 +708,8 @@ case class Graph(
   }
 
   def minimise: Graph = {
-    verts.foldRight(normalise) { (v, g) =>
+    val n = normalise
+    n.verts.foldRight(n) { (v, g) =>
       if (g.vdata(v).isWireVertex) g.wireToEdge(v)
       else g
     }

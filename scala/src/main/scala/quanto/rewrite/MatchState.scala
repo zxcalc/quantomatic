@@ -152,7 +152,7 @@ case class MatchState(
     // if there is nothing left to do, check if the match is complete and return it if so. If not, continue
     // the search from nextState
     } else {
-      if (m.isTotal) {
+      if (pNodes.isEmpty && m.isTotal) {
         if (MatchState.countMatches) MatchState.matchCounter += 1
         val ms = copy(m = m.copy(subst = angleMatcher.toMap))
         Some((ms.m, nextState))

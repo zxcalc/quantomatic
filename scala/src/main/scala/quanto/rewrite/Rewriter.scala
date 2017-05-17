@@ -4,7 +4,7 @@ import quanto.data._
 import quanto.data.Names._
 
 object Rewriter {
-	def rewrite(m: Match, rhs: Graph): Graph = {
+	def rewrite(m: Match, rhs: Graph): (Graph, Rule) = {
     // TODO: !-boxes
 
     // expand bare wires in the match
@@ -30,10 +30,11 @@ object Rewriter {
     }
 
 
-    // quotient the rhs such that pairs of boundaries mapped to the same vertex are identified
-    val quotient = rhs.rename(vmap.toMap, emap.toMap, m1.bbmap.toMap)
+    // quotient the lhs and rhs such that pairs of boundaries mapped to the same vertex are identified
+    val quotientLhs = m.pattern.rename(m.vmap.toMap, m.emap.toMap, m.bbmap.toMap)
+    val quotientRhs = rhs.rename(vmap.toMap, emap.toMap, m1.bbmap.toMap)
 
     // compute the pushout as a union of the context with the quotiented domain of the matching
-    quotient.appendGraph(context).minimise
+    (quotientRhs.appendGraph(context), Rule(quotientLhs, quotientRhs))
   }
 }
