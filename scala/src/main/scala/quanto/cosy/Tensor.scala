@@ -116,11 +116,11 @@ class Tensor(c: Array[Array[Complex]]) {
   }
 
   def widen(n: Int): Tensor = {
-    if (this.width < n) (this x Tensor.id(2)).widen(n) else this
+    if (this.width < n) this x Tensor.id(n / this.width) else this
   }
 
   def heighten(n: Int): Tensor = {
-    if (this.height < n) (this x Tensor.id(2)).heighten(n) else this
+    if (this.height < n) this x Tensor.id(n / this.height) else this
   }
 
   override def toString: String = {
