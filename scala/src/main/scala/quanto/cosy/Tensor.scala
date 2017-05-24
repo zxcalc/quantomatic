@@ -12,7 +12,7 @@ import quanto.cosy._
 
 
 class Tensor(c: Array[Array[Complex]]) {
-  val contents = c
+  val contents : Array[Array[Complex]] = c
 
   def this(height: Int, width: Int, generator: Tensor.Generator) = {
     this(Tensor.generatorToMatrix(height, width, generator))
@@ -124,7 +124,7 @@ object Tensor {
 
   def apply(c: Array[Array[Complex]]) = new Tensor(c)
 
-  def apply(height: Int, width: Int, generator: Tensor.Generator) = {
+  def apply(height: Int, width: Int, generator: Tensor.Generator) : Tensor = {
     Tensor.generatorToMatrix(height, width, generator)
   }
 }
