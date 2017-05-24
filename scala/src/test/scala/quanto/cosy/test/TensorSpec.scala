@@ -11,21 +11,23 @@ class TensorSpec extends FlatSpec {
   // This values will be overwritten
 
   it should "be constructable" in {
+    // Via "new"
     var t1 = new Tensor(Array(Array(zero, one)))
-    var t2 = new Tensor(Array(Array(zero), Array(one)))
-    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2,0))))
+    // Via Tensor()
+    var t2 = Tensor(Array(Array(zero), Array(one)))
+    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2, 0))))
     assert(t3(1, 1) == Complex(2, 0))
   }
 
   it should "accept generating functions" in {
     var t1 = new Tensor(Array(Array(zero, one)))
     var t2 = new Tensor(Array(Array(zero), Array(one)))
-    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2,0))))
+    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2, 0))))
     var t4 = new Tensor(2, 2, (i, j) => new Complex(i + j))
   }
 
   it should "compare tensors" in {
-    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2,0))))
+    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2, 0))))
     var t4 = new Tensor(2, 2, (i, j) => new Complex(i + j))
     assert(t3 == t4)
   }
@@ -33,8 +35,9 @@ class TensorSpec extends FlatSpec {
   it should "make identity matrices" in {
     var t1 = new Tensor(Array(Array(zero, one)))
     var t2 = new Tensor(Array(Array(zero), Array(one)))
-    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2,0))))
+    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2, 0))))
     var t4 = new Tensor(2, 2, (i, j) => new Complex(i + j))
+
     def id = (x: Int) => Tensor.id(x)
 
     assert((id(2) x id(2)) == id(4))
@@ -46,7 +49,7 @@ class TensorSpec extends FlatSpec {
   it should "fail bad compositions" in {
     var t1 = new Tensor(Array(Array(zero, one)))
     var t2 = new Tensor(Array(Array(zero), Array(one)))
-    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2,0))))
+    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2, 0))))
     intercept[java.lang.IllegalArgumentException] {
       t2 o t3
     }
