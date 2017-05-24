@@ -82,11 +82,28 @@ class Tensor(c: Array[Array[Complex]]) {
     this.multiply(that)
   }
 
+  def +(that: Tensor): Tensor = {
+    require(this.width == that.width)
+    require(this.height == that.height)
+    new Tensor(this.height, this.width, (i, j) => this.c(i)(j) + that.contents(i)(j))
+  }
+
+  def -(that: Tensor): Tensor = {
+    this + that.scaled(-1)
+  }
+
   def transpose: Tensor = {
     new Tensor(this.width, this.height, (i, j) => this.c(j)(i))
   }
 
   def t: Tensor = this.transpose
+
+  def scaled(that: Double): Tensor = {
+    Tensor(this.height, this.width, (i, j) => this.c(i)(j) * that)
+  }
+
+  def isRoughly(that: Tensor): Boolean =
+    (this - that).contents.flatten.foldLeft(0.0) { (a: Double, b: Complex) => math.max(a, b.abs) } < 1e-14
 
   def plug(that: Tensor, plugThatOutputsToThisInputs: Int => Int): Tensor = {
     require(this.isDiagramShape)
@@ -110,7 +127,7 @@ class Tensor(c: Array[Array[Complex]]) {
     val minWidth = 1
     val longestLength = this.contents.flatten.map(s => s.toString.length).foldLeft(minWidth)((a, b) => Math.max(a, b))
 
-    def pad(s: String): String = if (s.length < longestLength) pad(s + " ") else s
+    def pad(s: String): String = if (s.length < longestLength) pad(" " + s) else s
 
     this.contents.map(line => line.map(s => pad(s.toString)).mkString(" ")).mkString("\n")
   }
@@ -225,4 +242,11 @@ object Tensor {
     val gen = (x: Int) => asList(x)
     swap(asList.length, gen)
   }
+
+  val hadamard: Tensor = {
+    Tensor(Array(Array(1, 1), Array(1, -1))).scaled(math.pow(2, -0.5))
+  }
+
+  def zero(height: Int, width: Int): Tensor =
+    Tensor(height, width, (i, j) => Complex.zero)
 }

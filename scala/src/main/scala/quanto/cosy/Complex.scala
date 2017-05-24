@@ -54,6 +54,7 @@ class Complex(
 
   def *(d: Double) = new Complex(re * d, im * d)
 
+  def abs: Double = math.pow(re * re + im * im, 0.5)
 
   override def equals(other: Any): Boolean =
     other match {
@@ -81,5 +82,5 @@ object Complex {
 
   def apply(r: Int, i: Int) = new Complex(r, i)
 
-  implicit def doubleToComplex(x: Double) : Complex = new Complex(x)
+  implicit def doubleToComplex(x: Double): Complex = new Complex(x)
 }

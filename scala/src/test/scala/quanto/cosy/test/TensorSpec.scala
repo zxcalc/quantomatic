@@ -49,8 +49,8 @@ class TensorSpec extends FlatSpec {
   it should "print nicely" in {
     var t1 = new Tensor(Array(Array(zero, one), Array(Complex(0, -1), Complex(2, 0))))
     var t2 = new Tensor(Array(Array(Complex(0, -1), Complex(0, 1), Complex(1, -1), Complex(-1, 1), Complex(-1, -1))))
-    assert((t1 x t2).toString == "0     0     0     0     0     -i    i     1-i   -1+i  -1-i \n" +
-      "-1    1     -1-i  1+i   -1+i  -2i   2i    2-2i  -2+2i -2-2i")
+    assert((t1 x t2).toString == "    0     0     0     0     0    -i     i   1-i  -1+i  -1-i\n" +
+      "   -1     1  -1-i   1+i  -1+i   -2i    2i  2-2i -2+2i -2-2i")
   }
 
   it should "fail bad compositions" in {
@@ -100,6 +100,14 @@ class TensorSpec extends FlatSpec {
     var t2 = Tensor.id(1)
     assert(t1.plug(t2, x => x) == t1)
     assert(t2.plug(t1, x => x) == t1)
-    assert(t2.plug(t1, x => 1-x) == Tensor.id(4))
+    assert(t2.plug(t1, x => 1 - x) == Tensor.id(4))
+  }
+
+  it should "add tensors" in {
+    var t2 = Tensor(Array(Array(0,1)))
+    var t3 = Tensor(Array(Array(1,0)))
+    assert(t2 + t3 == Tensor(Array(Array(1,1))))
+    var t1 = Tensor.id(4)
+    assert(t1-t1 == Tensor(4,4,(i: Int,j: Int) => Complex.zero))
   }
 }
