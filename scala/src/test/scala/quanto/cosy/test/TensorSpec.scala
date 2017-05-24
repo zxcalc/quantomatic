@@ -46,6 +46,13 @@ class TensorSpec extends FlatSpec {
     }
   }
 
+  it should "print nicely" in {
+    var t1 = new Tensor(Array(Array(zero, one), Array(Complex(0, -1), Complex(2, 0))))
+    var t2 = new Tensor(Array(Array(Complex(0, -1), Complex(0, 1), Complex(1, -1), Complex(-1, 1), Complex(-1, -1))))
+    assert((t1 x t2).toString == "0     0     0     0     0     -i    i     1-i   -1+i  -1-i \n" +
+      "-1    1     -1-i  1+i   -1+i  -2i   2i    2-2i  -2+2i -2-2i")
+  }
+
   it should "fail bad compositions" in {
     var t1 = new Tensor(Array(Array(zero, one)))
     var t2 = new Tensor(Array(Array(zero), Array(one)))
@@ -60,5 +67,39 @@ class TensorSpec extends FlatSpec {
     var t2 = new Tensor(Array(Array(zero), Array(one)))
     assert((t1 x t2) == Tensor(Array(Array(zero, zero), Array(zero, one))))
     assert((t1 x t1).width == 4)
+  }
+
+  it should "make transposes" in {
+    var t1 = Tensor(Array(Array(0, 1, 2, 3)))
+    assert(t1.width == 4)
+    assert(t1.height == 1)
+    assert(t1.transpose.height == 4)
+    assert(t1.transpose.width == 1)
+  }
+
+  it should "construct permutation matrices" in {
+    var p1 = Tensor.permutation(List(0, 1))
+    assert(p1 == Tensor.id(2))
+    var p2 = Tensor.permutation(5, x => (x + 1) % 5)
+    var l1 = Tensor(Array(Array(0, 1, 2, 3, 4)))
+    var l2 = Tensor(Array(Array(4, 0, 1, 2, 3)))
+    assert((p2 o l1.t) == l2.t)
+  }
+
+  it should "construct swap matrices" in {
+    var s1 = Tensor.swap(2, x => 1 - x)
+    assert(s1.toString == "1 0 0 0\n0 0 1 0\n0 1 0 0\n0 0 0 1")
+    var s2 = Tensor.swap(List(0, 2, 1))
+    assert(s2.toStringSparse ==
+      "1 . . . . . . .\n. . 1 . . . . .\n. 1 . . . . . .\n. . . 1 . . . ." +
+        "\n. . . . 1 . . .\n. . . . . . 1 .\n. . . . . 1 . .\n. . . . . . . 1")
+  }
+
+  it should "plug tensors into other tensors" in {
+    var t1 = Tensor.swap(2, x => 1 - x)
+    var t2 = Tensor.id(1)
+    assert(t1.plug(t2, x => x) == t1)
+    assert(t2.plug(t1, x => x) == t1)
+    assert(t2.plug(t1, x => 1-x) == Tensor.id(4))
   }
 }
