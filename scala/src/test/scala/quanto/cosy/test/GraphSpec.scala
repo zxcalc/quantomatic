@@ -23,7 +23,7 @@ class GraphSpec extends FlatSpec{
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(false, false, false, true, false, true))
     var g = new Graph(amat)
-    assert(g.vertices(5).angleType == 1)
+    assert(g.vertices(5).angleType == 0)
     assert(g.vertices(5).connections == Set[Int](3,6))
   }
 

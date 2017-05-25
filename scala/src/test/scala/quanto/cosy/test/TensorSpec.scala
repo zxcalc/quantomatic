@@ -98,16 +98,16 @@ class TensorSpec extends FlatSpec {
   it should "plug tensors into other tensors" in {
     var t1 = Tensor.swap(2, x => 1 - x)
     var t2 = Tensor.id(1)
-    assert(t1.plug(t2, x => x) == t1)
-    assert(t2.plug(t1, x => x) == t1)
-    assert(t2.plug(t1, x => 1 - x) == Tensor.id(4))
+    assert(t1.plugAbove(t2, x => x) == t1)
+    assert(t2.plugAbove(t1, x => x) == t1)
+    assert(t2.plugAbove(t1, x => 1 - x) == Tensor.id(4))
   }
 
   it should "add tensors" in {
-    var t2 = Tensor(Array(Array(0,1)))
-    var t3 = Tensor(Array(Array(1,0)))
-    assert(t2 + t3 == Tensor(Array(Array(1,1))))
+    var t2 = Tensor(Array(Array(0, 1)))
+    var t3 = Tensor(Array(Array(1, 0)))
+    assert(t2 + t3 == Tensor(Array(Array(1, 1))))
     var t1 = Tensor.id(4)
-    assert(t1-t1 == Tensor(4,4,(i: Int,j: Int) => Complex.zero))
+    assert(t1 - t1 == Tensor(4, 4, (i: Int, j: Int) => Complex.zero))
   }
 }

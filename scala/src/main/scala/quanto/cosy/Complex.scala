@@ -44,15 +44,20 @@ class Complex(
 
   def this(re: Double) = this(re, 0)
 
-  def +(that: Complex) =
-    new Complex(re + that.re, im + that.im)
+  def /(that: Complex) = this * that.inverse
+
+  def inverse(): Complex = (Complex(re, 0) - Complex(0, im)) * (1 / (re * re + im * im))
 
   def *(that: Complex) =
     new Complex(re * that.re - im * that.im, re * that.im + im * that.re)
 
-  def +(d: Double) = new Complex(re + d, im)
+  def -(that: Complex): Complex =
+    this + that.negate
 
-  def *(d: Double) = new Complex(re * d, im * d)
+  def +(that: Complex): Complex =
+    new Complex(re + that.re, im + that.im)
+
+  def negate(): Complex = new Complex(-this.re, -this.im)
 
   def abs: Double = math.pow(re * re + im * im, 0.5)
 
@@ -75,12 +80,14 @@ class Complex(
 
 object Complex {
   val one = new Complex(1, 0)
-
   val zero = new Complex(0, 0)
+  val i = new Complex(0, 1)
 
   def apply(r: Double, i: Double) = new Complex(r, i)
 
-  def apply(r: Int, i: Int) = new Complex(r, i)
+  implicit def intToCOmplex(x: Int): Complex = new Complex(x)
 
   implicit def doubleToComplex(x: Double): Complex = new Complex(x)
+
+  def apply(r: Int, i: Int) = new Complex(r, i)
 }
