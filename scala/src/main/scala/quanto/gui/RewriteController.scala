@@ -110,7 +110,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
           ruleName = rd.name,
           rule = rule1,
           variant = if (rd.inverse) RuleInverse else RuleNormal,
-          graph = graph1.normalise).layout
+          graph = graph1.minimise).layout
 
         resultLock.acquire()
 

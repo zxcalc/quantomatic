@@ -3,24 +3,20 @@ import quanto.data._
 
 class MatchException(msg: String) extends Exception(msg)
 
-sealed abstract class BBOp
-
 case class Match(pattern: Graph,
                  patternExpanded: Graph,
                  target: Graph,
-                 vmap: PFun[VName,VName] = PFun(),
-                 emap: PFun[EName,EName] = PFun(),
-                 bbmap: PFun[BBName,BBName] = PFun(),
+                 map: GraphMap = GraphMap(),
                  bareWireMap: Map[VName, Vector[VName]] = Map(),
                  bbops: List[BBOp] = List(),
                  subst: Map[String,AngleExpression] = Map()) {
 
   def addVertex(vPair: (VName, VName)): Match = {
-    copy(vmap = vmap + vPair)
+    copy(map = map addVertex vPair)
   }
 
   def addEdge(ePair: (EName, EName)): Match = {
-    copy(emap = emap + ePair)
+    copy(map = map addEdge ePair)
   }
 
   def addEdge(ePair: (EName, EName), vPair: (VName, VName)): Match = {
@@ -28,7 +24,7 @@ case class Match(pattern: Graph,
         !(vPair._2 == target.source(ePair._2)  || vPair._2 == target.target(ePair._2)))
       throw new MatchException("Attempted to add edges: " + ePair + " to unconnected vertices: " + vPair)
 
-    copy(vmap = vmap + vPair, emap = emap + ePair)
+    copy(map = map addVertex vPair addEdge ePair)
   }
 
   /**
@@ -41,16 +37,16 @@ case class Match(pattern: Graph,
     bareWireMap.headOption match {
       case Some((tw, pw +: pws)) =>
         val (target1, (newW, newE)) = target.expandWire(tw)
-        val emap1 = emap + (pattern.outEdges(pw).head -> newE)
+        val emap1 = map.e + (pattern.outEdges(pw).head -> newE)
 
-        var vmap1 = vmap
-        for (pw1 <- vmap.codf(tw)) {
+        var vmap1 = map.v
+        for (pw1 <- map.v.codf(tw)) {
           if (pattern.isInput(pw1)) vmap1 = vmap1 + (pw1 -> newW)
         }
         vmap1 = vmap1 + (pw -> tw) + (pattern.succVerts(pw).head -> newW)
 
         copy(
-          vmap = vmap1, emap = emap1,
+          map = map.copy(v = vmap1, e = emap1),
           target = target1,
           bareWireMap = bareWireMap + (tw -> pws)
         ).normalize
@@ -72,34 +68,11 @@ case class Match(pattern: Graph,
 
   def isNormalized: Boolean = bareWireMap.isEmpty
 
-  // TODO: bbox check
   def isHomomorphism: Boolean =
     if (!isNormalized) normalize.isHomomorphism
-    else {
-      emap.forall { case (ep, et) =>
-        (pattern.edata(ep).isDirected && target.edata(et).isDirected &&
-          vmap.get(pattern.source(ep)).contains(target.source(et)) &&
-          vmap.get(pattern.target(ep)).contains(target.target(et))
-          ) ||
-          (!pattern.edata(ep).isDirected && !target.edata(et).isDirected &&
-            (
-              (
-                vmap.get(pattern.source(ep)).contains(target.source(et)) &&
-                  vmap.get(pattern.target(ep)).contains(target.target(et))
-                ) ||
-                (
-                  vmap.get(pattern.source(ep)).contains(target.target(et)) &&
-                    vmap.get(pattern.target(ep)).contains(target.source(et))
-                  )
-              ))
-      }
-    }
+    else map.isHomomorphism(pattern, target)
 
   def isTotal: Boolean =
     if (!isNormalized) normalize.isTotal
-    else {
-      vmap.domSet == pattern.verts &&
-      emap.domSet == pattern.edges &&
-      bbmap.domSet == pattern.bboxes
-    }
+    else map.isTotal(pattern)
 }

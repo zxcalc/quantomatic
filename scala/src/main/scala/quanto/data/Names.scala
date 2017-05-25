@@ -3,12 +3,9 @@ import scala.collection._
 import quanto.util.StringNamer
 
 
-abstract class Name[This <: Name[This]] extends Ordered[This] {
-  def succ: This
-}
 
 
-abstract class StrName[This <: StrName[This]] extends Name[This] {
+trait Name[This <: Name[This]] extends Ordered[This] {
   val s: String
   protected val mk: String => This
 
@@ -34,11 +31,11 @@ abstract class StrName[This <: StrName[This]] extends Name[This] {
   override def toString = s
 }
 
-case class GName(s: String) extends StrName[GName] { protected val mk = GName(_) }
-case class VName(s: String) extends StrName[VName] { protected val mk = VName(_) }
-case class EName(s: String) extends StrName[EName] { protected val mk = EName(_) }
-case class BBName(s: String) extends StrName[BBName] { protected val mk = BBName(_) }
-case class DSName(s: String) extends StrName[DSName] { protected val mk = DSName(_) }
+case class GName(s: String) extends Name[GName] { protected val mk = GName(_) }
+case class VName(s: String) extends Name[VName] { protected val mk = VName(_) }
+case class EName(s: String) extends Name[EName] { protected val mk = EName(_) }
+case class BBName(s: String) extends Name[BBName] { protected val mk = BBName(_) }
+case class DSName(s: String) extends Name[DSName] { protected val mk = DSName(_) }
 
 class DuplicateNameException[N <: Name[N]](ty: String, val name: N)
   extends Exception("Duplicate " + ty + " name: '" + name + "'")

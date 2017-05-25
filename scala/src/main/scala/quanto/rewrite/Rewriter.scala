@@ -18,10 +18,10 @@ object Rewriter {
 
     // compute the pushout complement
     val context = m1.target
-      .deleteEdges(m1.emap.codSet)
-      .deleteVertices(m1.vmap.directImage(interiorLhs))
+      .deleteEdges(m1.map.e.codSet)
+      .deleteVertices(m1.map.v.directImage(interiorLhs))
 
-    val vmap = interiorRhs.foldRight(m1.vmap.restrictDom(boundary)) { (v, mp) =>
+    val vmap = interiorRhs.foldRight(m1.map.v.restrictDom(boundary)) { (v, mp) =>
       mp + (v -> (context.verts union mp.codSet).freshWithSuggestion(v))
     }
 
@@ -31,8 +31,8 @@ object Rewriter {
 
 
     // quotient the lhs and rhs such that pairs of boundaries mapped to the same vertex are identified
-    val quotientLhs = m.pattern.rename(m.vmap.toMap, m.emap.toMap, m.bbmap.toMap)
-    val quotientRhs = rhs.rename(vmap.toMap, emap.toMap, m1.bbmap.toMap)
+    val quotientLhs = m.pattern.rename(m.map.v.toMap, m.map.e.toMap, m.map.bb.toMap)
+    val quotientRhs = rhs.rename(vmap.toMap, emap.toMap, m1.map.bb.toMap)
 
     // compute the pushout as a union of the context with the quotiented domain of the matching
     (quotientRhs.appendGraph(context), Rule(quotientLhs, quotientRhs))

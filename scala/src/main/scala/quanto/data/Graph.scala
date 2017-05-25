@@ -18,6 +18,9 @@ case class GraphSearchContext(exploredV: Set[VName], exploredE: Set[EName])
 class GraphLoadException(message: String, cause: Throwable = null)
 extends GraphException(message, cause)
 
+sealed abstract class BBOp
+case class BBExpand(bb: BBName, mp: GraphMap) extends BBOp
+
 
 case class Graph(
                    data: GData                     = GData(),
@@ -713,6 +716,11 @@ case class Graph(
       if (g.vdata(v).isWireVertex) g.wireToEdge(v)
       else g
     }
+  }
+
+  // make a copy of the given bbox's contents, without copying the bbox itself
+  def expandBBox(bb: BBName) = {
+    this
   }
 }
 

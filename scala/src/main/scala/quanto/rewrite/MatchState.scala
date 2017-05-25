@@ -18,7 +18,7 @@ case class MatchState(
                        nextState: Option[MatchState] = None             // next state to try after search terminates
                      ) {
 
-  val uVerts: Set[VName]   = m.pattern.verts -- m.vmap.domSet
+  val uVerts: Set[VName]   = m.pattern.verts -- m.map.v.domSet
   val uCircles: Set[VName] = uVerts.filter(m.pattern.isCircle)
   lazy val uNodes: Set[VName] = uVerts.filter { v => !m.pattern.vdata(v).isWireVertex }
   lazy val uWires: Set[VName] = uVerts.filter { v => m.pattern.vdata(v).isWireVertex }
@@ -50,7 +50,7 @@ case class MatchState(
       val np = psNodes.head
 
       if (pVertexMayBeCompleted(np)) {
-        val nt = m.vmap(np)
+        val nt = m.map.v(np)
         // get the next matchable edge in the neighbourhood of np
         val epOpt = m.pattern.adjacentEdges(np).find { e => uWires.contains(m.pattern.edgeGetOtherVertex(e, np)) }
         epOpt match {
@@ -60,7 +60,7 @@ case class MatchState(
             candidateEdges match {
               case None =>
                 copy(candidateEdges = Some(m.target.adjacentEdges(nt).filter { e =>
-                  !m.emap.codSet.contains(e) &&
+                  !m.map.e.codSet.contains(e) &&
                   tVerts.contains(m.target.edgeGetOtherVertex(e, nt))
                 })).nextMatch()
               case Some(candidateEdges1) =>
@@ -80,7 +80,7 @@ case class MatchState(
           // If there are no matchable edges in nhd(np), de-schedule np. If emap is now surjective on nhd(nt),
           // then additionally mark np as done.
           case None =>
-            if (m.target.adjacentEdges(nt).forall(m.emap.codSet.contains))
+            if (m.target.adjacentEdges(nt).forall(m.map.e.codSet.contains))
               copy(pNodes = pNodes - np, psNodes = psNodes - np).nextMatch()
             else
               copy(psNodes = psNodes - np).nextMatch()
@@ -227,7 +227,7 @@ case class MatchState(
       val newVt = m.target.edgeGetOtherVertex(et, vt)
 
       if (pNodes contains newVp) {
-        if (m.vmap contains (newVp -> newVt))
+        if (m.map.v contains (newVp -> newVt))
           Some(copy(psNodes = psNodes + newVp, m = m.addEdge(ep -> et)))
         else None
       } else if (tVerts contains newVt) {
