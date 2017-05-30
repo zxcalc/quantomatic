@@ -22,7 +22,7 @@ extends Ordered[AdjMat]
   lazy val size: Int = mat.length
   lazy val numRed = red.sum
   lazy val numGreen = green.sum
-
+  lazy val hash = makeHash()
   // advance to the next type of vertex added by the addVertex method. The order is boundaries,
   // then each red type, then each green type.
   def nextType: Option[AdjMat] = {
@@ -138,6 +138,19 @@ extends Ordered[AdjMat]
 
   // returns true if all boundaries are connected to something
   def isComplete: Boolean = (0 until numBoundaries).forall(i => mat(i).contains(true))
+
+  private def makeHash(): String = {
+    "" + (size - numGreen - numRed) +
+      "-" + red.sum + "-" + green.sum +
+      // ignore vertex typing?
+      // red.mkString("r", "-", "") +
+      // green.mkString("g", "-", "") +
+      "." +
+      java.lang.Long.toString(java.lang.Long.parseLong(
+        mat.flatten.foldLeft("")((a, b) => if (b) a + "1" else a + "0"), 2)
+        , 36)
+  }
+
 
   override def toString: String = {
     val pipes = Array.fill(size+1)(0)

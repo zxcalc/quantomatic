@@ -119,6 +119,34 @@ class ColbournReadEnumSpec extends FlatSpec {
     assert(amat.validConnections(bipartite = false).length === 2*2*2*2)
   }
 
+  it should "create a short, unique identifier" in {
+    // Simple AdjMat first
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, true))
+    amat = amat.addVertex(Vector(false, false, false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, false, true, true))
+    assert(amat.hash == "2-2-1.309y")
+
+    // Now for multiple types
+    amat = new AdjMat(numRedTypes = 2, numGreenTypes = 2)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(true, false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, true, false))
+    amat = amat.addVertex(Vector(false, false, false, true))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, false, false, true, false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, false, false, true, false, true))
+    assert(amat.hash == "2-3-2.p1p5tukju")
+  }
+
   behavior of "Graph enumerator"
 
   // numbers of graphs with 0-5 vertices: 1, 1, 2, 4, 11, 34
