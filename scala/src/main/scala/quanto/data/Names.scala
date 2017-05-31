@@ -1,4 +1,7 @@
 package quanto.data
+
+import quanto.util.json.JsonString
+
 import scala.collection._
 import quanto.util.StringNamer
 
@@ -73,32 +76,34 @@ object Names {
     }
   }
 
+  // TODO: overkill with implicits?
+
   implicit def setToNameSet[N <: Name[N]](set : Set[N]):NameSet[N] =
     new NameSet(set)
   implicit def mapToNameMap[N <: Name[N], T](map : Map[N,T]):NameMap[N,T] =
     new NameMap(map)
 
   // these support general-purpose string-for-name substitution
-  implicit def stringToGName(s: String)  = GName(s)
-  implicit def stringToVName(s: String)  = VName(s)
-  implicit def stringToEName(s: String)  = EName(s)
-  implicit def stringToBBName(s: String) = BBName(s)
-  implicit def stringToDSName(s: String) = DSName(s)
+  implicit def stringToGName(s: String): GName  = GName(s)
+  implicit def stringToVName(s: String): VName  = VName(s)
+  implicit def stringToEName(s: String): EName  = EName(s)
+  implicit def stringToBBName(s: String): BBName = BBName(s)
+  implicit def stringToDSName(s: String): DSName = DSName(s)
 
-  implicit def stringSetToGNameSet(set: Set[String]) = set map (GName(_))
-  implicit def stringSetToVNameSet(set: Set[String]) = set map (VName(_))
-  implicit def stringSetToENameSet(set: Set[String]) = set map (EName(_))
-  implicit def stringSetToBBNameSet(set: Set[String]) = set map (BBName(_))
-  implicit def stringSetToDSNameSet(set: Set[String]) = set map (DSName(_))
+  implicit def stringSetToGNameSet(set: Set[String]): Set[GName] = set map GName.apply
+  implicit def stringSetToVNameSet(set: Set[String]): Set[VName] = set map VName.apply
+  implicit def stringSetToENameSet(set: Set[String]): Set[EName] = set map EName.apply
+  implicit def stringSetToBBNameSet(set: Set[String]): Set[BBName] = set map BBName.apply
+  implicit def stringSetToDSNameSet(set: Set[String]): Set[DSName] = set map DSName.apply
 
   // edge creation methods take a pair of vertices
-  implicit def stringPairToVNamePair(t: (String,String)) = (VName(t._1), VName(t._2))
+  implicit def stringPairToVNamePair(t: (String,String)): (VName, VName) = (VName(t._1), VName(t._2))
 
   // these can be used to save names into JSON without conversion
-  implicit def gNameToJsonString(n: GName) = quanto.util.json.JsonString(n.toString)
-  implicit def vNameToJsonString(n: VName) = quanto.util.json.JsonString(n.toString)
-  implicit def eNameToJsonString(n: EName) = quanto.util.json.JsonString(n.toString)
-  implicit def bbNameToJsonString(n: BBName) = quanto.util.json.JsonString(n.toString)
+  implicit def gNameToJsonString(n: GName): JsonString = quanto.util.json.JsonString(n.toString)
+  implicit def vNameToJsonString(n: VName): JsonString = quanto.util.json.JsonString(n.toString)
+  implicit def eNameToJsonString(n: EName): JsonString = quanto.util.json.JsonString(n.toString)
+  implicit def bbNameToJsonString(n: BBName): JsonString = quanto.util.json.JsonString(n.toString)
 
   implicit val defaultVName = VName("v0")
   implicit val defaultEName = EName("e0")

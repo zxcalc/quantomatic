@@ -18,8 +18,11 @@ case class GraphSearchContext(exploredV: Set[VName], exploredE: Set[EName])
 class GraphLoadException(message: String, cause: Throwable = null)
 extends GraphException(message, cause)
 
-sealed abstract class BBOp
+sealed abstract class BBOp { def bb: BBName }
 case class BBExpand(bb: BBName, mp: GraphMap) extends BBOp
+case class BBCopy(bb: BBName, mp: GraphMap) extends BBOp
+case class BBDrop(bb: BBName) extends BBOp
+case class BBKill(bb: BBName) extends BBOp
 
 
 case class Graph(
@@ -116,6 +119,9 @@ case class Graph(
 
   /** Returns a set of edge names adjacent to vn */
   def adjacentEdges(vn: VName): Set[EName] = source.codf(vn) union target.codf(vn)
+
+  def adjacentEdges(vset: Set[VName]): Set[EName] =
+    vset.foldRight(Set[EName]()) { (v,es) => es union adjacentEdges(v) }
 
   /** Returns a set of edge names which connect v1 to v2 or vice versa */
   def edgesBetween(v1: VName, v2: VName): Set[EName] = {
@@ -718,9 +724,66 @@ case class Graph(
     }
   }
 
-  // make a copy of the given bbox's contents, without copying the bbox itself
-  def expandBBox(bb: BBName) = {
-    this
+  /**
+    * make a copy of the given bbox's contents, without copying the bbox itself
+    * @param bb the bbox to be expanded
+    * @return the new graph and a record containing relevant data for replaying the expansion
+    */
+  def expandBBox(bb: BBName): (Graph, BBExpand) = {
+    if (bboxParent.domSet contains bb) throw new GraphException("Attempted to expand non-toplevel bbox")
+    val g = fullSubgraph(contents(bb), bboxChildren(bb))
+
+    var (g1,vmap,emap,bbmap) = fullSubgraph(contents(bb), bboxChildren(bb)).renameAvoiding1(this)
+    g1 = appendGraph(g1)
+
+    var freshE = g1.edges
+
+    for (e <- adjacentEdges(g.verts) -- g.edges) {
+      val s = source(e)
+      val t = target(e)
+      val e1 = freshE.freshWithSuggestion(e)
+      emap = emap + (e -> e1)
+      g1 = g1.addEdge(e1, edata(e), vmap.getOrElse(s,s) -> vmap.getOrElse(t,t))
+    }
+
+    (g1, BBExpand(bb,GraphMap(vmap,emap,bbmap)))
+  }
+
+  /**
+    * make a copy of the given bbox
+    * @param bb the bbox to be copied
+    * @return the new graph and a record containing relevant data for replaying the copy
+    */
+  def copyBBox(bb: BBName): (Graph, BBCopy) = {
+    var (g1, bbe) = expandBBox(bb)
+    val bb1 = g1.bboxes.freshWithSuggestion(bb)
+    g1 = g1.addBBox(bb1, bbdata(bb), bbe.mp.v.codSet)
+
+    for (bb2 <- bbe.mp.bb.codSet) g1 = g1.setBBoxParent(bb2, Some(bb1))
+
+    (g1, BBCopy(bb, bbe.mp addBBox (bb -> bb1)))
+  }
+
+  /**
+    * drop the given bbox, keeping the contents intact
+    * @param bb the bbox to be dropped
+    * @return the new graph and a record containing relevant data for replaying the drop
+    */
+  def dropBBox(bb: BBName): (Graph, BBDrop) = {
+    (deleteBBox(bb), BBDrop(bb))
+  }
+
+  /**
+    * kill the given bbox, also deleting child nodes and bboxes
+    * @param bb the bbox to be dropped
+    * @return the new graph and a record containing relevant data for replaying the drop
+    */
+  def killBBox(bb: BBName): (Graph, BBKill) = {
+    var g1 = this
+    for (bb1 <- bboxChildren(bb)) g1 = g1.deleteBBox(bb1)
+    g1 = g1.deleteVertices(contents(bb)).deleteBBox(bb)
+
+    (g1, BBKill(bb))
   }
 }
 

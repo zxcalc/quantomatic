@@ -157,4 +157,7 @@ object PFun {
   def apply[A,B](kvs: (A,B)*)(implicit keyOrd: Ordering[A]) : PFun[A,B] = {
     kvs.foldLeft(new PFun[A,B](Map(),Map())){ (pf: PFun[A,B], kv: (A,B)) => pf + kv }
   }
+
+  implicit def mapToPFun[A,B](mp: Map[A,B])(implicit keyOrd: Ordering[A]): PFun[A,B] = PFun(mp.toSeq:_*)
+  implicit def pFunToMap[A,B](f: PFun[A,B]): Map[A,B] = f.toMap
 }
