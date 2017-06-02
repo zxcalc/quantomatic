@@ -1,6 +1,7 @@
 package quanto.data
 
 import Names._
+import quanto.cosy.AdjMat
 import quanto.util.json._
 import math.sqrt
 import JsonValues._
@@ -952,5 +953,38 @@ object Graph {
       }
 
     randomGraph
+  }
+
+
+  def fromAdjmat(amat: AdjMat, rdata: Vector[NodeV], gdata: Vector[NodeV]): Graph = {
+    val thy =
+      if (gdata.nonEmpty) gdata(0).theory
+      else if (rdata.nonEmpty) rdata(0).theory
+      else throw new GraphException("Must give at least one piece of node data")
+
+    var g = Graph(thy)
+    for (i <- 0 until amat.numBoundaries) g = g.addVertex(VName("v"+i), WireV(theory = thy))
+
+    var i = amat.numBoundaries
+
+    for (t <- 0 until amat.numRedTypes; v <- 0 until amat.red(t)) {
+      g = g.addVertex(VName("v" + i), rdata(t))
+      i += 1
+    }
+
+    for (t <- 0 until amat.numGreenTypes; v <- 0 until amat.green(t)) {
+      g = g.addVertex(VName("v" + i), gdata(t))
+      i += 1
+    }
+
+    val ed = UndirEdge(theory = thy, data = thy.defaultEdgeData)
+
+    i = 0
+    for (j <- 0 until amat.size; k <- 0 until j; if amat.mat(i)(j)) {
+      g = g.addEdge(EName("e" + i), ed, VName("v" + j) -> VName("v" + k))
+      i += 1
+    }
+
+    g
   }
 }
