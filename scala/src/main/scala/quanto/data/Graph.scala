@@ -89,7 +89,6 @@ case class Graph(
   def outEdges(vn: VName): Set[EName] = source.codf(vn)
   def predVerts(vn: VName): Set[VName] = inEdges(vn).map(source(_))
   def succVerts(vn: VName): Set[VName] = outEdges(vn).map(target(_))
-  def adjacentVerts(vn: VName): Set[VName] = predVerts(vn) union succVerts(vn)
   def contents(bbn: BBName): Set[VName] = inBBox.codf(bbn)
   def bboxesContaining(vn: VName): Set[BBName] = inBBox.domf(vn)
   def isBoundary(vn: VName): Boolean =
@@ -117,9 +116,17 @@ case class Graph(
     case (vs,_) => vs
   }
 
+  /** Returns a set of vertex names adjacent to vn */
+  def adjacentVerts(vn: VName): Set[VName] = predVerts(vn) union succVerts(vn)
+
+  /** Returns a set of vertex names adjacent to, but not including, vset */
+  def adjacentVerts(vset: Set[VName]): Set[VName] =
+    vset.foldRight(Set[VName]()) { (v,vs) => vs union adjacentVerts(v) } -- vset
+
   /** Returns a set of edge names adjacent to vn */
   def adjacentEdges(vn: VName): Set[EName] = source.codf(vn) union target.codf(vn)
 
+  /** Returns a set of edge names adjacent to any vertex in vset */
   def adjacentEdges(vset: Set[VName]): Set[EName] =
     vset.foldRight(Set[EName]()) { (v,es) => es union adjacentEdges(v) }
 
