@@ -4,6 +4,7 @@ import org.scalatest._
 import quanto.cosy.AdjMat
 import quanto.data._
 import quanto.data.Names._
+import quanto.layout.ForceLayout
 import quanto.util.json._
 
 
@@ -45,21 +46,21 @@ class GraphAdjmatSpec extends FlatSpec {
     val g1 = Graph.fromJson(Json.parse(
       """
         |{
-        |  "wire_vertices" : [ "v0", "v1" ],
+        |  "wire_vertices" : ["v0", "v1"],
         |  "node_vertices" : {
         |    "v2" : {"data" : {"type" : "X", "value" : "0" }},
-        |    "v3" : {"data" : {"type" : "X", "value" : "pi"}}
+        |    "v3" : {"data" : {"type" : "X", "value" : "pi"}},
         |    "v4" : {"data" : {"type" : "X", "value" : "pi"}},
         |    "v5" : {"data" : {"type" : "Z", "value" : "0"}},
-        |    "v6" : {"data" : {"type" : "Z", "value" : "pi"}},
+        |    "v6" : {"data" : {"type" : "Z", "value" : "pi"}}
         |  },
         |  "undir_edges" : {
         |    "e0" : {"src" : "v2", "tgt" : "v0"},
         |    "e1" : {"src" : "v3", "tgt" : "v1"},
-        |    "e2" : {"src" : "v4", "tgt" : "v3"}
+        |    "e2" : {"src" : "v4", "tgt" : "v3"},
         |    "e3" : {"src" : "v5", "tgt" : "v3"},
         |    "e4" : {"src" : "v6", "tgt" : "v3"},
-        |    "e5" : {"src" : "v6", "tgt" : "v5"},
+        |    "e5" : {"src" : "v6", "tgt" : "v5"}
         |  }
         |}
       """.stripMargin), rg)
@@ -67,5 +68,10 @@ class GraphAdjmatSpec extends FlatSpec {
     assert(g.isBoundary("v0"))
     assert(g.isBoundary("v1"))
     assert(g === g1)
+
+//  LAYOUT AND OUTPUT THIS GRAPH LIKE THIS:
+//    val layoutProc = new ForceLayout
+//    val g2 = layoutProc.layout(g)
+//    Graph.toJson(g2, rg).writeTo(new java.io.File("XXX"))
   }
 }
