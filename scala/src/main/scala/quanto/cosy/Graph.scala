@@ -7,6 +7,7 @@ package quanto.cosy
 
 object VertexType {
 
+  // Red, Green or Boundary
   sealed trait EnumVal
 
   case object Boundary extends EnumVal
@@ -20,21 +21,30 @@ object VertexType {
 case class Vertex(vertexType: VertexType.EnumVal,
                   angleType: Int,
                   connections: Set[Int]) {
-
+  // Holds colour, angle and edge connections
 }
 
-case class Edge(connect: List[Int])
-
 class Graph(adjMat: AdjMat) {
-  val vertices: scala.collection.mutable.Map[Int, Vertex] = collection.mutable.Map()
+  // Converts an AdjMat into a graph of vertices and edges
+  // It steps through one column at a time
+  var vertices: Map[Int, Vertex] = Map()
   var vIndex = 0
   var colCount = 0
-  var typeCount = 0
+  var angleTypeCount = 0
+
+  var boundaries: List[Vertex] = List()
+  var redVertices: List[Vertex] = List()
+  var greenVertices: List[Vertex] = List()
 
   def vertexList: List[Vertex] = vertices.map { case (key, value) => value }.toList
 
   def add(v: Vertex): Unit = {
-    vertices += (vIndex -> v)
+    vertices = vertices + (vIndex -> v)
+    v.vertexType match {
+      case VertexType.Boundary => boundaries = v :: boundaries
+      case VertexType.Green => greenVertices = v :: greenVertices
+      case VertexType.Red => redVertices = v :: redVertices
+    }
     vIndex += 1
   }
 
@@ -49,20 +59,22 @@ class Graph(adjMat: AdjMat) {
 
   for (j <- adjMat.red) {
     for (i <- 0 until j) {
-      add(Vertex(VertexType.Red, typeCount, connectionsFromVector(adjMat.mat(colCount))))
+      add(Vertex(VertexType.Red, angleTypeCount, connectionsFromVector(adjMat.mat(colCount))))
       colCount += 1
     }
-    typeCount += 1
+    angleTypeCount += 1
   }
 
-  typeCount = 0
+  angleTypeCount = 0
   for (j <- adjMat.green) {
     for (i <- 0 until j) {
-      add(Vertex(VertexType.Green, typeCount, connectionsFromVector(adjMat.mat(colCount))))
+      add(Vertex(VertexType.Green, angleTypeCount, connectionsFromVector(adjMat.mat(colCount))))
       colCount += 1
     }
-    typeCount += 1
+    angleTypeCount += 1
   }
+
+  override def toString: String = adjMat.toString
 }
 
 object Graph {

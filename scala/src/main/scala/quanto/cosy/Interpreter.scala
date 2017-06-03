@@ -5,21 +5,23 @@ package quanto.cosy
   */
 
 object Interpreter {
-
+  // Converts a given graph or spider into tensor form
   type cachedSpiders = collection.mutable.Map[String, Tensor]
-  type AngleMap = Map[Int, Double]
+  type AngleMap = Int => Double
   val cached: cachedSpiders = collection.mutable.Map.empty[String, Tensor]
 
   def makeHadamards(n: Int, current: Tensor = Tensor.id(1)): Tensor = n match {
+    // generates the n-fold tensor products of Hadamard maps
     case 0 => Tensor.id(1)
     case _ => Tensor.hadamard x makeHadamards(n - 1, current)
   }
 
   def interpretSpider(green: Boolean, angle: Double, inputs: Int, outputs: Int): Tensor = {
+    // Converts spider to tensor. If green==false then it is a red spider
     val toString = green.toString + ":" + angle + ":" + inputs + ":" + outputs
     if (cached.contains(toString)) cached(toString) else {
       def gen(i: Int, j: Int): Complex =
-        if (i == 0 && j == 0) Complex.one
+        if (i == 0 && j == 0) Complex.one //TODO: Scalars
         else if (i == math.pow(2, outputs) - 1 && j == math.pow(2, inputs) - 1) Complex(math.cos(angle), math.sin(angle))
         else Complex.zero
 
@@ -31,10 +33,12 @@ object Interpreter {
   }
 
   def interpretGraph(graph: Graph, greenAM: AngleMap, redAM: AngleMap): Tensor = {
+    // Converts a graph to a tensor. The angle maps convert the angleType of a vertex to a Double
     interpretGraphSpidersFirst(graph, greenAM, redAM)
   }
 
   private def interpretGraphSpidersFirst(graph: Graph, greenAM: AngleMap, redAM: AngleMap): Tensor = {
+    // Interpret the graph as (caps) o (crossings) o (vertices)
     val vertices = graph.vertices
     val allSpidersVectors = vertices.values.toList
     var vertexNextEdge = Map[Int, Int]()

@@ -5,15 +5,14 @@ package quanto.cosy
  */
 
 class Complex(
-
                val re: Double,
                val im: Double) {
+  // Stores complex numbers as pairs of Doubles
   override def toString: String =
     toStringConcise
 
-  //re + (if (im < 0) "-" + -im else "+" + im) + "i"
-
   def toStringConcise: String = {
+    // Convert to concise expression, e.g. -2i not 0-2i
     def simpleNum(x: Double): String = {
       if (x == 0) ""
       else if (x == x.floor) x.toInt.toString
@@ -44,12 +43,9 @@ class Complex(
 
   def this(re: Double) = this(re, 0)
 
-  def /(that: Complex) = this * that.inverse
+  def /(that: Complex): Complex = this * that.inverse
 
   def inverse(): Complex = (Complex(re, 0) - Complex(0, im)) * (1 / (re * re + im * im))
-
-  def *(that: Complex) =
-    new Complex(re * that.re - im * that.im, re * that.im + im * that.re)
 
   def -(that: Complex): Complex =
     this + that.negate
@@ -58,6 +54,9 @@ class Complex(
     new Complex(re + that.re, im + that.im)
 
   def negate(): Complex = new Complex(-this.re, -this.im)
+
+  def *(that: Complex) =
+    new Complex(re * that.re - im * that.im, re * that.im + im * that.re)
 
   def abs: Double = math.pow(re * re + im * im, 0.5)
 

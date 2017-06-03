@@ -23,20 +23,14 @@ class TensorSpec extends FlatSpec {
     var t1 = new Tensor(Array(Array(zero, one)))
     var t2 = new Tensor(Array(Array(zero), Array(one)))
     var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2, 0))))
-    var t4 = new Tensor(2, 2, (i, j) => new Complex(i + j))
-  }
-
-  it should "compare tensors" in {
-    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2, 0))))
-    var t4 = new Tensor(2, 2, (i, j) => new Complex(i + j))
-    assert(t3 == t4)
+    var t4 = Tensor(2, 2, (i, j) => new Complex(i + j))
   }
 
   it should "make identity matrices" in {
     var t1 = new Tensor(Array(Array(zero, one)))
     var t2 = new Tensor(Array(Array(zero), Array(one)))
     var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2, 0))))
-    var t4 = new Tensor(2, 2, (i, j) => new Complex(i + j))
+    var t4 = Tensor(2, 2, (i, j) => new Complex(i + j))
 
     def id = (x: Int) => Tensor.id(x)
 
@@ -109,5 +103,34 @@ class TensorSpec extends FlatSpec {
     assert(t2 + t3 == Tensor(Array(Array(1, 1))))
     var t1 = Tensor.id(4)
     assert(t1 - t1 == Tensor(4, 4, (i: Int, j: Int) => Complex.zero))
+  }
+
+  behavior of "Tensor comparison"
+
+  it should "element equality" in {
+    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2, 0))))
+    var t4 = Tensor(2, 2, (i, j) => new Complex(i + j))
+    var t5 = Tensor(2, 2, (i, j) => new Complex(i + j + 1))
+    assert(t3 == t4)
+    assert(!(t4 == t5))
+  }
+
+  it should "reject differently sized tensors" in {
+    var t1 = Tensor.zero(2,2)
+    var t2 = Tensor.zero(2,1)
+    assert(t1 != t2)
+  }
+
+  it should "compare roughly (1e-14)" in {
+    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2, 0))))
+    var t4 = Tensor(2, 2, (i, j) => new Complex(i + j + 1e-15))
+    assert(t3 isRoughly t4)
+  }
+
+  it should "compare roughly (given tolerance)" in {
+    var t3 = new Tensor(Array(Array(zero, one), Array(one, Complex(2, 0))))
+    var t4 = Tensor(2, 2, (i, j) => new Complex(i + j + 1e-4))
+    assert(!t3.isRoughly(t4, 1e-15))
+    assert(t3.isRoughly(t4, 1e-2))
   }
 }
