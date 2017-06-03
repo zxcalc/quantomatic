@@ -69,9 +69,17 @@ class GraphAdjmatSpec extends FlatSpec {
     assert(g.isBoundary("v1"))
     assert(g === g1)
 
-//  LAYOUT AND OUTPUT THIS GRAPH LIKE THIS:
-//    val layoutProc = new ForceLayout
-//    val g2 = layoutProc.layout(g)
-//    Graph.toJson(g2, rg).writeTo(new java.io.File("XXX"))
+    // LAYOUT A GRAPH LIKE THIS:
+    // val layoutProc = new ForceLayout
+    // val g2 = layoutProc.layout(g)
+    //
+    // TRANSLATE TO JSON:
+    // val json = Graph.toJson(g2, rg)
+    //
+    // WHICH CAN BE INCLUDED IN A BIGGER FILE (see classes in quanto.util.json), e.g.
+    // val bigList = JsonArray(json1, json2, ...)
+    //
+    // OR OUTPUT AS A STANDALONE GRAPH LIKE THIS:
+    // json.writeTo(new java.io.File("/path/to/XXX.qgraph"))
   }
 }
