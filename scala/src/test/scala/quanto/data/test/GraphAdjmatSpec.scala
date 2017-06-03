@@ -8,7 +8,7 @@ import quanto.layout.ForceLayout
 import quanto.util.json._
 
 
-class GraphAdjmatSpec extends FlatSpec {
+class GraphAdjMatSpec extends FlatSpec {
   val rg = Theory.fromFile("red_green")
 
   behavior of "A graph from adjacency matrix"
