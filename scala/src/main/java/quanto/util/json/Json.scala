@@ -305,7 +305,7 @@ object Json {
     }
 
     var nextJson: Option[Json] = None
-    while (!stack.isEmpty) {
+    while (stack.nonEmpty) {
       try {
         nextJson = p.nextToken() match {
           case JsonToken.START_ARRAY => stack.push((JsonArray(),None)); None
@@ -329,7 +329,7 @@ object Json {
 
 
       nextJson.map(item => {
-        if (!stack.isEmpty) stack.push(stack.pop() match {
+        if (stack.nonEmpty) stack.push(stack.pop() match {
           case (JsonObject(obj), Some(field)) => (JsonObject(obj + (field -> item)), None)
           case (JsonArray(arr), _) => (JsonArray(arr :+ item), None)
           case x => x

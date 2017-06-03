@@ -3,6 +3,7 @@ package quanto.data.test
 import org.scalatest._
 import quanto.cosy.AdjMat
 import quanto.data._
+import quanto.data.Names._
 import quanto.util.json._
 
 
@@ -11,13 +12,6 @@ class GraphAdjmatSpec extends FlatSpec {
 
   behavior of "A graph from adjacency matrix"
 
-  val gdata = Vector(
-    NodeV(data = JsonObject("type" -> "Z", "value" -> "0"), theory = rg),
-    NodeV(data = JsonObject("type" -> "Z", "value" -> "pi"), theory = rg),
-    NodeV(data = JsonObject("type" -> "Z", "value" -> "(1/2) pi"), theory = rg),
-    NodeV(data = JsonObject("type" -> "Z", "value" -> "(-1/2) pi"), theory = rg)
-  )
-
   val rdata = Vector(
     NodeV(data = JsonObject("type" -> "X", "value" -> "0"), theory = rg),
     NodeV(data = JsonObject("type" -> "X", "value" -> "pi"), theory = rg),
@@ -25,8 +19,53 @@ class GraphAdjmatSpec extends FlatSpec {
     NodeV(data = JsonObject("type" -> "X", "value" -> "(-1/2) pi"), theory = rg)
   )
 
+  val gdata = Vector(
+    NodeV(data = JsonObject("type" -> "Z", "value" -> "0"), theory = rg),
+    NodeV(data = JsonObject("type" -> "Z", "value" -> "pi"), theory = rg),
+    NodeV(data = JsonObject("type" -> "Z", "value" -> "(1/2) pi"), theory = rg),
+    NodeV(data = JsonObject("type" -> "Z", "value" -> "(-1/2) pi"), theory = rg)
+  )
+
   it should "be constructible" in {
-    val amat = AdjMat(numRedTypes = 2, numGreenTypes = 2, numBoundaries = 2, mat = Vector(
-      Vector(true,false,true,true)))
+    var amat = new AdjMat(numRedTypes = 2, numGreenTypes = 2)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(true, false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, true, false))
+    amat = amat.addVertex(Vector(false, false, false, true))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, false, false, true, false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, false, false, true, false, true))
+    val g = Graph.fromAdjMat(amat, rdata, gdata)
+    println(Graph.toJson(g))
+
+    val g1 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices" : [ "v0", "v1" ],
+        |  "node_vertices" : {
+        |    "v2" : {"data" : {"type" : "X", "value" : "0" }},
+        |    "v3" : {"data" : {"type" : "X", "value" : "pi"}}
+        |    "v4" : {"data" : {"type" : "X", "value" : "pi"}},
+        |    "v5" : {"data" : {"type" : "Z", "value" : "0"}},
+        |    "v6" : {"data" : {"type" : "Z", "value" : "pi"}},
+        |  },
+        |  "undir_edges" : {
+        |    "e0" : {"src" : "v2", "tgt" : "v0"},
+        |    "e1" : {"src" : "v3", "tgt" : "v1"},
+        |    "e2" : {"src" : "v4", "tgt" : "v3"}
+        |    "e3" : {"src" : "v5", "tgt" : "v3"},
+        |    "e4" : {"src" : "v6", "tgt" : "v3"},
+        |    "e5" : {"src" : "v6", "tgt" : "v5"},
+        |  }
+        |}
+      """.stripMargin), rg)
+
+    assert(g.isBoundary("v0"))
+    assert(g.isBoundary("v1"))
+    assert(g === g1)
   }
 }
