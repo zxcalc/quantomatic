@@ -956,7 +956,7 @@ object Graph {
   }
 
 
-  def fromAdjmat(amat: AdjMat, rdata: Vector[NodeV], gdata: Vector[NodeV]): Graph = {
+  def fromAdjMat(amat: AdjMat, rdata: Vector[NodeV], gdata: Vector[NodeV]): Graph = {
     val thy =
       if (gdata.nonEmpty) gdata(0).theory
       else if (rdata.nonEmpty) rdata(0).theory
@@ -980,7 +980,7 @@ object Graph {
     val ed = UndirEdge(theory = thy, data = thy.defaultEdgeData)
 
     i = 0
-    for (j <- 0 until amat.size; k <- 0 until j; if amat.mat(i)(j)) {
+    for (j <- 0 until amat.size; k <- 0 until j; if amat.mat(j)(k)) {
       g = g.addEdge(EName("e" + i), ed, VName("v" + j) -> VName("v" + k))
       i += 1
     }
