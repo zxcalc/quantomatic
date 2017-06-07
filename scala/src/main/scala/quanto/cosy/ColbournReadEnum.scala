@@ -146,7 +146,7 @@ extends Ordered[AdjMat]
       // red.mkString("r", "-", "") +
       // green.mkString("g", "-", "") +
       "." +
-      java.lang.Long.toString(java.lang.Long.parseLong(
+      java.lang.Long.toString(java.lang.Long.parseLong("0"+
         mat.flatten.foldLeft("")((a, b) => if (b) a + "1" else a + "0"), 2)
         , 36)
   }

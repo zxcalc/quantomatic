@@ -28,6 +28,10 @@ class Tensor(c: Array[Array[Complex]]) {
     rightWidth && rightHeight
   }
 
+  def isSameShapeAs(that: Tensor): Boolean = {
+    this.width == that.width && this.height == that.height
+  }
+
   def compose(that: Tensor): Tensor = {
     // this o that
     require(this.width == that.height)
@@ -156,27 +160,6 @@ class Tensor(c: Array[Array[Complex]]) {
     isRoughly(_, maxDist)
   }
 
-  def isRoughly(that: Tensor, maxDistance: Double = 1e-14): Boolean =
-  // Compare two tensors up to a given distance
-    (this - that).contents.flatten.foldLeft(0.0) { (a: Double, b: Complex) => math.max(a, b.abs) } < maxDistance
-
-  def -(that: Tensor): Tensor = {
-    // this - that
-    this + that.scaled(Complex(-1, 0))
-  }
-
-  def +(that: Tensor): Tensor = {
-    // this + that
-    require(this.width == that.width)
-    require(this.height == that.height)
-    Tensor(this.height, this.width, (i, j) => this.c(i)(j) + that.contents(i)(j))
-  }
-
-  def scaled(that: Complex): Tensor = {
-    // scalar multiplication
-    Tensor(this.height, this.width, (i, j) => this.c(i)(j) * that)
-  }
-
   override def equals(other: Any): Boolean =
   // Compares matrix-entry by matrix-entry
     other match {
@@ -198,6 +181,30 @@ class Tensor(c: Array[Array[Complex]]) {
       val maxAbsEntry = this.contents.flatten.foldLeft(Complex.zero)((a, b) => if (b.abs > a.abs) b else a)
       this.scaled(maxAbsEntry.inverse())
     }
+  }
+
+  def isRoughly(that: Tensor, maxDistance: Double = 1e-14): Boolean =
+  // Compare two tensors up to a given distance
+    this.distance(that) < maxDistance
+
+  def distance(that: Tensor): Double =
+    (this - that).contents.flatten.foldLeft(0.0) { (a: Double, b: Complex) => math.max(a, b.abs) }
+
+  def -(that: Tensor): Tensor = {
+    // this - that
+    this + that.scaled(Complex(-1, 0))
+  }
+
+  def +(that: Tensor): Tensor = {
+    // this + that
+    require(this.width == that.width)
+    require(this.height == that.height)
+    Tensor(this.height, this.width, (i, j) => this.c(i)(j) + that.contents(i)(j))
+  }
+
+  def scaled(that: Complex): Tensor = {
+    // scalar multiplication
+    Tensor(this.height, this.width, (i, j) => this.c(i)(j) * that)
   }
 }
 
@@ -229,10 +236,42 @@ object Tensor {
     Tensor(cInt.length, cInt(0).length, (i, j) => Complex.doubleToComplex(cInt(i)(j)))
   }
 
+  def apply(height: Int, width: Int, generator: Tensor.Generator): Tensor = {
+    // create tensor based on size and generating function
+    new Tensor(generatorToMatrix(height, width, generator))
+  }
+
+  def generatorToMatrix(height: Int, width: Int, generator: Tensor.Generator): Matrix = {
+    // Create matrix of given size using the generator function
+    require(width > 0)
+    require(height > 0)
+    val e1 = emptyMatrix(height, width)
+    for (j <- 0 until height) {
+      for (i <- 0 until width) {
+        e1(j)(i) = generator(j, i)
+      }
+    }
+    e1
+  }
+
+  def emptyMatrix(height: Int, width: Int): Matrix = {
+    // Fill matrix with zeroes
+    (for (j <- 0 until height) yield
+      (for (i <- 0 until width) yield Complex.zero).toArray).toArray
+  }
+
   def permutation(asList: List[Int]): Tensor = {
     // Produce the matrix that sends i -> asList(i)
     val gen = (x: Int) => asList(x)
     new Tensor(permutationMatrix(asList.length, gen))
+  }
+
+  def permutationMatrix(size: Int, gen: Int => Int): Matrix = {
+    val base = emptyMatrix(size, size)
+    for (i <- 0 until size) {
+      base(gen(i))(i) = Complex.one
+    }
+    base
   }
 
   def permutation(asArray: Array[Int]): Tensor = {
@@ -269,40 +308,9 @@ object Tensor {
     new Tensor(permutationMatrix(size, gen))
   }
 
-  def permutationMatrix(size: Int, gen: Int => Int): Matrix = {
-    val base = emptyMatrix(size, size)
-    for (i <- 0 until size) {
-      base(gen(i))(i) = Complex.one
-    }
-    base
-  }
-
   def zero(height: Int, width: Int): Tensor =
   // Create the zero tensor
     Tensor(height, width, (i, j) => Complex.zero)
 
-  def apply(height: Int, width: Int, generator: Tensor.Generator): Tensor = {
-    // create tensor based on size and generating function
-    new Tensor(generatorToMatrix(height, width, generator))
-  }
-
-  def generatorToMatrix(height: Int, width: Int, generator: Tensor.Generator): Matrix = {
-    // Create matrix of given size using the generator function
-    require(width > 0)
-    require(height > 0)
-    val e1 = emptyMatrix(height, width)
-    for (j <- 0 until height) {
-      for (i <- 0 until width) {
-        e1(j)(i) = generator(j, i)
-      }
-    }
-    e1
-  }
-
-  def emptyMatrix(height: Int, width: Int): Matrix = {
-    // Fill matrix with zeroes
-    (for (j <- 0 until height) yield
-      (for (i <- 0 until width) yield Complex.zero).toArray).toArray
-  }
   // for comparing entries
 }

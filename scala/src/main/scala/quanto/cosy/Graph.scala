@@ -24,7 +24,7 @@ case class Vertex(vertexType: VertexType.EnumVal,
   // Holds colour, angle and edge connections
 }
 
-class Graph(adjMat: AdjMat) {
+class Graph(val adjMat: AdjMat) {
   // Converts an AdjMat into a graph of vertices and edges
   // It steps through one column at a time
   var vertices: Map[Int, Vertex] = Map()
