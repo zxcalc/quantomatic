@@ -202,9 +202,9 @@ class Tensor(c: Array[Array[Complex]]) {
     Tensor(this.height, this.width, (i, j) => this.c(i)(j) + that.contents(i)(j))
   }
 
-  def scaled(that: Complex): Tensor = {
+  def scaled(factor: Complex): Tensor = {
     // scalar multiplication
-    Tensor(this.height, this.width, (i, j) => this.c(i)(j) * that)
+    Tensor(this.height, this.width, (i, j) => this.c(i)(j) * factor)
   }
 }
 

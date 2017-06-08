@@ -7,6 +7,19 @@ package quanto.cosy
   */
 
 
+object VertexColour {
+
+  // Red, Green or Boundary
+  sealed trait EnumVal
+
+  case object Boundary extends EnumVal
+
+  case object Green extends EnumVal
+
+  case object Red extends EnumVal
+
+}
+
 class GraphEnumException(msg: String) extends Exception(msg)
 
 
@@ -17,12 +30,39 @@ case class AdjMat(numRedTypes: Int,
                   red: Vector[Int] = Vector(),
                   green: Vector[Int] = Vector(),
                   mat: Vector[Vector[Boolean]] = Vector())
-extends Ordered[AdjMat]
-{
+  extends Ordered[AdjMat] {
   lazy val size: Int = mat.length
   lazy val numRed = red.sum
   lazy val numGreen = green.sum
   lazy val hash = makeHash()
+  lazy val vertexColoursAndTypes : List[(VertexColour.EnumVal, Int)] = {
+    var _vertexColoursAndTypes: List[(VertexColour.EnumVal, Int)] = List()
+    var colCount = 0
+    var angleTypeCount = 0
+    for (i <- 0 until numBoundaries) {
+      _vertexColoursAndTypes = (VertexColour.Boundary, 0) :: _vertexColoursAndTypes
+      colCount += 1
+    }
+
+    for (j <- red) {
+      for (i <- 0 until j) {
+        _vertexColoursAndTypes = (VertexColour.Red, angleTypeCount) :: _vertexColoursAndTypes
+        colCount += 1
+      }
+      angleTypeCount += 1
+    }
+
+    angleTypeCount = 0
+    for (j <- green) {
+      for (i <- 0 until j) {
+        _vertexColoursAndTypes = (VertexColour.Green, angleTypeCount) :: _vertexColoursAndTypes
+        colCount += 1
+      }
+      angleTypeCount += 1
+    }
+    _vertexColoursAndTypes.reverse
+  }
+
   // advance to the next type of vertex added by the addVertex method. The order is boundaries,
   // then each red type, then each green type.
   def nextType: Option[AdjMat] = {
@@ -31,21 +71,21 @@ extends Ordered[AdjMat]
     else None
   }
 
-  // add the given vector as the bottom row and rightmost column, with false in bottom-right.
-  private def growMatrix(vec: Vector[Boolean]) = {
-    mat.indices.toVector.map { r => mat(r) :+ vec(r) } :+ (vec :+ false)
-  }
-
   // This method grows the adjacency matrix by adding a new boundary, red node, or green node, with the given
   // vector of edges.
   def addVertex(connection: Vector[Boolean]) = {
     if (red.isEmpty && green.isEmpty) { // new vertex is a boundary
       copy(numBoundaries = numBoundaries + 1, mat = growMatrix(connection))
     } else if (red.nonEmpty && green.isEmpty) { // new vertex is a red node
-      copy(red = red.updated(red.length-1, red(red.length-1)+1), mat = growMatrix(connection))
+      copy(red = red.updated(red.length - 1, red(red.length - 1) + 1), mat = growMatrix(connection))
     } else { // new vertex is a green node
-      copy(green = green.updated(green.length-1, green(green.length-1)+1), mat = growMatrix(connection))
+      copy(green = green.updated(green.length - 1, green(green.length - 1) + 1), mat = growMatrix(connection))
     }
+  }
+
+  // add the given vector as the bottom row and rightmost column, with false in bottom-right.
+  private def growMatrix(vec: Vector[Boolean]) = {
+    mat.indices.toVector.map { r => mat(r) :+ vec(r) } :+ (vec :+ false)
   }
 
   // compare the lower triangular part of this matrix, lexicographically
@@ -56,6 +96,9 @@ extends Ordered[AdjMat]
         else if (mat(i)(j) > that.mat(i)(j)) return 1
     0
   }
+
+  // a matrix is canonical if it is lexicographically smaller than any vertex permutation
+  def isCanonical(permuteBoundary: Boolean = false): Boolean = validPerms(permuteBoundary).forall { p => compareWithPerm(p) <= 0 }
 
   // compare this matrix with itself, but with the rows and columns permuted according to "perm"
   def compareWithPerm(perm: Vector[Int]): Int = {
@@ -87,9 +130,6 @@ extends Ordered[AdjMat]
     else AdjMat.productPerms(vecs).map(bVec ++ _)
   }
 
-  // a matrix is canonical if it is lexicographically smaller than any vertex permutation
-  def isCanonical(permuteBoundary: Boolean = false): Boolean = validPerms(permuteBoundary).forall { p => compareWithPerm(p) <= 0 }
-
   // return a list of all the valid ways to connect a new node to the graph, which respect the
   // bipartite structure, and maintain boundaries with arity at most 1
   def validConnections(bipartite: Boolean): Vector[Vector[Boolean]] = {
@@ -102,8 +142,8 @@ extends Ordered[AdjMat]
       else {
         val rest = validConnectionsFrom(i + 1)
         if ((i < numBoundaries && !mat(i).contains(true)) ||
-            (i >= numBoundaries && i < numBoundaries + numRed && (notRed || !bipartite)) ||
-            (i >= numBoundaries + numRed && (notGreen || !bipartite))
+          (i >= numBoundaries && i < numBoundaries + numRed && (notRed || !bipartite)) ||
+          (i >= numBoundaries + numRed && (notGreen || !bipartite))
         )
           rest.map(false +: _) ++
             (if (bnd) Vector(true +: Vector.fill(size - i - 1)(false))
@@ -139,21 +179,8 @@ extends Ordered[AdjMat]
   // returns true if all boundaries are connected to something
   def isComplete: Boolean = (0 until numBoundaries).forall(i => mat(i).contains(true))
 
-  private def makeHash(): String = {
-    "" + (size - numGreen - numRed) +
-      "-" + red.sum + "-" + green.sum +
-      // ignore vertex typing?
-      // red.mkString("r", "-", "") +
-      // green.mkString("g", "-", "") +
-      "." +
-      java.lang.Long.toString(java.lang.Long.parseLong("0"+
-        mat.flatten.foldLeft("")((a, b) => if (b) a + "1" else a + "0"), 2)
-        , 36)
-  }
-
-
   override def toString: String = {
-    val pipes = Array.fill(size+1)(0)
+    val pipes = Array.fill(size + 1)(0)
     var idx = numBoundaries
     for (r <- red) {
       pipes(idx) += 1
@@ -164,22 +191,38 @@ extends Ordered[AdjMat]
       idx += g
     }
 
-    val sep = pipes.take(size).foldRight("") { (p, rest) => "+"*p + "---" + rest } + "+"*pipes(size) + "\n"
+    val sep = pipes.take(size).foldRight("") { (p, rest) => "+" * p + "---" + rest } + "+" * pipes(size) + "\n"
 
 
-    "\n" + mat.indices.foldRight("") { (i,str) =>
+    "\n" + mat.indices.foldRight("") { (i, str) =>
       sep * pipes(i) +
-      mat(i).indices.foldRight("") { (j, rowStr) =>
-        "|" * pipes(j) + (if (mat(i)(j)) " 1 " else " 0 ") + rowStr
-      } + "|" * pipes(size) + "\n" + str
+        mat(i).indices.foldRight("") { (j, rowStr) =>
+          "|" * pipes(j) + (if (mat(i)(j)) " 1 " else " 0 ") + rowStr
+        } + "|" * pipes(size) + "\n" + str
     } + sep * pipes(size)
+  }
+
+  private def makeHash(): String = {
+    "" + (size - numGreen - numRed) +
+      "-" + red.sum + "-" + green.sum +
+      // ignore vertex typing?
+      // red.mkString("r", "-", "") +
+      // green.mkString("g", "-", "") +
+      "." +
+      java.lang.Long.toString(java.lang.Long.parseLong("0" +
+        mat.flatten.foldLeft("")((a, b) => if (b) a + "1" else a + "0"), 2)
+        , 36)
   }
 }
 
 object AdjMat {
   def perms(vec: Vector[Int]): Vector[Vector[Int]] =
     if (vec.isEmpty) Vector(Vector())
-    else vec.indices.toVector.flatMap { i => perms(vec.take(i) ++ vec.drop(i+1)).map { vec(i) +: _ } }
+    else vec.indices.toVector.flatMap { i =>
+      perms(vec.take(i) ++ vec.drop(i + 1)).map {
+        vec(i) +: _
+      }
+    }
 
   def productPerms(vecs: Vector[Vector[Int]]): Vector[Vector[Int]] =
     vecs match {
@@ -195,6 +238,7 @@ object ColbournReadEnum {
   def enumerate(numRedTypes: Int, numGreenTypes: Int, maxBoundaries: Int, maxVertices: Int,
                 bipartite: Boolean = true, permuteBoundary: Boolean = false): Stream[AdjMat] = {
     if (numRedTypes == 0 && numGreenTypes == 0) throw new GraphEnumException("must have at least one node type")
+
     def enum1(bnd: Int, verts: Int, amat: AdjMat): Stream[AdjMat] =
       if (amat.isCanonical(permuteBoundary)) {
         (
@@ -206,19 +250,19 @@ object ColbournReadEnum {
               if (amat.isComplete) Stream(amat)
               else Stream()
           }
-        ) #::: (
+          ) #::: (
           // add boundaries in all possible ways
           if (bnd > 0) {
-            amat.validConnections(bipartite).foldRight(Stream[AdjMat]()){ (c, rest) =>
+            amat.validConnections(bipartite).foldRight(Stream[AdjMat]()) { (c, rest) =>
               enum1(bnd - 1, verts, amat.addVertex(c)) #::: rest
             }
-          // add current node type in all possible ways
+            // add current node type in all possible ways
           } else if (verts > 0 && (amat.red.nonEmpty || amat.green.nonEmpty)) {
-            amat.validConnections(bipartite).foldRight(Stream[AdjMat]()){ (c, rest) =>
+            amat.validConnections(bipartite).foldRight(Stream[AdjMat]()) { (c, rest) =>
               enum1(0, verts - 1, amat.addVertex(c)) #::: rest
             }
           } else Stream()
-        )
+          )
       } else Stream()
 
     enum1(maxBoundaries, maxVertices, AdjMat(numRedTypes, numGreenTypes))

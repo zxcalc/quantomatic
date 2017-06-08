@@ -6,75 +6,50 @@ import quanto.cosy.Interpreter._
   * Synthesises diagrams, holds the data and generates equivalence classes
   */
 
-case class Diagram(graph: Graph, angleMap: AngleMap, tensor: Tensor) extends Ordering[Diagram] {
-  // A Diagram is:
-  // A graph, with given angle values, a tensor interpretation
-  override def toString: String = "Diagram:\n Graph: \n" + graph.toString +
-    "\n---- With angles:\n" +
-    graph.redVertices.map(x => x.angleType).mkString(",") + ";" +
-    graph.greenVertices.map(x => x.angleType).mkString(",") +
-    "\n---- Tensor:\n" +
-    tensor.toString
+class EquivalenceClass(val centre: (AdjMat, Tensor)) {
+  var members: List[(AdjMat, Tensor)] = List(centre)
 
-  // Compares the adjMat hashes
-  def compare(x: Diagram, y: Diagram): Int = {
-    x.graph.adjMat.hash.compareTo(y.graph.adjMat.hash)
-  }
-}
-
-object Diagram {
-
-  def apply(graph: Graph, numberOfAngles: Int): Diagram = {
-    // TODO: Limit the number of angles checked
-    def angleMap(x: Int): Double = x * 2.0 * math.Pi / numberOfAngles
-
-    new Diagram(graph, angleMap, interpretGraph(graph, angleMap, angleMap))
-  }
-}
-
-class EquivalenceClass(val centre: Diagram) {
-  var members: List[Diagram] = List(centre)
-
-  def addMember(diag: Diagram): EquivalenceClass = {
-    members = diag :: members
+  def addMember(adj: AdjMat, tensor: Tensor): EquivalenceClass = {
+    members = (adj, tensor) :: members
     this
   }
 
   override def toString: String = {
     var s = "Equivalence class" +
       "\nSize: " + this.members.length +
-      "\nCentre: " + this.centre.tensor.toString()
+      "\nCentre: " + this.centre._2.toString()
     //this.members.toString()
     s
   }
 }
 
-class EquivClassRunResults(val normalised: Boolean, val tolerance: Double = 1e-14) {
+class EquivClassRunResults(val normalised: Boolean, angleMap: AngleMap, val tolerance: Double = 1e-14) {
   var equivalenceClasses: List[EquivalenceClass] = List()
 
   /** Adds the diagrams to classes, does not delete current classes first */
-  def findEquivalenceClasses(diagrams: Stream[Diagram]): List[EquivalenceClass] = {
-    diagrams.foreach(
+  def findEquivalenceClasses(adjMats: Stream[AdjMat]): List[EquivalenceClass] = {
+    adjMats.foreach(
       x => compareAndAddToClass(x)
     )
     equivalenceClasses
   }
 
   // Finds the closest class and adds it, or creates a new class if outside tolerance
-  def compareAndAddToClass(d: Diagram): EquivalenceClass = {
-    var closest = new EquivalenceClass(d)
+  def compareAndAddToClass(adj: AdjMat): EquivalenceClass = {
+    val adjTensor = interpret(adj)
+    var closest = new EquivalenceClass((adj, interpret(adj)))
     var closestDist = tolerance
     for (eqClass <- equivalenceClasses) {
 
       // Need to ensure that the tensor is of the right size first!
-      if (d.tensor.isSameShapeAs(eqClass.centre.tensor)) {
+      if (adjTensor.isSameShapeAs(eqClass.centre._2)) {
         var dist = tolerance
         if (normalised) {
-          val rep = eqClass.centre.tensor.normalised
-          val dn = d.tensor.normalised
-          dist = math.min(rep.distance(dn), rep.distance(dn.scaled(that = -1.0)))
+          val rep = eqClass.centre._2.normalised
+          val dn = adjTensor.normalised
+          dist = math.min(rep.distance(dn), rep.distance(dn.scaled(factor = -1.0)))
         } else {
-          dist = eqClass.centre.tensor.distance(d.tensor)
+          dist = eqClass.centre._2.distance(adjTensor)
         }
         if (dist < tolerance) {
           closest = eqClass
@@ -83,16 +58,21 @@ class EquivClassRunResults(val normalised: Boolean, val tolerance: Double = 1e-1
       }
     }
 
-    if(closest.centre == d) equivalenceClasses = closest :: equivalenceClasses else closest.addMember(d)
+    if (closest.centre == (adj, adjTensor)) equivalenceClasses =
+      closest :: equivalenceClasses else closest.addMember(adj, adjTensor)
     closest
   }
 
   // Returns (new Class, -1) if no EquivalenceClasses here
-  def closestClassTo(that: Diagram): (EquivalenceClass, Double) = {
-    var closestClass = new EquivalenceClass(that)
-    var closestDistance: Double = -1
+  def closestClassTo(that: AdjMat): (EquivalenceClass, Double) = {
+    closestClassTo(interpret(that))
+  }
+
+  def closestClassTo(that: Tensor): (EquivalenceClass, Double) = {
+    var closestClass = equivalenceClasses.head
+    var closestDistance: Double = -1.0
     for (eqc <- equivalenceClasses) {
-      val d = eqc.centre.tensor.distance(that.tensor)
+      val d = eqc.centre._2.distance(that)
       if (closestDistance < 0 || d < closestDistance) {
         closestDistance = d
         closestClass = eqc
@@ -100,12 +80,24 @@ class EquivClassRunResults(val normalised: Boolean, val tolerance: Double = 1e-1
     }
     (closestClass, closestDistance)
   }
+
+  def interpret(adjMat: AdjMat): Tensor = {
+    def redAM = (x: Int) => angleMap(x)
+
+    def greenAM = (x: Int) => angleMap(x - adjMat.red.sum)
+
+    interpretAdjMat(adjMat, greenAM, redAM)
+  }
+
+  def add(adjMat: AdjMat): EquivalenceClass = {
+    compareAndAddToClass(adjMat)
+  }
 }
 
-object DiagramGenerator {
+object EquivClassRunResults {
+  def apply(normalised: Boolean, numAngles: Int, tolerance: Double = 1e-14): EquivClassRunResults = {
+    def angleMap = (x: Int) => x * math.Pi * 2.0 / numAngles
 
-  def allDiagrams(boundaries: Int, vertices: Int, numberOfAngles: Int): Stream[Diagram] =
-    ColbournReadEnum.enumerate(numberOfAngles, numberOfAngles, boundaries, vertices).
-      map(x => Diagram(Graph(x), numberOfAngles))
-
+    new EquivClassRunResults(normalised, angleMap, tolerance)
+  }
 }

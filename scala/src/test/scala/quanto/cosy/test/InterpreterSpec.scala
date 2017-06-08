@@ -2,7 +2,7 @@ package quanto.cosy.test
 
 import org.scalatest.FlatSpec
 import quanto.cosy.Interpreter.AngleMap
-import quanto.cosy.{AdjMat, Complex, Graph, Interpreter, Tensor}
+import quanto.cosy.{AdjMat, Complex, Interpreter, Tensor}
 
 /**
   * Created by hector on 24/05/17.
@@ -67,9 +67,9 @@ class InterpreterSpec extends FlatSpec {
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(true, true))
     println(amat)
-    val i1 = Interpreter.interpretGraph(Graph(amat), Map(0 -> 0), Map())
+    val i1 = Interpreter.interpretAdjMat(amat, Map(0 -> 0), Map())
     assert(i1.isRoughly(Tensor(Array(Array(1, 0, 0, 1)))))
-    val i2 = Interpreter.interpretGraph(Graph(amat), Map(0 -> math.Pi), Map())
+    val i2 = Interpreter.interpretAdjMat(amat, Map(0 -> math.Pi), Map())
     assert(i2.isRoughly(Tensor(Array(Array(1, 0, 0, -1)))))
   }
   var zero = Complex.zero
@@ -84,7 +84,7 @@ class InterpreterSpec extends FlatSpec {
     amat = amat.addVertex(Vector(true, false))
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(false, true, true))
-    val i1 = Interpreter.interpretGraph(Graph(amat), simpleGreenAM, simpleRedAM)
+    val i1 = Interpreter.interpretAdjMat(amat, simpleGreenAM, simpleRedAM)
     assert(i1.isRoughly(Interpreter.interpretSpider(false, pi, 2, 0)))
   }
   it should "satisfy the Euler identity" in {
@@ -100,7 +100,7 @@ class InterpreterSpec extends FlatSpec {
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(false, false, true, true))
     println(amat)
-    val i2 = Interpreter.interpretGraph(Graph(amat), gHAM, rHAM)
+    val i2 = Interpreter.interpretAdjMat(amat, gHAM, rHAM)
     val i3 = Interpreter.interpretSpider(true, 0, 2, 0) o (Tensor.id(2) x Tensor.hadamard)
     println(i3.scaled(i2.contents(0)(0) / i3.contents(0)(0)))
     assert(i2.isRoughly(i3.scaled(i2.contents(0)(0) / i3.contents(0)(0))))
