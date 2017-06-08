@@ -7,7 +7,6 @@ case class MatchState(
                        m: Match,                                        // the match being built
                        tVerts: Set[VName],                              // restriction of the range of the match
                        angleMatcher: AngleExpressionMatcher,            // state of matched angle data
-                       uBareWires: Set[VName] = Set(),                  // bare wires in pattern that need to be matched
                        pNodes: Set[VName] = Set(),                      // nodes with partially-mapped neighbourhood
                        psNodes: Set[VName] = Set(),                     // same, but scheduled for completion
                        sBBox: Option[BBName] = None,                    // a bbox scheduled for matching
@@ -18,10 +17,12 @@ case class MatchState(
                        nextState: Option[MatchState] = None             // next state to try after search terminates
                      ) {
 
-  val uVerts: Set[VName]      = m.pattern.verts.filter(v => bboxesMatched(v) && !m.map.v.domSet.contains(v))
-  val uCircles: Set[VName]    = uVerts.filter(m.pattern.isCircle)
-  lazy val uNodes: Set[VName] = uVerts.filter { v => !m.pattern.vdata(v).isWireVertex }
-  lazy val uWires: Set[VName] = uVerts.filter { v => m.pattern.vdata(v).isWireVertex }
+  val uVerts: Set[VName]          = m.pattern.verts.filter(v => bboxesMatched(v) && !m.map.v.domSet.contains(v))
+  val uCircles: Set[VName]        = uVerts.filter(m.pattern.isCircle)
+  lazy val uBareWires: Set[VName] = uVerts.filter(m.pattern.representsBareWire)
+  lazy val uNodes: Set[VName]     = uVerts.filter { v => !m.pattern.vdata(v).isWireVertex }
+  lazy val uWires: Set[VName]     = uVerts.filter { v => m.pattern.vdata(v).isWireVertex }
+  lazy val uBBoxes: Set[BBName]   = Set()
 
 
 
@@ -141,12 +142,15 @@ case class MatchState(
             val wireV: Vector[VName] = m.bareWireMap.getOrElse(tbw, Vector())
             val newMap = m.bareWireMap + (tbw -> ((wireV.take(i) :+ pbw) ++ wireV.takeRight(wireV.length - i)))
             copy(
-              m = m.copy(bareWireMap = newMap),
-              uBareWires = uBareWires - pbw,
+              m = m.addVertex(pbw -> tbw).copy(bareWireMap = newMap),
               candidateWires = None,
               nextState = Some(next)).nextMatch()
           }
       }
+
+    // if there are unmatched bboxes, pull the first top-level bbox and try to kill, expand, or copy+match
+    } else if (uBBoxes.nonEmpty) {
+      None
 
     // if there is nothing left to do, check if the match is complete and return it if so. If not, continue
     // the search from nextState
@@ -172,6 +176,12 @@ case class MatchState(
 
   def bboxesMatched(vp: VName) =
     m.pattern.bboxesContaining(vp).forall(m.map.bb.domSet.contains)
+
+  def reflectsParentBBoxes(bbp: BBName, bbt: BBName) =
+    m.pattern.bboxParentSet(bbp) == m.map.bb.inverseImage(m.target.bboxParentSet(bbt))
+
+  def parentBBoxesMatched(bbp: BBName) =
+    m.pattern.bboxParentSet(bbp).forall(m.map.bb.domSet.contains)
 
   /**
     * Match a new node vertex

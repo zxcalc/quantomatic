@@ -26,7 +26,6 @@ object Matcher {
     MatchState(
       m = Match(pattern = patN, patternExpanded = patN, target = tgtN),
       tVerts = restrict1,
-      uBareWires = pat.verts.filter(pat.representsBareWire),
       angleMatcher = AngleExpressionMatcher(patVars,tgtVars))
   }
 
