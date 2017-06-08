@@ -1,6 +1,8 @@
 package quanto.cosy
 
 import quanto.cosy.Interpreter._
+import quanto.data._
+import quanto.util.json.{JsonArray, JsonObject}
 
 /**
   * Synthesises diagrams, holds the data and generates equivalence classes
@@ -82,15 +84,67 @@ class EquivClassRunResults(val normalised: Boolean, angleMap: AngleMap, val tole
   }
 
   def interpret(adjMat: AdjMat): Tensor = {
-    def redAM = (x: Int) => angleMap(x)
-
-    def greenAM = (x: Int) => angleMap(x - adjMat.red.sum)
-
-    interpretAdjMat(adjMat, greenAM, redAM)
+    interpretAdjMat(adjMat, angleMap, angleMap)
   }
 
   def add(adjMat: AdjMat): EquivalenceClass = {
     compareAndAddToClass(adjMat)
+  }
+
+  def adjMatToGraph(adj: AdjMat): Graph = {
+
+    def vxToNodeV(v: Int): NodeV = {
+      val (c, t) = adj.vertexColoursAndTypes(v)
+      val JSON = c match {
+        case VertexColour.Boundary => JsonObject(
+          "annotation" -> JsonObject(
+            "boundary" -> "true",
+            "coord" -> JsonArray(v, 0)
+          )
+        )
+        case VertexColour.Green => JsonObject(
+          "data" -> JsonObject(
+            "type" -> "Z",
+            "value" -> angleMap(t)
+          ),
+          "annotation" -> JsonObject(
+            "boundary" -> false,
+            "coord" -> JsonArray(v, 1)
+          )
+        )
+        case VertexColour.Red => JsonObject(
+          "data" -> JsonObject(
+            "type" -> "X",
+            "value" -> angleMap(t)
+          ),
+          "annotation" -> JsonObject(
+            "boundary" -> false,
+            "coord" -> JsonArray(v, 2)
+          )
+        )
+      }
+      new NodeV(annotation = JSON)
+    }
+
+    var vxNames: List[VName] = List()
+
+    var g = new Graph()
+    for (v <- adj.mat.indices) {
+      val nodeVersion = vxToNodeV(v)
+      var (g2, name) = g.newVertex(nodeVersion)
+      g = g2
+      // g.addVertex(name, nodeVersion)
+      vxNames = name :: vxNames
+    }
+
+    vxNames = vxNames.reverse
+
+    for (i <- adj.mat.indices; j <- adj.mat.indices) {
+      if (i < j && adj.mat(i)(j)) {
+        g.newEdge(UndirEdge(), vxNames(i) -> vxNames(j))
+      }
+    }
+    g
   }
 }
 
