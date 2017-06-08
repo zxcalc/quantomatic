@@ -245,10 +245,16 @@ case class Graph(
     }
   }
 
-  def bboxParents(bb : BBName) : List[BBName] =
+  def bboxParents(bb : BBName): List[BBName] =
     bboxParent.get(bb) match {
       case Some(bb1) => bb1 :: bboxParents(bb1)
       case None => List()
+    }
+
+  def bboxParentSet(bb: BBName): Set[BBName] =
+    bboxParent.get(bb) match {
+      case Some(bb1) => bboxParentSet(bb1) + bb1
+      case None => Set()
     }
 
   def bboxChildren(bb: BBName) : Set[BBName] =
@@ -711,7 +717,7 @@ case class Graph(
         case (_: NodeV, _: NodeV) =>
           g = g.edgeToWire(e)
           ch = true
-        case (_: WireV, _: WireV) =>
+        case (_: WireV, _: WireV) if s != t =>
           if (!isBoundary(s) || !isBoundary(t)) {
             g = g.collapseWire(e)
             ch = true

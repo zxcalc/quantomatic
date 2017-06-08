@@ -18,8 +18,8 @@ case class MatchState(
                        nextState: Option[MatchState] = None             // next state to try after search terminates
                      ) {
 
-  val uVerts: Set[VName]   = m.pattern.verts -- m.map.v.domSet
-  val uCircles: Set[VName] = uVerts.filter(m.pattern.isCircle)
+  val uVerts: Set[VName]      = m.pattern.verts.filter(v => bboxesMatched(v) && !m.map.v.domSet.contains(v))
+  val uCircles: Set[VName]    = uVerts.filter(m.pattern.isCircle)
   lazy val uNodes: Set[VName] = uVerts.filter { v => !m.pattern.vdata(v).isWireVertex }
   lazy val uWires: Set[VName] = uVerts.filter { v => m.pattern.vdata(v).isWireVertex }
 
@@ -34,15 +34,14 @@ case class MatchState(
   final def nextMatch(): Option[(Match, Option[MatchState])] = {
     // if unmatched circles are found in the pattern, match them first
     if (uCircles.nonEmpty) {
-      val tCircles = tVerts.filter(m.target.isCircle)
-      if (uCircles.size > tCircles.size) nextState match { case Some(next) => next.nextMatch(); case None => None }
-      else {
-        val (m1, tVerts1) = uCircles.zip(tCircles).foldRight((m, tVerts)) { case ((pc, tc), (m0, tVerts0)) =>
+      val pc = uCircles.head
+
+      tVerts.find(v => m.target.isCircle(v) && reflectsBBoxes(pc, v)) match {
+        case None => nextState match { case Some(next) => next.nextMatch(); case None => None }
+        case Some(tc) =>
           val pce = m.pattern.inEdges(pc).head
           val tce = m.target.inEdges(tc).head
-          (m0.addEdge(pce -> tce, pc -> tc), tVerts0 - tc)
-        }
-        copy(m = m1, tVerts = tVerts1).nextMatch()
+          copy(m = m.addEdge(pce -> tce, pc -> tc), tVerts = tVerts - tc).nextMatch()
       }
 
     // if there is a scheduled node, try to match its neighbourhood in every possible way
@@ -126,7 +125,7 @@ case class MatchState(
           // pull all the candidate locations for matching this bare wire. If a wire already has n bare wires matched
           // on it, this is n+1 possible locations.
           val cwires =
-            for (v <- tVerts if m.target.representsWire(v);
+            for (v <- tVerts if m.target.representsWire(v) && reflectsBBoxes(pbw, v);
                  i <- 0 to m.bareWireMap.get(v).map(_.length).getOrElse(0))
               yield (v,i)
           copy(candidateWires = Some(cwires.toSet)).nextMatch()
@@ -168,6 +167,12 @@ case class MatchState(
   // TODO: stub
   def pVertexMayBeCompleted(v: VName) = true
 
+  def reflectsBBoxes(vp: VName, vt: VName) =
+    m.pattern.bboxesContaining(vp) == m.map.bb.inverseImage(m.target.bboxesContaining(vt))
+
+  def bboxesMatched(vp: VName) =
+    m.pattern.bboxesContaining(vp).forall(m.map.bb.domSet.contains)
+
   /**
     * Match a new node vertex
     *
@@ -177,32 +182,33 @@ case class MatchState(
     * @param nt node vertex in the target
     * @return
     */
-  def matchNewNode(np: VName, nt: VName): Option[MatchState] = {
-    (m.pattern.vdata(np), m.target.vdata(nt)) match {
-      case (pd: NodeV, td: NodeV) =>
-        if (pd.typ == td.typ) {
-          if (pd.hasAngle)
-            angleMatcher.addMatch(pd.angle, td.angle).map { angleMatcher1 =>
-              copy(
+  def matchNewNode(np: VName, nt: VName): Option[MatchState] =
+    if (!reflectsBBoxes(np, nt)) None
+    else
+      (m.pattern.vdata(np), m.target.vdata(nt)) match {
+        case (pd: NodeV, td: NodeV) =>
+          if (pd.typ == td.typ) {
+            if (pd.hasAngle)
+              angleMatcher.addMatch(pd.angle, td.angle).map { angleMatcher1 =>
+                copy(
+                  m = m.addVertex(np -> nt),
+                  pNodes = pNodes + np,
+                  psNodes = psNodes + np,
+                  tVerts = tVerts - nt,
+                  angleMatcher = angleMatcher1
+                )
+              }
+            else if (pd.value == td.value)
+              Some(copy(
                 m = m.addVertex(np -> nt),
                 pNodes = pNodes + np,
                 psNodes = psNodes + np,
-                tVerts = tVerts - nt,
-                angleMatcher = angleMatcher1
-              )
-            }
-          else if (pd.value == td.value)
-            Some(copy(
-              m = m.addVertex(np -> nt),
-              pNodes = pNodes + np,
-              psNodes = psNodes + np,
-              tVerts = tVerts - nt
-            ))
-          else None
-        } else None
-      case _ => throw new MatchException("matchNewNode called on a non-node")
-    }
-  }
+                tVerts = tVerts - nt
+              ))
+            else None
+          } else None
+        case _ => throw new MatchException("matchNewNode called on a non-node")
+      }
 
   /**
    * Try to recursively add wire to matching, starting with the given head
@@ -232,7 +238,7 @@ case class MatchState(
         else None
       } else if (tVerts contains newVt) {
         (m.pattern.vdata(newVp), m.target.vdata(newVt)) match {
-          case (_: WireV, _: WireV) =>
+          case (_: WireV, _: WireV) if reflectsBBoxes(newVp, newVt) =>
             (m.pattern.wireVertexGetOtherEdge(newVp, ep), m.target.wireVertexGetOtherEdge(newVt, et)) match {
               case (Some(newEp), Some(newEt)) =>
                 copy(
