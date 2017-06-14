@@ -23,6 +23,17 @@ class EquivalenceClass(val centre: (AdjMat, Tensor)) {
     //this.members.toString()
     s
   }
+
+  def toJSON: JsonObject = {
+    JsonObject(
+      "centre" -> centre._2.toString,
+      "size" -> this.members.length,
+      "members" -> JsonArray(
+        members.map(x => JsonObject(
+          "adjMat" -> x._1.toString, "tensor" -> x._2.toString)
+        ))
+    )
+  }
 }
 
 class EquivClassRunResults(val normalised: Boolean, angleMap: AngleMap, val tolerance: Double = 1e-14) {
@@ -34,6 +45,32 @@ class EquivClassRunResults(val normalised: Boolean, angleMap: AngleMap, val tole
       x => compareAndAddToClass(x)
     )
     equivalenceClasses
+  }
+
+  // Returns (new Class, -1) if no EquivalenceClasses here
+  def closestClassTo(that: AdjMat): (EquivalenceClass, Double) = {
+    closestClassTo(interpret(that))
+  }
+
+  def interpret(adjMat: AdjMat): Tensor = {
+    interpretAdjMat(adjMat, angleMap, angleMap)
+  }
+
+  def closestClassTo(that: Tensor): (EquivalenceClass, Double) = {
+    var closestClass = equivalenceClasses.head
+    var closestDistance: Double = -1.0
+    for (eqc <- equivalenceClasses) {
+      val d = eqc.centre._2.distance(that)
+      if (closestDistance < 0 || d < closestDistance) {
+        closestDistance = d
+        closestClass = eqc
+      }
+    }
+    (closestClass, closestDistance)
+  }
+
+  def add(adjMat: AdjMat): EquivalenceClass = {
+    compareAndAddToClass(adjMat)
   }
 
   // Finds the closest class and adds it, or creates a new class if outside tolerance
@@ -63,32 +100,6 @@ class EquivClassRunResults(val normalised: Boolean, angleMap: AngleMap, val tole
     if (closest.centre == (adj, adjTensor)) equivalenceClasses =
       closest :: equivalenceClasses else closest.addMember(adj, adjTensor)
     closest
-  }
-
-  // Returns (new Class, -1) if no EquivalenceClasses here
-  def closestClassTo(that: AdjMat): (EquivalenceClass, Double) = {
-    closestClassTo(interpret(that))
-  }
-
-  def closestClassTo(that: Tensor): (EquivalenceClass, Double) = {
-    var closestClass = equivalenceClasses.head
-    var closestDistance: Double = -1.0
-    for (eqc <- equivalenceClasses) {
-      val d = eqc.centre._2.distance(that)
-      if (closestDistance < 0 || d < closestDistance) {
-        closestDistance = d
-        closestClass = eqc
-      }
-    }
-    (closestClass, closestDistance)
-  }
-
-  def interpret(adjMat: AdjMat): Tensor = {
-    interpretAdjMat(adjMat, angleMap, angleMap)
-  }
-
-  def add(adjMat: AdjMat): EquivalenceClass = {
-    compareAndAddToClass(adjMat)
   }
 
   def adjMatToGraph(adj: AdjMat): Graph = {
@@ -145,6 +156,17 @@ class EquivClassRunResults(val normalised: Boolean, angleMap: AngleMap, val tole
       }
     }
     g
+  }
+
+  def toJSON: JsonObject = {
+    JsonObject(
+      "runData" -> JsonObject(
+        "normalised" -> normalised,
+        "smallestAngle" -> angleMap(1),
+        "tolerance" -> tolerance
+      ),
+      "equivalenceClasses" -> JsonArray(equivalenceClasses.map(e => e.toJSON))
+    )
   }
 }
 

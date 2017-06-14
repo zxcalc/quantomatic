@@ -18,7 +18,7 @@ class EquivalenceClassesSpec extends FlatSpec {
   }
 
   it should "result in the same number of diagrams when normalising things" in {
-    var diagramStream = ColbournReadEnum.enumerate(2,2,2,2)
+    var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
     results.findEquivalenceClasses(diagramStream)
     resultsNormalised.findEquivalenceClasses(diagramStream)
     assert(results.equivalenceClasses.map(x => x.members.length).sum ==
@@ -26,10 +26,17 @@ class EquivalenceClassesSpec extends FlatSpec {
   }
 
   it should "convert an AdjMat into a graph" in {
-    var diagramStream = ColbournReadEnum.enumerate(2,2,2,2)
+    var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
     results.findEquivalenceClasses(diagramStream)
     var (adj, ten) = results.equivalenceClasses.head.centre
     var graph = results.adjMatToGraph(adj)
     println(graph.toString)
+  }
+
+  it should "have a JSON output" in {
+    var results = EquivClassRunResults(normalised = false, 4)
+    var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
+    results.findEquivalenceClasses(diagramStream)
+    println(results.toJSON.toString())
   }
 }

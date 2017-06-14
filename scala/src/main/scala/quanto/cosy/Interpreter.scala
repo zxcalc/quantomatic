@@ -20,10 +20,12 @@ object Interpreter {
     // Converts spider to tensor. If green==false then it is a red spider
     val toString = green.toString + ":" + angle + ":" + inputs + ":" + outputs
     if (cached.contains(toString)) cached(toString) else {
-      def gen(i: Int, j: Int): Complex =
-        if (i == 0 && j == 0) Complex.one //TODO: Scalars
-        else if (i == math.pow(2, outputs) - 1 && j == math.pow(2, inputs) - 1) Complex(math.cos(angle), math.sin(angle))
-        else Complex.zero
+      def gen(i: Int, j: Int): Complex = {
+        Complex.zero +
+          (if (i == 0 && j == 0) Complex.one else Complex.zero) +
+          (if (i == math.pow(2, outputs) - 1 && j == math.pow(2, inputs) - 1)
+            Complex(math.cos(angle), math.sin(angle)) else Complex.zero)
+      }
 
       val mid = Tensor(math.pow(2, outputs).toInt, math.pow(2, inputs).toInt, gen)
       val spider = if (green) mid else makeHadamards(outputs) o mid o makeHadamards(inputs)
