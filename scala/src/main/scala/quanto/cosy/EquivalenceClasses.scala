@@ -30,7 +30,7 @@ class EquivalenceClass(val centre: (AdjMat, Tensor)) {
       "size" -> this.members.length,
       "members" -> JsonArray(
         members.map(x => JsonObject(
-          "adjMat" -> x._1.toString, "tensor" -> x._2.toString)
+          "adjMat" -> x._1.hash, "tensor" -> x._2.toString)
         ))
     )
   }

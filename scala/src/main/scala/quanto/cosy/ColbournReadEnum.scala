@@ -35,7 +35,7 @@ case class AdjMat(numRedTypes: Int,
   lazy val numRed = red.sum
   lazy val numGreen = green.sum
   lazy val hash = makeHash()
-  lazy val vertexColoursAndTypes : List[(VertexColour.EnumVal, Int)] = {
+  lazy val vertexColoursAndTypes: List[(VertexColour.EnumVal, Int)] = {
     var _vertexColoursAndTypes: List[(VertexColour.EnumVal, Int)] = List()
     var colCount = 0
     var angleTypeCount = 0
@@ -203,15 +203,20 @@ case class AdjMat(numRedTypes: Int,
   }
 
   private def makeHash(): String = {
-    "" + (size - numGreen - numRed) +
-      "-" + red.sum + "-" + green.sum +
-      // ignore vertex typing?
-      // red.mkString("r", "-", "") +
-      // green.mkString("g", "-", "") +
+    def toChars(intAsString: String, base: Int): String = {
+      java.lang.Long.toString(java.lang.Long.parseLong(intAsString
+        , base), 36)
+    }
+
+    "" + List(size - numGreen - numRed).mkString("-") +
       "." +
-      java.lang.Long.toString(java.lang.Long.parseLong("0" +
-        mat.flatten.foldLeft("")((a, b) => if (b) a + "1" else a + "0"), 2)
-        , 36)
+      red.mkString("-") +
+      "." +
+      green.mkString("-") +
+      "." +
+      toChars("0" +
+        mat.flatten.foldLeft("")((a, b) => if (b) a + "1" else a + "0")
+        , 2)
   }
 }
 
@@ -232,6 +237,21 @@ object AdjMat {
         pVec.flatMap { p1 => pRest.map { p2 => p1 ++ p2 } }
       case _ => Vector(Vector())
     }
+
+  def fromHash(hash: String): AdjMat = {
+    // "boundaries.red1-red2.green1-green2.matBase36"
+    val dotChunk = hash.split("\\.")
+    val numBoundaries = dotChunk(0).toInt
+    val red: Vector[Int] = dotChunk(1).split("-").map(a => a.toInt).toVector
+    val green: Vector[Int] = dotChunk(2).split("-").map(a => a.toInt).toVector
+    val size = numBoundaries + red.sum + green.sum
+    val longMatStringUnpadded = java.lang.Long.toString(java.lang.Long.parseLong(dotChunk(3), 36), 2)
+    val longMatString = (1 to size * size - longMatStringUnpadded.length).foldLeft("") {(a,b) => "0" + a} +
+      longMatStringUnpadded
+    val longMatVec = longMatString.map(x => x == '1').toVector
+    val mat = longMatVec.grouped(size).toVector
+    new AdjMat(red.length, green.length, numBoundaries, red, green, mat)
+  }
 }
 
 object ColbournReadEnum {

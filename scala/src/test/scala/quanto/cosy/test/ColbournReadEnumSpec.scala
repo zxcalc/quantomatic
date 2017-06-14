@@ -129,7 +129,7 @@ class ColbournReadEnumSpec extends FlatSpec {
     amat = amat.addVertex(Vector(false, false, false))
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(false, false, true, true))
-    assert(amat.hash == "2-2-1.309y")
+    assert(amat.hash == "2.2.1.309y")
 
     // Now for multiple types
     amat = new AdjMat(numRedTypes = 2, numGreenTypes = 2)
@@ -144,7 +144,24 @@ class ColbournReadEnumSpec extends FlatSpec {
     amat = amat.addVertex(Vector(false, false, false, true, false))
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(false, false, false, true, false, true))
-    assert(amat.hash == "2-3-2.p1p5tukju")
+    assert(amat.hash == "2.1-2.1-1.p1p5tukju")
+  }
+
+  it should "convert the hash back into an AdjMat" in {
+    var amat = new AdjMat(numRedTypes = 2, numGreenTypes = 2)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(true, false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, true, false))
+    amat = amat.addVertex(Vector(false, false, false, true))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, false, false, true, false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, false, false, true, false, true))
+    var adjFromHash = AdjMat.fromHash("2.1-2.1-1.p1p5tukju")
+    assert(amat == adjFromHash)
   }
 
   behavior of "Graph enumerator"
