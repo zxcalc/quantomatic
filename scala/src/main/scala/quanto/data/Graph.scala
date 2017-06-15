@@ -34,7 +34,7 @@ case class Graph(
                    target: PFun[EName,VName]       = PFun[EName,VName](),
                    bbdata: Map[BBName,BBData]      = Map[BBName,BBData](),
                    inBBox: BinRel[VName,BBName]    = BinRel[VName,BBName](),
-                   bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]())
+                   bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]()) extends Ordered[Graph]
 {
   def isInput (v: VName): Boolean = vdata(v).isWireVertex && inEdges(v).isEmpty && outEdges(v).size == 1
   def isOutput(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).isEmpty && inEdges(v).size == 1
@@ -513,6 +513,28 @@ case class Graph(
     this.appendGraph(g2).plugBoundaries(b, bg1)
   }
 
+  def compare(that: Graph): Int = {
+    val x : Graph = this
+    val y : Graph = that
+    if (x.verts.size > y.verts.size) {
+      1
+    } else {
+      if (x.verts.size == y.verts.size) {
+        if (x.edges.size > y.edges.size) {
+          1
+        } else {
+          if (x.edges.size == y.edges.size) {
+            0
+          } else {
+            -1
+          }
+        }
+      } else {
+        -1
+      }
+    }
+  }
+
   override def toString: String = {
     """%s {
       |  verts: %s,
@@ -823,7 +845,7 @@ object Graph {
 
   def apply(theory: Theory): Graph = Graph(data = GData(theory = theory))
 
-  
+
   def fromJson(s: String, thy: Theory): Graph =
     try   { fromJson(Json.parse(s), thy) }
     catch { case e:JsonParseException => throw new GraphLoadException("Error parsing JSON", e) }

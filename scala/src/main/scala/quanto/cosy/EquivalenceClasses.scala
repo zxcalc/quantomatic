@@ -51,11 +51,16 @@ class EquivClassRunResults(val normalised: Boolean,
   def findEquivalenceClasses(adjMats: Stream[AdjMat]): List[EquivalenceClass] = {
     adjMats.foreach(
       x => if (
-        rulesList.forall(r => Matcher.findMatches(r.lhs, adjMatToGraph(x)).isEmpty)) {
-        // TODO add in r.lhs > r.rhs when matcher is working
+        rulesList.forall(r =>
+          if (r.lhs > r.rhs) {
+            Matcher.findMatches(r.lhs, adjMatToGraph(x)).isEmpty
+          } else if (r.rhs > r.lhs) {
+            Matcher.findMatches(r.rhs, adjMatToGraph(x)).isEmpty
+          } else {
+            true
+          }
+        )) {
         compareAndAddToClass(x)
-      } else {
-        println("Rule matched " + x.toString)
       }
     )
     equivalenceClasses
