@@ -158,4 +158,9 @@ class AngleExpressionSpec extends FlatSpec {
     assert(e1.subst("x", e2) === parse("a + b - c - 2y"))
     assert(e1.subst("y", e2) === parse("x - 2a - 2b + 2c"))
   }
+
+  it should "evaluate a polynomial" in {
+    val e1 = parse("2x + 3/4")
+    assert(Math.abs(e1.evaluate(Map("x" -> 1.0/8.0)) - 1) < 1e-15)
+  }
 }

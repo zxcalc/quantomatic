@@ -9,6 +9,9 @@ import scala.util.parsing.combinator._
 class AngleParseException(message: String)
   extends Exception(message)
 
+class AngleEvaluationException(message: String)
+  extends Exception(message)
+
 class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
   lazy val vars = coeffs.keySet
 
@@ -30,6 +33,15 @@ class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
 
   def subst(mp : Map[String, AngleExpression]): AngleExpression =
     mp.foldLeft(this) { case (e, (v,e1)) => e.subst(v,e1) }
+
+  def evaluate(mp: Map[String, Double]) : Double = {
+    try {
+      const + coeffs.foldLeft(0.0) { (a, b) => a + (mp(b._1) * Rational.rationalToDouble(b._2)) }
+    } catch {
+      case e : Exception => new AngleEvaluationException("Given arguments do not match those in the coefficient list")
+        0
+    }
+  }
 
   override def equals(that: Any): Boolean = that match {
     case e : AngleExpression =>

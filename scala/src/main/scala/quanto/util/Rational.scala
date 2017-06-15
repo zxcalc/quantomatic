@@ -42,4 +42,6 @@ object Rational {
   }
 
   implicit def intToRational(i : Int) : Rational = Rational(i)
+
+  implicit def rationalToDouble(r: Rational) : Double = r.n.toFloat / r.d.toFloat
 }
