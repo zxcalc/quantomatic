@@ -1,5 +1,7 @@
 package quanto.cosy.test
 
+import java.io.File
+
 import org.scalatest._
 import quanto.cosy._
 import quanto.data._
@@ -11,12 +13,12 @@ class EquivalenceClassesSpec extends FlatSpec {
   val rg = Theory.fromFile("red_green")
   var emptyRuleList: List[Rule] = List()
   var results = EquivClassRunResults(normalised = false,
-    numAngles =  4,
+    numAngles = 4,
     tolerance = EquivClassRunResults.defaultTolerance,
     rulesList = emptyRuleList,
     theory = rg)
   var resultsNormalised = EquivClassRunResults(normalised = true,
-    numAngles =  4,
+    numAngles = 4,
     tolerance = EquivClassRunResults.defaultTolerance,
     rulesList = emptyRuleList,
     theory = rg)
@@ -46,7 +48,7 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   it should "have a JSON output" in {
     var results = EquivClassRunResults(normalised = false,
-      numAngles =  4,
+      numAngles = 4,
       tolerance = EquivClassRunResults.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
@@ -64,12 +66,13 @@ class EquivalenceClassesSpec extends FlatSpec {
     amat = amat.nextType.get
     // single red_1
     amat = amat.addVertex(Vector())
+    // LHS of rule is a disconnected red dot of value 0
     var lhsG = results.adjMatToGraph(amat)
     var singleRedRule = new Rule(lhs = lhsG, rhs = lhsG)
     println("Rule is " + singleRedRule.toString)
 
     var resultsWithOneRule = EquivClassRunResults(normalised = false,
-      numAngles =  4,
+      numAngles = 4,
       tolerance = EquivClassRunResults.defaultTolerance,
       rulesList = List(singleRedRule),
       theory = rg)
@@ -77,4 +80,15 @@ class EquivalenceClassesSpec extends FlatSpec {
     resultsWithOneRule.findEquivalenceClasses(diagramStream)
     println(resultsWithOneRule.toJSON.toString())
   }
+
+  behavior of "IO"
+
+  it should "save run results to file" in {
+    var testFile = new File("test_run_output.qrun")
+    quanto.util.FileHelper.printToFile(testFile, append = false)(
+      p => p.println(results.toJSON.toString())
+    )
+    assert(testFile.delete())
+  }
+
 }

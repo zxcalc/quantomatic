@@ -5,6 +5,8 @@ import quanto.data._
 import quanto.util.json.{JsonArray, JsonObject}
 import quanto.rewrite._
 
+import scala.util.parsing.json.JSONObject
+
 /**
   * Synthesises diagrams, holds the data and generates equivalence classes
   */
@@ -25,13 +27,13 @@ class EquivalenceClass(val centre: (AdjMat, Tensor)) {
     s
   }
 
-  def toJSON: JsonObject = {
+  def toJSON(adjMatToJSON : AdjMat => JsonObject): JsonObject = {
     JsonObject(
       "centre" -> centre._2.toString,
       "size" -> this.members.length,
       "members" -> JsonArray(
         members.map(x => JsonObject(
-          "adjMat" -> x._1.hash, "tensor" -> x._2.toString)
+          "adjMat" -> adjMatToJSON(x._1), "tensor" -> x._2.toString)
         ))
     )
   }
@@ -122,12 +124,16 @@ class EquivClassRunResults(val normalised: Boolean,
     JsonObject(
       "runData" -> JsonObject(
         "normalised" -> normalised,
-        "redNodeData" -> rdata.toString(),
-        "greenNodeData" -> gdata.toString(),
+        "redNodeData" -> JsonArray(rdata.toList.map(nv => nv.toJson)),
+        "greenNodeData" -> JsonArray(gdata.toList.map(nv => nv.toJson)),
         "tolerance" -> tolerance,
         "theory" -> theory.toString
       ),
-      "equivalenceClasses" -> JsonArray(equivalenceClasses.map(e => e.toJSON))
+      "equivalenceClasses" -> JsonArray(equivalenceClasses.map(e => e.toJSON(
+        a => Graph.toJson(adjMatToGraph(a),theory).asObject
+      )
+      )
+      )
     )
   }
 }
