@@ -1,5 +1,7 @@
 package quanto.cosy
 
+import quanto.data._
+
 /**
   * An interpreter is given a diagram (as an adjMat and variable assignment) and returns a tensor
   */
@@ -16,7 +18,7 @@ object Interpreter {
     case _ => Tensor.hadamard x makeHadamards(n - 1, current)
   }
 
-  def interpretSpider(green: Boolean, angle: Double, inputs: Int, outputs: Int): Tensor = {
+  def interpretSpider(green: Boolean, angle : Double, inputs: Int, outputs: Int): Tensor = {
     // Converts spider to tensor. If green==false then it is a red spider
     val toString = green.toString + ":" + angle + ":" + inputs + ":" + outputs
     if (cached.contains(toString)) cached(toString) else {
@@ -34,11 +36,15 @@ object Interpreter {
     }
   }
 
-  def interpretAdjMat(adjMat: AdjMat, greenAM: AngleMap, redAM: AngleMap): Tensor = {
-    interpretAdjMatSpidersFirst(adjMat: AdjMat, greenAM: AngleMap, redAM: AngleMap)
+  def interpretAdjMat(adjMat: AdjMat, greenAM: Vector[NodeV], redAM: Vector[NodeV]): Tensor = {
+    interpretAdjMatSpidersFirst(adjMat, greenAM, redAM)
   }
 
-  private def interpretAdjMatSpidersFirst(adj: AdjMat, greenAM: AngleMap, redAM: AngleMap): Tensor = {
+  private def interpretAdjMatUsingCached(adj: AdjMat, greenAM: AngleMap, redAM: AngleMap) = {
+
+  }
+
+  private def interpretAdjMatSpidersFirst(adj: AdjMat, greenAM: Vector[NodeV], redAM: Vector[NodeV]): Tensor = {
     // Interpret the graph as (caps) o (crossings) o (vertices)
     if (adj.size == 0) {
       Tensor.id(1)
@@ -66,12 +72,13 @@ object Interpreter {
 
       // Tensor representation of a spider
       def vecToSpider(v: Int): Tensor = {
-        val (colour, angle) = adj.vertexColoursAndTypes(v)
+        def pullOutAngle(nv: NodeV) = nv.angle.evaluate(Map("pi"->math.Pi)) * math.Pi
+        val (colour, nodeType) = adj.vertexColoursAndTypes(v)
         val green = true
         colour match {
           case VertexColour.Boundary => Tensor.id(2)
-          case VertexColour.Green => interpretSpider(green, greenAM(angle), 0, numConnections(v))
-          case VertexColour.Red => interpretSpider(!green, redAM(angle), 0, numConnections(v))
+          case VertexColour.Green => interpretSpider(green, pullOutAngle(greenAM(nodeType)), 0, numConnections(v))
+          case VertexColour.Red => interpretSpider(!green, pullOutAngle(redAM(nodeType)), 0, numConnections(v))
         }
       }
 

@@ -3,6 +3,7 @@ package quanto.cosy
 import quanto.cosy.Interpreter._
 import quanto.data._
 import quanto.util.json.{JsonArray, JsonObject}
+import quanto.rewrite._
 
 /**
   * Synthesises diagrams, holds the data and generates equivalence classes
@@ -36,24 +37,35 @@ class EquivalenceClass(val centre: (AdjMat, Tensor)) {
   }
 }
 
-class EquivClassRunResults(val normalised: Boolean, angleMap: AngleMap, val tolerance: Double = 1e-14) {
+class EquivClassRunResults(val normalised: Boolean,
+                           rdata: Vector[NodeV],
+                           gdata: Vector[NodeV],
+                           val theory: Theory,
+                           val tolerance: Double = 1e-14,
+                           val rulesList: List[Rule]) {
   var equivalenceClasses: List[EquivalenceClass] = List()
 
   /** Adds the diagrams to classes, does not delete current classes first */
   def findEquivalenceClasses(adjMats: Stream[AdjMat]): List[EquivalenceClass] = {
     adjMats.foreach(
-      x => compareAndAddToClass(x)
+      x => if (
+        rulesList.forall(r => Matcher.findMatches(r.lhs, adjMatToGraph(x)).isEmpty)) {
+        // TODO add in r.lhs > r.rhs when matcher is working
+        compareAndAddToClass(x)
+      } else {
+        println("Rule matched " + x.toString)
+      }
     )
     equivalenceClasses
+  }
+
+  def adjMatToGraph(adj: AdjMat): Graph = {
+    Graph.fromAdjMat(adj, rdata, gdata)
   }
 
   // Returns (new Class, -1) if no EquivalenceClasses here
   def closestClassTo(that: AdjMat): (EquivalenceClass, Double) = {
     closestClassTo(interpret(that))
-  }
-
-  def interpret(adjMat: AdjMat): Tensor = {
-    interpretAdjMat(adjMat, angleMap, angleMap)
   }
 
   def closestClassTo(that: Tensor): (EquivalenceClass, Double) = {
@@ -102,68 +114,18 @@ class EquivClassRunResults(val normalised: Boolean, angleMap: AngleMap, val tole
     closest
   }
 
-  def adjMatToGraph(adj: AdjMat): Graph = {
-
-    def vxToNodeV(v: Int): NodeV = {
-      val (c, t) = adj.vertexColoursAndTypes(v)
-      val JSON = c match {
-        case VertexColour.Boundary => JsonObject(
-          "annotation" -> JsonObject(
-            "boundary" -> "true",
-            "coord" -> JsonArray(v, 0)
-          )
-        )
-        case VertexColour.Green => JsonObject(
-          "data" -> JsonObject(
-            "type" -> "Z",
-            "value" -> angleMap(t)
-          ),
-          "annotation" -> JsonObject(
-            "boundary" -> false,
-            "coord" -> JsonArray(v, 1)
-          )
-        )
-        case VertexColour.Red => JsonObject(
-          "data" -> JsonObject(
-            "type" -> "X",
-            "value" -> angleMap(t)
-          ),
-          "annotation" -> JsonObject(
-            "boundary" -> false,
-            "coord" -> JsonArray(v, 2)
-          )
-        )
-      }
-      new NodeV(annotation = JSON)
-    }
-
-    var vxNames: List[VName] = List()
-
-    var g = new Graph()
-    for (v <- adj.mat.indices) {
-      val nodeVersion = vxToNodeV(v)
-      var (g2, name) = g.newVertex(nodeVersion)
-      g = g2
-      // g.addVertex(name, nodeVersion)
-      vxNames = name :: vxNames
-    }
-
-    vxNames = vxNames.reverse
-
-    for (i <- adj.mat.indices; j <- adj.mat.indices) {
-      if (i < j && adj.mat(i)(j)) {
-        g.newEdge(UndirEdge(), vxNames(i) -> vxNames(j))
-      }
-    }
-    g
+  def interpret(adjMat: AdjMat): Tensor = {
+    interpretAdjMat(adjMat, rdata, gdata)
   }
 
   def toJSON: JsonObject = {
     JsonObject(
       "runData" -> JsonObject(
         "normalised" -> normalised,
-        "smallestAngle" -> angleMap(1),
-        "tolerance" -> tolerance
+        "redNodeData" -> rdata.toString(),
+        "greenNodeData" -> gdata.toString(),
+        "tolerance" -> tolerance,
+        "theory" -> theory.toString
       ),
       "equivalenceClasses" -> JsonArray(equivalenceClasses.map(e => e.toJSON))
     )
@@ -171,9 +133,36 @@ class EquivClassRunResults(val normalised: Boolean, angleMap: AngleMap, val tole
 }
 
 object EquivClassRunResults {
-  def apply(normalised: Boolean, numAngles: Int, tolerance: Double = 1e-14): EquivClassRunResults = {
+  val defaultTolerance = 1e-14
+
+  def apply(normalised: Boolean,
+            numAngles: Int,
+            tolerance: Double,
+            theory: Theory,
+            rulesList: List[Rule]): EquivClassRunResults = {
     def angleMap = (x: Int) => x * math.Pi * 2.0 / numAngles
 
-    new EquivClassRunResults(normalised, angleMap, tolerance)
+    val gdata = (for (i <- 0 until numAngles) yield {
+      NodeV(data = JsonObject("type" -> "Z", "value" -> angleMap(i).toString), theory = theory)
+    }).toVector
+    val rdata = (for (i <- 0 until numAngles) yield {
+      NodeV(data = JsonObject("type" -> "X", "value" -> angleMap(i).toString), theory = theory)
+    }).toVector
+
+    new EquivClassRunResults(normalised, rdata, gdata, theory, tolerance, rulesList)
+  }
+
+  def apply(normalised: Boolean,
+            redAngles: Vector[NodeV],
+            greenAngles: Vector[NodeV],
+            tolerance: Double,
+            theory: Theory,
+            rulesList: List[Rule]): EquivClassRunResults = {
+    new EquivClassRunResults(normalised = normalised,
+      rdata = redAngles,
+      gdata = greenAngles,
+      tolerance = tolerance,
+      rulesList = rulesList,
+      theory = theory)
   }
 }

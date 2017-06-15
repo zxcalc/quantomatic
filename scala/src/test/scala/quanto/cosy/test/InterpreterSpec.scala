@@ -3,14 +3,33 @@ package quanto.cosy.test
 import org.scalatest.FlatSpec
 import quanto.cosy.Interpreter.AngleMap
 import quanto.cosy.{AdjMat, Complex, Interpreter, Tensor}
+import quanto.data.{NodeV, Theory}
+import quanto.util.json.JsonObject
 
 /**
   * Created by hector on 24/05/17.
   */
 class InterpreterSpec extends FlatSpec {
   behavior of "The Interpreter"
+  val rg = Theory.fromFile("red_green")
+
   val pi = math.Pi
   var one = Complex.one
+
+
+  val rdata = Vector(
+    NodeV(data = JsonObject("type" -> "X", "value" -> "0"), theory = rg),
+    NodeV(data = JsonObject("type" -> "X", "value" -> "pi"), theory = rg),
+    NodeV(data = JsonObject("type" -> "X", "value" -> "(1/2) pi"), theory = rg),
+    NodeV(data = JsonObject("type" -> "X", "value" -> "(-1/2) pi"), theory = rg)
+  )
+
+  val gdata = Vector(
+    NodeV(data = JsonObject("type" -> "Z", "value" -> "0"), theory = rg),
+    NodeV(data = JsonObject("type" -> "Z", "value" -> "pi"), theory = rg),
+    NodeV(data = JsonObject("type" -> "Z", "value" -> "(1/2) pi"), theory = rg),
+    NodeV(data = JsonObject("type" -> "Z", "value" -> "(-1/2) pi"), theory = rg)
+  )
 
   it should "make hadamards" in {
     // Via "new"
@@ -60,47 +79,65 @@ class InterpreterSpec extends FlatSpec {
     assert((h2 o r o h1).isRoughly(g))
   }
 
-  it should "process small graphs" in {
+  it should "process green 0" in {
     var amat = new AdjMat(numRedTypes = 0, numGreenTypes = 1)
     amat = amat.addVertex(Vector())
     amat = amat.addVertex(Vector(false))
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(true, true))
     println(amat)
-    val i1 = Interpreter.interpretAdjMat(amat, Map(0 -> 0), Map())
+    val i1 = Interpreter.interpretAdjMat(amat, redAM = rdata, greenAM = gdata)
     assert(i1.isRoughly(Tensor(Array(Array(1, 0, 0, 1)))))
-    val i2 = Interpreter.interpretAdjMat(amat, Map(0 -> math.Pi), Map())
-    assert(i2.isRoughly(Tensor(Array(Array(1, 0, 0, -1)))))
   }
+
+
+  it should "process green pi" in {
+    var amat = new AdjMat(numRedTypes = 2, numGreenTypes = 2)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.nextType.get
+    // Red 0
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(true, true))
+    println(amat)
+    val i1 = Interpreter.interpretAdjMat(amat, redAM = rdata, greenAM = gdata)
+    assert(i1.isRoughly(Interpreter.interpretSpider(green = false, math.Pi,2,0)))
+  }
+
   var zero = Complex.zero
   it should "process entire graphs" in {
     // Simple red and green identities
-    var simpleGreenAM: AngleMap = Map(0 -> 0, 1 -> 0)
-    var simpleRedAM: AngleMap = Map(0 -> pi)
-    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    var amat = new AdjMat(numRedTypes = 2, numGreenTypes = 2)
     amat = amat.addVertex(Vector())
     amat = amat.addVertex(Vector(false))
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(true, false))
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(false, true, true))
-    val i1 = Interpreter.interpretAdjMat(amat, simpleGreenAM, simpleRedAM)
+    amat = amat.nextType.get
+    amat = amat.nextType.get
+    val i1 = Interpreter.interpretAdjMat(amat, redAM = rdata, greenAM = gdata)
     assert(i1.isRoughly(Interpreter.interpretSpider(false, pi, 2, 0)))
   }
   it should "satisfy the Euler identity" in {
     // Euler identity
-    var gHAM: AngleMap = Map(0 -> pi / 2, 1 -> pi / 2)
-    var rHAM: AngleMap = Map(0 -> pi / 2)
-    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    var amat = new AdjMat(numRedTypes = 4, numGreenTypes = 4)
     amat = amat.addVertex(Vector())
     amat = amat.addVertex(Vector(false))
+    amat = amat.nextType.get
+    // Reds 0
+    amat = amat.nextType.get
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(true, false))
     amat = amat.addVertex(Vector(false, true, false))
     amat = amat.nextType.get
+    amat = amat.nextType.get
+    // Greens 0
+    amat = amat.nextType.get
+    amat = amat.nextType.get
     amat = amat.addVertex(Vector(false, false, true, true))
     println(amat)
-    val i2 = Interpreter.interpretAdjMat(amat, gHAM, rHAM)
+    val i2 = Interpreter.interpretAdjMat(amat, redAM = rdata, greenAM = gdata)
     val i3 = Interpreter.interpretSpider(true, 0, 2, 0) o (Tensor.id(2) x Tensor.hadamard)
     println(i3.scaled(i2.contents(0)(0) / i3.contents(0)(0)))
     assert(i2.isRoughly(i3.scaled(i2.contents(0)(0) / i3.contents(0)(0))))
