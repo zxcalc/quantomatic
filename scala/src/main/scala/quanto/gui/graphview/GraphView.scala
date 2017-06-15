@@ -442,7 +442,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
               val corner1 = bboxDisplay(endBB).corner
 
               if (graph.bboxParent.get(endBB) == Some(bb)) g.setColor(Color.RED)
-              else if (graph.bboxParents(bb).contains(endBB)) g.setColor(Color.GRAY)
+              else if (graph.bboxParentList(bb).contains(endBB)) g.setColor(Color.GRAY)
               g.draw(corner1)
 
               (corner1.getCenterX, corner1.getCenterY)

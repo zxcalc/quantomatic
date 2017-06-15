@@ -22,7 +22,7 @@ case class MatchState(
   lazy val uBareWires: Set[VName] = uVerts.filter(m.pattern.representsBareWire)
   lazy val uNodes: Set[VName]     = uVerts.filter { v => !m.pattern.vdata(v).isWireVertex }
   lazy val uWires: Set[VName]     = uVerts.filter { v => m.pattern.vdata(v).isWireVertex }
-  lazy val uBBoxes: Set[BBName]   = Set()
+  lazy val uBBoxes: Set[BBName]   = m.pattern.bboxes.filter(bb => parentBBoxesMatched(bb) && !m.map.bb.domSet.contains(bb))
 
 
 
@@ -150,7 +150,43 @@ case class MatchState(
 
     // if there are unmatched bboxes, pull the first top-level bbox and try to kill, expand, or copy+match
     } else if (uBBoxes.nonEmpty) {
-      None
+      val pbb = uBBoxes.min
+      candidateBBoxes match {
+        case Some(candidateBBoxes1) =>
+          if (candidateBBoxes1.isEmpty) {
+            nextState match {
+              case Some(ms1) => ms1.nextMatch()
+              case None => None
+            }
+          } else {
+            val tbb = candidateBBoxes1.head
+            val next = copy(candidateBBoxes = Some(candidateBBoxes1.tail))
+            copy(
+              m = m.addBBox(pbb -> tbb),
+              candidateBBoxes = None,
+              nextState = Some(next)
+            ).nextMatch()
+          }
+        case None =>
+          val (killGraph, killOp) = m.pattern.killBBox(pbb)
+          val (expandGraph, expandOp) = m.pattern.expandBBox(pbb)
+          val (copyGraph, copyOp) = m.pattern.copyBBox(pbb)
+
+          val next2 = copy(
+            m = m.copy(pattern = copyGraph, bbops = copyOp :: m.bbops),
+            candidateBBoxes = Some(m.target.bboxes.filter(reflectsParentBBoxes(pbb, _)))
+          )
+
+          val next1 = copy(
+            m = m.copy(pattern = expandGraph, bbops = expandOp :: m.bbops),
+            nextState = Some(next2)
+          )
+
+          copy(
+            m = m.copy(pattern = killGraph, bbops = killOp :: m.bbops),
+            nextState = Some(next1)
+          ).nextMatch()
+      }
 
     // if there is nothing left to do, check if the match is complete and return it if so. If not, continue
     // the search from nextState
@@ -171,6 +207,8 @@ case class MatchState(
   // TODO: stub
   def pVertexMayBeCompleted(v: VName) = true
 
+  // TODO: we may only need to check the closest parent, not all parents
+
   def reflectsBBoxes(vp: VName, vt: VName) =
     m.pattern.bboxesContaining(vp) == m.map.bb.inverseImage(m.target.bboxesContaining(vt))
 
@@ -178,10 +216,10 @@ case class MatchState(
     m.pattern.bboxesContaining(vp).forall(m.map.bb.domSet.contains)
 
   def reflectsParentBBoxes(bbp: BBName, bbt: BBName) =
-    m.pattern.bboxParentSet(bbp) == m.map.bb.inverseImage(m.target.bboxParentSet(bbt))
+    m.pattern.bboxParents(bbp) == m.map.bb.inverseImage(m.target.bboxParents(bbt))
 
   def parentBBoxesMatched(bbp: BBName) =
-    m.pattern.bboxParentSet(bbp).forall(m.map.bb.domSet.contains)
+    m.pattern.bboxParents(bbp).forall(m.map.bb.domSet.contains)
 
   /**
     * Match a new node vertex

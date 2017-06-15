@@ -24,7 +24,7 @@ object Matcher {
     }
 
     MatchState(
-      m = Match(pattern = patN, patternExpanded = patN, target = tgtN),
+      m = Match(pattern = patN, target = tgtN),
       tVerts = restrict1,
       angleMatcher = AngleExpressionMatcher(patVars,tgtVars))
   }

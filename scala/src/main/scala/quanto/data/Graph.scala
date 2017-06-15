@@ -245,15 +245,25 @@ case class Graph(
     }
   }
 
-  def bboxParents(bb : BBName): List[BBName] =
+  /**
+    * A list of bbox parents, with the closest ancestor first
+    * @param bb a bbox
+    * @return
+    */
+  def bboxParentList(bb : BBName): List[BBName] =
     bboxParent.get(bb) match {
-      case Some(bb1) => bb1 :: bboxParents(bb1)
+      case Some(bb1) => bb1 :: bboxParentList(bb1)
       case None => List()
     }
 
-  def bboxParentSet(bb: BBName): Set[BBName] =
+  /**
+    * The set of all parents for a given bbox
+    * @param bb
+    * @return
+    */
+  def bboxParents(bb: BBName): Set[BBName] =
     bboxParent.get(bb) match {
-      case Some(bb1) => bboxParentSet(bb1) + bb1
+      case Some(bb1) => bboxParents(bb1) + bb1
       case None => Set()
     }
 
@@ -273,7 +283,7 @@ case class Graph(
     * NOTE: this affects parents as well. */
   def updateBBoxContents(bbn: BBName, newContents: Set[VName]): Graph = {
     val oldContents = contents(bbn)
-    val updateBB = bbn :: bboxParents(bbn)
+    val updateBB = bbn :: bboxParentList(bbn)
 
     var inBB = inBBox
 
@@ -291,11 +301,11 @@ case class Graph(
     val cont = contents(bb)
     var inBB = inBBox
     var bbP = bboxParent
-    val oldParents = bboxParents(bb)
+    val oldParents = bboxParentList(bb)
     val newParents = bbParentOpt match {
       case Some(bbParent) =>
         bbP += (bb -> bbParent)
-        val newP = bbParent :: bboxParents(bbParent)
+        val newP = bbParent :: bboxParentList(bbParent)
         if (newP.contains(bb))
           throw new GraphException("Adding parent " + bbParent + " to bbox " + bb + " introduces cycle.")
 

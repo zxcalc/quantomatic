@@ -633,7 +633,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
           bboxHit.map { bbChild =>
             // only consider adding this bbox as a child if it is not already a parent (or itself)
-            if (!graph.bboxParents(startBB).contains(bbChild) && startBB != bbChild) {
+            if (!graph.bboxParentList(startBB).contains(bbChild) && startBB != bbChild) {
               if (graph.bboxParent.get(bbChild) == Some(startBB)) setBBoxParent(bbChild, None)
               else setBBoxParent(bbChild, Some(startBB))
             }

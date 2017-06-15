@@ -4,7 +4,7 @@ import quanto.data._
 class MatchException(msg: String) extends Exception(msg)
 
 case class Match(pattern: Graph,
-                 patternExpanded: Graph,
+                 //patternExpanded: Graph,
                  target: Graph,
                  map: GraphMap = GraphMap(),
                  bareWireMap: Map[VName, Vector[VName]] = Map(),
@@ -25,6 +25,10 @@ case class Match(pattern: Graph,
       throw new MatchException("Attempted to add edges: " + ePair + " to unconnected vertices: " + vPair)
 
     copy(map = map addVertex vPair addEdge ePair)
+  }
+
+  def addBBox(bbPair: (BBName, BBName)): Match = {
+    copy(map = map addBBox bbPair)
   }
 
   /**
