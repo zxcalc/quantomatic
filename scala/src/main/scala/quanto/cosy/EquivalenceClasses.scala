@@ -5,8 +5,6 @@ import quanto.data._
 import quanto.util.json.{JsonArray, JsonObject}
 import quanto.rewrite._
 
-import scala.util.parsing.json.JSONObject
-
 /**
   * Synthesises diagrams, holds the data and generates equivalence classes
   */
@@ -20,11 +18,9 @@ class EquivalenceClass(val centre: (AdjMat, Tensor)) {
   }
 
   override def toString: String = {
-    var s = "Equivalence class" +
+    "Equivalence class" +
       "\nSize: " + this.members.length +
       "\nCentre: " + this.centre._2.toString()
-    //this.members.toString()
-    s
   }
 
   def toJSON(adjMatToJSON: AdjMat => JsonObject): JsonObject = {

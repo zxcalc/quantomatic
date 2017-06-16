@@ -32,9 +32,9 @@ case class AdjMat(numRedTypes: Int,
                   mat: Vector[Vector[Boolean]] = Vector())
   extends Ordered[AdjMat] {
   lazy val size: Int = mat.length
-  lazy val numRed = red.sum
-  lazy val numGreen = green.sum
-  lazy val hash = makeHash()
+  lazy val numRed : Int = red.sum
+  lazy val numGreen : Int = green.sum
+  lazy val hash : String = makeHash()
   lazy val vertexColoursAndTypes: List[(VertexColour.EnumVal, Int)] = {
     var _vertexColoursAndTypes: List[(VertexColour.EnumVal, Int)] = List()
     var colCount = 0
@@ -73,7 +73,7 @@ case class AdjMat(numRedTypes: Int,
 
   // This method grows the adjacency matrix by adding a new boundary, red node, or green node, with the given
   // vector of edges.
-  def addVertex(connection: Vector[Boolean]) = {
+  def addVertex(connection: Vector[Boolean]) : AdjMat = {
     if (red.isEmpty && green.isEmpty) { // new vertex is a boundary
       copy(numBoundaries = numBoundaries + 1, mat = growMatrix(connection))
     } else if (red.nonEmpty && green.isEmpty) { // new vertex is a red node

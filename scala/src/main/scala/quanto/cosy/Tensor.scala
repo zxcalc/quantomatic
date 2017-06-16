@@ -1,7 +1,5 @@
 package quanto.cosy
 
-import quanto.cosy._
-
 import scala.runtime.RichInt
 
 /**
@@ -256,8 +254,8 @@ object Tensor {
 
   def emptyMatrix(height: Int, width: Int): Matrix = {
     // Fill matrix with zeroes
-    (for (j <- 0 until height) yield
-      (for (i <- 0 until width) yield Complex.zero).toArray).toArray
+    (for (_ <- 0 until height) yield
+      (for (_ <- 0 until width) yield Complex.zero).toArray).toArray
   }
 
   def permutation(asList: List[Int]): Tensor = {
@@ -310,7 +308,7 @@ object Tensor {
 
   def zero(height: Int, width: Int): Tensor =
   // Create the zero tensor
-    Tensor(height, width, (i, j) => Complex.zero)
+    Tensor(height, width, (_, _) => Complex.zero)
 
   // for comparing entries
 }
