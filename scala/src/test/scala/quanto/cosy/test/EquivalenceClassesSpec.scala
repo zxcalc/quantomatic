@@ -32,15 +32,15 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   it should "result in the same number of diagrams when normalising things" in {
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
-    results.findEquivalenceClasses(diagramStream)
-    resultsNormalised.findEquivalenceClasses(diagramStream)
+    results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
+    resultsNormalised.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
     assert(results.equivalenceClasses.map(x => x.members.length).sum ==
       resultsNormalised.equivalenceClasses.map(x => x.members.length).sum)
   }
 
   it should "convert an AdjMat into a graph" in {
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
-    results.findEquivalenceClasses(diagramStream)
+    results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
     var (adj, ten) = results.equivalenceClasses.head.centre
     var graph = results.adjMatToGraph(adj)
     println(graph.toString)
@@ -53,7 +53,7 @@ class EquivalenceClassesSpec extends FlatSpec {
       rulesList = emptyRuleList,
       theory = rg)
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
-    results.findEquivalenceClasses(diagramStream)
+    results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
     println(results.toJSON.toString())
   }
 
@@ -77,7 +77,7 @@ class EquivalenceClassesSpec extends FlatSpec {
       rulesList = List(singleRedRule),
       theory = rg)
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
-    resultsWithOneRule.findEquivalenceClasses(diagramStream)
+    resultsWithOneRule.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
     println(resultsWithOneRule.toJSON.toString())
   }
 

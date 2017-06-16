@@ -27,7 +27,7 @@ class EquivalenceClass(val centre: (AdjMat, Tensor)) {
     s
   }
 
-  def toJSON(adjMatToJSON : AdjMat => JsonObject): JsonObject = {
+  def toJSON(adjMatToJSON: AdjMat => JsonObject): JsonObject = {
     JsonObject(
       "centre" -> centre._2.toString,
       "size" -> this.members.length,
@@ -46,9 +46,11 @@ class EquivClassRunResults(val normalised: Boolean,
                            val tolerance: Double = 1e-14,
                            val rulesList: List[Rule]) {
   var equivalenceClasses: List[EquivalenceClass] = List()
+  var messageList: List[String] = List()
 
   /** Adds the diagrams to classes, does not delete current classes first */
-  def findEquivalenceClasses(adjMats: Stream[AdjMat]): List[EquivalenceClass] = {
+  def findEquivalenceClasses(adjMats: Stream[AdjMat], message: String = "Stream generation method"): List[EquivalenceClass] = {
+    val startTime = System.nanoTime()
     adjMats.foreach(
       x => if (
         rulesList.forall(r =>
@@ -63,11 +65,11 @@ class EquivClassRunResults(val normalised: Boolean,
         compareAndAddToClass(x)
       }
     )
+    val endTime = System.nanoTime()
+    val timeTaken = endTime - startTime
+    val timeTakenString = "which took " + (timeTaken * 1e-9).toString + "s"
+    messageList = timeTakenString :: message :: messageList
     equivalenceClasses
-  }
-
-  def adjMatToGraph(adj: AdjMat): Graph = {
-    Graph.fromAdjMat(adj, rdata, gdata)
   }
 
   // Returns (new Class, -1) if no EquivalenceClasses here
@@ -86,6 +88,10 @@ class EquivClassRunResults(val normalised: Boolean,
       }
     }
     (closestClass, closestDistance)
+  }
+
+  def interpret(adjMat: AdjMat): Tensor = {
+    interpretAdjMat(adjMat, rdata, gdata)
   }
 
   def add(adjMat: AdjMat): EquivalenceClass = {
@@ -121,25 +127,31 @@ class EquivClassRunResults(val normalised: Boolean,
     closest
   }
 
-  def interpret(adjMat: AdjMat): Tensor = {
-    interpretAdjMat(adjMat, rdata, gdata)
-  }
-
   def toJSON: JsonObject = {
+    val totalDiagrams = equivalenceClasses.foldLeft(0){(a,b) => a + b.members.length}
+    val numberOfClasses = equivalenceClasses.length
     JsonObject(
       "runData" -> JsonObject(
+        "messages" -> JsonArray(messageList.reverse),
         "normalised" -> normalised,
+        "tolerance" -> tolerance,
+        "theory" -> theory.toString,
+        "totalDiagrams" -> totalDiagrams,
+        "numberOfClasses" -> numberOfClasses,
         "redNodeData" -> JsonArray(rdata.toList.map(nv => nv.toJson)),
         "greenNodeData" -> JsonArray(gdata.toList.map(nv => nv.toJson)),
-        "tolerance" -> tolerance,
-        "theory" -> theory.toString
+        "rules" -> JsonArray(rulesList.map(r => Rule.toJson(r,theory)))
       ),
       "equivalenceClasses" -> JsonArray(equivalenceClasses.map(e => e.toJSON(
-        a => Graph.toJson(adjMatToGraph(a),theory).asObject
+        a => Graph.toJson(adjMatToGraph(a), theory).asObject
       )
       )
       )
     )
+  }
+
+  def adjMatToGraph(adj: AdjMat): Graph = {
+    Graph.fromAdjMat(adj, rdata, gdata)
   }
 }
 
