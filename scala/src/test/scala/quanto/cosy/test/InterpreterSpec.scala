@@ -14,22 +14,19 @@ class InterpreterSpec extends FlatSpec {
   val rg = Theory.fromFile("red_green")
 
   val pi = math.Pi
-  var one = Complex.one
-
-
   val rdata = Vector(
     NodeV(data = JsonObject("type" -> "X", "value" -> "0"), theory = rg),
     NodeV(data = JsonObject("type" -> "X", "value" -> "pi"), theory = rg),
     NodeV(data = JsonObject("type" -> "X", "value" -> "(1/2) pi"), theory = rg),
     NodeV(data = JsonObject("type" -> "X", "value" -> "(-1/2) pi"), theory = rg)
   )
-
   val gdata = Vector(
     NodeV(data = JsonObject("type" -> "Z", "value" -> "0"), theory = rg),
     NodeV(data = JsonObject("type" -> "Z", "value" -> "pi"), theory = rg),
     NodeV(data = JsonObject("type" -> "Z", "value" -> "(1/2) pi"), theory = rg),
     NodeV(data = JsonObject("type" -> "Z", "value" -> "(-1/2) pi"), theory = rg)
   )
+  var one = Complex.one
 
   it should "make hadamards" in {
     // Via "new"
@@ -91,33 +88,37 @@ class InterpreterSpec extends FlatSpec {
   }
 
 
-  it should "process green pi" in {
+  it should "process red pi" in {
     var amat = new AdjMat(numRedTypes = 2, numGreenTypes = 2)
     amat = amat.addVertex(Vector())
     amat = amat.addVertex(Vector(false))
     amat = amat.nextType.get
     // Red 0
     amat = amat.nextType.get
+    // Red pi
     amat = amat.addVertex(Vector(true, true))
     println(amat)
     val i1 = Interpreter.interpretAdjMat(amat, redAM = rdata, greenAM = gdata)
-    assert(i1.isRoughly(Interpreter.interpretSpider(green = false, math.Pi,2,0)))
+    assert(i1.isRoughly(Interpreter.interpretSpider(green = false, math.Pi, 2, 0)))
   }
-
   var zero = Complex.zero
-  it should "process entire graphs" in {
+  it should "process red spider law" in {
     // Simple red and green identities
-    var amat = new AdjMat(numRedTypes = 2, numGreenTypes = 2)
+    var amat = new AdjMat(numRedTypes = 4, numGreenTypes = 4)
     amat = amat.addVertex(Vector())
     amat = amat.addVertex(Vector(false))
     amat = amat.nextType.get
+    // red 0
+    amat = amat.nextType.get
+    // red pi
     amat = amat.addVertex(Vector(true, false))
     amat = amat.nextType.get
+    // red pi/2
     amat = amat.addVertex(Vector(false, true, true))
     amat = amat.nextType.get
-    amat = amat.nextType.get
+    //red -pi/2
     val i1 = Interpreter.interpretAdjMat(amat, redAM = rdata, greenAM = gdata)
-    assert(i1.isRoughly(Interpreter.interpretSpider(false, pi, 2, 0)))
+    assert(i1.isRoughly(Interpreter.interpretSpider(false, -pi/2, 2, 0)))
   }
   it should "satisfy the Euler identity" in {
     // Euler identity
