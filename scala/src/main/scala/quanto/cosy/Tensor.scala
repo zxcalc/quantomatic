@@ -1,5 +1,7 @@
 package quanto.cosy
 
+import quanto.util.json.{JsonArray, JsonObject}
+
 import scala.runtime.RichInt
 
 /**
@@ -128,6 +130,14 @@ class Tensor(c: Array[Array[Complex]]) {
     this.contents.map(line => line.map(s => pad(s.toString)).mkString(" ")).mkString("\n")
   }
 
+  def toJson: JsonObject = {
+    JsonObject(
+      "contents" -> JsonArray(c.map(x => JsonArray(
+        x.map(comp => comp.toJson)
+      )))
+    )
+  }
+
   def toStringSparse: String = {
     // Convert to string but with "." instead of "0" to make non-zero entries stand out
     val minWidth = 1
@@ -185,8 +195,14 @@ class Tensor(c: Array[Array[Complex]]) {
   // Compare two tensors up to a given distance
     this.distance(that) < maxDistance
 
-  def distance(that: Tensor): Double =
-    (this - that).contents.flatten.foldLeft(0.0) { (a: Double, b: Complex) => math.max(a, b.abs) }
+  /** Returns max abs distance, or -1 if not comparable */
+  def distance(that: Tensor): Double = {
+    if (this.isSameShapeAs(that)) {
+      (this - that).contents.flatten.foldLeft(0.0) { (a: Double, b: Complex) => math.max(a, b.abs) }
+    } else {
+      -1
+    }
+  }
 
   def -(that: Tensor): Tensor = {
     // this - that
@@ -311,4 +327,11 @@ object Tensor {
     Tensor(height, width, (_, _) => Complex.zero)
 
   // for comparing entries
+
+  def fromJson(json: JsonObject): Tensor = {
+    val contents : Array[Array[Complex]] = (json / "contents").asArray.map(
+      x => x.asArray.map(i => Complex.fromJson(i.asObject)).toArray
+    ).toArray
+    new Tensor(contents)
+  }
 }

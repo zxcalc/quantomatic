@@ -41,8 +41,8 @@ class EquivalenceClassesSpec extends FlatSpec {
   it should "convert an AdjMat into a graph" in {
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
     results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
-    var (adj, ten) = results.equivalenceClasses.head.centre
-    var graph = results.adjMatToGraph(adj)
+    var ten = results.equivalenceClasses.head.centre
+    var graph = results.equivalenceClasses.head.members.head._1
     println(graph.toString)
   }
 
@@ -55,6 +55,41 @@ class EquivalenceClassesSpec extends FlatSpec {
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
     results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
     println(results.toJSON.toString())
+  }
+
+  behavior of "multiple runs"
+
+  it should "accept multiple runs" in {
+    var results1 = EquivClassRunResults(normalised = false,
+      numAngles = 4,
+      tolerance = EquivClassRunResults.defaultTolerance,
+      rulesList = emptyRuleList,
+      theory = rg)
+    var diagramStream1 = ColbournReadEnum.enumerate(2, 2, 2, 2)
+    var diagramStream2 = ColbournReadEnum.enumerate(1, 1, 3, 2)
+    results1.findEquivalenceClasses(diagramStream1, "ColbournRead 2 2 2 2")
+    results1.findEquivalenceClasses(diagramStream2, "ColbournRead 1 1 3 2")
+    println(results1.toJSON)
+  }
+
+  it should "have results independent of run order" in {
+    var results1 = EquivClassRunResults(normalised = false,
+      numAngles = 4,
+      tolerance = EquivClassRunResults.defaultTolerance,
+      rulesList = emptyRuleList,
+      theory = rg)
+    var results2 = EquivClassRunResults(normalised = false,
+      numAngles = 4,
+      tolerance = EquivClassRunResults.defaultTolerance,
+      rulesList = emptyRuleList,
+      theory = rg)
+    var diagramStream1 = ColbournReadEnum.enumerate(2, 2, 2, 2)
+    var diagramStream2 = ColbournReadEnum.enumerate(1, 1, 3, 2)
+    results1.findEquivalenceClasses(diagramStream1, "ColbournRead 2 2 2 2")
+    results1.findEquivalenceClasses(diagramStream2, "ColbournRead 1 1 3 2")
+    results2.findEquivalenceClasses(diagramStream2, "ColbournRead 1 1 3 2")
+    results2.findEquivalenceClasses(diagramStream1, "ColbournRead 2 2 2 2")
+    println(results1.equivalenceClasses.toSet == results2.equivalenceClasses.toSet)
   }
 
   behavior of "Interaction with Rules"
@@ -89,6 +124,32 @@ class EquivalenceClassesSpec extends FlatSpec {
       p => p.println(results.toJSON.toString())
     )
     assert(testFile.delete())
+  }
+
+  it should "output to and input from JSON" in {
+    var amat = new AdjMat(numRedTypes = 2, numGreenTypes = 0)
+    // no boundaries
+    amat = amat.nextType.get
+    amat = amat.nextType.get
+    // single red_1
+    amat = amat.addVertex(Vector())
+    // LHS of rule is a disconnected red dot of value 0
+    var lhsG = results.adjMatToGraph(amat)
+    var singleRedRule = new Rule(lhs = lhsG, rhs = lhsG)
+    println("Rule is " + singleRedRule.toString)
+
+    var resultsWithOneRule = EquivClassRunResults(normalised = false,
+      numAngles = 4,
+      tolerance = EquivClassRunResults.defaultTolerance,
+      rulesList = List(singleRedRule),
+      theory = rg)
+    var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
+    resultsWithOneRule.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
+    var jsonOutput = resultsWithOneRule.toJSON
+    var madeFromJSON = EquivClassRunResults.fromJSON(jsonOutput.asObject)
+    assert(madeFromJSON.equivalenceClasses.toSet == resultsWithOneRule.equivalenceClasses.toSet)
+    assert(madeFromJSON.messageList == resultsWithOneRule.messageList)
+    assert(madeFromJSON.rulesList == resultsWithOneRule.rulesList)
   }
 
 }

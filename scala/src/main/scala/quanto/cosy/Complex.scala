@@ -1,5 +1,7 @@
 package quanto.cosy
 
+import quanto.util.json.JsonObject
+
 /* Complex numbers for use in Tensor
  *
  */
@@ -75,6 +77,13 @@ class Complex(
     other.isInstanceOf[Complex]
 
   override def hashCode(): Int = ((41 * this.im) + this.re).toInt
+
+  def toJson : JsonObject = {
+    JsonObject(
+      "real" -> re,
+      "imaginary" -> im
+    )
+  }
 }
 
 object Complex {
@@ -89,4 +98,9 @@ object Complex {
   implicit def doubleToComplex(x: Double): Complex = new Complex(x)
 
   def apply(r: Int, i: Int) = new Complex(r, i)
+
+  def fromJson(json : JsonObject) : Complex = {
+    new Complex((json / "real").doubleValue,
+      (json / "imaginary").doubleValue)
+  }
 }
