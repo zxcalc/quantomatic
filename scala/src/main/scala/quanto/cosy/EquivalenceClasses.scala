@@ -1,7 +1,6 @@
 package quanto.cosy
 
 import quanto.cosy.Interpreter._
-import quanto.data
 import quanto.data._
 import quanto.util.json.{Json, JsonAccessException, JsonArray, JsonObject}
 import quanto.rewrite._
@@ -65,17 +64,18 @@ object EquivalenceClass {
   }
 }
 
-class EquivClassRunResults(val normalised: Boolean,
+class EquivClassRunResults(
                            rdata: Vector[NodeV],
                            gdata: Vector[NodeV],
                            val theory: Theory,
                            val tolerance: Double = 1e-14,
                            val rulesList: List[Rule]) {
   var equivalenceClasses: List[EquivalenceClass] = List()
+  var equivalenceClassesNormalised: List[EquivalenceClass] = List()
   var messageList: List[String] = List()
 
   /** Adds the diagrams to classes, does not delete current classes first */
-  def findEquivalenceClasses(adjMats: Stream[AdjMat], message: String = "Stream generation method"): List[EquivalenceClass] = {
+  def findEquivalenceClasses(adjMats: Stream[AdjMat], message: String = "Stream generation method"): EquivClassRunResults = {
     val startTime = System.nanoTime()
     adjMats.foreach(
       x => if (
@@ -88,19 +88,25 @@ class EquivClassRunResults(val normalised: Boolean,
             true
           }
         )) {
-        compareAndAddToClass(x)
+        val tensor = interpret(x)
+        compareAndAddToClass(x, tensor)
+        compareAndAddToClassNormalised(x, tensor)
       }
     )
     val endTime = System.nanoTime()
     val timeTaken = endTime - startTime
     val timeTakenString = "which took " + (timeTaken * 1e-9).toString + "s"
     messageList = timeTakenString :: message :: messageList
-    equivalenceClasses
+    this
   }
 
   // Returns (new Class, -1) if no EquivalenceClasses here
   def closestClassTo(that: AdjMat): (EquivalenceClass, Double) = {
     closestClassTo(interpret(that))
+  }
+
+  def closestClassToNormalised(that: AdjMat): (EquivalenceClass, Double) = {
+    closestClassToNormalised(interpret(that))
   }
 
   def closestClassTo(that: Tensor): (EquivalenceClass, Double) = {
@@ -116,32 +122,42 @@ class EquivClassRunResults(val normalised: Boolean,
     (closestClass, closestDistance)
   }
 
+  def closestClassToNormalised(that: Tensor): (EquivalenceClass, Double) = {
+    var closestClass = equivalenceClasses.head
+    var closestDistance: Double = -1.0
+    for (eqc <- equivalenceClasses) {
+      val rep = eqc.centre.normalised
+      val dn = that.normalised
+      val d = math.min(rep.distance(dn), rep.distance(dn.scaled(factor = -1.0)))
+      if (closestDistance < 0 || (d < closestDistance && d >= 0)) {
+        closestDistance = d
+        closestClass = eqc
+      }
+    }
+    (closestClass, closestDistance)
+  }
+
   def interpret(adjMat: AdjMat): Tensor = {
     interpretAdjMat(adjMat, rdata, gdata)
   }
 
   def add(adjMat: AdjMat): EquivalenceClass = {
-    compareAndAddToClass(adjMat)
+    val tensor = interpret(adjMat)
+    compareAndAddToClass(adjMat, tensor)
+    compareAndAddToClassNormalised(adjMat, tensor)
   }
 
   // Finds the closest class and adds it, or creates a new class if outside tolerance
-  def compareAndAddToClass(adj: AdjMat): EquivalenceClass = {
-    val adjTensor = interpret(adj)
+  def compareAndAddToClass(adj: AdjMat, tensor : Tensor = Tensor.zero(1,1)): EquivalenceClass = {
+    val adjTensor = if (tensor == Tensor.zero(1,1)) interpret(adj) else tensor
     var closest = new EquivalenceClass()
     var closestDist = tolerance
     for (eqClass <- equivalenceClasses) {
 
       // Need to ensure that the tensor is of the right size first!
       if (adjTensor.isSameShapeAs(eqClass.centre)) {
-        var dist = tolerance
-        if (normalised) {
-          val rep = eqClass.centre.normalised
-          val dn = adjTensor.normalised
-          dist = math.min(rep.distance(dn), rep.distance(dn.scaled(factor = -1.0)))
-        } else {
-          dist = eqClass.centre.distance(adjTensor)
-        }
-        if (dist < tolerance) {
+        val dist = eqClass.centre.distance(adjTensor)
+        if (dist < tolerance && dist > -1) {
           closest = eqClass
           closestDist = dist
         }
@@ -149,6 +165,27 @@ class EquivClassRunResults(val normalised: Boolean,
     }
     closest.addMember(adjMatToGraph(adj), adjTensor)
     if (closest.members.length == 1) equivalenceClasses = closest :: equivalenceClasses
+    closest
+  }
+
+  def compareAndAddToClassNormalised(adj: AdjMat, tensor : Tensor = Tensor.zero(1,1)): EquivalenceClass = {
+    val adjTensor = if (tensor == Tensor.zero(1,1)) interpret(adj).normalised else tensor.normalised
+    var closest = new EquivalenceClass()
+    var closestDist = tolerance
+    for (eqClass <- equivalenceClassesNormalised) {
+
+      // Need to ensure that the tensor is of the right size first!
+      if (adjTensor.isSameShapeAs(eqClass.centre)) {
+        val rep = eqClass.centre // already normalised
+        val dist = math.min(rep.distance(adjTensor), rep.distance(adjTensor.scaled(factor = -1.0)))
+        if (dist < tolerance && dist > -1) {
+          closest = eqClass
+          closestDist = dist
+        }
+      }
+    }
+    closest.addMember(adjMatToGraph(adj), adjTensor)
+    if (closest.members.length == 1) equivalenceClassesNormalised = closest :: equivalenceClassesNormalised
     closest
   }
 
@@ -162,7 +199,6 @@ class EquivClassRunResults(val normalised: Boolean,
     JsonObject(
       "runData" -> JsonObject(
         "messages" -> JsonArray(messageList.reverse),
-        "normalised" -> normalised,
         "tolerance" -> tolerance,
         "theory" -> Theory.toJson(theory),
         "totalDiagrams" -> totalDiagrams,
@@ -172,8 +208,9 @@ class EquivClassRunResults(val normalised: Boolean,
         "rules" -> JsonArray(rulesList.map(r => Rule.toJson(r, theory)))
       ),
       "equivalenceClasses" -> JsonArray(equivalenceClasses.map(e => e.toJSON(
-        theory).asObject
-      )
+        theory).asObject)),
+      "equivalenceClassesNormalised" -> JsonArray(equivalenceClassesNormalised.map(e => e.toJSON(
+        theory).asObject)
       )
     )
   }
@@ -182,8 +219,7 @@ class EquivClassRunResults(val normalised: Boolean,
 object EquivClassRunResults {
   val defaultTolerance = 1e-14
 
-  def apply(normalised: Boolean,
-            numAngles: Int,
+  def apply(            numAngles: Int,
             tolerance: Double,
             theory: Theory,
             rulesList: List[Rule]): EquivClassRunResults = {
@@ -196,7 +232,7 @@ object EquivClassRunResults {
       NodeV(data = JsonObject("type" -> "X", "value" -> angleMap(i).toString), theory = theory)
     }).toVector
 
-    new EquivClassRunResults(normalised, rdata, gdata, theory, tolerance, rulesList)
+    new EquivClassRunResults(rdata, gdata, theory, tolerance, rulesList)
   }
 
   def loadFromFile(file: java.io.File): EquivClassRunResults = {
@@ -208,7 +244,6 @@ object EquivClassRunResults {
     try {
       val runData = (json / "runData").asObject
       val messages: List[String] = (runData / "messages").asArray.map(_.stringValue).toList.reverse
-      val normalised: Boolean = (runData / "normalised").boolValue
       val tolerance: Double = (runData / "tolerance").doubleValue
       val theory: Theory = Theory.fromJson(runData / "theory")
       val redData: Vector[NodeV] = (runData / "redNodeData").asArray.map(
@@ -223,7 +258,11 @@ object EquivClassRunResults {
         eqc => EquivalenceClass.fromJson(eqc.asObject, theory)
       ).toList
 
-      val eqrr = EquivClassRunResults(normalised = normalised,
+      val equivalenceClassesNormalised: List[EquivalenceClass] = (json / "equivalenceClassesNormalised").asArray.map(
+        eqc => EquivalenceClass.fromJson(eqc.asObject, theory)
+      ).toList
+
+      val eqrr = EquivClassRunResults(
         redAngles = redData,
         greenAngles = greenData,
         theory = theory,
@@ -232,20 +271,19 @@ object EquivClassRunResults {
       )
       eqrr.messageList = messages
       eqrr.equivalenceClasses = equivalenceClasses
+      eqrr.equivalenceClassesNormalised = equivalenceClassesNormalised
       eqrr
     } catch {
       case e: JsonAccessException => throw new TheoryLoadException("Error reading JSON", e)
     }
   }
 
-  def apply(normalised: Boolean,
-            redAngles: Vector[NodeV],
+  def apply(redAngles: Vector[NodeV],
             greenAngles: Vector[NodeV],
             tolerance: Double,
             theory: Theory,
             rulesList: List[Rule]): EquivClassRunResults = {
-    new EquivClassRunResults(normalised = normalised,
-      rdata = redAngles,
+    new EquivClassRunResults(rdata = redAngles,
       gdata = greenAngles,
       tolerance = tolerance,
       rulesList = rulesList,

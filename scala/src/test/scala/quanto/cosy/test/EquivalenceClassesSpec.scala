@@ -12,13 +12,7 @@ import quanto.data._
 class EquivalenceClassesSpec extends FlatSpec {
   val rg = Theory.fromFile("red_green")
   var emptyRuleList: List[Rule] = List()
-  var results = EquivClassRunResults(normalised = false,
-    numAngles = 4,
-    tolerance = EquivClassRunResults.defaultTolerance,
-    rulesList = emptyRuleList,
-    theory = rg)
-  var resultsNormalised = EquivClassRunResults(normalised = true,
-    numAngles = 4,
+  var results = EquivClassRunResults(    numAngles = 4,
     tolerance = EquivClassRunResults.defaultTolerance,
     rulesList = emptyRuleList,
     theory = rg)
@@ -33,9 +27,8 @@ class EquivalenceClassesSpec extends FlatSpec {
   it should "result in the same number of diagrams when normalising things" in {
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
     results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
-    resultsNormalised.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
     assert(results.equivalenceClasses.map(x => x.members.length).sum ==
-      resultsNormalised.equivalenceClasses.map(x => x.members.length).sum)
+      results.equivalenceClassesNormalised.map(x => x.members.length).sum)
   }
 
   it should "convert an AdjMat into a graph" in {
@@ -47,7 +40,7 @@ class EquivalenceClassesSpec extends FlatSpec {
   }
 
   it should "have a JSON output" in {
-    var results = EquivClassRunResults(normalised = false,
+    var results = EquivClassRunResults(
       numAngles = 4,
       tolerance = EquivClassRunResults.defaultTolerance,
       rulesList = emptyRuleList,
@@ -60,7 +53,7 @@ class EquivalenceClassesSpec extends FlatSpec {
   behavior of "multiple runs"
 
   it should "accept multiple runs" in {
-    var results1 = EquivClassRunResults(normalised = false,
+    var results1 = EquivClassRunResults(
       numAngles = 4,
       tolerance = EquivClassRunResults.defaultTolerance,
       rulesList = emptyRuleList,
@@ -73,12 +66,12 @@ class EquivalenceClassesSpec extends FlatSpec {
   }
 
   it should "have results independent of run order" in {
-    var results1 = EquivClassRunResults(normalised = false,
+    var results1 = EquivClassRunResults(
       numAngles = 4,
       tolerance = EquivClassRunResults.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
-    var results2 = EquivClassRunResults(normalised = false,
+    var results2 = EquivClassRunResults(
       numAngles = 4,
       tolerance = EquivClassRunResults.defaultTolerance,
       rulesList = emptyRuleList,
@@ -106,7 +99,7 @@ class EquivalenceClassesSpec extends FlatSpec {
     var singleRedRule = new Rule(lhs = lhsG, rhs = lhsG)
     println("Rule is " + singleRedRule.toString)
 
-    var resultsWithOneRule = EquivClassRunResults(normalised = false,
+    var resultsWithOneRule = EquivClassRunResults(
       numAngles = 4,
       tolerance = EquivClassRunResults.defaultTolerance,
       rulesList = List(singleRedRule),
@@ -138,7 +131,7 @@ class EquivalenceClassesSpec extends FlatSpec {
     var singleRedRule = new Rule(lhs = lhsG, rhs = lhsG)
     println("Rule is " + singleRedRule.toString)
 
-    var resultsWithOneRule = EquivClassRunResults(normalised = false,
+    var resultsWithOneRule = EquivClassRunResults(
       numAngles = 4,
       tolerance = EquivClassRunResults.defaultTolerance,
       rulesList = List(singleRedRule),
@@ -148,6 +141,8 @@ class EquivalenceClassesSpec extends FlatSpec {
     var jsonOutput = resultsWithOneRule.toJSON
     var madeFromJSON = EquivClassRunResults.fromJSON(jsonOutput.asObject)
     assert(madeFromJSON.equivalenceClasses.toSet == resultsWithOneRule.equivalenceClasses.toSet)
+    assert(madeFromJSON.equivalenceClassesNormalised.toSet ==
+      resultsWithOneRule.equivalenceClassesNormalised.toSet)
     assert(madeFromJSON.messageList == resultsWithOneRule.messageList)
     assert(madeFromJSON.rulesList == resultsWithOneRule.rulesList)
   }
