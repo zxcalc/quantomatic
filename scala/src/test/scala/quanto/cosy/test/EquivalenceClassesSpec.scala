@@ -157,4 +157,10 @@ class EquivalenceClassesSpec extends FlatSpec {
     assert(testFile.delete())
   }
 
+  it should "allow outputs to home directory" in {
+    EquivClassBatchRunner.outputPath = Paths.get( System.getProperty("user.home"), "cosy_synth").toString
+    println(EquivClassBatchRunner.outputPath)
+    EquivClassBatchRunner.outputPath = "cosy_synth" // reset to avoid problems in later tests
+  }
+
 }
