@@ -1,6 +1,7 @@
 package quanto.cosy.test
 
 import java.io.File
+import java.nio.file.Paths
 
 import org.scalatest._
 import quanto.cosy._
@@ -145,6 +146,15 @@ class EquivalenceClassesSpec extends FlatSpec {
       resultsWithOneRule.equivalenceClassesNormalised.toSet)
     assert(madeFromJSON.messageList == resultsWithOneRule.messageList)
     assert(madeFromJSON.rulesList == resultsWithOneRule.rulesList)
+  }
+
+  behavior of "batch runner"
+
+  it should "create an output file" in {
+    EquivClassBatchRunner(4,2,2,"test.qrun")
+    var testFile = new File(Paths.get(EquivClassBatchRunner.outputPath,"test.qrun").toString)
+    assert(testFile.exists())
+    assert(testFile.delete())
   }
 
 }
