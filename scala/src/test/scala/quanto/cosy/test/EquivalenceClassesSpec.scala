@@ -6,6 +6,9 @@ import java.nio.file.Paths
 import org.scalatest._
 import quanto.cosy._
 import quanto.data._
+import quanto.util.json.{JsonArray, JsonObject}
+
+import scala.util.parsing.json.JSON
 
 /**
   * Created by hector on 02/06/17.
@@ -13,8 +16,8 @@ import quanto.data._
 class EquivalenceClassesSpec extends FlatSpec {
   val rg = Theory.fromFile("red_green")
   var emptyRuleList: List[Rule] = List()
-  var results = EquivClassRunResults(    numAngles = 4,
-    tolerance = EquivClassRunResults.defaultTolerance,
+  var results = EquivClassRunAdjMat(    numAngles = 4,
+    tolerance = EquivClassRunAdjMat.defaultTolerance,
     rulesList = emptyRuleList,
     theory = rg)
 
@@ -41,9 +44,9 @@ class EquivalenceClassesSpec extends FlatSpec {
   }
 
   it should "have a JSON output" in {
-    var results = EquivClassRunResults(
+    var results = EquivClassRunAdjMat(
       numAngles = 4,
-      tolerance = EquivClassRunResults.defaultTolerance,
+      tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
@@ -54,9 +57,9 @@ class EquivalenceClassesSpec extends FlatSpec {
   behavior of "multiple runs"
 
   it should "accept multiple runs" in {
-    var results1 = EquivClassRunResults(
+    var results1 = EquivClassRunAdjMat(
       numAngles = 4,
-      tolerance = EquivClassRunResults.defaultTolerance,
+      tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
     var diagramStream1 = ColbournReadEnum.enumerate(2, 2, 2, 2)
@@ -67,14 +70,14 @@ class EquivalenceClassesSpec extends FlatSpec {
   }
 
   it should "have results independent of run order" in {
-    var results1 = EquivClassRunResults(
+    var results1 = EquivClassRunAdjMat(
       numAngles = 4,
-      tolerance = EquivClassRunResults.defaultTolerance,
+      tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
-    var results2 = EquivClassRunResults(
+    var results2 = EquivClassRunAdjMat(
       numAngles = 4,
-      tolerance = EquivClassRunResults.defaultTolerance,
+      tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
     var diagramStream1 = ColbournReadEnum.enumerate(2, 2, 2, 2)
@@ -100,9 +103,9 @@ class EquivalenceClassesSpec extends FlatSpec {
     var singleRedRule = new Rule(lhs = lhsG, rhs = lhsG)
     println("Rule is " + singleRedRule.toString)
 
-    var resultsWithOneRule = EquivClassRunResults(
+    var resultsWithOneRule = EquivClassRunAdjMat(
       numAngles = 4,
-      tolerance = EquivClassRunResults.defaultTolerance,
+      tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = List(singleRedRule),
       theory = rg)
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
@@ -132,15 +135,15 @@ class EquivalenceClassesSpec extends FlatSpec {
     var singleRedRule = new Rule(lhs = lhsG, rhs = lhsG)
     println("Rule is " + singleRedRule.toString)
 
-    var resultsWithOneRule = EquivClassRunResults(
+    var resultsWithOneRule = EquivClassRunAdjMat(
       numAngles = 4,
-      tolerance = EquivClassRunResults.defaultTolerance,
+      tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = List(singleRedRule),
       theory = rg)
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
     resultsWithOneRule.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
     var jsonOutput = resultsWithOneRule.toJSON
-    var madeFromJSON = EquivClassRunResults.fromJSON(jsonOutput.asObject)
+    var madeFromJSON = EquivClassRunAdjMat.fromJSON(jsonOutput.asObject)
     assert(madeFromJSON.equivalenceClasses.toSet == resultsWithOneRule.equivalenceClasses.toSet)
     assert(madeFromJSON.equivalenceClassesNormalised.toSet ==
       resultsWithOneRule.equivalenceClassesNormalised.toSet)
@@ -150,7 +153,7 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   behavior of "batch runner"
 
-  it should "create an output file" in {
+  it should "create an output qrun file" in {
     EquivClassBatchRunner(4,2,2,"test.qrun")
     var testFile = new File(Paths.get(EquivClassBatchRunner.outputPath,"test.qrun").toString)
     assert(testFile.exists())
@@ -161,6 +164,24 @@ class EquivalenceClassesSpec extends FlatSpec {
     EquivClassBatchRunner.outputPath = Paths.get( System.getProperty("user.home"), "cosy_synth").toString
     println(EquivClassBatchRunner.outputPath)
     EquivClassBatchRunner.outputPath = "cosy_synth" // reset to avoid problems in later tests
+  }
+
+  it should "create an output qtensor file" in {
+    TensorBatchRunner(1,2,2)
+    var testFile = new File(Paths.get(TensorBatchRunner.outputPath,"tensors-1-2-2.qtensor").toString)
+    assert(testFile.exists())
+    assert(testFile.delete())
+  }
+
+  it should "be writing legible JSON" in {
+    var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
+    val lines = diagramStream.map(d => JsonObject(
+      "adjMatHash" -> d.hash,
+      "tensor" -> results.interpret(d).toJson
+    ))
+
+    val jsonHolder = JsonObject("results" -> JsonArray(lines))
+    assert(JSON.parseFull(jsonHolder.toString()).nonEmpty)
   }
 
 }

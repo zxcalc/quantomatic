@@ -249,7 +249,7 @@ object AdjMat {
     val longMatString = (1 to size * size - longMatStringUnpadded.length).foldLeft("") {(a,b) => "0" + a} +
       longMatStringUnpadded
     val longMatVec = longMatString.map(x => x == '1').toVector
-    val mat = longMatVec.grouped(size).toVector
+    val mat = if(size > 0) longMatVec.grouped(size).toVector else List().toVector
     new AdjMat(red.length, green.length, numBoundaries, red, green, mat)
   }
 }
