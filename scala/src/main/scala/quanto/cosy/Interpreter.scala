@@ -72,7 +72,15 @@ object Interpreter {
 
       // Tensor representation of a spider
       def vecToSpider(v: Int): Tensor = {
-        def pullOutAngle(nv: NodeV) = nv.angle.evaluate(Map("pi"->math.Pi)) * math.Pi
+        def pullOutAngle(nv: NodeV) = if (!nv.value.isEmpty) {
+          try {
+            nv.value.toDouble
+          } catch {
+            case e: Error => nv.angle.evaluate(Map("pi" -> math.Pi)) * math.Pi
+          }
+        } else {
+          nv.angle.evaluate(Map("pi" -> math.Pi)) * math.Pi
+        }
         val (colour, nodeType) = adj.vertexColoursAndTypes(v)
         val green = true
         colour match {

@@ -16,15 +16,15 @@ class InterpreterSpec extends FlatSpec {
   val pi = math.Pi
   val rdata = Vector(
     NodeV(data = JsonObject("type" -> "X", "value" -> "0"), theory = rg),
-    NodeV(data = JsonObject("type" -> "X", "value" -> "pi"), theory = rg),
-    NodeV(data = JsonObject("type" -> "X", "value" -> "(1/2) pi"), theory = rg),
-    NodeV(data = JsonObject("type" -> "X", "value" -> "(-1/2) pi"), theory = rg)
+    NodeV(data = JsonObject("type" -> "X", "value" -> pi.toString), theory = rg),
+    NodeV(data = JsonObject("type" -> "X", "value" -> (0.5*pi).toString), theory = rg),
+    NodeV(data = JsonObject("type" -> "X", "value" -> (-0.5*pi).toString), theory = rg)
   )
   val gdata = Vector(
     NodeV(data = JsonObject("type" -> "Z", "value" -> "0"), theory = rg),
-    NodeV(data = JsonObject("type" -> "Z", "value" -> "pi"), theory = rg),
-    NodeV(data = JsonObject("type" -> "Z", "value" -> "(1/2) pi"), theory = rg),
-    NodeV(data = JsonObject("type" -> "Z", "value" -> "(-1/2) pi"), theory = rg)
+    NodeV(data = JsonObject("type" -> "Z", "value" -> pi.toString), theory = rg),
+    NodeV(data = JsonObject("type" -> "Z", "value" -> (0.5*pi).toString), theory = rg),
+    NodeV(data = JsonObject("type" -> "Z", "value" -> (-0.5*pi).toString), theory = rg)
   )
   var one = Complex.one
 
@@ -142,6 +142,7 @@ class InterpreterSpec extends FlatSpec {
     val i3 = Interpreter.interpretSpider(true, 0, 2, 0) o (Tensor.id(2) x Tensor.hadamard)
     println(i3.scaled(i2.contents(0)(0) / i3.contents(0)(0)))
     assert(i2.isRoughly(i3.scaled(i2.contents(0)(0) / i3.contents(0)(0))))
+    assert(i2.isRoughlyUpToScalar(Tensor(Array(Array(1, 1, 1, -1)))))
   }
 
 }

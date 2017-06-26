@@ -14,7 +14,7 @@ object EQCAnalysis {
       if (!connectivityExamples.isDefinedAt(numColours)) {
         connectivityExamples += (numColours -> adjMat)
       } else {
-        val smaller = if (adjMat < connectivityExamples(numColours)) adjMat else connectivityExamples(numColours)
+        val smaller = if (adjMat.size < connectivityExamples(numColours).size) adjMat else connectivityExamples(numColours)
         connectivityExamples += (numColours -> smaller)
       }
     })

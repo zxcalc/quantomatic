@@ -281,7 +281,7 @@ object EquivClassRunAdjMat {
     new EquivClassRunAdjMat(rdata, gdata, theory, tolerance, rulesList)
   }
 
-  def loadFromFile(file: java.io.File): EquivClassRunAdjMat = {
+  def fromJSON(file: java.io.File): EquivClassRunAdjMat = {
     fromJSON(Json.parse(
       new Json.Input(file)).asObject)
   }
