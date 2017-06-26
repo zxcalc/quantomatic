@@ -27,3 +27,5 @@ lib_managed/
 \.vscode/
 \.idea/
 out/
+
+cosy_synth/
