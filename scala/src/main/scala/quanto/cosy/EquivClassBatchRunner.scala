@@ -1,7 +1,6 @@
 package quanto.cosy
 
 import java.io.File
-import java.nio.file.Paths
 
 import quanto.data.Theory
 import quanto.util.json.{JsonArray, JsonObject}
@@ -26,7 +25,7 @@ object EquivClassBatchRunner {
     results.findEquivalenceClasses(diagramStream, s"ColbournRead $numAngles $numAngles $boundaries $vertices")
 
     new File(outputPath).mkdirs()
-    var testFile = new File(Paths.get(outputPath, outputFileName).toString)
+    var testFile = new File(outputPath + java.io.File.pathSeparator + outputFileName)
     quanto.util.FileHelper.printToFile(testFile, append = false)(
       p => p.println(results.toJSON.toString())
     )
@@ -53,7 +52,9 @@ object TensorBatchRunner {
     results.findEquivalenceClasses(diagramStream, s"ColbournRead $numAngles $numAngles $boundaries $vertices")
 
     new File(outputPath).mkdirs()
-    val testFile = new File(Paths.get(outputPath, s"tensors-$numAngles-$boundaries-$vertices.qtensor").toString)
+    val testFile = new File(
+      outputPath + java.io.File.pathSeparator + s"tensors-$numAngles-$boundaries-$vertices.qtensor"
+    )
     val lines = diagramStream.map(d => JsonObject(
       "adjMatHash" -> d.hash,
       "tensor" -> results.interpret(d).toJson
