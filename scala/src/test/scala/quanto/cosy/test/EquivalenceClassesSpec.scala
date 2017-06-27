@@ -155,7 +155,7 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   it should "create an output qrun file" in {
     EquivClassBatchRunner(4,2,2,"test.qrun")
-    var testFile = new File(EquivClassBatchRunner.outputPath + java.io.File.pathSeparator + "test.qrun")
+    var testFile = new File(EquivClassBatchRunner.outputPath + "/" + "test.qrun")
     assert(testFile.exists())
     assert(testFile.delete())
   }
@@ -168,7 +168,7 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   it should "create an output qtensor file" in {
     TensorBatchRunner(1,2,2)
-    var testFile = new File(TensorBatchRunner.outputPath + java.io.File.pathSeparator + "tensors-1-2-2.qtensor")
+    var testFile = new File(TensorBatchRunner.outputPath + "/" + "tensors-1-2-2.qtensor")
     assert(testFile.exists())
     assert(testFile.delete())
   }

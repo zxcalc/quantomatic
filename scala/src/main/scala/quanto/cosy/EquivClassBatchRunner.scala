@@ -25,7 +25,7 @@ object EquivClassBatchRunner {
     results.findEquivalenceClasses(diagramStream, s"ColbournRead $numAngles $numAngles $boundaries $vertices")
 
     new File(outputPath).mkdirs()
-    var testFile = new File(outputPath + java.io.File.pathSeparator + outputFileName)
+    var testFile = new File(outputPath + "/" + outputFileName)
     quanto.util.FileHelper.printToFile(testFile, append = false)(
       p => p.println(results.toJSON.toString())
     )
@@ -53,7 +53,7 @@ object TensorBatchRunner {
 
     new File(outputPath).mkdirs()
     val testFile = new File(
-      outputPath + java.io.File.pathSeparator + s"tensors-$numAngles-$boundaries-$vertices.qtensor"
+      outputPath + "/" + s"tensors-$numAngles-$boundaries-$vertices.qtensor"
     )
     val lines = diagramStream.map(d => JsonObject(
       "adjMatHash" -> d.hash,
