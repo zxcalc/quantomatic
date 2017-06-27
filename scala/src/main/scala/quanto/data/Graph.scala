@@ -19,11 +19,11 @@ case class GraphSearchContext(exploredV: Set[VName], exploredE: Set[EName])
 class GraphLoadException(message: String, cause: Throwable = null)
 extends GraphException(message, cause)
 
-sealed abstract class BBOp { def bb: BBName }
-case class BBExpand(bb: BBName, mp: GraphMap) extends BBOp
-case class BBCopy(bb: BBName, mp: GraphMap) extends BBOp
-case class BBDrop(bb: BBName) extends BBOp
-case class BBKill(bb: BBName) extends BBOp
+sealed abstract class BBOp { def bb: BBName; def shortName: String }
+case class BBExpand(bb: BBName, mp: GraphMap) extends BBOp { def shortName = "E(" + bb + ")" }
+case class BBCopy(bb: BBName, mp: GraphMap) extends BBOp { def shortName = "C(" + bb + ")" }
+case class BBDrop(bb: BBName) extends BBOp { def shortName = "D(" + bb + ")" }
+case class BBKill(bb: BBName) extends BBOp { def shortName = "K(" + bb + ")" }
 
 
 case class Graph(
@@ -39,12 +39,32 @@ case class Graph(
   def isInput (v: VName): Boolean = vdata(v).isWireVertex && inEdges(v).isEmpty && outEdges(v).size == 1
   def isOutput(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).isEmpty && inEdges(v).size == 1
   def isInternal(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).size == 1 && inEdges(v).size == 1
-  def inputs: Set[VName] = verts.filter(isInput)
-  def outputs: Set[VName] = verts.filter(isOutput)
+  def isBoundary(vn: VName): Boolean =
+    vdata(vn).isWireVertex && (inEdges(vn).size + outEdges(vn).size) <= 1
+  def isCircle(vn: VName): Boolean =
+    vdata(vn).isWireVertex && inEdges(vn).size == 1 && inEdges(vn) == outEdges(vn)
+
+  def representsWire(vn: VName) = vdata(vn).isWireVertex &&
+    (predVerts(vn).headOption match {
+      case None => true
+      case Some(vn1) => vn == vn1 || !vdata(vn1).isWireVertex
+    })
+
+  def representsBareWire(vn: VName) =
+    isInput(vn) &&
+      (succVerts(vn).headOption match {
+        case None => false
+        case Some(vn1) => isOutput(vn1)
+      })
+
 
   def verts: Set[VName] = vdata.keySet
   def edges: Set[EName] = edata.keySet
   def bboxes: Set[BBName] = bbdata.keySet
+
+  def inputs: Set[VName] = verts.filter(isInput)
+  def outputs: Set[VName] = verts.filter(isOutput)
+  def boundary: Set[VName] = verts.filter(isBoundary)
 
   override def hashCode: Int = {
     var h = data.hashCode
@@ -92,23 +112,6 @@ case class Graph(
   def succVerts(vn: VName): Set[VName] = outEdges(vn).map(target(_))
   def contents(bbn: BBName): Set[VName] = inBBox.codf(bbn)
   def bboxesContaining(vn: VName): Set[BBName] = inBBox.domf(vn)
-  def isBoundary(vn: VName): Boolean =
-    vdata(vn).isWireVertex && (inEdges(vn).size + outEdges(vn).size) <= 1
-  def isCircle(vn: VName): Boolean =
-    vdata(vn).isWireVertex && inEdges(vn).size == 1 && inEdges(vn) == outEdges(vn)
-
-  def representsWire(vn: VName) = vdata(vn).isWireVertex &&
-    (predVerts(vn).headOption match {
-      case None => true
-      case Some(vn1) => vn == vn1 || !vdata(vn1).isWireVertex
-    })
-
-  def representsBareWire(vn: VName) =
-    isInput(vn) &&
-    (succVerts(vn).headOption match {
-      case None => false
-      case Some(vn1) => isOutput(vn1)
-    })
 
 
   def vars: Set[String] = vdata.values.foldLeft(Set.empty[String]) {
@@ -119,6 +122,10 @@ case class Graph(
 
   /** Returns a set of vertex names adjacent to vn */
   def adjacentVerts(vn: VName): Set[VName] = predVerts(vn) union succVerts(vn)
+
+  /** Returns a set of vertex names adjacent to, and including, vset */
+  def extendToAdjacentVerts(vset: Set[VName]): Set[VName] =
+    vset.foldRight(Set[VName]()) { (v,vs) => (vs union adjacentVerts(v)) + v }
 
   /** Returns a set of vertex names adjacent to, but not including, vset */
   def adjacentVerts(vset: Set[VName]): Set[VName] =
@@ -410,23 +417,31 @@ case class Graph(
       bbdata=bbdata1,inBBox=inBBox1,bboxParent=bboxParent1)
   }
 
-  def renameAvoiding1(g: Graph): (Graph, Map[VName,VName], Map[EName,EName], Map[BBName,BBName]) = {
-    val vrn = verts.foldLeft((Map[VName,VName](), g.verts)) { case ((mp,avoid), x) =>
-      val x1 = avoid.freshWithSuggestion(x)
-      (mp + (x -> x1), avoid + x1)
-    }._1
+  def renameAvoiding1(avoidGraph: Graph, initialMap: GraphMap = GraphMap()): (Graph, GraphMap) = {
+    var mp = initialMap
+    var avoidV = avoidGraph.verts
+    var avoidE = avoidGraph.edges
+    var avoidBB = avoidGraph.bboxes
 
-    val ern = edges.foldLeft((Map[EName,EName](), g.edges)) { case ((mp,avoid), x) =>
-      val x1 = avoid.freshWithSuggestion(x)
-      (mp + (x -> x1), avoid + x1)
-    }._1
+    for (x <- verts if !mp.v.domSet.contains(x)) {
+      val fr = avoidV.freshWithSuggestion(x)
+      mp = mp.addVertex(x -> fr)
+      avoidV = avoidV + fr
+    }
 
-    val brn = bboxes.foldLeft((Map[BBName,BBName](), g.bboxes)) { case ((mp,avoid), x) =>
-      val x1 = avoid.freshWithSuggestion(x)
-      (mp + (x -> x1), avoid + x1)
-    }._1
+    for (x <- edges if !mp.e.domSet.contains(x)) {
+      val fr = avoidE.freshWithSuggestion(x)
+      mp = mp.addEdge(x -> fr)
+      avoidE = avoidE + fr
+    }
 
-    (rename(vrn,ern,brn), vrn, ern, brn)
+    for (x <- bboxes if !mp.bb.domSet.contains(x)) {
+      val fr = avoidBB.freshWithSuggestion(x)
+      mp = mp.addBBox(x -> fr)
+      avoidBB = avoidBB + fr
+    }
+
+    (mp.image(this), mp)
   }
 
   def renameAvoiding(g: Graph): Graph = renameAvoiding1(g)._1
@@ -497,8 +512,8 @@ case class Graph(
   // add g to this graph, plugging 'b' in this graph into 'bg' in g.
   def plugGraph(g: Graph, b: VName, bg: VName): Graph = {
     // freshen target graph w.r.t. source
-    val (g1, vrn, _, _) = g.renameAvoiding1(this)
-    val bg1 = vrn(bg)
+    val (g1, mp) = g.renameAvoiding1(this)
+    val bg1 = mp.v(bg)
 
     // re-position g relative to this graph, using the boundaries as a guide
     val bgcoord = g1.vdata(bg1).coord
@@ -713,6 +728,7 @@ case class Graph(
     this
       .deleteEdge(e)
       .addVertex(w, WireV(theory = ed.theory))
+      .addToBBoxes(w, inBBox.domf(s) union inBBox.domf(t))
       .newEdge(ed, s -> w)
       .newEdge(ed, w -> t)
   }
@@ -779,7 +795,7 @@ case class Graph(
     if (bboxParent.domSet contains bb) throw new GraphException("Attempted to expand non-toplevel bbox")
     val g = fullSubgraph(contents(bb), bboxChildren(bb))
 
-    var (g1,vmap,emap,bbmap) = fullSubgraph(contents(bb), bboxChildren(bb)).renameAvoiding1(this)
+    var (g1,mp) = fullSubgraph(contents(bb), bboxChildren(bb)).renameAvoiding1(this)
     g1 = appendGraph(g1)
 
     var freshE = g1.edges
@@ -788,11 +804,11 @@ case class Graph(
       val s = source(e)
       val t = target(e)
       val e1 = freshE.freshWithSuggestion(e)
-      emap = emap + (e -> e1)
-      g1 = g1.addEdge(e1, edata(e), vmap.getOrElse(s,s) -> vmap.getOrElse(t,t))
+      mp = mp.addEdge(e -> e1)
+      g1 = g1.addEdge(e1, edata(e), mp.v.getOrElse(s,s) -> mp.v.getOrElse(t,t))
     }
 
-    (g1, BBExpand(bb,GraphMap(vmap,emap,bbmap)))
+    (g1, BBExpand(bb,mp))
   }
 
   /**

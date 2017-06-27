@@ -28,6 +28,12 @@ case class GraphMap(
             ))
     }
 
+  def isInjective: Boolean = {
+    v.codf.forall(_._2.size == 1) &&
+      e.codf.forall(_._2.size == 1) &&
+      bb.codf.forall(_._2.size == 1)
+  }
+
   def addVertex(p: (VName,VName)): GraphMap = copy(v = v + p)
   def addEdge(p: (EName,EName)): GraphMap = copy(e = e + p)
   def addBBox(p: (BBName,BBName)): GraphMap = copy(bb = bb + p)

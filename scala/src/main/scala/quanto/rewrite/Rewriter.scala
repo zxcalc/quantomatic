@@ -11,7 +11,15 @@ object Rewriter {
     val m1 = m.normalize
 
     // make the pattern graph fresh w.r.t. to the target
-    val boundary = m1.pattern.verts.filter(m1.pattern.isBoundary)
+    val boundary = m1.pattern.boundary
+
+    val fullBoundary = m.bbops.foldLeft(m1.pattern0.boundary) { (vs, bbop) =>
+      bbop match {
+        case BBExpand(_, mp) => vs union mp.v.directImage(vs)
+        case BBCopy(_, mp) => vs union mp.v.directImage(vs)
+        case _ => vs
+      }
+    }
 
     val interiorLhs = m1.pattern.verts -- boundary
     val interiorRhs = rhs.verts -- boundary

@@ -3,6 +3,7 @@ package quanto.data
 import collection.immutable.TreeSet
 import scala.collection.{TraversableLike, GenTraversableOnce, mutable, IterableLike}
 import scala.collection.generic.CanBuildFrom
+import Names._
 
 /**
  * Basically a map, but with cached inverse images
@@ -19,7 +20,7 @@ import scala.collection.generic.CanBuildFrom
  * @author Aleks Kissinger
  * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/PFun.scala Source code]]
  */
-class PFun[A,B]
+class PFun[A, B]
 (f : Map[A,B], finv: Map[B,TreeSet[A]])
 (implicit keyOrd: Ordering[A])
   extends BinRel[A,B] with IterableLike[(A,B), PFun[A,B]]
@@ -154,10 +155,10 @@ class PFun[A,B]
  */
 object PFun {
   /** Create an instance of PFun from a sequence of pairs */
-  def apply[A,B](kvs: (A,B)*)(implicit keyOrd: Ordering[A]) : PFun[A,B] = {
+  def apply[A, B](kvs: (A,B)*)(implicit keyOrd: Ordering[A]) : PFun[A,B] = {
     kvs.foldLeft(new PFun[A,B](Map(),Map())){ (pf: PFun[A,B], kv: (A,B)) => pf + kv }
   }
 
-  implicit def mapToPFun[A,B](mp: Map[A,B])(implicit keyOrd: Ordering[A]): PFun[A,B] = PFun(mp.toSeq:_*)
-  implicit def pFunToMap[A,B](f: PFun[A,B]): Map[A,B] = f.toMap
+  implicit def mapToPFun[A, B](mp: Map[A,B])(implicit keyOrd: Ordering[A]): PFun[A,B] = PFun(mp.toSeq:_*)
+  implicit def pFunToMap[A, B](f: PFun[A,B]): Map[A,B] = f.toMap
 }

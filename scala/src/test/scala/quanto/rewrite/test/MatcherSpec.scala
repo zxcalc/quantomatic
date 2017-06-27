@@ -50,6 +50,84 @@ class MatcherSpec extends FlatSpec {
     assert(matches.size === 2)
   }
 
+  it should "match a graph with four nodes on itself 4! times" in {
+    val g = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z", "value": ""}},
+        |    "v1": {"data": {"type": "Z", "value": ""}},
+        |    "v2": {"data": {"type": "Z", "value": ""}},
+        |    "v3": {"data": {"type": "Z", "value": ""}}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+    val matches = Matcher.findMatches(g, g)
+    assert(matches.size === 4*3*2)
+  }
+
+  it should "match a graph with two edges on itself twice" in {
+    val g = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z", "value": ""}},
+        |    "v1": {"data": {"type": "X", "value": ""}}
+        |  },
+        |  "undir_edges": {
+        |    "e0": {"src": "v0", "tgt": "v1"},
+        |    "e1": {"src": "v0", "tgt": "v1"}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+    val matches = Matcher.findMatches(g, g)
+    assert(matches.size === 2)
+  }
+
+  it should "match a graph with two edges and three nodes on itself twice" in {
+    val g = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z", "value": ""}},
+        |    "v1": {"data": {"type": "X", "value": ""}},
+        |    "v2": {"data": {"type": "Z", "value": ""}}
+        |  },
+        |  "undir_edges": {
+        |    "e0": {"src": "v0", "tgt": "v1"},
+        |    "e1": {"src": "v1", "tgt": "v2"}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+    val matches = Matcher.findMatches(g, g)
+    assert(matches.size === 2)
+  }
+
+  it should "match a graph with 7 edges and 3 nodes on itself 3! * 2! times" in {
+    val g = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["b0", "b1"],
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z", "value": ""}},
+        |    "v1": {"data": {"type": "X", "value": ""}},
+        |    "v2": {"data": {"type": "Z", "value": ""}}
+        |  },
+        |  "undir_edges": {
+        |    "e0": {"src": "b0", "tgt": "v0"},
+        |    "e1": {"src": "v0", "tgt": "v1"},
+        |    "e2": {"src": "v0", "tgt": "v1"},
+        |    "e3": {"src": "v1", "tgt": "v2"},
+        |    "e4": {"src": "v1", "tgt": "v2"},
+        |    "e5": {"src": "v1", "tgt": "v2"},
+        |    "e6": {"src": "v2", "tgt": "b1"}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+    val matches = Matcher.findMatches(g, g)
+    assert(matches.size === 12)
+  }
+
   it should "not match if the type is wrong" in {
     val g1 = Graph.fromJson(Json.parse(
       """

@@ -66,15 +66,15 @@ object Names {
     }
   }
 
-  class NamePFun[N <: Name[N], T](val pf: PFun[N,T]) {
-    def fresh(implicit default: N) : N = if (pf.isEmpty) default else pf.dom.max.succ
-    def freshWithSuggestion(s : N) : N = {
-      val set = pf.domSet
-      var t = s
-      while (set.contains(t)) t = t.succ
-      t
-    }
-  }
+//  class NamePFun[N <: Name[N], T](val pf: PFun[N,T]) {
+//    def fresh(implicit default: N) : N = if (pf.isEmpty) default else pf.dom.max.succ
+//    def freshWithSuggestion(s : N) : N = {
+//      val set = pf.domSet
+//      var t = s
+//      while (set.contains(t)) t = t.succ
+//      t
+//    }
+//  }
 
   // TODO: overkill with implicits?
 

@@ -3,8 +3,8 @@ import quanto.data._
 
 class MatchException(msg: String) extends Exception(msg)
 
-case class Match(pattern: Graph,
-                 //patternExpanded: Graph,
+case class Match(pattern0: Graph, // the pattern without bbox operations
+                 pattern: Graph,
                  target: Graph,
                  map: GraphMap = GraphMap(),
                  bareWireMap: Map[VName, Vector[VName]] = Map(),
@@ -75,6 +75,10 @@ case class Match(pattern: Graph,
   def isHomomorphism: Boolean =
     if (!isNormalized) normalize.isHomomorphism
     else map.isHomomorphism(pattern, target)
+
+  def isInjective: Boolean =
+    if (!isNormalized) normalize.isInjective
+    else map.isInjective
 
   def isTotal: Boolean =
     if (!isNormalized) normalize.isTotal

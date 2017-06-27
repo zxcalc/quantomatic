@@ -22,7 +22,7 @@ case class MatchState(
   lazy val uBareWires: Set[VName] = uVerts.filter(m.pattern.representsBareWire)
   lazy val uNodes: Set[VName]     = uVerts.filter { v => !m.pattern.vdata(v).isWireVertex }
   lazy val uWires: Set[VName]     = uVerts.filter { v => m.pattern.vdata(v).isWireVertex }
-  lazy val uBBoxes: Set[BBName]   = m.pattern.bboxes.filter(bb => parentBBoxesMatched(bb) && !m.map.bb.domSet.contains(bb))
+  val uBBoxes: Set[BBName]   = m.pattern.bboxes.filter(bb => parentBBoxesMatched(bb) && !m.map.bb.domSet.contains(bb))
 
 
 
@@ -35,24 +35,28 @@ case class MatchState(
   final def nextMatch(): Option[(Match, Option[MatchState])] = {
     // if unmatched circles are found in the pattern, match them first
     if (uCircles.nonEmpty) {
-      val pc = uCircles.head
+      val pc = uCircles.min
 
       tVerts.find(v => m.target.isCircle(v) && reflectsBBoxes(pc, v)) match {
         case None => nextState match { case Some(next) => next.nextMatch(); case None => None }
         case Some(tc) =>
-          val pce = m.pattern.inEdges(pc).head
-          val tce = m.target.inEdges(tc).head
+          val pce = m.pattern.inEdges(pc).min
+          val tce = m.target.inEdges(tc).min
           copy(m = m.addEdge(pce -> tce, pc -> tc), tVerts = tVerts - tc).nextMatch()
       }
 
     // if there is a scheduled node, try to match its neighbourhood in every possible way
     } else if (psNodes.nonEmpty) {
-      val np = psNodes.head
+      val np = psNodes.min
 
       if (pVertexMayBeCompleted(np)) {
         val nt = m.map.v(np)
         // get the next matchable edge in the neighbourhood of np
-        val epOpt = m.pattern.adjacentEdges(np).find { e => uWires.contains(m.pattern.edgeGetOtherVertex(e, np)) }
+        val uEdges = m.pattern.adjacentEdges(np).filter(e =>
+          !m.map.e.domSet.contains(e) &&
+          bboxesMatched(m.pattern.edgeGetOtherVertex(e, np))
+        )
+        val epOpt = if (uEdges.isEmpty) None else Some(uEdges.min)
         epOpt match {
           // if there is an matchable edge in nhd(np), try to match it in every possible way
           // to an edge in the neighbourhood of nt
@@ -70,8 +74,9 @@ case class MatchState(
                     case None => None
                   }
                 } else {
-                  val next = copy(candidateEdges = Some(candidateEdges1.tail))
-                  matchNewWire(np, ep, nt, candidateEdges1.head) match {
+                  val et = candidateEdges1.min
+                  val next = copy(candidateEdges = Some(candidateEdges1 - et))
+                  matchNewWire(np, ep, nt, et) match {
                     case Some(ms1) => ms1.copy(candidateEdges = None, nextState = Some(next)).nextMatch()
                     case None => next.nextMatch()
                   }
@@ -97,7 +102,7 @@ case class MatchState(
     // if there are no scheduled nodes, pick a new unmatched node in the pattern, match it in every possible way
     // and schedule its neighbourhood for matching
     } else if (uNodes.nonEmpty) {
-      val np = uNodes.head
+      val np = uNodes.min
       candidateNodes match {
         case None =>
           copy(candidateNodes = Some(tVerts.filter { v =>
@@ -110,8 +115,9 @@ case class MatchState(
               case None => None
             }
           } else {
-            val next = copy(candidateNodes = Some(candidateNodes1.tail))
-            matchNewNode(np, candidateNodes1.head) match {
+            val nt = candidateNodes1.min
+            val next = copy(candidateNodes = Some(candidateNodes1 - nt))
+            matchNewNode(np, nt) match {
               case Some(ms1) => ms1.copy(candidateNodes = None, nextState = Some(next)).nextMatch()
               case None => next.nextMatch()
             }
@@ -120,7 +126,7 @@ case class MatchState(
 
     // if there are bare wires remaining, add them in all possible ways
     } else if (uBareWires.nonEmpty) {
-      val pbw = uBareWires.head
+      val pbw = uBareWires.min
       candidateWires match {
         case None =>
           // pull all the candidate locations for matching this bare wire. If a wire already has n bare wires matched
@@ -137,19 +143,20 @@ case class MatchState(
               case None => None
             }
           } else {
-            val (tbw,i) = candidateWires1.head
-            val next = copy(candidateWires = Some(candidateWires1.tail))
-            val wireV: Vector[VName] = m.bareWireMap.getOrElse(tbw, Vector())
-            val newMap = m.bareWireMap + (tbw -> ((wireV.take(i) :+ pbw) ++ wireV.takeRight(wireV.length - i)))
+            val tbw = candidateWires1.head
+            val next = copy(candidateWires = Some(candidateWires1 - tbw))
+            val wireV: Vector[VName] = m.bareWireMap.getOrElse(tbw._1, Vector())
+            val newMap = m.bareWireMap + (tbw._1 -> ((wireV.take(tbw._2) :+ pbw) ++
+              wireV.takeRight(wireV.length - tbw._2)))
             copy(
-              m = m.addVertex(pbw -> tbw).copy(bareWireMap = newMap),
+              m = m.addVertex(pbw -> tbw._1).copy(bareWireMap = newMap),
               candidateWires = None,
               nextState = Some(next)).nextMatch()
           }
       }
 
-    // if there are unmatched bboxes, pull the first top-level bbox and try to kill, expand, or copy+match
-    } else if (uBBoxes.nonEmpty) {
+    // if all matchable verts are matched, pull the first top-level bbox and try to kill, expand, or copy+match
+    } else if (uBBoxes.nonEmpty && uVerts.isEmpty) {
       val pbb = uBBoxes.min
       candidateBBoxes match {
         case Some(candidateBBoxes1) =>
@@ -159,10 +166,16 @@ case class MatchState(
               case None => None
             }
           } else {
-            val tbb = candidateBBoxes1.head
-            val next = copy(candidateBBoxes = Some(candidateBBoxes1.tail))
+            val tbb = candidateBBoxes1.min
+            val next = copy(candidateBBoxes = Some(candidateBBoxes1 - tbb))
+//            val schedule =
+//              m.pattern.adjacentVerts(m.pattern.contents(pbb)).filter { v =>
+//                !m.pattern.vdata(v).isWireVertex &&
+//                bboxesMatched(v)
+//              }
             copy(
               m = m.addBBox(pbb -> tbb),
+              psNodes = pNodes, // re-schedule everything
               candidateBBoxes = None,
               nextState = Some(next)
             ).nextMatch()
@@ -172,14 +185,29 @@ case class MatchState(
           val (expandGraph, expandOp) = m.pattern.expandBBox(pbb)
           val (copyGraph, copyOp) = m.pattern.copyBBox(pbb)
 
-          val next2 = copy(
-            m = m.copy(pattern = copyGraph, bbops = copyOp :: m.bbops),
-            candidateBBoxes = Some(m.target.bboxes.filter(reflectsParentBBoxes(pbb, _)))
-          )
+          val expanded = m.bbops.exists { case BBExpand(bb1, _) => bb1 == pbb; case _ => false }
+
+          // only copy bboxes that have never been expanded
+          val next2 =
+            if (expanded) nextState
+            else
+              Some(copy(
+                m = m.copy(pattern = copyGraph, bbops = copyOp :: m.bbops),
+                candidateBBoxes = Some(m.target.bboxes.filter { tbb => reflectsParentBBoxes(pbb, tbb)
+              })))
+
+//          val schedule =
+//            (expandGraph.adjacentVerts(expandGraph.contents(pbb)) ++
+//             expandOp.mp.v.directImage(m.pattern.contents(pbb)))
+//              .filter{ v =>
+//                !expandGraph.vdata(v).isWireVertex &&
+//                bboxesMatched(v)
+//              }
 
           val next1 = copy(
             m = m.copy(pattern = expandGraph, bbops = expandOp :: m.bbops),
-            nextState = Some(next2)
+            psNodes = pNodes, // re-schedule everything
+            nextState = next2
           )
 
           copy(
@@ -210,16 +238,17 @@ case class MatchState(
   // TODO: we may only need to check the closest parent, not all parents
 
   def reflectsBBoxes(vp: VName, vt: VName) =
-    m.pattern.bboxesContaining(vp) == m.map.bb.inverseImage(m.target.bboxesContaining(vt))
+    m.map.bb.directImage(m.pattern.bboxesContaining(vp)) == m.target.bboxesContaining(vt)
 
   def bboxesMatched(vp: VName) =
     m.pattern.bboxesContaining(vp).forall(m.map.bb.domSet.contains)
 
   def reflectsParentBBoxes(bbp: BBName, bbt: BBName) =
-    m.pattern.bboxParents(bbp) == m.map.bb.inverseImage(m.target.bboxParents(bbt))
+    m.map.bb.directImage(m.pattern.bboxParents(bbp)) == m.target.bboxParents(bbt)
 
-  def parentBBoxesMatched(bbp: BBName) =
+  def parentBBoxesMatched(bbp: BBName) = {
     m.pattern.bboxParents(bbp).forall(m.map.bb.domSet.contains)
+  }
 
   /**
     * Match a new node vertex
