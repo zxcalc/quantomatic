@@ -64,7 +64,6 @@ class EquivalenceClassByAdjMat extends EquivalenceClass[AdjMat] {
 
 }
 
-
 object EquivalenceClassByAdjMat {
   def fromJson(json: JsonObject, theory: Theory): EquivalenceClassByAdjMat = {
     def toMemberFromJson(x: JsonObject) =
@@ -72,6 +71,43 @@ object EquivalenceClassByAdjMat {
 
     val members: List[(AdjMat, Tensor)] = (json / "members").asArray.map(x => toMemberFromJson(x.asObject)).toList
     val eqc = new EquivalenceClassByAdjMat()
+    for (member <- members) {
+      eqc.addMember(member._1, member._2)
+    }
+    eqc
+  }
+}
+
+
+class EquivalenceClassByBlockStack extends EquivalenceClass[BlockStack] {
+  var members: List[(BlockStack, Tensor)] = List()
+
+  override def addMember(stack: BlockStack, tensor: Tensor): EquivalenceClassByBlockStack = {
+    members = (stack, tensor) :: members
+    this
+  }
+
+  override def toJSON(theory: Theory): JsonObject = {
+    JsonObject(
+      "centre" -> centre.toJson,
+      "size" -> this.members.length,
+      "members" -> JsonArray(
+        members.map(x => JsonObject(
+          "stack" -> x._1.toJson,
+          "tensor" -> x._2.toJson)
+        ))
+    )
+  }
+
+}
+
+object EquivalenceClassByBlockStack {
+  def fromJson(json: JsonObject, theory: Theory): EquivalenceClassByBlockStack = {
+    def toMemberFromJson(x: JsonObject) =
+      (BlockStack.fromJson((x / "stack").asObject), Tensor.fromJson((x / "tensor").asObject))
+
+    val members: List[(BlockStack, Tensor)] = (json / "members").asArray.map(x => toMemberFromJson(x.asObject)).toList
+    val eqc = new EquivalenceClassByBlockStack()
     for (member <- members) {
       eqc.addMember(member._1, member._2)
     }
