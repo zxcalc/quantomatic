@@ -1,5 +1,7 @@
 package quanto.cosy
 
+import quanto.util.json.JsonObject
+
 /**
   * An iso-free graph enumeration procedure, based on the one described in Colbourn and Read (1979)
   *
@@ -35,6 +37,7 @@ case class AdjMat(numRedTypes: Int,
   lazy val numRed : Int = red.sum
   lazy val numGreen : Int = green.sum
   lazy val hash : String = makeHash()
+  def toJson : JsonObject = JsonObject("hash" -> hash)
   lazy val vertexColoursAndTypes: List[(VertexColour.EnumVal, Int)] = {
     var _vertexColoursAndTypes: List[(VertexColour.EnumVal, Int)] = List()
     var colCount = 0

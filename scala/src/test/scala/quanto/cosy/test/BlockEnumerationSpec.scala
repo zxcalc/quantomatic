@@ -27,6 +27,32 @@ class BlockEnumerationSpec extends FlatSpec {
     println(stacks)
   }
 
+  it should "limit wires" in {
+    var rowsAllowed = BlockRowMaker(2, maxInOut = 2, allowedBlocks = BlockRowMaker.ZW)
+    var stacks = BlockStackMaker(2, rowsAllowed)
+    println(stacks)
+    assert(stacks.forall(s => (s.inputs <= 2) && (s.outputs <= 2)))
+  }
+
+  it should "compute tensors" in {
+    var rowsAllowed = BlockRowMaker(2, allowedBlocks = BlockRowMaker.ZW)
+    var stacks = BlockStackMaker(2, rowsAllowed)
+    for (elem <- stacks) {
+      println("---\n" + elem.toString + " = \n" + elem.tensor)
+    }
+  }
+
+  it should "compute cup x id" in {
+    var allowedBlocks =  List(
+      // BOTTOM TO TOP!
+      Block(1, 1, " 1 ", Tensor.idWires(1)),
+      Block(0, 2, "cup", new Tensor(Array(Array(1, 0, 0, 1))).transpose)
+    )
+    var rowsAllowed = BlockRowMaker(2, allowedBlocks= allowedBlocks)
+    assert(rowsAllowed.filter(r => r.toString == "cup x  1 ").head.tensor
+    == Tensor(Array(Array(1,0,0,0,0,0,1,0),Array(0,1,0,0,0,0,0,1))).transpose)
+  }
+
   it should "find wire identities" in {
     var rowsAllowed = BlockRowMaker(1, allowedBlocks = List(
       Block(1, 1, " 1 ", Tensor.idWires(1)),
@@ -68,8 +94,4 @@ class BlockEnumerationSpec extends FlatSpec {
     assert(s2.tensor == s.tensor)
     println(s2)
   }
-
-  behavior of "blocks and equivalence classes"
-
-
 }

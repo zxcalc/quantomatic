@@ -11,14 +11,21 @@ import quanto.rewrite._
   */
 
 
+trait JSONable {
+  def toJson: JsonObject
+}
+
 // EQUIVALENCE CLASSES
 
-trait EquivalenceClass[T] {
-  var members: List[(T, Tensor)]
+abstract class EquivalenceClass[T] {
+  var members: List[(T, Tensor)] = List()
 
-  def addMember(newMember: T, tensor: Tensor) : EquivalenceClass[T]
+  def addMember(newMember: T, tensor: Tensor): EquivalenceClass[T] = {
+    this.members = (newMember, tensor) :: members
+    this
+  }
 
-  def toJSON(theory: Theory): Json
+  def toJSON : JsonObject
 
   override def toString: String = {
     "Equivalence class" +
@@ -42,15 +49,10 @@ trait EquivalenceClass[T] {
   override def hashCode(): Int = 1 // HashCode overridden so it will compare set-like
 }
 
-class EquivalenceClassByAdjMat extends EquivalenceClass[AdjMat] {
-  var members: List[(AdjMat, Tensor)] = List()
+class EquivalenceClassByAdjMat(val theory: Theory) extends EquivalenceClass[AdjMat] {
 
-  override def addMember(adjMat: AdjMat, tensor: Tensor): EquivalenceClassByAdjMat = {
-    members = (adjMat, tensor) :: members
-    this
-  }
 
-  override def toJSON(theory: Theory): JsonObject = {
+  override def toJSON: JsonObject = {
     JsonObject(
       "centre" -> centre.toJson,
       "size" -> this.members.length,
@@ -70,24 +72,24 @@ object EquivalenceClassByAdjMat {
       (AdjMat.fromHash((x / "adjMat").stringValue), Tensor.fromJson((x / "tensor").asObject))
 
     val members: List[(AdjMat, Tensor)] = (json / "members").asArray.map(x => toMemberFromJson(x.asObject)).toList
-    val eqc = new EquivalenceClassByAdjMat()
+    val eqc = new EquivalenceClassByAdjMat(theory)
     for (member <- members) {
       eqc.addMember(member._1, member._2)
     }
+    eqc
+  }
+
+  def fromEC (ec: EquivalenceClass[AdjMat], theory: Theory) : EquivalenceClassByAdjMat = {
+    val eqc = new EquivalenceClassByAdjMat(theory)
+    eqc.members = ec.members
     eqc
   }
 }
 
 
 class EquivalenceClassByBlockStack extends EquivalenceClass[BlockStack] {
-  var members: List[(BlockStack, Tensor)] = List()
 
-  override def addMember(stack: BlockStack, tensor: Tensor): EquivalenceClassByBlockStack = {
-    members = (stack, tensor) :: members
-    this
-  }
-
-  override def toJSON(theory: Theory): JsonObject = {
+  override def toJSON: JsonObject = {
     JsonObject(
       "centre" -> centre.toJson,
       "size" -> this.members.length,
@@ -102,7 +104,7 @@ class EquivalenceClassByBlockStack extends EquivalenceClass[BlockStack] {
 }
 
 object EquivalenceClassByBlockStack {
-  def fromJson(json: JsonObject, theory: Theory): EquivalenceClassByBlockStack = {
+  def fromJson(json: JsonObject): EquivalenceClassByBlockStack = {
     def toMemberFromJson(x: JsonObject) =
       (BlockStack.fromJson((x / "stack").asObject), Tensor.fromJson((x / "tensor").asObject))
 
@@ -116,15 +118,9 @@ object EquivalenceClassByBlockStack {
 }
 
 
-class EquivalenceClassByGraph extends EquivalenceClass[Graph] {
-  var members: List[(Graph, Tensor)] = List()
+class EquivalenceClassByGraph(val theory: Theory) extends EquivalenceClass[Graph] {
 
-  override def addMember(graph: Graph, tensor: Tensor): EquivalenceClassByGraph = {
-    members = (graph, tensor) :: members
-    this
-  }
-
-  override def toJSON(theory: Theory): JsonObject = {
+  override def toJSON: JsonObject = {
     JsonObject(
       "centre" -> centre.toJson,
       "size" -> this.members.length,
@@ -142,7 +138,7 @@ object EquivalenceClassByGraph {
       (Graph.fromJson((x / "graph").asObject, theory), Tensor.fromJson((x / "tensor").asObject))
 
     val members: List[(Graph, Tensor)] = (json / "members").asArray.map(x => toMemberFromJson(x.asObject)).toList
-    val eqc = new EquivalenceClassByGraph()
+    val eqc = new EquivalenceClassByGraph(theory)
     for (member <- members) {
       eqc.addMember(member._1, member._2)
     }
@@ -152,20 +148,16 @@ object EquivalenceClassByGraph {
 
 // RUN RESULTS
 
-class EquivClassRunAdjMat(
-                           rdata: Vector[NodeV],
-                           gdata: Vector[NodeV],
-                           val theory: Theory,
-                           val tolerance: Double = 1e-14,
-                           val rulesList: List[Rule]) {
-  var equivalenceClasses: List[EquivalenceClassByAdjMat] = List()
-  var equivalenceClassesNormalised: List[EquivalenceClassByAdjMat] = List()
+
+abstract class EquivClassRun[T](val tolerance: Double = 1e-14) {
+  var equivalenceClasses: List[EquivalenceClass[T]]
+  var equivalenceClassesNormalised: List[EquivalenceClass[T]]
   var messageList: List[String] = List()
 
   /** Adds the diagrams to classes, does not delete current classes first */
-  def findEquivalenceClasses(adjMats: Stream[AdjMat], message: String = "Stream generation method"): EquivClassRunAdjMat = {
+  def findEquivalenceClasses(candidates: Stream[T], message: String = "Stream generation method"): EquivClassRun[T] = {
     val startTime = System.nanoTime()
-    adjMats.foreach(x => {
+    candidates.foreach(x => {
       val tensor = interpret(x)
       compareAndAddToClass(x, tensor)
       compareAndAddToClassNormalised(x, tensor)
@@ -178,58 +170,12 @@ class EquivClassRunAdjMat(
     this
   }
 
-  // Finds the closest class and adds it, or creates a new class if outside tolerance
-  def compareAndAddToClass(adj: AdjMat, tensor: Tensor = Tensor.zero(1, 1)): EquivalenceClassByAdjMat = {
-    val adjTensor = if (tensor == Tensor.zero(1, 1)) interpret(adj) else tensor
-    var closest = new EquivalenceClassByAdjMat()
-    var closestDist = tolerance
-    for (eqClass <- equivalenceClasses) {
-
-      // Need to ensure that the tensor is of the right size first!
-      if (adjTensor.isSameShapeAs(eqClass.centre)) {
-        val dist = eqClass.centre.distance(adjTensor)
-        if (dist < tolerance && dist > -1) {
-          closest = eqClass
-          closestDist = dist
-        }
-      }
-    }
-    closest.addMember(adj, adjTensor)
-    if (closest.members.length == 1) equivalenceClasses = closest :: equivalenceClasses
-    closest
-  }
-
-  def compareAndAddToClassNormalised(adj: AdjMat, tensor: Tensor = Tensor.zero(1, 1)): EquivalenceClassByAdjMat = {
-    val adjTensor = if (tensor == Tensor.zero(1, 1)) interpret(adj).normalised else tensor.normalised
-    var closest = new EquivalenceClassByAdjMat()
-    var closestDist = tolerance
-    for (eqClass <- equivalenceClassesNormalised) {
-
-      // Need to ensure that the tensor is of the right size first!
-      if (adjTensor.isSameShapeAs(eqClass.centre)) {
-        val rep = eqClass.centre // already normalised
-        val dist = math.min(rep.distance(adjTensor), rep.distance(adjTensor.scaled(factor = -1.0)))
-        if (dist < tolerance && dist > -1) {
-          closest = eqClass
-          closestDist = dist
-        }
-      }
-    }
-    closest.addMember(adj, adjTensor)
-    if (closest.members.length == 1) equivalenceClassesNormalised = closest :: equivalenceClassesNormalised
-    closest
-  }
-
-  def adjMatToGraph(adj: AdjMat): Graph = {
-    Graph.fromAdjMat(adj, rdata, gdata)
-  }
-
   // Returns (new Class, -1) if no EquivalenceClasses here
-  def closestClassTo(that: AdjMat): (EquivalenceClassByAdjMat, Double) = {
+  def closestClassTo(that: T): (EquivalenceClass[T], Double) = {
     closestClassTo(interpret(that))
   }
 
-  def closestClassTo(that: Tensor): (EquivalenceClassByAdjMat, Double) = {
+  def closestClassTo(that: Tensor): (EquivalenceClass[T], Double) = {
     var closestClass = equivalenceClasses.head
     var closestDistance: Double = -1.0
     for (eqc <- equivalenceClasses) {
@@ -242,15 +188,11 @@ class EquivClassRunAdjMat(
     (closestClass, closestDistance)
   }
 
-  def closestClassToNormalised(that: AdjMat): (EquivalenceClassByAdjMat, Double) = {
+  def closestClassToNormalised(that: T): (EquivalenceClass[T], Double) = {
     closestClassToNormalised(interpret(that))
   }
 
-  def interpret(adjMat: AdjMat): Tensor = {
-    interpretAdjMat(adjMat, rdata, gdata)
-  }
-
-  def closestClassToNormalised(that: Tensor): (EquivalenceClassByAdjMat, Double) = {
+  def closestClassToNormalised(that: Tensor): (EquivalenceClass[T], Double) = {
     var closestClass = equivalenceClasses.head
     var closestDistance: Double = -1.0
     for (eqc <- equivalenceClasses) {
@@ -265,14 +207,165 @@ class EquivClassRunAdjMat(
     (closestClass, closestDistance)
   }
 
-  def add(adjMat: AdjMat): EquivalenceClassByAdjMat = {
-    val tensor = interpret(adjMat)
-    add(adjMat, tensor)
+  def interpret(that: T): Tensor
+
+  def add(that: T): EquivalenceClass[T] = {
+    val tensor = interpret(that)
+    add(that, tensor)
   }
 
-  def add(adjMat: AdjMat, tensor: Tensor): EquivalenceClassByAdjMat = {
-    compareAndAddToClass(adjMat, tensor)
-    compareAndAddToClassNormalised(adjMat, tensor)
+  def add(that: T, tensor: Tensor): EquivalenceClass[T] = {
+    compareAndAddToClass(that, tensor)
+    compareAndAddToClassNormalised(that, tensor)
+  }
+
+  def emptyClass(): EquivalenceClass[T]
+
+  // Finds the closest class and adds it, or creates a new class if outside tolerance
+  def compareAndAddToClass(candidate: T, tensor: Tensor = Tensor.zero(1, 1)): EquivalenceClass[T] = {
+    val adjTensor = if (tensor == Tensor.zero(1, 1)) interpret(candidate) else tensor
+    var closest = emptyClass()
+    var closestDist = tolerance
+    for (eqClass <- equivalenceClasses) {
+
+      // Need to ensure that the tensor is of the right size first!
+      if (adjTensor.isSameShapeAs(eqClass.centre)) {
+        val dist = eqClass.centre.distance(adjTensor)
+        if (dist < tolerance && dist > -1) {
+          closest = eqClass
+          closestDist = dist
+        }
+      }
+    }
+    closest.addMember(candidate, adjTensor)
+    if (closest.members.length == 1) equivalenceClasses = closest :: equivalenceClasses
+    closest
+  }
+
+  def compareAndAddToClassNormalised(that: T, tensor: Tensor = Tensor.zero(1, 1)): EquivalenceClass[T] = {
+    val adjTensor = if (tensor == Tensor.zero(1, 1)) interpret(that).normalised else tensor.normalised
+    var closest = emptyClass()
+    var closestDist = tolerance
+    for (eqClass <- equivalenceClassesNormalised) {
+
+      // Need to ensure that the tensor is of the right size first!
+      if (adjTensor.isSameShapeAs(eqClass.centre)) {
+        val rep = eqClass.centre // already normalised
+        val dist = math.min(rep.distance(adjTensor), rep.distance(adjTensor.scaled(factor = -1.0)))
+        if (dist < tolerance && dist > -1) {
+          closest = eqClass
+          closestDist = dist
+        }
+      }
+    }
+    closest.addMember(that, adjTensor)
+    if (closest.members.length == 1) equivalenceClassesNormalised = closest :: equivalenceClassesNormalised
+    closest
+  }
+}
+
+class EquivClassRunBlockStack(tolerance: Double = 1e-14) extends EquivClassRun[BlockStack] {
+
+  var equivalenceClasses: List[EquivalenceClass[BlockStack]] = List()
+  var equivalenceClassesNormalised: List[EquivalenceClass[BlockStack]] = List()
+
+  override def emptyClass(): EquivalenceClass[BlockStack] = {
+    new EquivalenceClassByBlockStack()
+  }
+
+  override def interpret(that: BlockStack): Tensor = {
+    that.tensor
+  }
+
+  def toJSON: JsonObject = {
+    val totalDiagrams = equivalenceClasses.foldLeft(0) { (a, b) => a + b.members.length }
+    val numberOfClasses = equivalenceClasses.length
+    JsonObject(
+      "runData" -> JsonObject(
+        "messages" -> JsonArray(messageList.reverse),
+        "tolerance" -> tolerance,
+        "totalDiagrams" -> totalDiagrams,
+        "numberOfClasses" -> numberOfClasses
+      ),
+      "equivalenceClasses" -> JsonArray(equivalenceClasses.map(e => e.toJSON)),
+      "equivalenceClassesNormalised" -> JsonArray(equivalenceClassesNormalised.map(e => e.toJSON)
+      )
+    )
+  }
+}
+
+object EquivClassRunBlockStack {
+
+
+  def fromJSON(file: java.io.File): EquivClassRunBlockStack = {
+    fromJSON(Json.parse(
+      new Json.Input(file)).asObject)
+  }
+
+  def fromJSON(json: JsonObject): EquivClassRunBlockStack = {
+    try {
+      val runData = (json / "runData").asObject
+      val messages: List[String] = (runData / "messages").asArray.map(_.stringValue).toList.reverse
+      val tolerance: Double = (runData / "tolerance").doubleValue
+
+      val equivalenceClasses: List[EquivalenceClassByBlockStack] = (json / "equivalenceClasses").asArray.map(
+        eqc => EquivalenceClassByBlockStack.fromJson(eqc.asObject)
+      ).toList
+
+      val equivalenceClassesNormalised: List[EquivalenceClassByBlockStack] = (json / "equivalenceClassesNormalised").asArray.map(
+        eqc => EquivalenceClassByBlockStack.fromJson(eqc.asObject)
+      ).toList
+
+      val eqrr = new EquivClassRunBlockStack(tolerance)
+      eqrr.messageList = messages
+      eqrr.equivalenceClasses = equivalenceClasses
+      eqrr.equivalenceClassesNormalised = equivalenceClassesNormalised
+      eqrr
+    } catch {
+      case e: JsonAccessException => throw new TheoryLoadException("Error reading JSON", e)
+    }
+  }
+
+  def apply(     tolerance: Double): EquivClassRunBlockStack = {
+    new EquivClassRunBlockStack(
+      tolerance = tolerance)
+  }
+
+  def fromTensorList(tensorList: JsonObject,
+                     tolerance: Double): EquivClassRunBlockStack = {
+    val results = (tensorList / "results").asArray.map(js =>
+      (BlockStack.fromJson((js / "stack").asObject),
+        Tensor.fromJson((js / "tensor").asObject))
+    )
+    val ecrr = new EquivClassRunBlockStack(tolerance)
+    for ((adj, ten) <- results) {
+      ecrr.add(adj)
+    }
+    ecrr
+  }
+}
+
+
+class EquivClassRunAdjMat(
+                           rdata: Vector[NodeV],
+                           gdata: Vector[NodeV],
+                           val theory: Theory,
+                           override val tolerance: Double = 1e-14,
+                           val rulesList: List[Rule]) extends EquivClassRun[AdjMat] {
+
+  var equivalenceClasses: List[EquivalenceClass[AdjMat]] = List()
+  var equivalenceClassesNormalised: List[EquivalenceClass[AdjMat]] = List()
+
+  def adjMatToGraph(adj: AdjMat): Graph = {
+    Graph.fromAdjMat(adj, rdata, gdata)
+  }
+
+  override def emptyClass(): EquivalenceClass[AdjMat] = {
+    new EquivalenceClassByAdjMat(theory)
+  }
+
+  override def interpret(that: AdjMat): Tensor = {
+    interpretAdjMat(that, gdata, rdata)
   }
 
   def toJSON: JsonObject = {
@@ -289,10 +382,8 @@ class EquivClassRunAdjMat(
         "greenNodeData" -> JsonArray(gdata.toList.map(nv => nv.toJson)),
         "rules" -> JsonArray(rulesList.map(r => Rule.toJson(r, theory)))
       ),
-      "equivalenceClasses" -> JsonArray(equivalenceClasses.map(e => e.toJSON(
-        theory).asObject)),
-      "equivalenceClassesNormalised" -> JsonArray(equivalenceClassesNormalised.map(e => e.toJSON(
-        theory).asObject)
+      "equivalenceClasses" -> JsonArray(equivalenceClasses.map(e => e.toJSON)),
+      "equivalenceClassesNormalised" -> JsonArray(equivalenceClassesNormalised.map(e => e.toJSON)
       )
     )
   }

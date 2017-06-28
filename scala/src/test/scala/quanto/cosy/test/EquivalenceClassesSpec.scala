@@ -16,10 +16,6 @@ import scala.util.parsing.json.JSON
 class EquivalenceClassesSpec extends FlatSpec {
   val rg = Theory.fromFile("red_green")
   var emptyRuleList: List[Rule] = List()
-  var results = EquivClassRunAdjMat(    numAngles = 4,
-    tolerance = EquivClassRunAdjMat.defaultTolerance,
-    rulesList = emptyRuleList,
-    theory = rg)
 
   behavior of "Equivalence classes"
 
@@ -30,6 +26,10 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   it should "result in the same number of diagrams when normalising things" in {
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
+    var results = EquivClassRunAdjMat(    numAngles = 4,
+      tolerance = EquivClassRunAdjMat.defaultTolerance,
+      rulesList = emptyRuleList,
+      theory = rg)
     results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
     assert(results.equivalenceClasses.map(x => x.members.length).sum ==
       results.equivalenceClassesNormalised.map(x => x.members.length).sum)
@@ -37,6 +37,10 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   it should "convert an AdjMat into a graph" in {
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
+    var results = EquivClassRunAdjMat(    numAngles = 4,
+      tolerance = EquivClassRunAdjMat.defaultTolerance,
+      rulesList = emptyRuleList,
+      theory = rg)
     results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
     var ten = results.equivalenceClasses.head.centre
     var graph = results.equivalenceClasses.head.members.head._1
@@ -93,6 +97,10 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   it should "accept a list of rules" in {
     var amat = new AdjMat(numRedTypes = 2, numGreenTypes = 0)
+    var results = EquivClassRunAdjMat(    numAngles = 4,
+      tolerance = EquivClassRunAdjMat.defaultTolerance,
+      rulesList = emptyRuleList,
+      theory = rg)
     // no boundaries
     amat = amat.nextType.get
     amat = amat.nextType.get
@@ -116,6 +124,10 @@ class EquivalenceClassesSpec extends FlatSpec {
   behavior of "IO"
 
   it should "save run results to file" in {
+    var results = EquivClassRunAdjMat(    numAngles = 4,
+      tolerance = EquivClassRunAdjMat.defaultTolerance,
+      rulesList = emptyRuleList,
+      theory = rg)
     var testFile = new File("test_run_output.qrun")
     quanto.util.FileHelper.printToFile(testFile, append = false)(
       p => p.println(results.toJSON.toString())
@@ -124,6 +136,10 @@ class EquivalenceClassesSpec extends FlatSpec {
   }
 
   it should "output to and input from JSON" in {
+    var results = EquivClassRunAdjMat(    numAngles = 4,
+      tolerance = EquivClassRunAdjMat.defaultTolerance,
+      rulesList = emptyRuleList,
+      theory = rg)
     var amat = new AdjMat(numRedTypes = 2, numGreenTypes = 0)
     // no boundaries
     amat = amat.nextType.get
@@ -174,6 +190,10 @@ class EquivalenceClassesSpec extends FlatSpec {
   }
 
   it should "be writing legible JSON" in {
+    var results = EquivClassRunAdjMat(    numAngles = 4,
+      tolerance = EquivClassRunAdjMat.defaultTolerance,
+      rulesList = emptyRuleList,
+      theory = rg)
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
     val lines = diagramStream.map(d => JsonObject(
       "adjMatHash" -> d.hash,
@@ -182,6 +202,18 @@ class EquivalenceClassesSpec extends FlatSpec {
 
     val jsonHolder = JsonObject("results" -> JsonArray(lines))
     assert(JSON.parseFull(jsonHolder.toString()).nonEmpty)
+  }
+
+  behavior of "ZW block stack"
+
+  it should "put stacks into equivalence classes" in {
+    var allowedStacks = BlockStackMaker(maxRows =  3,
+      BlockRowMaker(maxBlocks =  2, maxInOut = 2, BlockRowMaker.ZW))
+    var eqc = new EquivClassRunBlockStack()
+    allowedStacks.foreach(s => eqc.add(s))
+    println(eqc.equivalenceClassesNormalised.foreach(
+      e => println("---\n" + e.centre.toString + "\n " + e.members.map(x => x._1.toString) )
+    ))
   }
 
 }

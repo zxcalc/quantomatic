@@ -31,10 +31,15 @@ object Block {
   }
 }
 
-class BlockRow(val blocks: List[Block]) {
+class BlockRow(val blocks: List[Block], suggestTensor: Tensor = Tensor.zero(1, 1)) {
   lazy val inputs: Int = blocks.foldLeft(0)((a, b) => a + b.inputs)
   lazy val outputs: Int = blocks.foldLeft(0)((a, b) => a + b.outputs)
-  lazy val tensor: Tensor = blocks.foldLeft(Tensor.id(1))((a, b) => a x b.tensor)
+  lazy val tensor: Tensor =
+    if (suggestTensor == Tensor.zero(1, 1)) {
+      blocks.foldLeft(Tensor.id(1))((a, b) => a x b.tensor)
+    } else {
+      suggestTensor
+    }
   lazy val toJson = JsonObject(
     "blocks" -> JsonArray(blocks.map(b => b.toJson)),
     "inputs" -> inputs,
@@ -56,7 +61,7 @@ class BlockStack(val rows: List[BlockRow]) {
     Tensor.id(1)
   } else {
 
-    rows.foldLeft(Tensor.idWires(inputs))((a, b) => a o b.tensor)
+    rows.foldRight(Tensor.idWires(inputs))((a, b) => a.tensor o b)
   }
   lazy val toJson = JsonObject(
     "rows" -> JsonArray(rows.map(b => b.toJson)),
@@ -67,7 +72,7 @@ class BlockStack(val rows: List[BlockRow]) {
   )
   override val toString: String = rows.mkString("(", ") o (", ")")
 
-  def inputs: Int = if (rows.nonEmpty) rows.reverse.head.inputs else 0
+  def inputs: Int = if (rows.nonEmpty) rows.last.inputs else 0
 
   def outputs: Int = if (rows.nonEmpty) rows.head.outputs else 0
 }
@@ -80,11 +85,12 @@ object BlockStack {
 
 object BlockRowMaker {
   val ZW: List[Block] = List(
+    // BOTTOM TO TOP!
     Block(1, 1, " 1 ", Tensor.idWires(1)),
     Block(2, 2, " s ", Tensor.swap(List(1, 0))),
     Block(2, 2, "crs", new Tensor(Array(Array(1, 0, 0, 0), Array(0, 0, 1, 0), Array(0, 1, 0, 0), Array(0, 0, 0, -1)))),
-    Block(0, 2, "cup", new Tensor(Array(Array(1, 0, 0, 1)))),
-    Block(2, 0, "cap", new Tensor(Array(Array(1, 0, 0, 1))).transpose),
+    Block(0, 2, "cup", new Tensor(Array(Array(1, 0, 0, 1))).transpose),
+    Block(2, 0, "cap", new Tensor(Array(Array(1, 0, 0, 1)))),
     Block(1, 1, " w ", new Tensor(Array(Array(1, 0), Array(0, -1)))),
     Block(1, 2, "1w2", new Tensor(Array(Array(1, 0, 0, 0), Array(0, 0, 0, -1))).transpose),
     Block(2, 1, "2w1", new Tensor(Array(Array(1, 0, 0, 0), Array(0, 0, 0, -1)))),
@@ -94,13 +100,16 @@ object BlockRowMaker {
   )
   var allowedBlocks: List[Block] = List()
 
-  def apply(maxBlocks: Int, allowedBlocks: List[Block] = allowedBlocks): List[BlockRow] = {
-    var builtRows: List[BlockRow] = allowedBlocks.map(b => new BlockRow(List(b)))
+  def apply(maxBlocks: Int, maxInOut: Int = -1, allowedBlocks: List[Block] = allowedBlocks): List[BlockRow] = {
+    var builtRows: List[BlockRow] = allowedBlocks.map(b => new BlockRow(List(b))).filter(
+      r => maxInOut == -1 || (r.inputs <= maxInOut && r.outputs <= maxInOut)
+    )
     var nextRows: List[BlockRow] = List()
     for (i <- 1 until maxBlocks) {
       for (row <- builtRows) {
         for (block <- allowedBlocks) {
-          nextRows = new BlockRow(block :: row.blocks) :: nextRows
+          val newRow = new BlockRow(block :: row.blocks, block.tensor x row.tensor)
+          if (maxInOut == -1 || (newRow.inputs <= maxInOut && newRow.outputs <= maxInOut)) nextRows = newRow :: nextRows
         }
       }
       builtRows = builtRows ::: nextRows

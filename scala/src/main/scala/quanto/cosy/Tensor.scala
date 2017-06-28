@@ -180,7 +180,7 @@ class Tensor(c: Array[Array[Complex]]) {
   def canEqual(other: Any): Boolean =
     other.isInstanceOf[Tensor]
 
-  override def hashCode(): Int = this.contents.deep.hashCode()
+  override lazy val hashCode: Int = this.contents.flatten.count(c => c.re > 0)
 
   private def normalise(): Tensor = {
     // scale so the largest entry is 0, unless this is roughly 0
