@@ -204,11 +204,11 @@ class EquivalenceClassesSpec extends FlatSpec {
     assert(JSON.parseFull(jsonHolder.toString()).nonEmpty)
   }
 
-  behavior of "ZW block stack"
+  behavior of "ZX block stack"
 
   it should "put stacks into equivalence classes" in {
-    var allowedStacks = BlockStackMaker(maxRows =  3,
-      BlockRowMaker(maxBlocks =  2, maxInOut = 2, BlockRowMaker.ZW))
+    var allowedStacks = BlockStackMaker(maxRows =  2,
+      BlockRowMaker(maxBlocks =  2, maxInOut = 2, BlockRowMaker.ZX))
     var eqc = new EquivClassRunBlockStack()
     allowedStacks.foreach(s => eqc.add(s))
     println(eqc.equivalenceClassesNormalised.foreach(
@@ -216,4 +216,15 @@ class EquivalenceClassesSpec extends FlatSpec {
     ))
   }
 
+  behavior of "ZW block stack"
+
+  it should "put stacks into equivalence classes" in {
+    var allowedStacks = BlockStackMaker(maxRows =  2,
+      BlockRowMaker(maxBlocks =  2, maxInOut = 2, BlockRowMaker.ZW))
+    var eqc = new EquivClassRunBlockStack()
+    allowedStacks.foreach(s => eqc.add(s))
+    println(eqc.equivalenceClassesNormalised.foreach(
+      e => println("---\n" + e.centre.toString + "\n " + e.members.map(x => x._1.toString) )
+    ))
+  }
 }

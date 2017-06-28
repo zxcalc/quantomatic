@@ -98,9 +98,25 @@ object BlockRowMaker {
     Block(1, 2, "1b2", new Tensor(Array(Array(0, 1, 1, 0), Array(1, 0, 0, 1))).transpose),
     Block(2, 1, "2b1", new Tensor(Array(Array(0, 1, 1, 0), Array(1, 0, 0, 1))))
   )
-  var allowedBlocks: List[Block] = List()
+  val ZX: List[Block] = List(
+    Block(1, 1, " 1 ", Tensor.idWires(1)),
+    Block(2, 2, " s ", Tensor.swap(List(1, 0))),
+    Block(0, 2, "cup", new Tensor(Array(Array(1, 0, 0, 1))).transpose),
+    Block(2, 0, "cap", new Tensor(Array(Array(1, 0, 0, 1)))),
+    Block(1, 1, "gT ", new Tensor(Array(Array(1, 0), Array(0, ei(math.Pi / 4))))),
+    Block(1, 1, " H ", new Tensor(Array(Array(1, 1), Array(1, -1))).scaled(1.0 / math.sqrt(2))),
+    Block(1, 1, "rT ", new Tensor(Array(
+      Array(1 + ei(math.Pi / 4), 1 - ei(math.Pi / 4)),
+      Array(1 - ei(math.Pi / 4), 1 + ei(math.Pi / 4))))),
+    Block(2, 1, "2g1", new Tensor(Array(Array(1, 0, 0, 0), Array(0, 0, 0, 1)))),
+    Block(1, 2, "1g2", new Tensor(Array(Array(1, 0, 0, 0), Array(0, 0, 0, 1))).transpose),
+    Block(0, 1, "gu ", new Tensor(Array(Array(1, 1))).transpose),
+    Block(1, 2, "1r2", new Tensor(Array(Array(1, 0, 0, 1), Array(0, 1, 1, 0))).transpose),
+    Block(2, 1, "2r1", new Tensor(Array(Array(1, 0, 0, 1), Array(0, 1, 1, 0)))),
+    Block(0, 1, "ru ", new Tensor(Array(Array(1, 0))).transpose)
+  )
 
-  def apply(maxBlocks: Int, maxInOut: Int = -1, allowedBlocks: List[Block] = allowedBlocks): List[BlockRow] = {
+  def apply(maxBlocks: Int, maxInOut: Int = -1, allowedBlocks: List[Block]): List[BlockRow] = {
     var builtRows: List[BlockRow] = allowedBlocks.map(b => new BlockRow(List(b))).filter(
       r => maxInOut == -1 || (r.inputs <= maxInOut && r.outputs <= maxInOut)
     )
@@ -117,6 +133,8 @@ object BlockRowMaker {
     }
     builtRows
   }
+
+  private def ei(angle: Double) = Complex(math.cos(angle), math.sin(angle))
 }
 
 object BlockStackMaker {
