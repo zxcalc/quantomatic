@@ -98,16 +98,21 @@ object BlockRowMaker {
     Block(1, 2, "1b2", new Tensor(Array(Array(0, 1, 1, 0), Array(1, 0, 0, 1))).transpose),
     Block(2, 1, "2b1", new Tensor(Array(Array(0, 1, 1, 0), Array(1, 0, 0, 1))))
   )
-  val ZX: List[Block] = List(
+  def ZX(numAngles: Int = 8): List[Block] = List(
     Block(1, 1, " 1 ", Tensor.idWires(1)),
     Block(2, 2, " s ", Tensor.swap(List(1, 0))),
     Block(0, 2, "cup", new Tensor(Array(Array(1, 0, 0, 1))).transpose),
-    Block(2, 0, "cap", new Tensor(Array(Array(1, 0, 0, 1)))),
-    Block(1, 1, "gT ", new Tensor(Array(Array(1, 0), Array(0, ei(math.Pi / 4))))),
+    Block(2, 0, "cap", new Tensor(Array(Array(1, 0, 0, 1))))) :::
+    (for (i <- 0 until numAngles) yield {
+      Block(1, 1, "gT" + i.toString, new Tensor(Array(Array(1, 0), Array(0, ei(2 *i * math.Pi / numAngles)))))
+    }).toList  :::
+  (for (i <- 0 until numAngles) yield {
+    Block(1, 1, "rT" + i.toString, new Tensor(Array(
+      Array(1 +  ei(2 *i * math.Pi / numAngles), 1 -  ei(2 *i * math.Pi / numAngles)),
+      Array(1 -  ei(2 *i * math.Pi / numAngles), 1 +  ei(2 *i * math.Pi / numAngles)))))
+  }).toList  :::
+  List(
     Block(1, 1, " H ", new Tensor(Array(Array(1, 1), Array(1, -1))).scaled(1.0 / math.sqrt(2))),
-    Block(1, 1, "rT ", new Tensor(Array(
-      Array(1 + ei(math.Pi / 4), 1 - ei(math.Pi / 4)),
-      Array(1 - ei(math.Pi / 4), 1 + ei(math.Pi / 4))))),
     Block(2, 1, "2g1", new Tensor(Array(Array(1, 0, 0, 0), Array(0, 0, 0, 1)))),
     Block(1, 2, "1g2", new Tensor(Array(Array(1, 0, 0, 0), Array(0, 0, 0, 1))).transpose),
     Block(0, 1, "gu ", new Tensor(Array(Array(1, 1))).transpose),

@@ -208,7 +208,7 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   it should "put stacks into equivalence classes" in {
     var allowedStacks = BlockStackMaker(maxRows =  2,
-      BlockRowMaker(maxBlocks =  2, maxInOut = 2, BlockRowMaker.ZX))
+      BlockRowMaker(maxBlocks =  2, maxInOut = 2, BlockRowMaker.ZX(8)))
     var eqc = new EquivClassRunBlockStack()
     allowedStacks.foreach(s => eqc.add(s))
     println(eqc.equivalenceClassesNormalised.foreach(
