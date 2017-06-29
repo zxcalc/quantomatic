@@ -93,12 +93,19 @@ case class AdjMat(numRedTypes: Int,
 
   // compare the lower triangular part of this matrix, lexicographically
   def compare(that: AdjMat): Int = {
-    for (i <- 0 until size)
-      for (j <- 0 to i)
-        if (mat(i)(j) < that.mat(i)(j)) return -1
-        else if (mat(i)(j) > that.mat(i)(j)) return 1
-    0
+    if (this.size < that.size) {
+      -1
+    } else if (this.size > that.size) {
+      1
+    } else {
+      for (i <- 0 until size)
+        for (j <- 0 to i)
+          if (mat(i)(j) < that.mat(i)(j)) return -1
+          else if (mat(i)(j) > that.mat(i)(j)) return 1
+      0
+    }
   }
+
 
   // a matrix is canonical if it is lexicographically smaller than any vertex permutation
   def isCanonical(permuteBoundary: Boolean = false): Boolean = validPerms(permuteBoundary).forall { p => compareWithPerm(p) <= 0 }
