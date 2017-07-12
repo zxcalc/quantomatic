@@ -28,7 +28,7 @@ import quanto.util.Globals
 object QuantoDerive extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
   val actorSystem = ActorSystem("QuantoDerive")
-  val core = actorSystem.actorOf(Props { new Core }, "core")
+  //val core = actorSystem.actorOf(Props { new Core }, "core")
   implicit val timeout = Timeout(1.day)
 
   // pre-initialise jython, so its zippy when the user clicks "run" in a script
@@ -62,7 +62,7 @@ object QuantoDerive extends SimpleSwingApplication {
     case _ => None
   }
 
-  CurrentProject.map { pr => core ! SetMLWorkingDir(pr.rootFolder) }
+  //CurrentProject.map { pr => core ! SetMLWorkingDir(pr.rootFolder) }
 
   val ProjectFileTree = new FileTree
   ProjectFileTree.preferredSize = new Dimension(250,360)
@@ -187,8 +187,8 @@ object QuantoDerive extends SimpleSwingApplication {
   def quitQuanto() = {
     if (closeAllDocuments()) {
       try {
-        core ! StopCore
-        core ! PoisonPill
+        //core ! StopCore
+        //core ! PoisonPill
       } catch {
         case e : Exception => e.printStackTrace()
       }
@@ -238,17 +238,17 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
-    val NewMLAction = new Action("New ML Document") {
-      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_M, CommandMask | Key.Modifier.Shift))
-      menu.contents += new MenuItem(this) { mnemonic = Key.M }
-      def apply() {
-        CurrentProject.map{ project =>
-          val page = new MLDocumentPage
-          MainTabbedPane += page
-          MainTabbedPane.selection.index = page.index
-        }
-      }
-    }
+//    val NewMLAction = new Action("New ML Document") {
+//      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_M, CommandMask | Key.Modifier.Shift))
+//      menu.contents += new MenuItem(this) { mnemonic = Key.M }
+//      def apply() {
+//        CurrentProject.map{ project =>
+//          val page = new MLDocumentPage
+//          MainTabbedPane += page
+//          MainTabbedPane.selection.index = page.index
+//        }
+//      }
+//    }
 
     val NewPythonAction = new Action("New Python Script") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Y, CommandMask | Key.Modifier.Shift))
@@ -267,11 +267,11 @@ object QuantoDerive extends SimpleSwingApplication {
         case Some(_) =>
           NewGraphAction.enabled = true
           NewAxiomAction.enabled = true
-          NewMLAction.enabled = true
+          //NewMLAction.enabled = true
         case None =>
           NewGraphAction.enabled = false
           NewAxiomAction.enabled = false
-          NewMLAction.enabled = false
+          //NewMLAction.enabled = false
       }
     }
 
@@ -349,7 +349,7 @@ object QuantoDerive extends SimpleSwingApplication {
                 CurrentProject = Some(proj)
                 ProjectFileTree.root = Some(rootFolder)
                 prefs.put("lastProjectFolder", rootFolder)
-                core ! SetMLWorkingDir(rootFolder)
+                //core ! SetMLWorkingDir(rootFolder)
                 updateNewEnabled()
               }
           }
@@ -373,7 +373,7 @@ object QuantoDerive extends SimpleSwingApplication {
                   CurrentProject = Some(proj)
                   ProjectFileTree.root = Some(rootFolder)
                   prefs.put("lastProjectFolder", rootFolder.toString)
-                  core ! SetMLWorkingDir(rootFolder)
+                  //core ! SetMLWorkingDir(rootFolder)
                 } catch {
                   case _: ProjectLoadException =>
                     error("Error loading project file")
@@ -584,12 +584,12 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
-  val CoreStatus = new Label("Waiting for connection...")
-  CoreStatus.foreground = Color.BLUE
+  val CoreStatus = new Label("OK")
+  CoreStatus.foreground = new Color(0,150,0)
   val ConsoleProgress = new ProgressBar
 
   val StatusBar = new GridPanel(1,2) {
-    contents += new FlowPanel(FlowPanel.Alignment.Left) ( new Label("Core status:"), CoreStatus )
+    contents += new FlowPanel(FlowPanel.Alignment.Left) ( new Label("Quantomatic status:"), CoreStatus )
     contents += new FlowPanel(FlowPanel.Alignment.Right) ( ConsoleProgress )
   }
 
@@ -622,7 +622,6 @@ object QuantoDerive extends SimpleSwingApplication {
                 case "qgraph"  => Some(new GraphDocumentPage(project.theory))
                 case "qrule"   => Some(new RuleDocumentPage(project.theory))
                 case "qderive" => Some(new DerivationDocumentPage(project))
-                case "ML"      => Some(new MLDocumentPage)
                 case "py"      => Some(new PythonDocumentPage)
                 case _         => None
               }
@@ -692,10 +691,10 @@ object QuantoDerive extends SimpleSwingApplication {
       }
   }
 
-  val versionResp = core ? Call("!!", "system", "version")
-  versionResp.onSuccess { case Success(JsonString(version)) =>
-    Swing.onEDT { CoreStatus.text = "OK"; CoreStatus.foreground = new Color(0,150,0) }
-  }
+//  val versionResp = core ? Call("!!", "system", "version")
+//  versionResp.onSuccess { case Success(JsonString(version)) =>
+//    Swing.onEDT { CoreStatus.text = "OK"; CoreStatus.foreground = new Color(0,150,0) }
+//  }
 
   def top = new MainFrame {
     title = "QuantoDerive"
