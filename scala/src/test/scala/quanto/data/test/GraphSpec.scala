@@ -8,6 +8,7 @@ import scala.collection.immutable.TreeSet
 
 
 class GraphSpec extends FlatSpec with GivenWhenThen {
+  val rg = Theory.fromFile("red_green")
   behavior of "A graph"
   
   var g : Graph = _
@@ -298,6 +299,22 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     val bs = twobb1.bboxes
     assert(bs.size === 2)
     assert(twobb1.inBBox.domf(v1) === bs)
+  }
+
+  behavior of "A graph with angles"
+
+  it should "return the free variables" in {
+    val g = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z", "value": "x + y"}},
+        |    "v1": {"data": {"type": "X", "value": "z + pi"}}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+
+    assert(g.freeVars === Set("x", "y", "z"))
   }
 
 //  it should "support Graph.Flavor clipboard flavor" in {

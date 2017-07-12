@@ -171,6 +171,7 @@ class BBoxMatcherSpec extends FlatSpec {
     assert(matches.size === 2*6*2)
   }
 
+
   it should "match the spider law on itself" in {
     val g1 = Graph.fromJson(Json.parse(
       """
@@ -245,5 +246,116 @@ class BBoxMatcherSpec extends FlatSpec {
 
     // TODO: fix this after symmetry-smashing
     assert(matches.size === 2*2*2)
+  }
+
+  it should "match the LHS of the spider law with angles" in {
+    val g1 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["b0", "b1"],
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z", "value": "x"}},
+        |    "v1": {"data": {"type": "Z", "value": "y"}}
+        |  },
+        |  "undir_edges": {
+        |    "e0": {"src": "b0", "tgt": "v0"},
+        |    "e1": {"src": "v0", "tgt": "v1"},
+        |    "e2": {"src": "v1", "tgt": "b1"}
+        |  },
+        |  "bang_boxes": {
+        |    "bb0": {"contents": ["b0"]},
+        |    "bb1": {"contents": ["b1"]}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+    val g2 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["b0a", "b0b", "b0c", "b1a", "b1b"],
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z", "value": ""}},
+        |    "v1": {"data": {"type": "Z", "value": "pi"}}
+        |  },
+        |  "undir_edges": {
+        |    "e0a": {"src": "b0a", "tgt": "v0"},
+        |    "e0b": {"src": "b0b", "tgt": "v0"},
+        |    "e0c": {"src": "b0c", "tgt": "v0"},
+        |    "e1": {"src": "v0", "tgt": "v1"},
+        |    "e2a": {"src": "v1", "tgt": "b1a"},
+        |    "e2b": {"src": "v1", "tgt": "b1b"}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+
+    val matches = Matcher.findMatches(g1, g2)
+
+    // TODO: fix this after symmetry-smashing
+    assert(matches.size === 2*6*2)
+  }
+
+  it should "instantiate the RHS of the spider law" in {
+    val lhs = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["b0", "b1"],
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z"}},
+        |    "v1": {"data": {"type": "Z"}}
+        |  },
+        |  "undir_edges": {
+        |    "e0": {"src": "b0", "tgt": "v0"},
+        |    "e1": {"src": "v0", "tgt": "v1"},
+        |    "e2": {"src": "v1", "tgt": "b1"}
+        |  },
+        |  "bang_boxes": {
+        |    "bb0": {"contents": ["b0"]},
+        |    "bb1": {"contents": ["b1"]}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+    val rhs = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["b0", "b1"],
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z"}}
+        |  },
+        |  "undir_edges": {
+        |    "e0": {"src": "b0", "tgt": "v0"},
+        |    "e2": {"src": "v0", "tgt": "b1"}
+        |  },
+        |  "bang_boxes": {
+        |    "bb0": {"contents": ["b0"]},
+        |    "bb1": {"contents": ["b1"]}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+
+    val g = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["b0a", "b0b", "b0c", "b1a", "b1b"],
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z", "value": ""}},
+        |    "v1": {"data": {"type": "Z", "value": ""}}
+        |  },
+        |  "undir_edges": {
+        |    "e0a": {"src": "b0a", "tgt": "v0"},
+        |    "e0b": {"src": "b0b", "tgt": "v0"},
+        |    "e0c": {"src": "b0c", "tgt": "v0"},
+        |    "e1": {"src": "v0", "tgt": "v1"},
+        |    "e2a": {"src": "v1", "tgt": "b1a"},
+        |    "e2b": {"src": "v1", "tgt": "b1b"}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+
+    val matches = Matcher.findMatches(lhs, g)
+    assert(matches.nonEmpty)
+
+    val m = matches.head
+    val rhs1 = Rewriter.expandRhs(m, rhs)
+
+    assert(m.pattern.boundary === rhs1.boundary)
   }
 }

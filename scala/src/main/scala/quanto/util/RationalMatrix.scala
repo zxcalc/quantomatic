@@ -39,7 +39,7 @@ class RationalMatrix(val mat: Vector[Vector[Rational]], val line : Int, val cons
         row.slice(0, line) ++ Vector.fill(m)(Rational(0)) ++
         row.slice(line, row.length - 1) ++ Vector.fill(n)(Rational(0)) :+
         row(row.length - 1)
-      }, line + vCols, constModulo)
+      }, math.max(line, vCols), constModulo)
     else this
   }
 

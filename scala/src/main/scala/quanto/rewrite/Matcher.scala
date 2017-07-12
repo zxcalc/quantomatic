@@ -13,8 +13,8 @@ object Matcher {
 
   def initialise(pat: Graph, tgt: Graph, restrictTo: Set[VName]): MatchState = {
     // TODO: new free vars should be fresh w.r.t. vars in target
-    val patVars = Vector()
-    val tgtVars = Vector()
+    val patVars = pat.freeVars.toVector
+    val tgtVars = tgt.freeVars.toVector
     val patN = pat.normalise
     val tgtN = tgt.normalise
     val restrict1 = restrictTo.foldRight(restrictTo) { (v, s) =>

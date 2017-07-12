@@ -100,7 +100,8 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 //  }
 
   private def pullRewrite(ms: MatchState, rd: RuleDesc, rule: Rule) {
-    val resp: Future[Option[(Match, Option[MatchState])]] = Future { ms.nextMatch() }
+    val resp: Future[Option[(Match, Option[MatchState])]] = Future {
+      try { ms.nextMatch() } catch { case e: Throwable => e.printStackTrace(); throw e } }
     resp.onComplete {
       case Success(Some((m, msOpt))) =>
         val (graph1, rule1) = Rewriter.rewrite(m, rule.rhs)

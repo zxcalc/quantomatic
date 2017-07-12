@@ -77,7 +77,7 @@ trait BinRel[A,B] extends IterableLike[(A,B), BinRel[A,B]] {
    * @return The set of codomain elements which are in relation with some 
    * element from '''set'''
    */
-  def directImage(set: Set[A]) = set.foldLeft(Set[B]())(_ union domf(_))
+  def directImage(set: Set[A]) = set.foldLeft(Set[B]()){ (s,x) => s union domf.getOrElse(x, Set()) }
 
   /**
    * The domain image of a set of codomain elements under this relation
@@ -86,7 +86,7 @@ trait BinRel[A,B] extends IterableLike[(A,B), BinRel[A,B]] {
    * @return The set of domain elements which are in relation with some 
    * element from '''set'''
    */
-  def inverseImage(set: Set[B]) = set.foldLeft(Set[A]())(_ union codf(_))
+  def inverseImage(set: Set[B]) = set.foldLeft(Set[A]()) { (s,y) => s union codf.getOrElse(y, Set()) }
 
   
   /**
