@@ -105,6 +105,13 @@ class TensorSpec extends FlatSpec {
     assert(t1 - t1 == Tensor(4, 4, (i: Int, j: Int) => Complex.zero))
   }
 
+  it should "make diagonal matrices" in {
+    var t1 = Tensor.diagonal(Array(1,1))
+    assert(t1 == Tensor.id(2))
+    var t2 = Tensor.diagonal(Array(2,3))
+    assert(t2 == Tensor(Array(Array(2,0),Array(0,3))))
+  }
+
   behavior of "Tensor comparison"
 
   it should "element equality" in {

@@ -31,6 +31,17 @@ object RuleSynthesis {
     newRules
   }
 
+  def rulesFromEquivalenceClasses[T <: Ordered[T]](makeGraph: (T => Graph),
+                                                   equivalenceClasses: List[EquivalenceClass[T]],
+                                                   knownRules: List[Rule]): List[Rule] = {
+    equivalenceClasses match {
+      case Nil => knownRules
+      case x :: xs =>
+        val newRules = graphEquivClassReduction[T](makeGraph, x, knownRules)
+        newRules ::: rulesFromEquivalenceClasses(makeGraph, xs, newRules)
+    }
+  }
+
   def discardReducibleRules(rules: List[Rule], seed: Random = new Random()): List[Rule] = {
     var rulesToKeep = List[Rule]()
     for (rule <- rules) {

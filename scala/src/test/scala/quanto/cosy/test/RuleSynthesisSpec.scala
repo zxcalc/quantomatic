@@ -65,4 +65,17 @@ class RuleSynthesisSpec extends FlatSpec {
     println(shrunkRules)
     assert(ruleList.length > shrunkRules.length)
   }
+
+  behavior of "Bian and Perdrix 2Qubit system"
+
+  it should "find all rules" in {
+    var results = EquivClassRunBlockStack(1e-14)
+    var rowsAllowed = BlockRowMaker(2, maxInOut = 2, BlockRowMaker.Bian2Qubit)
+    var stacks = BlockStackMaker(2, rowsAllowed)
+    stacks.foreach(s => results.add(s))
+    results.equivalenceClassesNormalised
+        .filter(cls => cls.members.map(x => x._1.toString).contains("( 1 )"))
+      .foreach(cls => println(cls.members.map(x => x._1)))
+  }
+
 }

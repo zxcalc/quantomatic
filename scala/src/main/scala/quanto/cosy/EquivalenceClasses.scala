@@ -1,10 +1,8 @@
 package quanto.cosy
 
-import quanto.cosy
 import quanto.cosy.Interpreter._
 import quanto.data._
 import quanto.util.json.{Json, JsonAccessException, JsonArray, JsonObject}
-import quanto.rewrite._
 
 /**
   * Synthesises diagrams, holds the data and generates equivalence classes

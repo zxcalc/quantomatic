@@ -317,6 +317,16 @@ object Tensor {
     permutation(math.pow(2, size).toInt, permGen)
   }
 
+  def diagonal(entries: Array[Complex]) : Tensor = {
+    val size = entries.length
+    val generator : Generator = (i: Int, j: Int) => {
+      if (i == j) {
+        entries(i)
+      } else 0
+    }
+    Tensor(height = size, width = size, generator)
+  }
+
   def permutation(size: Int, gen: Int => Int): Tensor = {
     // Produce the matrix that sends i -> gen(i)
     new Tensor(permutationMatrix(size, gen))

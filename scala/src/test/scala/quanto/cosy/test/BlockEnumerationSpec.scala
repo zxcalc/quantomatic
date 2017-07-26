@@ -2,6 +2,8 @@ package quanto.cosy.test
 
 import quanto.cosy._
 import org.scalatest.FlatSpec
+import quanto.data.Rule
+import quanto.rewrite.Matcher
 
 /**
   * Created by hector on 28/06/17.
@@ -15,7 +17,7 @@ class BlockEnumerationSpec extends FlatSpec {
     println(rowsAllowed)
   }
 
-  it should "build biggerZW rows" in {
+  it should "build bigger ZW rows" in {
     var rowsAllowed = BlockRowMaker(2, allowedBlocks = BlockRowMaker.ZW)
     println(rowsAllowed)
     assert(rowsAllowed.length == 11 * 11 + 11)
@@ -43,14 +45,14 @@ class BlockEnumerationSpec extends FlatSpec {
   }
 
   it should "compute cup x id" in {
-    var allowedBlocks =  List(
+    var allowedBlocks = List(
       // BOTTOM TO TOP!
       Block(1, 1, " 1 ", Tensor.idWires(1)),
       Block(0, 2, "cup", new Tensor(Array(Array(1, 0, 0, 1))).transpose)
     )
-    var rowsAllowed = BlockRowMaker(2, allowedBlocks= allowedBlocks)
+    var rowsAllowed = BlockRowMaker(2, allowedBlocks = allowedBlocks)
     assert(rowsAllowed.filter(r => r.toString == "cup x  1 ").head.tensor
-    == Tensor(Array(Array(1,0,0,0,0,0,1,0),Array(0,1,0,0,0,0,0,1))).transpose)
+      == Tensor(Array(Array(1, 0, 0, 0, 0, 0, 1, 0), Array(0, 1, 0, 0, 0, 0, 0, 1))).transpose)
   }
 
   it should "find wire identities" in {
@@ -93,5 +95,29 @@ class BlockEnumerationSpec extends FlatSpec {
     assert(s2.inputs == s.inputs)
     assert(s2.tensor == s.tensor)
     println(s2)
+  }
+
+  behavior of "Stack to Graph"
+
+  it should "convert a block to a graph" in {
+    var b = BlockRowMaker.Bian2Qubit(2) // T-gate
+    var g = BlockRowMaker.Bian2QubitToGraph(b)
+    println(g.toString)
+  }
+
+  it should "convert a row to a graph" in {
+    var B2 = BlockRowMaker.Bian2Qubit
+    var r = new BlockRow(List(B2(2),B2(3))) // T x H
+    var g = BlockRowMaker.rowToGraph(r,BlockRowMaker.Bian2QubitToGraph)
+    println(g.toString)
+  }
+
+  it should "convert a stack to a graph" in {
+    var B2 = BlockRowMaker.Bian2Qubit
+    var r = new BlockRow(List(B2(2), B2(3))) // T x H
+    var g = BlockRowMaker.stackToGraph(
+      new BlockStack(List(r, r)),
+      BlockRowMaker.Bian2QubitToGraph)
+    println(g)
   }
 }
