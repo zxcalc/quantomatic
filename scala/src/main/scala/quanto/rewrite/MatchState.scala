@@ -182,37 +182,43 @@ case class MatchState(
           }
         case None =>
           val (killGraph, killOp) = m.pattern.killBBox(pbb)
-          val (expandGraph, expandOp) = m.pattern.expandBBox(pbb)
-          val (copyGraph, copyOp) = m.pattern.copyBBox(pbb)
 
-          val expanded = m.bbops.exists { case BBExpand(bb1, _) => bb1 == pbb; case _ => false }
+          val next1 =
+            if (m.pattern.isWildBBox(pbb)) nextState
+            else { // only expand/copy non-wild !-boxes, or we'll get infinite matchings
+              val (expandGraph, expandOp) = m.pattern.expandBBox(pbb)
+              val (copyGraph, copyOp) = m.pattern.copyBBox(pbb)
 
-          // only copy bboxes that have never been expanded
-          val next2 =
-            if (expanded) nextState
-            else
+              val expanded = m.bbops.exists { case BBExpand(bb1, _) => bb1 == pbb; case _ => false }
+
+              // only copy bboxes that have never been expanded
+              val next2 =
+                if (expanded) nextState
+                else
+                  Some(copy(
+                    m = m.copy(pattern = copyGraph, bbops = copyOp :: m.bbops),
+                    candidateBBoxes = Some(m.target.bboxes.filter { tbb => reflectsParentBBoxes(pbb, tbb)
+                    })))
+
+              //          val schedule =
+              //            (expandGraph.adjacentVerts(expandGraph.contents(pbb)) ++
+              //             expandOp.mp.v.directImage(m.pattern.contents(pbb)))
+              //              .filter{ v =>
+              //                !expandGraph.vdata(v).isWireVertex &&
+              //                bboxesMatched(v)
+              //              }
+
               Some(copy(
-                m = m.copy(pattern = copyGraph, bbops = copyOp :: m.bbops),
-                candidateBBoxes = Some(m.target.bboxes.filter { tbb => reflectsParentBBoxes(pbb, tbb)
-              })))
+                m = m.copy(pattern = expandGraph, bbops = expandOp :: m.bbops),
+                psNodes = pNodes, // re-schedule everything
+                nextState = next2
+              ))
+            }
 
-//          val schedule =
-//            (expandGraph.adjacentVerts(expandGraph.contents(pbb)) ++
-//             expandOp.mp.v.directImage(m.pattern.contents(pbb)))
-//              .filter{ v =>
-//                !expandGraph.vdata(v).isWireVertex &&
-//                bboxesMatched(v)
-//              }
-
-          val next1 = copy(
-            m = m.copy(pattern = expandGraph, bbops = expandOp :: m.bbops),
-            psNodes = pNodes, // re-schedule everything
-            nextState = next2
-          )
 
           copy(
             m = m.copy(pattern = killGraph, bbops = killOp :: m.bbops),
-            nextState = Some(next1)
+            nextState = next1
           ).nextMatch()
       }
 

@@ -881,6 +881,11 @@ case class Graph(
     case ((_,d: NodeV), s) => s union d.angle.vars
     case (_, s) => s
   }
+
+  def isWildBBox(bb: BBName): Boolean = {
+    // TODO: check for bare wires as well
+    contents(bb).isEmpty
+  }
 }
 
 object Graph {

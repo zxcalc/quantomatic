@@ -43,7 +43,8 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 
     for (rd <- rules) {
       val rule = Rule.fromJson(Json.parse(new File(panel.project.rootFolder + "/" + rd.name + ".qrule")), theory)
-      pullRewrite(Matcher.initialise(rule.lhs, panel.LhsView.graph, sel), rd, rule)
+      val ms = Matcher.initialise(if (rd.inverse) rule.rhs else rule.lhs, panel.LhsView.graph, sel)
+      pullRewrite(ms, rd, rule)
 
 //        QuantoDerive.core ? Call(theory.coreName, "rewrite", "find_rewrites",
 //        JsonObject(
@@ -104,7 +105,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       try { ms.nextMatch() } catch { case e: Throwable => e.printStackTrace(); throw e } }
     resp.onComplete {
       case Success(Some((m, msOpt))) =>
-        val (graph1, rule1) = Rewriter.rewrite(m, rule.rhs)
+        val (graph1, rule1) = Rewriter.rewrite(m, if (rd.inverse) rule.lhs else rule.rhs)
 
         val step = DStep(
           name = DSName("s"),
