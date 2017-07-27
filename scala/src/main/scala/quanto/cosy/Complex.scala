@@ -60,6 +60,9 @@ class Complex(
   def *(that: Complex) =
     new Complex(re * that.re - im * that.im, re * that.im + im * that.re)
 
+  def conjugate =
+    new Complex(re, -im)
+
   def abs: Double = math.pow(re * re + im * im, 0.5)
 
   override def equals(other: Any): Boolean =

@@ -62,7 +62,7 @@ class BlockStack(val rows: List[BlockRow]) extends Ordered[BlockStack] {
     Tensor.id(1)
   } else {
 
-    rows.foldRight(Tensor.idWires(inputs))((a, b) => a.tensor o b)
+    rows.foldRight(Tensor.id(rows.last.tensor.width))((a, b) => a.tensor o b)
   }
   lazy val toJson = JsonObject(
     "rows" -> JsonArray(rows.map(b => b.toJson)),
@@ -104,6 +104,51 @@ object BlockRowMaker {
     Block(1, 2, "1b2", Tensor(Array(Array(0, 1, 1, 0), Array(1, 0, 0, 1))).transpose),
     Block(2, 1, "2b1", Tensor(Array(Array(0, 1, 1, 0), Array(1, 0, 0, 1))))
   )
+
+  val H3: Tensor = Tensor(
+    Array(Array[Complex](1, 1, 1),
+      Array[Complex](1, ei(2 * math.Pi / 3), ei(4 * math.Pi / 3)),
+      Array[Complex](1, ei(4 * math.Pi / 3), ei(2 * math.Pi / 3)))).
+    scaled(1.0 / math.sqrt(3))
+
+  def ZXQutrit(numAngles: Int = 9): List[Block] = List(
+    Block(1, 1, " 1 ", Tensor.id(3)),
+    Block(2, 2, " s ", Tensor.permutation(List(0, 3, 6, 1, 4, 7, 2, 5, 8))),
+    Block(1, 1, " H ", H3),
+    Block(1, 1, " H'", H3.dagger),
+    Block(2, 1, "2g1", Tensor(Array(
+      Array(1, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 1, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 1)
+    ))),
+    Block(1, 2, "1g2", Tensor(Array(
+      Array(1, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 1, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 1)
+    )).transpose),
+    Block(0, 1, "gu ", Tensor(Array(Array(1, 1, 1))).scaled(1.0 / math.sqrt(3)).transpose),
+    Block(1, 2, "1r2", (H3.dagger o Tensor(Array(
+      Array(1, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 1, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 1)
+    )) o (H3 x H3)).dagger),
+    Block(2, 1, "2r1", H3.dagger o Tensor(Array(
+      Array(1, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 1, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 1)
+    )) o (H3 x H3)),
+    Block(0, 1, "ru ", Tensor(Array(Array(1, 0, 0))).transpose)
+  ) :::
+    (for (i <- 0 until numAngles; j <- 0 until numAngles) yield {
+      val gs = Tensor(Array(
+        Array[Complex](1, 0, 0),
+        Array[Complex](0, ei(i * 2 * math.Pi / numAngles), 0),
+        Array[Complex](0, 0, ei(j * 2 * math.Pi / numAngles))
+      ))
+      List(Block(1, 1, "g" + i.toString + "|" + j.toString, gs),
+        Block(1, 1, "r" + i.toString + "|" + j.toString, H3.dagger o gs o H3))
+    }).flatten.toList
+
 
   def ZX(numAngles: Int = 8): List[Block] = List(
     Block(1, 1, " 1 ", Tensor.idWires(1)),

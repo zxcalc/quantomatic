@@ -74,7 +74,19 @@ class RuleSynthesisSpec extends FlatSpec {
     var stacks = BlockStackMaker(2, rowsAllowed)
     stacks.foreach(s => results.add(s))
     results.equivalenceClassesNormalised
-        .filter(cls => cls.members.map(x => x._1.toString).contains("( 1 )"))
+      .filter(cls => cls.members.map(x => x._1.toString).contains("( 1  x  1 )"))
+      .foreach(cls => println(cls.members.map(x => x._1)))
+  }
+
+  behavior of "ZX Qutrit system"
+
+  it should "find small rules" in {
+    var results = EquivClassRunBlockStack(1e-14)
+    var rowsAllowed = BlockRowMaker(1, maxInOut = 2, BlockRowMaker.ZXQutrit(3))
+    var stacks = BlockStackMaker(2, rowsAllowed)
+    stacks.foreach(s => results.add(s))
+    results.equivalenceClassesNormalised
+      // .filter(cls => cls.members.map(x => x._1.toString).contains("( 1  x  1 )"))
       .foreach(cls => println(cls.members.map(x => x._1)))
   }
 

@@ -89,6 +89,15 @@ class Tensor(c: Array[Array[Complex]]) {
     Tensor(this.width, this.height, (i, j) => this.c(j)(i))
   }
 
+  def dagger: Tensor = {
+    // conjugate transpose
+    this.conjugate.transpose
+  }
+
+  def conjugate: Tensor = {
+    Tensor(this.height,this.width, (i,j) => this.c(i)(j).conjugate)
+  }
+
   def plugAbove(that: Tensor, plugThatOutputsToThisInputs: Int => Int): Tensor = {
     // this o pluggins o that
     require(this.isDiagramShape)
