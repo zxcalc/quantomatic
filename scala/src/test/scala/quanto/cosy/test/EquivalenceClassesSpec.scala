@@ -26,7 +26,7 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   it should "result in the same number of diagrams when normalising things" in {
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
-    var results = EquivClassRunAdjMat(    numAngles = 4,
+    var results = EquivClassRunAdjMat(numAngles = 4,
       tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
@@ -37,7 +37,7 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   it should "convert an AdjMat into a graph" in {
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
-    var results = EquivClassRunAdjMat(    numAngles = 4,
+    var results = EquivClassRunAdjMat(numAngles = 4,
       tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
@@ -97,7 +97,7 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   it should "accept a list of rules" in {
     var amat = new AdjMat(numRedTypes = 2, numGreenTypes = 0)
-    var results = EquivClassRunAdjMat(    numAngles = 4,
+    var results = EquivClassRunAdjMat(numAngles = 4,
       tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
@@ -124,7 +124,7 @@ class EquivalenceClassesSpec extends FlatSpec {
   behavior of "IO"
 
   it should "save run results to file" in {
-    var results = EquivClassRunAdjMat(    numAngles = 4,
+    var results = EquivClassRunAdjMat(numAngles = 4,
       tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
@@ -136,7 +136,7 @@ class EquivalenceClassesSpec extends FlatSpec {
   }
 
   it should "output to and input from JSON" in {
-    var results = EquivClassRunAdjMat(    numAngles = 4,
+    var results = EquivClassRunAdjMat(numAngles = 4,
       tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
@@ -170,27 +170,27 @@ class EquivalenceClassesSpec extends FlatSpec {
   behavior of "batch runner"
 
   it should "create an output qrun file" in {
-    EquivClassBatchRunner(4,2,2,"test.qrun")
+    EquivClassBatchRunner(4, 2, 2, "test.qrun")
     var testFile = new File(EquivClassBatchRunner.outputPath + "/" + "test.qrun")
     assert(testFile.exists())
     assert(testFile.delete())
   }
 
   it should "allow outputs to home directory" in {
-    EquivClassBatchRunner.outputPath = Paths.get( System.getProperty("user.home"), "cosy_synth").toString
+    EquivClassBatchRunner.outputPath = Paths.get(System.getProperty("user.home"), "cosy_synth").toString
     println(EquivClassBatchRunner.outputPath)
     EquivClassBatchRunner.outputPath = "cosy_synth" // reset to avoid problems in later tests
   }
 
   it should "create an output qtensor file" in {
-    TensorBatchRunner(1,2,2)
+    TensorBatchRunner(1, 2, 2)
     var testFile = new File(TensorBatchRunner.outputPath + "/" + "tensors-1-2-2.qtensor")
     assert(testFile.exists())
     assert(testFile.delete())
   }
 
   it should "be writing legible JSON" in {
-    var results = EquivClassRunAdjMat(    numAngles = 4,
+    var results = EquivClassRunAdjMat(numAngles = 4,
       tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
@@ -207,24 +207,24 @@ class EquivalenceClassesSpec extends FlatSpec {
   behavior of "ZX block stack"
 
   it should "put stacks into equivalence classes" in {
-    var allowedStacks = BlockStackMaker(maxRows =  2,
-      BlockRowMaker(maxBlocks =  1, maxInOut = 1, BlockRowMaker.ZX(8)))
+    var allowedStacks = BlockStackMaker(maxRows = 2,
+      BlockRowMaker(maxBlocks = 1, maxInOut = 1, BlockRowMaker.ZX(8)))
     var eqc = new EquivClassRunBlockStack()
     allowedStacks.foreach(s => eqc.add(s))
     println(eqc.equivalenceClassesNormalised.foreach(
-      e => println("---\n" + e.centre.toString + "\n " + e.members.map(x => x._1.toString) )
+      e => println("---\n" + e.centre.toString + "\n " + e.members.map(x => x._1.toString))
     ))
   }
 
   behavior of "ZW block stack"
 
   it should "put stacks into equivalence classes" in {
-    var allowedStacks = BlockStackMaker(maxRows =  2,
-      BlockRowMaker(maxBlocks =  2, maxInOut = 2, BlockRowMaker.ZW))
+    var allowedStacks = BlockStackMaker(maxRows = 2,
+      BlockRowMaker(maxBlocks = 2, maxInOut = 2, BlockRowMaker.ZW))
     var eqc = new EquivClassRunBlockStack()
     allowedStacks.foreach(s => eqc.add(s))
     println(eqc.equivalenceClassesNormalised.foreach(
-      e => println("---\n" + e.centre.toString + "\n " + e.members.map(x => x._1.toString) )
+      e => println("---\n" + e.centre.toString + "\n " + e.members.map(x => x._1.toString))
     ))
   }
 }

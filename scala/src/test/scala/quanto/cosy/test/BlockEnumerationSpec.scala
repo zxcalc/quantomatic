@@ -48,7 +48,7 @@ class BlockEnumerationSpec extends FlatSpec {
     var allowedBlocks = List(
       // BOTTOM TO TOP!
       Block(1, 1, " 1 ", Tensor.idWires(1)),
-      Block(0, 2, "cup", new Tensor(Array(Array(1, 0, 0, 1))).transpose)
+      Block(0, 2, "cup", new Tensor(Array(Array[Complex](1, 0, 0, 1))).transpose)
     )
     var rowsAllowed = BlockRowMaker(2, allowedBlocks = allowedBlocks)
     assert(rowsAllowed.filter(r => r.toString == "cup x  1 ").head.tensor
@@ -58,8 +58,8 @@ class BlockEnumerationSpec extends FlatSpec {
   it should "find wire identities" in {
     var rowsAllowed = BlockRowMaker(1, allowedBlocks = List(
       Block(1, 1, " 1 ", Tensor.idWires(1)),
-      Block(1, 1, " w ", new Tensor(Array(Array(1, 0), Array(0, -1)))),
-      Block(1, 1, " b ", new Tensor(Array(Array(0, 1), Array(1, 0))))
+      Block(1, 1, " w ", new Tensor(Array(Array[Complex](1, 0), Array[Complex](0, -1)))),
+      Block(1, 1, " b ", new Tensor(Array(Array[Complex](0, 1), Array[Complex](1, 0))))
     ))
     var stacks = BlockStackMaker(2, rowsAllowed)
     var s11 = stacks.filter(s => s.inputs == 1 && s.outputs == 1 && s.tensor.isRoughly(Tensor.idWires(1)))
@@ -69,7 +69,7 @@ class BlockEnumerationSpec extends FlatSpec {
   behavior of "blocks and JSON"
 
   it should "make blocks into JSON" in {
-    var b = new Block(1, 1, " w ", new Tensor(Array(Array(1, 0), Array(0, -1))))
+    var b = new Block(1, 1, " w ", new Tensor(Array(Array[Complex](1, 0), Array[Complex](0, -1))))
     var js1 = b.toJson
     var b2 = Block.fromJson(js1)
     assert(b2.inputs == b.inputs)
@@ -78,7 +78,7 @@ class BlockEnumerationSpec extends FlatSpec {
   }
 
   it should "make rows into JSON" in {
-    var r = new BlockRow(List(new Block(1, 1, " w ", new Tensor(Array(Array(1, 0), Array(0, -1))))))
+    var r = new BlockRow(List(new Block(1, 1, " w ", new Tensor(Array(Array[Complex](1, 0), Array[Complex](0, -1))))))
     var js1 = r.toJson
     var r2 = BlockRow.fromJson(js1)
     assert(r2.inputs == r.inputs)
@@ -88,7 +88,7 @@ class BlockEnumerationSpec extends FlatSpec {
 
   it should "make stacks into JSON" in {
     var s = new BlockStack(
-      List(new BlockRow(List(new Block(1, 1, " w ", new Tensor(Array(Array(1, 0), Array(0, -1)))))))
+      List(new BlockRow(List(new Block(1, 1, " w ", new Tensor(Array(Array[Complex](1, 0), Array[Complex](0, -1)))))))
     )
     var js1 = s.toJson
     var s2 = BlockStack.fromJson(js1)
@@ -107,8 +107,8 @@ class BlockEnumerationSpec extends FlatSpec {
 
   it should "convert a row to a graph" in {
     var B2 = BlockRowMaker.Bian2Qubit
-    var r = new BlockRow(List(B2(2),B2(3))) // T x H
-    var g = BlockRowMaker.rowToGraph(r,BlockRowMaker.Bian2QubitToGraph)
+    var r = new BlockRow(List(B2(2), B2(3))) // T x H
+    var g = BlockRowMaker.rowToGraph(r, BlockRowMaker.Bian2QubitToGraph)
     println(g.toString)
   }
 

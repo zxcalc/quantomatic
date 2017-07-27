@@ -23,7 +23,7 @@ abstract class EquivalenceClass[T] {
     this
   }
 
-  def toJSON : JsonObject
+  def toJSON: JsonObject
 
   override def toString: String = {
     "Equivalence class" +
@@ -77,7 +77,7 @@ object EquivalenceClassByAdjMat {
     eqc
   }
 
-  def fromEC (ec: EquivalenceClass[AdjMat], theory: Theory) : EquivalenceClassByAdjMat = {
+  def fromEC(ec: EquivalenceClass[AdjMat], theory: Theory): EquivalenceClassByAdjMat = {
     val eqc = new EquivalenceClassByAdjMat(theory)
     eqc.members = ec.members
     eqc
@@ -168,6 +168,48 @@ abstract class EquivClassRun[T](val tolerance: Double = 1e-14) {
     this
   }
 
+  // Finds the closest class and adds it, or creates a new class if outside tolerance
+  def compareAndAddToClass(candidate: T, tensor: Tensor = Tensor.zero(1, 1)): EquivalenceClass[T] = {
+    val adjTensor = if (tensor == Tensor.zero(1, 1)) interpret(candidate) else tensor
+    var closest = emptyClass()
+    var closestDist = tolerance
+    for (eqClass <- equivalenceClasses) {
+
+      // Need to ensure that the tensor is of the right size first!
+      if (adjTensor.isSameShapeAs(eqClass.centre)) {
+        val dist = eqClass.centre.distance(adjTensor)
+        if (dist < tolerance && dist > -1) {
+          closest = eqClass
+          closestDist = dist
+        }
+      }
+    }
+    closest.addMember(candidate, adjTensor)
+    if (closest.members.length == 1) equivalenceClasses = closest :: equivalenceClasses
+    closest
+  }
+
+  def compareAndAddToClassNormalised(that: T, tensor: Tensor = Tensor.zero(1, 1)): EquivalenceClass[T] = {
+    val adjTensor = if (tensor == Tensor.zero(1, 1)) interpret(that).normalised else tensor.normalised
+    var closest = emptyClass()
+    var closestDist = tolerance
+    for (eqClass <- equivalenceClassesNormalised) {
+
+      // Need to ensure that the tensor is of the right size first!
+      if (adjTensor.isSameShapeAs(eqClass.centre)) {
+        val rep = eqClass.centre // already normalised
+        val dist = math.min(rep.distance(adjTensor), rep.distance(adjTensor.scaled(factor = -1.0)))
+        if (dist < tolerance && dist > -1) {
+          closest = eqClass
+          closestDist = dist
+        }
+      }
+    }
+    closest.addMember(that, adjTensor)
+    if (closest.members.length == 1) equivalenceClassesNormalised = closest :: equivalenceClassesNormalised
+    closest
+  }
+
   // Returns (new Class, -1) if no EquivalenceClasses here
   def closestClassTo(that: T): (EquivalenceClass[T], Double) = {
     closestClassTo(interpret(that))
@@ -218,48 +260,6 @@ abstract class EquivClassRun[T](val tolerance: Double = 1e-14) {
   }
 
   def emptyClass(): EquivalenceClass[T]
-
-  // Finds the closest class and adds it, or creates a new class if outside tolerance
-  def compareAndAddToClass(candidate: T, tensor: Tensor = Tensor.zero(1, 1)): EquivalenceClass[T] = {
-    val adjTensor = if (tensor == Tensor.zero(1, 1)) interpret(candidate) else tensor
-    var closest = emptyClass()
-    var closestDist = tolerance
-    for (eqClass <- equivalenceClasses) {
-
-      // Need to ensure that the tensor is of the right size first!
-      if (adjTensor.isSameShapeAs(eqClass.centre)) {
-        val dist = eqClass.centre.distance(adjTensor)
-        if (dist < tolerance && dist > -1) {
-          closest = eqClass
-          closestDist = dist
-        }
-      }
-    }
-    closest.addMember(candidate, adjTensor)
-    if (closest.members.length == 1) equivalenceClasses = closest :: equivalenceClasses
-    closest
-  }
-
-  def compareAndAddToClassNormalised(that: T, tensor: Tensor = Tensor.zero(1, 1)): EquivalenceClass[T] = {
-    val adjTensor = if (tensor == Tensor.zero(1, 1)) interpret(that).normalised else tensor.normalised
-    var closest = emptyClass()
-    var closestDist = tolerance
-    for (eqClass <- equivalenceClassesNormalised) {
-
-      // Need to ensure that the tensor is of the right size first!
-      if (adjTensor.isSameShapeAs(eqClass.centre)) {
-        val rep = eqClass.centre // already normalised
-        val dist = math.min(rep.distance(adjTensor), rep.distance(adjTensor.scaled(factor = -1.0)))
-        if (dist < tolerance && dist > -1) {
-          closest = eqClass
-          closestDist = dist
-        }
-      }
-    }
-    closest.addMember(that, adjTensor)
-    if (closest.members.length == 1) equivalenceClassesNormalised = closest :: equivalenceClassesNormalised
-    closest
-  }
 }
 
 class EquivClassRunBlockStack(tolerance: Double = 1e-14) extends EquivClassRun[BlockStack] {
@@ -324,7 +324,7 @@ object EquivClassRunBlockStack {
     }
   }
 
-  def apply(     tolerance: Double): EquivClassRunBlockStack = {
+  def apply(tolerance: Double): EquivClassRunBlockStack = {
     new EquivClassRunBlockStack(
       tolerance = tolerance)
   }

@@ -17,14 +17,14 @@ class InterpreterSpec extends FlatSpec {
   val rdata = Vector(
     NodeV(data = JsonObject("type" -> "X", "value" -> "0"), theory = rg),
     NodeV(data = JsonObject("type" -> "X", "value" -> pi.toString), theory = rg),
-    NodeV(data = JsonObject("type" -> "X", "value" -> (0.5*pi).toString), theory = rg),
-    NodeV(data = JsonObject("type" -> "X", "value" -> (-0.5*pi).toString), theory = rg)
+    NodeV(data = JsonObject("type" -> "X", "value" -> (0.5 * pi).toString), theory = rg),
+    NodeV(data = JsonObject("type" -> "X", "value" -> (-0.5 * pi).toString), theory = rg)
   )
   val gdata = Vector(
     NodeV(data = JsonObject("type" -> "Z", "value" -> "0"), theory = rg),
     NodeV(data = JsonObject("type" -> "Z", "value" -> pi.toString), theory = rg),
-    NodeV(data = JsonObject("type" -> "Z", "value" -> (0.5*pi).toString), theory = rg),
-    NodeV(data = JsonObject("type" -> "Z", "value" -> (-0.5*pi).toString), theory = rg)
+    NodeV(data = JsonObject("type" -> "Z", "value" -> (0.5 * pi).toString), theory = rg),
+    NodeV(data = JsonObject("type" -> "Z", "value" -> (-0.5 * pi).toString), theory = rg)
   )
   var one = Complex.one
 
@@ -118,7 +118,7 @@ class InterpreterSpec extends FlatSpec {
     amat = amat.nextType.get
     //red -pi/2
     val i1 = Interpreter.interpretAdjMat(amat, redAM = rdata, greenAM = gdata)
-    assert(i1.isRoughly(Interpreter.interpretSpider(false, -pi/2, 2, 0)))
+    assert(i1.isRoughly(Interpreter.interpretSpider(false, -pi / 2, 2, 0)))
   }
   it should "satisfy the Euler identity" in {
     // Euler identity

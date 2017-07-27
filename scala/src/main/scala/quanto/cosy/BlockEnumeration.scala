@@ -193,7 +193,7 @@ object BlockRowMaker {
       val vRename = verts.map(v => v -> VName("r" + index + v.s)).toMap
       val eRename = rowGraph.edges.map(e => e -> EName("r" + index + e.s)).toMap
       val bRename = rowGraph.bboxes.map(b => b -> BBName("r" + index + b.s)).toMap
-      rowGraph.rename(vRename,eRename, bRename)
+      rowGraph.rename(vRename, eRename, bRename)
     }).foldLeft(new Graph())((g, sg) => g.appendGraph(sg))
     for ((row, index) <- stack.rows.init.zipWithIndex) {
       for (j <- 0 until row.outputs) {
@@ -216,8 +216,8 @@ object BlockRowMaker {
         case outputRegex(num) => VName("o" + (outputsCovered + num.toInt))
         case _ => VName("b" + index + v.s)
       })).toMap
-      val eRename = blockGraph.edges.map(e => e -> EName("b"+index+e.s)).toMap
-      val bRename = blockGraph.bboxes.map(b => b -> BBName("b"+index+b.s)).toMap
+      val eRename = blockGraph.edges.map(e => e -> EName("b" + index + e.s)).toMap
+      val bRename = blockGraph.bboxes.map(b => b -> BBName("b" + index + b.s)).toMap
       inputsCovered += block.inputs
       outputsCovered += block.outputs
       blockGraph.rename(vRename, eRename, bRename)
@@ -242,11 +242,11 @@ object BlockRowMaker {
     var eCount = 0
 
     def join(v0: String, v1: String): Unit = {
-      g = g.addEdge("e"+eCount, UndirEdge(), v0 -> v1)
+      g = g.addEdge("e" + eCount, UndirEdge(), v0 -> v1)
       eCount += 1
     }
 
-    def addVertex(name : String, data : VData) : Unit = {
+    def addVertex(name: String, data: VData): Unit = {
       g = g.addVertex(name, data)
     }
 
@@ -254,7 +254,7 @@ object BlockRowMaker {
       addVertex("i" + i, WireV())
     }
     for (i <- 0 until block.outputs) {
-     addVertex("o" + i, WireV())
+      addVertex("o" + i, WireV())
     }
     block.name match {
       case " 1 " =>

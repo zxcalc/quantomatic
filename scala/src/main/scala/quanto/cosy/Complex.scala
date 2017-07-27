@@ -81,7 +81,7 @@ class Complex(
 
   override def hashCode(): Int = ((41 * this.im) + this.re).toInt
 
-  def toJson : JsonObject = {
+  def toJson: JsonObject = {
     JsonObject(
       "real" -> re,
       "imaginary" -> im
@@ -102,7 +102,7 @@ object Complex {
 
   def apply(r: Int, i: Int) = new Complex(r, i)
 
-  def fromJson(json : JsonObject) : Complex = {
+  def fromJson(json: JsonObject): Complex = {
     new Complex((json / "real").doubleValue,
       (json / "imaginary").doubleValue)
   }

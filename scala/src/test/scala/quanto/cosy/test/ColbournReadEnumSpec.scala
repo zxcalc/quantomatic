@@ -113,10 +113,10 @@ class ColbournReadEnumSpec extends FlatSpec {
     amat = amat.addVertex(Vector(false, false, true, true))
 
     // the next green node should be connectable to either red node, or the one remaining boundary
-    assert(amat.validConnections(bipartite = true).length === 2*2*2)
+    assert(amat.validConnections(bipartite = true).length === 2 * 2 * 2)
 
     // the next green node should be connectable to any node, or the one remaining boundary
-    assert(amat.validConnections(bipartite = false).length === 2*2*2*2)
+    assert(amat.validConnections(bipartite = false).length === 2 * 2 * 2 * 2)
   }
 
   it should "create a short, unique identifier" in {
@@ -169,12 +169,12 @@ class ColbournReadEnumSpec extends FlatSpec {
   // numbers of graphs with 0-5 vertices: 1, 1, 2, 4, 11, 34
   // from: https://oeis.org/A000088
   it should "give correct number of untyped graphs" in {
-    assert(ColbournReadEnum.enumerate(1,0,0,0, bipartite = false).size === 1)
-    assert(ColbournReadEnum.enumerate(1,0,0,1, bipartite = false).size === 1+1)
-    assert(ColbournReadEnum.enumerate(1,0,0,2, bipartite = false).size === 1+1+2)
-    assert(ColbournReadEnum.enumerate(1,0,0,3, bipartite = false).size === 1+1+2+4)
-    assert(ColbournReadEnum.enumerate(1,0,0,4, bipartite = false).size === 1+1+2+4+11)
-    assert(ColbournReadEnum.enumerate(1,0,0,5, bipartite = false).size === 1+1+2+4+11+34)
+    assert(ColbournReadEnum.enumerate(1, 0, 0, 0, bipartite = false).size === 1)
+    assert(ColbournReadEnum.enumerate(1, 0, 0, 1, bipartite = false).size === 1 + 1)
+    assert(ColbournReadEnum.enumerate(1, 0, 0, 2, bipartite = false).size === 1 + 1 + 2)
+    assert(ColbournReadEnum.enumerate(1, 0, 0, 3, bipartite = false).size === 1 + 1 + 2 + 4)
+    assert(ColbournReadEnum.enumerate(1, 0, 0, 4, bipartite = false).size === 1 + 1 + 2 + 4 + 11)
+    assert(ColbournReadEnum.enumerate(1, 0, 0, 5, bipartite = false).size === 1 + 1 + 2 + 4 + 11 + 34)
   }
 
   // numbers of connected biparite (aka bi-colourable) graphs with 0-7 vertices: 1, 1, 1, 1, 3, 5, 17, 44
@@ -182,18 +182,20 @@ class ColbournReadEnumSpec extends FlatSpec {
   it should "give correct number of bipartite graphs" in {
     // note that we double-count, one for each colouring, except when graphs are colour symmetric
     def numBi(sz: Int) = {
-      ColbournReadEnum.enumerate(1,1,0,sz, bipartite = true).map { g =>
-        if (g.isConnected) { if (g.isColorSymmetric) 2 else 1 } else 0
+      ColbournReadEnum.enumerate(1, 1, 0, sz, bipartite = true).map { g =>
+        if (g.isConnected) {
+          if (g.isColorSymmetric) 2 else 1
+        } else 0
       }.sum / 2
     }
 
     assert(numBi(0) === 1)
-    assert(numBi(1) === 1+1)
-    assert(numBi(2) === 1+1+1)
-    assert(numBi(3) === 1+1+1+1)
-    assert(numBi(4) === 1+1+1+1+3)
-    assert(numBi(5) === 1+1+1+1+3+5)
-    assert(numBi(6) === 1+1+1+1+3+5+17)
-    assert(numBi(7) === 1+1+1+1+3+5+17+44)
+    assert(numBi(1) === 1 + 1)
+    assert(numBi(2) === 1 + 1 + 1)
+    assert(numBi(3) === 1 + 1 + 1 + 1)
+    assert(numBi(4) === 1 + 1 + 1 + 1 + 3)
+    assert(numBi(5) === 1 + 1 + 1 + 1 + 3 + 5)
+    assert(numBi(6) === 1 + 1 + 1 + 1 + 3 + 5 + 17)
+    assert(numBi(7) === 1 + 1 + 1 + 1 + 3 + 5 + 17 + 44)
   }
 }

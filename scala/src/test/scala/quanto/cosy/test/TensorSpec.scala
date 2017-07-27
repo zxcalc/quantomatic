@@ -106,10 +106,10 @@ class TensorSpec extends FlatSpec {
   }
 
   it should "make diagonal matrices" in {
-    var t1 = Tensor.diagonal(Array(1,1))
+    var t1 = Tensor.diagonal(Array[Complex](1, 1))
     assert(t1 == Tensor.id(2))
-    var t2 = Tensor.diagonal(Array(2,3))
-    assert(t2 == Tensor(Array(Array(2,0),Array(0,3))))
+    var t2 = Tensor.diagonal(Array[Complex](2, 3))
+    assert(t2 == Tensor(Array(Array(2, 0), Array(0, 3))))
   }
 
   behavior of "Tensor comparison"
@@ -123,8 +123,8 @@ class TensorSpec extends FlatSpec {
   }
 
   it should "reject differently sized tensors" in {
-    var t1 = Tensor.zero(2,2)
-    var t2 = Tensor.zero(2,1)
+    var t1 = Tensor.zero(2, 2)
+    var t2 = Tensor.zero(2, 1)
     assert(t1 != t2)
   }
 
