@@ -68,7 +68,7 @@ class RuleSynthesisSpec extends FlatSpec {
 
   behavior of "Bian and Perdrix 2Qubit system"
 
-  it should "find all rules" in {
+  it should "find small rules" in {
     var results = EquivClassRunBlockStack(1e-14)
     var rowsAllowed = BlockRowMaker(2, maxInOut = 2, BlockRowMaker.Bian2Qubit)
     var stacks = BlockStackMaker(2, rowsAllowed)
@@ -86,6 +86,19 @@ class RuleSynthesisSpec extends FlatSpec {
     var stacks = BlockStackMaker(2, rowsAllowed)
     stacks.foreach(s => results.add(s))
     results.equivalenceClassesNormalised
+      // .filter(cls => cls.members.map(x => x._1.toString).contains("( 1  x  1 )"))
+      .foreach(cls => println(cls.members.map(x => x._1)))
+  }
+
+
+  behavior of "ZX Qudit system"
+
+  it should "find small rules" in {
+    var results = EquivClassRunBlockStack(1e-14)
+    var rowsAllowed = BlockRowMaker(1, maxInOut = 2, BlockRowMaker.ZXQudit(4,2))
+    var stacks = BlockStackMaker(2, rowsAllowed)
+    stacks.foreach(s => results.add(s))
+    results.equivalenceClasses
       // .filter(cls => cls.members.map(x => x._1.toString).contains("( 1  x  1 )"))
       .foreach(cls => println(cls.members.map(x => x._1)))
   }

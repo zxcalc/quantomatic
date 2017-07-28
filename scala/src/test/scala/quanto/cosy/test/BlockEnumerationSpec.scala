@@ -120,4 +120,28 @@ class BlockEnumerationSpec extends FlatSpec {
       BlockRowMaker.Bian2QubitToGraph)
     println(g)
   }
+
+  behavior of "qutrits and qudits"
+
+  it should "generate enough qutrit generators" in {
+    assert(BlockRowMaker.ZXQutrit(9).length == (10 + 2*81))
+  }
+
+  it should "generate enough qudit generators" in {
+    assert(BlockRowMaker.ZXQudit(3,9).length == (10 + 2*81))
+    // And check it is the correct swap tensor:
+    assert(BlockRowMaker.ZXQudit(3,9)(1).tensor == BlockRowMaker.ZXQutrit(9)(1).tensor)
+    assert(BlockRowMaker.ZXQudit(4,8).length == (10 + 2*math.pow(8,4-1)).toInt)
+  }
+
+  it should "have spider rules for qudits" in {
+    var Q4 = BlockRowMaker.ZXQudit(4,8)
+    var r760 = Q4.find(p =>   p.name=="r|7|6|0")
+    var r230 = Q4.find(p =>   p.name=="r|2|3|0")
+    var r110 = Q4.find(p =>   p.name=="r|1|1|0")
+    if(r760.isDefined && r230.isDefined && r110.isDefined) {
+      var rsum = r760.get.tensor o r230.get.tensor
+      assert(rsum.isRoughly(r110.get.tensor))
+    } else fail("Did not generate the required spiders")
+  }
 }

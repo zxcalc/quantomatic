@@ -105,49 +105,88 @@ object BlockRowMaker {
     Block(2, 1, "2b1", Tensor(Array(Array(0, 1, 1, 0), Array(1, 0, 0, 1))))
   )
 
-  val H3: Tensor = Tensor(
-    Array(Array[Complex](1, 1, 1),
-      Array[Complex](1, ei(2 * math.Pi / 3), ei(4 * math.Pi / 3)),
-      Array[Complex](1, ei(4 * math.Pi / 3), ei(2 * math.Pi / 3)))).
-    scaled(1.0 / math.sqrt(3))
 
-  def ZXQutrit(numAngles: Int = 9): List[Block] = List(
-    Block(1, 1, " 1 ", Tensor.id(3)),
-    Block(2, 2, " s ", Tensor.permutation(List(0, 3, 6, 1, 4, 7, 2, 5, 8))),
-    Block(1, 1, " H ", H3),
-    Block(1, 1, " H'", H3.dagger),
-    Block(2, 1, "2g1", Tensor(Array(
-      Array(1, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 1, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 1)
-    ))),
-    Block(1, 2, "1g2", Tensor(Array(
-      Array(1, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 1, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 1)
-    )).transpose),
-    Block(0, 1, "gu ", Tensor(Array(Array(1, 1, 1))).scaled(1.0 / math.sqrt(3)).transpose),
-    Block(1, 2, "1r2", (H3.dagger o Tensor(Array(
-      Array(1, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 1, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 1)
-    )) o (H3 x H3)).dagger),
-    Block(2, 1, "2r1", H3.dagger o Tensor(Array(
-      Array(1, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 1, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 1)
-    )) o (H3 x H3)),
-    Block(0, 1, "ru ", Tensor(Array(Array(1, 0, 0))).transpose)
-  ) :::
-    (for (i <- 0 until numAngles; j <- 0 until numAngles) yield {
-      val gs = Tensor(Array(
-        Array[Complex](1, 0, 0),
-        Array[Complex](0, ei(i * 2 * math.Pi / numAngles), 0),
-        Array[Complex](0, 0, ei(j * 2 * math.Pi / numAngles))
-      ))
-      List(Block(1, 1, "g" + i.toString + "|" + j.toString, gs),
-        Block(1, 1, "r" + i.toString + "|" + j.toString, H3.dagger o gs o H3))
-    }).flatten.toList
+  def Hadamard(dimension: Int): Tensor =
+    Tensor(dimension, dimension, (i, j) => ei(2 * math.Pi * i * j / dimension)).scaled(1 / math.sqrt(dimension))
+
+  // Traditionally the number of angles is 3 (Clifford) or 9 (Clifford+T)
+  def ZXQudit(dimension: Int, numAngles: Int): List[Block] = {
+    require(dimension > 1)
+    def swapIndex(i: Int) : Int = {
+      val left : Int = i /dimension
+      val right = i % dimension
+      right * dimension + left
+    }
+    val H : Tensor = Hadamard(dimension)
+
+    val greenFork = Tensor(dimension, dimension*dimension,
+      (i,j) => if (j == i*(dimension+1)) Complex.one else Complex.zero)
+
+    // Go through the diagonal entries creating all the different spiders
+    val greenBlocks = (1 until dimension).foldLeft(
+      List(Block(1,1,"g", Tensor(dimension,dimension,(i,j) => if (i == 0 && j ==0) Complex.one else Complex.zero)))
+    )((lb,i) => lb.flatMap(b => (0 until numAngles).map(x =>
+      Block(1,1,b.name+"|"+x,b.tensor + Tensor(dimension, dimension, (j,k) =>
+        if (j ==i && k ==i) ei(x*2*math.Pi/numAngles) else Complex.zero)
+      ))))
+
+    List(
+      Block(1, 1, " 1 ", Tensor.id(dimension)),
+      Block(2, 2, " s ", Tensor.permutation((0 until dimension*dimension).toList.map(x => swapIndex(x)))),
+      Block(1, 1, " H ", H),
+      Block(1, 1, " H'", H.dagger),
+      Block(2, 1, "2g1", greenFork),
+      Block(1, 2, "1g2", greenFork.dagger),
+      Block(0, 1, "gu ", Tensor(dimension, 1, (i,j) => Complex.one).scaled(1.0 / math.sqrt(dimension))),
+      Block(1, 2, "1r2", (H.dagger o greenFork o (H x H)).dagger),
+      Block(2, 1, "2r1", H.dagger o greenFork o (H x H)),
+      Block(0, 1, "ru ", Tensor(dimension, 1, (i,j) => if (i == 0 && j == 0) Complex.one else Complex.zero))
+    ) ::: greenBlocks ::: greenBlocks.map( b=>
+    Block(1,1, "r" + b.name.tail, H.dagger o b.tensor o H)
+    )
+  }
+
+  // Traditionally the number of angles is 3 (Clifford) or 9 (Clifford+T)
+  def ZXQutrit(numAngles: Int = 9): List[Block] = {
+    val H3 = Hadamard(3)
+    List(
+      Block(1, 1, " 1 ", Tensor.id(3)),
+      Block(2, 2, " s ", Tensor.permutation(List(0, 3, 6, 1, 4, 7, 2, 5, 8))),
+      Block(1, 1, " H ", H3),
+      Block(1, 1, " H'", H3.dagger),
+      Block(2, 1, "2g1", Tensor(Array(
+        Array(1, 0, 0, 0, 0, 0, 0, 0, 0),
+        Array(0, 0, 0, 0, 1, 0, 0, 0, 0),
+        Array(0, 0, 0, 0, 0, 0, 0, 0, 1)
+      ))),
+      Block(1, 2, "1g2", Tensor(Array(
+        Array(1, 0, 0, 0, 0, 0, 0, 0, 0),
+        Array(0, 0, 0, 0, 1, 0, 0, 0, 0),
+        Array(0, 0, 0, 0, 0, 0, 0, 0, 1)
+      )).transpose),
+      Block(0, 1, "gu ", Tensor(Array(Array(1, 1, 1))).scaled(1.0 / math.sqrt(3)).transpose),
+      Block(1, 2, "1r2", (H3.dagger o Tensor(Array(
+        Array(1, 0, 0, 0, 0, 0, 0, 0, 0),
+        Array(0, 0, 0, 0, 1, 0, 0, 0, 0),
+        Array(0, 0, 0, 0, 0, 0, 0, 0, 1)
+      )) o (H3 x H3)).dagger),
+      Block(2, 1, "2r1", H3.dagger o Tensor(Array(
+        Array(1, 0, 0, 0, 0, 0, 0, 0, 0),
+        Array(0, 0, 0, 0, 1, 0, 0, 0, 0),
+        Array(0, 0, 0, 0, 0, 0, 0, 0, 1)
+      )) o (H3 x H3)),
+      Block(0, 1, "ru ", Tensor(Array(Array(1, 0, 0))).transpose)
+    ) :::
+      (for (i <- 0 until numAngles; j <- 0 until numAngles) yield {
+        val gs = Tensor(Array(
+          Array[Complex](1, 0, 0),
+          Array[Complex](0, ei(i * 2 * math.Pi / numAngles), 0),
+          Array[Complex](0, 0, ei(j * 2 * math.Pi / numAngles))
+        ))
+        List(Block(1, 1, "g|" + i.toString + "|" + j.toString, gs),
+          Block(1, 1, "r|" + i.toString + "|" + j.toString, H3.dagger o gs o H3))
+      }).flatten.toList
+  }
 
 
   def ZX(numAngles: Int = 8): List[Block] = List(

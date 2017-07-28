@@ -198,7 +198,7 @@ abstract class EquivClassRun[T](val tolerance: Double = 1e-14) {
       // Need to ensure that the tensor is of the right size first!
       if (adjTensor.isSameShapeAs(eqClass.centre)) {
         val rep = eqClass.centre // already normalised
-        val dist = math.min(rep.distance(adjTensor), rep.distance(adjTensor.scaled(factor = -1.0)))
+        val dist = rep.distanceAfterScaling(adjTensor)
         if (dist < tolerance && dist > -1) {
           closest = eqClass
           closestDist = dist
