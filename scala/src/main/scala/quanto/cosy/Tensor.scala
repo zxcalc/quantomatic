@@ -168,8 +168,7 @@ class Tensor(c: Array[Array[Complex]]) {
 
   def isRoughlyUpToScalar(that: Tensor, distance: Double = Tensor.defaultDistance): Boolean = {
     //
-    this.normalised.isRoughly(that.normalised, distance) ||
-      this.normalised.isRoughly(that.normalised.scaled(-1.0), distance)
+    this.distanceAfterScaling(that) < distance
   }
 
   def approximates(maxDist: Double): Tensor => Boolean = {
@@ -192,7 +191,7 @@ class Tensor(c: Array[Array[Complex]]) {
   override lazy val hashCode: Int = this.contents.flatten.count(c => c.re > 0)
 
   private def normalise(): Tensor = {
-    // scale so the largest entry is 0, unless this is roughly 0
+    // scale so the largest entry is 1, unless the tensor is roughly 0
     val sameSizeZero = Tensor.zero(this.height, this.width)
     if (this.isRoughly(sameSizeZero)) sameSizeZero else {
       val maxAbsEntry = this.contents.flatten.foldLeft(Complex.zero)((a, b) => if (b.abs > a.abs) b else a)
@@ -208,6 +207,31 @@ class Tensor(c: Array[Array[Complex]]) {
   def distance(that: Tensor): Double = {
     if (this.isSameShapeAs(that)) {
       (this - that).contents.flatten.foldLeft(0.0) { (a: Double, b: Complex) => math.max(a, b.abs) }
+    } else {
+      -1
+    }
+  }
+
+  def distanceAfterScaling(that: Tensor) : Double = {
+    if (this.isSameShapeAs(that)) {
+      var maxEntry = (0,0)
+      var maxEntryValue = Complex.zero
+      for(i <- this.c.indices; j <- this.c.head.indices){
+        if (this.c(i)(j).abs > maxEntryValue.abs) {
+          maxEntry = (i, j)
+          maxEntryValue = this.c(i)(j)
+        }
+      }
+      if(maxEntryValue == Complex.zero) {
+        this.distance(that)
+      }else{
+        val sameEntryInThat = that.contents(maxEntry._1)(maxEntry._2)
+        if(sameEntryInThat.abs == 0){
+          this.distance(that)
+        }else{
+          this.distance(that.scaled(maxEntryValue / sameEntryInThat))
+        }
+      }
     } else {
       -1
     }

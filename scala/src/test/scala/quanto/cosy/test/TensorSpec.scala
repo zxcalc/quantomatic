@@ -140,4 +140,12 @@ class TensorSpec extends FlatSpec {
     assert(!t3.isRoughly(t4, 1e-15))
     assert(t3.isRoughly(t4, 1e-2))
   }
+
+  it should "compare with scaling" in {
+    var t1 = new Tensor(Array(Array(one, zero), Array(zero, Complex(0, 1))))
+    var t2 = new Tensor(Array(Array(Complex(0,1), zero), Array(zero, Complex(-1, 0))))
+    assert(t1.isRoughlyUpToScalar(t2))
+    var t3 = new Tensor(Array(Array(Complex(0,1), zero), Array(zero, Complex(1, 0))))
+    assert(!t1.isRoughlyUpToScalar(t3))
+  }
 }
