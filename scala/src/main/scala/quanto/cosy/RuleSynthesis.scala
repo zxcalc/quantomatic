@@ -10,28 +10,28 @@ import scala.util.Random
 object RuleSynthesis {
 
   /** Given an equivalence class creates rules for any irreducible members of the class */
-  def graphEquivClassReduction[T <: Ordered[T]](makeGraph: (T => Graph),
+  def graphEquivClassReduction[T](makeGraph: (T => Graph),
                                                 equivalenceClass: EquivalenceClass[T],
                                                 knownRules: List[Rule]): List[Rule] = {
     val reductionRules = knownRules.filter(r => r.lhs > r.rhs)
     // If you want to include the other direction as well, then pass a list of rule.inverse
     val irreducibleMembers = equivalenceClass.members.filter(
       m =>
-        reductionRules.forall(r => Matcher.findMatches(r.lhs, makeGraph(m._1)).nonEmpty)
+        reductionRules.forall(r => Matcher.findMatches(r.lhs, makeGraph(m)).nonEmpty)
     )
     var newRules: List[Rule] = List()
     if (irreducibleMembers.nonEmpty) {
-      val smallestMember = irreducibleMembers.map(x => x._1).min
+      val smallestMember = irreducibleMembers.minBy(makeGraph(_).verts.size)
       for (member <- irreducibleMembers) {
-        if (member._1 != smallestMember) {
-          newRules = new Rule(makeGraph(member._1), makeGraph(smallestMember)) :: newRules
+        if (member != smallestMember) {
+          newRules = new Rule(makeGraph(member), makeGraph(smallestMember)) :: newRules
         }
       }
     }
     newRules
   }
 
-  def rulesFromEquivalenceClasses[T <: Ordered[T]](makeGraph: (T => Graph),
+  def rulesFromEquivalenceClasses[T](makeGraph: (T => Graph),
                                                    equivalenceClasses: List[EquivalenceClass[T]],
                                                    knownRules: List[Rule]): List[Rule] = {
     equivalenceClasses match {

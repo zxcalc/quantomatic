@@ -30,7 +30,7 @@ class EquivalenceClassesSpec extends FlatSpec {
       tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
-    results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
+    results.findEquivalenceClasses(diagramStream.map(_.hash), "ColbournRead 2 2 2 2")
     assert(results.equivalenceClasses.map(x => x.members.length).sum ==
       results.equivalenceClassesNormalised.map(x => x.members.length).sum)
   }
@@ -41,9 +41,9 @@ class EquivalenceClassesSpec extends FlatSpec {
       tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = emptyRuleList,
       theory = rg)
-    results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
+    results.findEquivalenceClasses(diagramStream.map(_.hash), "ColbournRead 2 2 2 2")
     var ten = results.equivalenceClasses.head.centre
-    var graph = results.equivalenceClasses.head.members.head._1
+    var graph = results.equivalenceClasses.head.members.head
     println(graph.toString)
   }
 
@@ -54,7 +54,7 @@ class EquivalenceClassesSpec extends FlatSpec {
       rulesList = emptyRuleList,
       theory = rg)
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
-    results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
+    results.findEquivalenceClasses(diagramStream.map(_.hash), "ColbournRead 2 2 2 2")
     println(results.toJSON.toString())
   }
 
@@ -68,8 +68,8 @@ class EquivalenceClassesSpec extends FlatSpec {
       theory = rg)
     var diagramStream1 = ColbournReadEnum.enumerate(2, 2, 2, 2)
     var diagramStream2 = ColbournReadEnum.enumerate(1, 1, 3, 2)
-    results1.findEquivalenceClasses(diagramStream1, "ColbournRead 2 2 2 2")
-    results1.findEquivalenceClasses(diagramStream2, "ColbournRead 1 1 3 2")
+    results1.findEquivalenceClasses(diagramStream1.map(_.hash), "ColbournRead 2 2 2 2")
+    results1.findEquivalenceClasses(diagramStream2.map(_.hash), "ColbournRead 1 1 3 2")
     println(results1.toJSON)
   }
 
@@ -86,10 +86,10 @@ class EquivalenceClassesSpec extends FlatSpec {
       theory = rg)
     var diagramStream1 = ColbournReadEnum.enumerate(2, 2, 2, 2)
     var diagramStream2 = ColbournReadEnum.enumerate(1, 1, 3, 2)
-    results1.findEquivalenceClasses(diagramStream1, "ColbournRead 2 2 2 2")
-    results1.findEquivalenceClasses(diagramStream2, "ColbournRead 1 1 3 2")
-    results2.findEquivalenceClasses(diagramStream2, "ColbournRead 1 1 3 2")
-    results2.findEquivalenceClasses(diagramStream1, "ColbournRead 2 2 2 2")
+    results1.findEquivalenceClasses(diagramStream1.map(_.hash), "ColbournRead 2 2 2 2")
+    results1.findEquivalenceClasses(diagramStream2.map(_.hash), "ColbournRead 1 1 3 2")
+    results2.findEquivalenceClasses(diagramStream2.map(_.hash), "ColbournRead 1 1 3 2")
+    results2.findEquivalenceClasses(diagramStream1.map(_.hash), "ColbournRead 2 2 2 2")
     println(results1.equivalenceClasses.toSet == results2.equivalenceClasses.toSet)
   }
 
@@ -117,7 +117,7 @@ class EquivalenceClassesSpec extends FlatSpec {
       rulesList = List(singleRedRule),
       theory = rg)
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
-    resultsWithOneRule.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
+    resultsWithOneRule.findEquivalenceClasses(diagramStream.map(_.hash), "ColbournRead 2 2 2 2")
     println(resultsWithOneRule.toJSON.toString())
   }
 
@@ -148,23 +148,15 @@ class EquivalenceClassesSpec extends FlatSpec {
     amat = amat.addVertex(Vector())
     // LHS of rule is a disconnected red dot of value 0
     var lhsG = results.adjMatToGraph(amat)
-    var singleRedRule = new Rule(lhs = lhsG, rhs = lhsG)
-    println("Rule is " + singleRedRule.toString)
 
-    var resultsWithOneRule = EquivClassRunAdjMat(
-      numAngles = 4,
-      tolerance = EquivClassRunAdjMat.defaultTolerance,
-      rulesList = List(singleRedRule),
-      theory = rg)
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
-    resultsWithOneRule.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
-    var jsonOutput = resultsWithOneRule.toJSON
+    results.findEquivalenceClasses(diagramStream.map(_.hash), "ColbournRead 2 2 2 2")
+    var jsonOutput = results.toJSON
     var madeFromJSON = EquivClassRunAdjMat.fromJSON(jsonOutput.asObject)
-    assert(madeFromJSON.equivalenceClasses.toSet == resultsWithOneRule.equivalenceClasses.toSet)
+    assert(madeFromJSON.equivalenceClasses.toSet == results.equivalenceClasses.toSet)
     assert(madeFromJSON.equivalenceClassesNormalised.toSet ==
-      resultsWithOneRule.equivalenceClassesNormalised.toSet)
-    assert(madeFromJSON.messageList == resultsWithOneRule.messageList)
-    assert(madeFromJSON.rulesList == resultsWithOneRule.rulesList)
+      results.equivalenceClassesNormalised.toSet)
+    assert(madeFromJSON.messageList == results.messageList)
   }
 
   behavior of "batch runner"
@@ -197,7 +189,7 @@ class EquivalenceClassesSpec extends FlatSpec {
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
     val lines = diagramStream.map(d => JsonObject(
       "adjMatHash" -> d.hash,
-      "tensor" -> results.interpret(d).toJson
+      "tensor" -> results.interpret(d.hash).toJson
     ))
 
     val jsonHolder = JsonObject("results" -> JsonArray(lines))
@@ -212,7 +204,7 @@ class EquivalenceClassesSpec extends FlatSpec {
     var eqc = new EquivClassRunBlockStack()
     allowedStacks.foreach(s => eqc.add(s))
     println(eqc.equivalenceClassesNormalised.foreach(
-      e => println("---\n" + e.centre.toString + "\n " + e.members.map(x => x._1.toString))
+      e => println("---\n" + e.centre.toString + "\n " + e.members.map(x => x.toString))
     ))
   }
 
@@ -224,7 +216,7 @@ class EquivalenceClassesSpec extends FlatSpec {
     var eqc = new EquivClassRunBlockStack()
     allowedStacks.foreach(s => eqc.add(s))
     println(eqc.equivalenceClassesNormalised.foreach(
-      e => println("---\n" + e.centre.toString + "\n " + e.members.map(x => x._1.toString))
+      e => println("---\n" + e.centre.toString + "\n " + e.members.map(x => x.toString))
     ))
   }
 }

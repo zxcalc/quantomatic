@@ -22,7 +22,8 @@ object EquivClassBatchRunner {
       theory = rg)
 
     val diagramStream = ColbournReadEnum.enumerate(numAngles, numAngles, boundaries, vertices)
-    results.findEquivalenceClasses(diagramStream, s"ColbournRead $numAngles $numAngles $boundaries $vertices")
+    results.findEquivalenceClasses(diagramStream.map(_.hash),
+      s"ColbournRead $numAngles $numAngles $boundaries $vertices")
 
     new File(outputPath).mkdirs()
     var testFile = new File(outputPath + "/" + outputFileName)
@@ -49,7 +50,8 @@ object TensorBatchRunner {
       theory = rg)
 
 
-    results.findEquivalenceClasses(diagramStream, s"ColbournRead $numAngles $numAngles $boundaries $vertices")
+    results.findEquivalenceClasses(diagramStream.map(_.hash),
+      s"ColbournRead $numAngles $numAngles $boundaries $vertices")
 
     new File(outputPath).mkdirs()
     val testFile = new File(
@@ -57,7 +59,7 @@ object TensorBatchRunner {
     )
     val lines = diagramStream.map(d => JsonObject(
       "adjMatHash" -> d.hash,
-      "tensor" -> results.interpret(d).toJson
+      "tensor" -> results.interpret(d.hash).toJson
     ))
 
     val jsonHolder = JsonObject("results" -> JsonArray(lines))

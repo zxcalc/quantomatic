@@ -37,7 +37,7 @@ class EQCAnalysisSpec extends FlatSpec {
       rulesList = emptyRuleList,
       theory = rg)
     var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
-    results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
+    results.findEquivalenceClasses(diagramStream.map(_.hash), "ColbournRead 2 2 2 2")
     var eqcConCom = results.equivalenceClassesNormalised.map(
       e => EQCAnalysis.AdjMatConnectedComponents(EquivalenceClassByAdjMat.fromEC(e, rg))
     )

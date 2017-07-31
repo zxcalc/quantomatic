@@ -22,11 +22,11 @@ class RuleSynthesisSpec extends FlatSpec {
     tolerance = EquivClassRunAdjMat.defaultTolerance,
     rulesList = emptyRuleList,
     theory = rg)
-  results.findEquivalenceClasses(diagramStream, "ColbournRead 2 2 2 2")
+  results.findEquivalenceClasses(diagramStream.map(_.hash), "ColbournRead 2 2 2 2")
 
   it should "turn a class into rules" in {
-    var ruleList = RuleSynthesis.graphEquivClassReduction[AdjMat](
-      results.adjMatToGraph,
+    var ruleList = RuleSynthesis.graphEquivClassReduction[String](
+      x => results.adjMatToGraph(AdjMat.fromHash(x)),
       results.equivalenceClasses.head,
       List()
     )
@@ -37,8 +37,8 @@ class RuleSynthesisSpec extends FlatSpec {
   it should "make identity-wire rules" in {
     var idClass = results.equivalenceClasses.filter(e => e.centre.toString == "1 0 0 1")
     var ruleList = idClass.foldLeft(List[Rule]())(
-      (a, b) => RuleSynthesis.graphEquivClassReduction[AdjMat](
-        results.adjMatToGraph,
+      (a, b) => RuleSynthesis.graphEquivClassReduction[String](
+        x => results.adjMatToGraph(AdjMat.fromHash(x)),
         b,
         List()
       ) ::: a
@@ -53,8 +53,8 @@ class RuleSynthesisSpec extends FlatSpec {
   it should "discard reducible rules" in {
     var idClass = results.equivalenceClasses.filter(e => e.centre.toString == "1 0 0 1")
     var ruleList = idClass.foldLeft(List[Rule]())(
-      (a, b) => RuleSynthesis.graphEquivClassReduction[AdjMat](
-        results.adjMatToGraph,
+      (a, b) => RuleSynthesis.graphEquivClassReduction[String](
+        x => results.adjMatToGraph(AdjMat.fromHash(x)),
         b,
         List()
       ) ::: a
@@ -74,8 +74,8 @@ class RuleSynthesisSpec extends FlatSpec {
     var stacks = BlockStackMaker(2, rowsAllowed)
     stacks.foreach(s => results.add(s))
     results.equivalenceClassesNormalised
-      .filter(cls => cls.members.map(x => x._1.toString).contains("( 1  x  1 )"))
-      .foreach(cls => println(cls.members.map(x => x._1)))
+      .filter(cls => cls.members.map(x => x.toString).contains("( 1  x  1 )"))
+      .foreach(cls => println(cls.members))
   }
 
   behavior of "ZX Qutrit system"
@@ -87,7 +87,7 @@ class RuleSynthesisSpec extends FlatSpec {
     stacks.foreach(s => results.add(s))
     results.equivalenceClassesNormalised
       // .filter(cls => cls.members.map(x => x._1.toString).contains("( 1  x  1 )"))
-      .foreach(cls => println(cls.members.map(x => x._1)))
+      .foreach(cls => println(cls.members))
   }
 
 
@@ -100,7 +100,7 @@ class RuleSynthesisSpec extends FlatSpec {
     stacks.foreach(s => results.add(s))
     results.equivalenceClasses
       // .filter(cls => cls.members.map(x => x._1.toString).contains("( 1  x  1 )"))
-      .foreach(cls => println(cls.members.map(x => x._1)))
+      .foreach(cls => println(cls.members))
   }
 
 }

@@ -203,13 +203,10 @@ class Tensor(c: Array[Array[Complex]]) {
   // Compare two tensors up to a given distance
     this.distance(that) < maxDistance
 
-  /** Returns max abs distance, or -1 if not comparable */
+  /** Returns max abs distance */
   def distance(that: Tensor): Double = {
-    if (this.isSameShapeAs(that)) {
-      (this - that).contents.flatten.foldLeft(0.0) { (a: Double, b: Complex) => math.max(a, b.abs) }
-    } else {
-      -1
-    }
+    require(this.isSameShapeAs(that))
+    (this - that).contents.flatten.foldLeft(0.0) { (a: Double, b: Complex) => math.max(a, b.abs) }
   }
 
   def distanceAfterScaling(that: Tensor) : Double = {
@@ -371,7 +368,7 @@ object Tensor {
 
   // for comparing entries
 
-  def fromJson(json: JsonObject): Tensor = {
+  implicit def fromJson(json: JsonObject): Tensor = {
     val contents : Array[Array[Complex]] = (json / "contents").asArray.map(
       x => x.asArray.map(i => Complex.fromJson(i.asObject)).toArray
     ).toArray

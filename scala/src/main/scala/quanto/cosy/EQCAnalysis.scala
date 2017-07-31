@@ -8,8 +8,8 @@ object EQCAnalysis {
 
   def AdjMatConnectedComponents(eqc: EquivalenceClassByAdjMat): Map[Int, AdjMat] = {
     var connectivityExamples: Map[Int, AdjMat] = Map()
-    eqc.members.foreach(x => {
-      val adjMat = x._1
+    eqc.members.foreach(adjMatHash => {
+      val adjMat = AdjMat.fromHash(adjMatHash)
       val numColours = AdjMatConnectedComponents(adjMat)
       if (!connectivityExamples.isDefinedAt(numColours)) {
         connectivityExamples += (numColours -> adjMat)

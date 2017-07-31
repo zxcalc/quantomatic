@@ -248,7 +248,7 @@ object AdjMat {
       case _ => Vector(Vector())
     }
 
-  def fromHash(hash: String): AdjMat = {
+ def fromHash(hash: String): AdjMat = {
     // "boundaries.red1-red2.green1-green2.matBase36"
     val dotChunk = hash.split("\\.")
     val numBoundaries = dotChunk(0).toInt
