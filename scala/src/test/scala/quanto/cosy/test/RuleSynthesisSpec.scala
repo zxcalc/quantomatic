@@ -103,4 +103,13 @@ class RuleSynthesisSpec extends FlatSpec {
       .foreach(cls => println(cls.members))
   }
 
+  behavior of "ZXClifford+T Reduction"
+
+  it should "reduce the rules" in {
+    var ctRules = RuleSynthesis.loadRuleDirectory("./examples/ZX_cliffordT")
+    // Pick out S1, S2 and REDUCIBLE
+    var smallRules = ctRules.filter(_.description.get.name.matches(raw"S\d|RED.*"))
+    RuleSynthesis.minimiseRuleset(smallRules ::: smallRules.map(_.inverse))
+  }
+
 }
