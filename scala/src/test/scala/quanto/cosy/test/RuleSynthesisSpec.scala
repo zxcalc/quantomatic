@@ -61,7 +61,7 @@ class RuleSynthesisSpec extends FlatSpec {
     )
     var r1 = ruleList.head
     var m = Matcher.findMatches(r1.lhs, r1.lhs)
-    var shrunkRules = RuleSynthesis.discardReducibleRules(rules = ruleList, seed = new Random(1))
+    var shrunkRules = RuleSynthesis.discardDirectlyReducibleRules(rules = ruleList, seed = new Random(1))
     println(shrunkRules)
     assert(ruleList.length > shrunkRules.length)
   }

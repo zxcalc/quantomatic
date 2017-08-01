@@ -2,6 +2,9 @@ package quanto.cosy
 
 import quanto.data._
 import quanto.rewrite._
+import quanto.util.json.Json
+
+import scala.annotation.tailrec
 import scala.util.Random
 
 /**
@@ -9,31 +12,35 @@ import scala.util.Random
   */
 object RuleSynthesis {
 
+  def loadRuleDirectory(directory: String): List[Rule] = {
+    quanto.util.FileHelper.getListOfFiles(directory, raw".*\.qrule").
+      map(file => (file.getName.replaceFirst(raw"\.qrule", ""), Json.parse(file))).
+      map(nameAndJS => Rule.fromJson(nameAndJS._2, Theory.fromFile("red_green"), Some(RuleDesc(nameAndJS._1)))
+      )
+  }
+
   /** Given an equivalence class creates rules for any irreducible members of the class */
   def graphEquivClassReduction[T](makeGraph: (T => Graph),
-                                                equivalenceClass: EquivalenceClass[T],
-                                                knownRules: List[Rule]): List[Rule] = {
+                                  equivalenceClass: EquivalenceClass[T],
+                                  knownRules: List[Rule]): List[Rule] = {
     val reductionRules = knownRules.filter(r => r.lhs > r.rhs)
     // If you want to include the other direction as well, then pass a list of rule.inverse
     val irreducibleMembers = equivalenceClass.members.filter(
       m =>
         reductionRules.forall(r => Matcher.findMatches(r.lhs, makeGraph(m)).nonEmpty)
     )
-    var newRules: List[Rule] = List()
+
     if (irreducibleMembers.nonEmpty) {
       val smallestMember = irreducibleMembers.minBy(makeGraph(_).verts.size)
-      for (member <- irreducibleMembers) {
-        if (member != smallestMember) {
-          newRules = new Rule(makeGraph(member), makeGraph(smallestMember)) :: newRules
-        }
-      }
-    }
-    newRules
+      irreducibleMembers.filter(_ != smallestMember).map(
+        member => new Rule(makeGraph(member), makeGraph(smallestMember))
+      )
+    } else List()
   }
 
   def rulesFromEquivalenceClasses[T](makeGraph: (T => Graph),
-                                                   equivalenceClasses: List[EquivalenceClass[T]],
-                                                   knownRules: List[Rule]): List[Rule] = {
+                                     equivalenceClasses: List[EquivalenceClass[T]],
+                                     knownRules: List[Rule]): List[Rule] = {
     equivalenceClasses match {
       case Nil => knownRules
       case x :: xs =>
@@ -42,25 +49,19 @@ object RuleSynthesis {
     }
   }
 
-  def discardReducibleRules(rules: List[Rule], seed: Random = new Random()): List[Rule] = {
-    var rulesToKeep = List[Rule]()
-    for (rule <- rules) {
-      val otherRules = rules.filter(r => r != rule)
-      val attemptedReduce = AutoReduce.genericReduce(rule.lhs, otherRules, seed)
-      if (attemptedReduce >= rule.lhs) rulesToKeep = rule :: rulesToKeep
-    }
-    rulesToKeep
+  def discardDirectlyReducibleRules(rules: List[Rule], seed: Random = new Random()): List[Rule] = {
+    rules.filter(rule =>
+      AutoReduce.genericReduce(rule.lhs, rules.filter(r => r != rule), seed) >= rule.lhs
+    )
   }
 
   def minimiseRuleset(rules: List[Rule], seed: Random = new Random()): List[Rule] = {
-    for (rule <- rules) yield {
-      minimiseRuleInPresenceOf(rule, rules.filter(r => r != rule), seed)
-    }
+    rules.map(rule => minimiseRuleInPresenceOf(rule, rules.filter(otherRule => otherRule != rule)))
   }
 
   def minimiseRuleInPresenceOf(rule: Rule, otherRules: List[Rule], seed: Random = new Random()): Rule = {
-    var minLhs = AutoReduce.genericReduce(rule.lhs, otherRules, seed)
-    var minRhs = AutoReduce.genericReduce(rule.rhs, otherRules, seed)
+    val minLhs = AutoReduce.genericReduce(rule.lhs, otherRules, seed)
+    val minRhs = AutoReduce.genericReduce(rule.rhs, otherRules, seed)
     new Rule(minLhs, minRhs)
   }
 }
@@ -119,26 +120,16 @@ object AutoReduce {
       (graph, priorApplications)
     }
 
-    if (rulesToUse.nonEmpty) {
+    if (rulesToUse.nonEmpty && timeStep < maxTime) {
 
       val randRule = rulesToUse(seed.nextInt(rulesToUse.length))
       val matches = Matcher.findMatches(randRule.lhs, graph)
       if (matches.nonEmpty) {
+        // apply a randomly chosen instance of a randomly chosen rule to the graph
         val randMatchIndex = seed.nextInt(matches.length)
-        var reducedGraph = graph
-        if (matches.nonEmpty) {
-          val randMatch = matches(randMatchIndex)
-          // apply a randomly chosen instance of a randomly chosen rule to the graph
-          reducedGraph = Rewriter.rewrite(randMatch, randRule.rhs)._1.normalise
-        }
-        if (timeStep == maxTime) {
-          // Finished
-          (reducedGraph, (randRule, randMatchIndex) :: priorApplications)
-        } else {
-          // Next step
-          annealingReduce(reducedGraph, incRules, decRules, timeStep + 1,
-            maxTime, timeDilation, seed, (randRule, randMatchIndex) :: priorApplications)
-        }
+        val reducedGraph = Rewriter.rewrite(matches(randMatchIndex), randRule.rhs)._1.normalise
+        annealingReduce(reducedGraph, incRules, decRules, timeStep + 1,
+          maxTime, timeDilation, seed, (randRule, randMatchIndex) :: priorApplications)
       }
       skipOver
     } else {
@@ -146,35 +137,23 @@ object AutoReduce {
     }
   }
 
+  @tailrec
+  def greedyReduce(graph: Graph, rules: List[Rule], priorApplications: List[(Rule, Int)], remainingRules: List[Rule]): (Graph, List[(Rule, Int)]) = {
+    remainingRules match {
+      case r :: tail => Matcher.findMatches(r.lhs, graph) match {
+        case ruleMatch #:: t =>
+          greedyReduce(Rewriter.rewrite(ruleMatch, graph)._1.normalise, rules, (r, 0) :: priorApplications, rules)
+        case Stream.Empty =>
+          greedyReduce(graph, rules, priorApplications, tail)
+      }
+      case Nil => (graph, priorApplications)
+    }
+  }
+
   // Simply apply the first reduction rule it can find until there are none left
-  def greedyReduce(graph: Graph, rules: List[Rule], priorApplications: List[(Rule, Int)] = List()):
+  def greedyReduce(graph: Graph, rules: List[Rule]):
   (Graph, List[(Rule, Int)]) = {
 
-    var found = false
-    var reducedGraph = graph
-    var applicationList = priorApplications
-
-    def rewriteMatch(m: Match, rule: Rule, replacement: Graph) = {
-      applicationList = (rule, 0) :: applicationList
-      reducedGraph = Rewriter.rewrite(m, replacement)._1
-      found = true
-    }
-
-    val reductionRules = rules.filter(rule => rule.lhs > rule.rhs) :::
-      rules.filter(rule => rule.lhs < rule.rhs).map(rule => rule.inverse)
-    for (rule <- reductionRules) {
-      if (!found) {
-        val matches = Matcher.findMatches(rule.lhs, graph)
-        if (matches.nonEmpty) {
-          rewriteMatch(matches.head, rule, rule.rhs)
-        }
-      }
-    }
-
-    if (!found) {
-      (reducedGraph.normalise, applicationList)
-    } else {
-      greedyReduce(reducedGraph.normalise, reductionRules, applicationList)
-    }
+    greedyReduce(graph, rules, List(), rules)
   }
 }

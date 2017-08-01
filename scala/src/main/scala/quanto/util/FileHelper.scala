@@ -1,5 +1,11 @@
 package quanto.util
 
+import java.io.File
+
+import quanto.util.json.Json
+
+import scala.util.matching.Regex
+
 object FileHelper {
   /**
    * Helper method to print to a file.
@@ -11,5 +17,18 @@ object FileHelper {
                  (op: java.io.PrintWriter => Unit) {
     val p = new java.io.PrintWriter(new java.io.FileWriter(file_name, append))
     try { op(p) } finally { p.close() }
+  }
+
+  def getListOfFiles(directory: String, regexFilter: String): List[File] = {
+    val f = new File(directory)
+    if (f.exists && f.isDirectory) {
+      f.listFiles.filter(f => f.isFile && f.getName.matches(regexFilter)).toList
+    } else {
+      List[File]()
+    }
+  }
+
+  def readJSONFromDirectory(directory: String, regexFilter: String) : List[Json] = {
+    getListOfFiles(directory,regexFilter).map(Json.parse)
   }
 }
