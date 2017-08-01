@@ -1,0 +1,1 @@
+{"lhs":{"node_vertices":{"v0":{"data":{"type":"X","value":"- \\pi / 4"},"annotation":{"coord":[-0.25,-0.75]}},"v1":{"data":{"type":"Z","value":"\\pi / 4"},"annotation":{"coord":[-0.25,1.0]}}},"undir_edges":{"e0":{"src":"v1","tgt":"v0"}}},"rhs":{}}
