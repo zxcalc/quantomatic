@@ -142,7 +142,7 @@ object AutoReduce {
     remainingRules match {
       case r :: tail => Matcher.findMatches(r.lhs, graph) match {
         case ruleMatch #:: t =>
-          greedyReduce(Rewriter.rewrite(ruleMatch, graph)._1.normalise, rules, (r, 0) :: priorApplications, rules)
+          greedyReduce(Rewriter.rewrite(ruleMatch, r.rhs)._1.normalise, rules, (r, 0) :: priorApplications, rules)
         case Stream.Empty =>
           greedyReduce(graph, rules, priorApplications, tail)
       }
@@ -154,6 +154,6 @@ object AutoReduce {
   def greedyReduce(graph: Graph, rules: List[Rule]):
   (Graph, List[(Rule, Int)]) = {
 
-    greedyReduce(graph, rules, List(), rules)
+    greedyReduce(graph, rules.filter(rule => rule.lhs > rule.rhs), List(), rules)
   }
 }
