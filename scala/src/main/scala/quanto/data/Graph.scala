@@ -886,6 +886,8 @@ case class Graph(
     // TODO: check for bare wires as well
     contents(bb).isEmpty
   }
+
+  def toJson(theory: Theory) : Json = Graph.toJson(this, theory)
 }
 
 object Graph {
