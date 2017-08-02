@@ -27,11 +27,13 @@ object Rewriter {
   }
 
 	def rewrite(m: Match, rhs: Graph): (Graph, Rule) = {
-    // make the pattern graph fresh w.r.t. to the target
-    val boundary = m.pattern.boundary
-
     // expand bare wires in the match
     val m1 = m.normalize
+
+    // make the pattern graph fresh w.r.t. to the target
+    val boundary = m1.pattern.boundary
+
+    // expand bboxes in RHS
     val rhsE = expandRhs(m1, rhs)
 
     val interiorLhs = m1.pattern.verts -- boundary
@@ -52,7 +54,7 @@ object Rewriter {
 
 
     // quotient the lhs and rhs such that pairs of boundaries mapped to the same vertex are identified
-    val quotientLhs = m.pattern.rename(m.map.v.toMap, m.map.e.toMap, m.map.bb.toMap)
+    val quotientLhs = m1.pattern.rename(m1.map.v.toMap, m1.map.e.toMap, m1.map.bb.toMap)
     val quotientRhs = rhsE.rename(vmap.toMap, emap.toMap, m1.map.bb.toMap)
 
     // compute the pushout as a union of the context with the quotiented domain of the matching

@@ -829,7 +829,7 @@ case class Graph(
     val bb1 = mp1.bb(bb)
     g1 = g1.addBBox(bb1, bbdata(bb), mp1.v.codSet)
 
-    for (bb2 <- bbe.mp.bb.codSet) g1 = g1.setBBoxParent(bb2, Some(bb1))
+    for (bb2 <- mp1.bb.directImage(g1.bboxChildren(bb))) g1 = g1.setBBoxParent(bb2, Some(bb1))
 
     (g1, BBCopy(bb, mp1))
   }
