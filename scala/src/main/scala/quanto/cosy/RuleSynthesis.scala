@@ -51,7 +51,7 @@ object RuleSynthesis {
 
   def discardDirectlyReducibleRules(rules: List[Rule], seed: Random = new Random()): List[Rule] = {
     rules.filter(rule =>
-      AutoReduce.genericReduce(rule.lhs, rules.filter(r => r != rule), seed) >= rule.lhs
+      AutoReduce.genericReduce(rule.lhs, rules.filter(r => r != rule), seed)._1 >= rule.lhs
     )
   }
 
@@ -62,7 +62,12 @@ object RuleSynthesis {
   def minimiseRuleInPresenceOf(rule: Rule, otherRules: List[Rule], seed: Random = new Random()): Rule = {
     val minLhs = AutoReduce.genericReduce(rule.lhs, otherRules, seed)
     val minRhs = AutoReduce.genericReduce(rule.rhs, otherRules, seed)
-    new Rule(minLhs, minRhs)
+    val wasItReduced = (minLhs._1 < rule.lhs) || (minRhs._1 < rule.rhs)
+    new Rule(minLhs._1, minRhs._1, description = Some(RuleDesc(
+      (if (rule.description.isDefined) rule.description.get.name else "Unnamed rule") +
+        (if (rule.description.isDefined && rule.description.get.inverse) " inverted" else "") +
+        (if (wasItReduced) " reduced" else "")
+    )))
   }
 }
 
@@ -73,11 +78,12 @@ object RuleSynthesis {
 object AutoReduce {
 
   // Tries multiple methods and is sure to return nothing larger than what you started with
-  def genericReduce(graph: Graph, rules: List[Rule], seed: Random = new Random()): Graph = {
-    (graph :: AutoReduce.greedyReduce(graph, rules)._1 ::
-      (for (_ <- 0 until graph.verts.size) yield {
-        AutoReduce.annealingReduce(graph, rules, maxTime = math.pow(graph.verts.size, 2).toInt, 3, seed)._1
-      }).toList).min
+  def genericReduce(graph: Graph, rules: List[Rule], seed: Random = new Random()):
+  (Graph, List[(Rule, Int)]) = {
+    ((graph, List()) :: AutoReduce.greedyReduce(graph, rules) ::
+      (for (_ <- 0 until 1) yield {
+        AutoReduce.annealingReduce(graph, rules, maxTime = math.pow(graph.verts.size, 2).toInt, 3, seed)
+      }).toList).minBy(x => x._1)
   }
 
   // Simplest entry point
@@ -130,8 +136,9 @@ object AutoReduce {
         val reducedGraph = Rewriter.rewrite(matches(randMatchIndex), randRule.rhs)._1.normalise
         annealingReduce(reducedGraph, incRules, decRules, timeStep + 1,
           maxTime, timeDilation, seed, (randRule, randMatchIndex) :: priorApplications)
+      } else {
+        skipOver
       }
-      skipOver
     } else {
       skipOver
     }
@@ -153,7 +160,7 @@ object AutoReduce {
   // Simply apply the first reduction rule it can find until there are none left
   def greedyReduce(graph: Graph, rules: List[Rule]):
   (Graph, List[(Rule, Int)]) = {
-
-    greedyReduce(graph, rules.filter(rule => rule.lhs > rule.rhs), List(), rules)
+    val reducingRules = rules.filter(rule => rule.lhs > rule.rhs)
+    greedyReduce(graph, reducingRules, List(), reducingRules)
   }
 }

@@ -95,7 +95,7 @@ class RuleSynthesisSpec extends FlatSpec {
 
   it should "find small rules" in {
     var results = EquivClassRunBlockStack(1e-14)
-    var rowsAllowed = BlockRowMaker(1, maxInOut = 2, BlockRowMaker.ZXQudit(4,2))
+    var rowsAllowed = BlockRowMaker(1, maxInOut = 2, BlockRowMaker.ZXQudit(4, 2))
     var stacks = BlockStackMaker(2, rowsAllowed)
     stacks.foreach(s => results.add(s))
     results.equivalenceClasses
@@ -105,11 +105,22 @@ class RuleSynthesisSpec extends FlatSpec {
 
   behavior of "ZXClifford+T Reduction"
 
-  it should "reduce the rules" in {
+  it should "should greedy reduce" in {
     var ctRules = RuleSynthesis.loadRuleDirectory("./examples/ZX_cliffordT")
     // Pick out S1, S2 and REDUCIBLE
     var smallRules = ctRules.filter(_.description.get.name.matches(raw"S\d|RED.*"))
-    RuleSynthesis.minimiseRuleset(smallRules ::: smallRules.map(_.inverse))
+    var reducibleGraph = smallRules.filter(_.description.get.name.matches(raw"RED.*")).head.lhs
+    var resultingGraph = AutoReduce.greedyReduce(reducibleGraph, smallRules)
+    assert(resultingGraph._1.verts.size < reducibleGraph.verts.size)
+  }
+
+  it should "automatically reduce" in {
+    var ctRules = RuleSynthesis.loadRuleDirectory("./examples/ZX_cliffordT")
+    // Pick out S1, S2 and REDUCIBLE
+    var smallRules = ctRules.filter(_.description.get.name.matches(raw"S\d"))
+    var minimisedRules = RuleSynthesis.minimiseRuleset(smallRules ::: smallRules.map(_.inverse))
+    minimisedRules.foreach(println)
+    assert(minimisedRules.exists(r => r.description.get.name.matches(raw".*reduced.*")))
   }
 
 }
