@@ -250,6 +250,15 @@ class Tensor(c: Array[Array[Complex]]) {
     // scalar multiplication
     Tensor(this.height, this.width, (i, j) => this.c(i)(j) * factor)
   }
+
+  def power(index: Int): Tensor = {
+    require(index >= 0)
+    index match {
+      case 0 => Tensor.id(1)
+      case 1 => new Tensor(this.c)
+      case n => this x this.power(n-1)
+    }
+  }
 }
 
 object Tensor {
