@@ -10,6 +10,15 @@ import quanto.rewrite.Matcher
   */
 
 class BlockEnumerationSpec extends FlatSpec {
+
+  implicit def quickList(n: Int): List[Int] = {
+    n match {
+      case 0 => List()
+      case 1 => List(0)
+      case m => quickList(m - 1) ::: List(0)
+    }
+  }
+
   behavior of "Block Enumeration"
 
   it should "build a small ZW row" in {
@@ -30,10 +39,10 @@ class BlockEnumerationSpec extends FlatSpec {
   }
 
   it should "limit wires" in {
-    var rowsAllowed = BlockRowMaker(2, maxInOut = 2, allowedBlocks = BlockRowMaker.ZW)
+    var rowsAllowed = BlockRowMaker(2, allowedBlocks = BlockRowMaker.ZW, maxInOut = Option(2))
     var stacks = BlockStackMaker(2, rowsAllowed)
     println(stacks)
-    assert(stacks.forall(s => (s.inputs <= 2) && (s.outputs <= 2)))
+    assert(stacks.forall(s => (s.inputs.length <= 2) && (s.outputs.length <= 2)))
   }
 
   it should "compute tensors" in {
@@ -62,7 +71,7 @@ class BlockEnumerationSpec extends FlatSpec {
       Block(1, 1, " b ", new Tensor(Array(Array[Complex](0, 1), Array[Complex](1, 0))))
     ))
     var stacks = BlockStackMaker(2, rowsAllowed)
-    var s11 = stacks.filter(s => s.inputs == 1 && s.outputs == 1 && s.tensor.isRoughly(Tensor.idWires(1)))
+    var s11 = stacks.filter(s => s.inputs.length == 1 && s.outputs.length == 1 && s.tensor.isRoughly(Tensor.idWires(1)))
     println(s11)
   }
 
@@ -124,24 +133,40 @@ class BlockEnumerationSpec extends FlatSpec {
   behavior of "qutrits and qudits"
 
   it should "generate enough qutrit generators" in {
-    assert(BlockRowMaker.ZXQutrit(9).length == (10 + 2*81))
+    assert(BlockRowMaker.ZXQutrit(9).length == (10 + 2 * 81))
   }
 
   it should "generate enough qudit generators" in {
-    assert(BlockRowMaker.ZXQudit(3,9).length == (10 + 2*81))
+    assert(BlockRowMaker.ZXQudit(3, 9).length == (10 + 2 * 81))
     // And check it is the correct swap tensor:
-    assert(BlockRowMaker.ZXQudit(3,9)(1).tensor == BlockRowMaker.ZXQutrit(9)(1).tensor)
-    assert(BlockRowMaker.ZXQudit(4,8).length == (10 + 2*math.pow(8,4-1)).toInt)
+    assert(BlockRowMaker.ZXQudit(3, 9)(1).tensor == BlockRowMaker.ZXQutrit(9)(1).tensor)
+    assert(BlockRowMaker.ZXQudit(4, 8).length == (10 + 2 * math.pow(8, 4 - 1)).toInt)
   }
 
   it should "have spider rules for qudits" in {
-    var Q4 = BlockRowMaker.ZXQudit(4,8)
-    var r760 = Q4.find(p =>   p.name=="r|7|6|0")
-    var r230 = Q4.find(p =>   p.name=="r|2|3|0")
-    var r110 = Q4.find(p =>   p.name=="r|1|1|0")
-    if(r760.isDefined && r230.isDefined && r110.isDefined) {
+    var Q4 = BlockRowMaker.ZXQudit(4, 8)
+    var r760 = Q4.find(p => p.name == "r|7|6|0")
+    var r230 = Q4.find(p => p.name == "r|2|3|0")
+    var r110 = Q4.find(p => p.name == "r|1|1|0")
+    if (r760.isDefined && r230.isDefined && r110.isDefined) {
       var rsum = r760.get.tensor o r230.get.tensor
       assert(rsum.isRoughly(r110.get.tensor))
     } else fail("Did not generate the required spiders")
+  }
+
+  behavior of "Bell Simple"
+
+  it should "display quantum teleportation" in {
+    var BSRow = BlockRowMaker(2, BlockRowMaker.BellTeleportation, Option(3))
+    var BSStacks = BlockStackMaker(4, BSRow)
+    var tp = BSStacks.
+      //filterNot(x => x.toString.matches(raw".*\(w\d \).*")).
+      //filterNot(x => x.toString.matches(raw".*\( (A|B) \).*")).
+      filter(x => x.inputs == List(0)).
+      filter(x => x.outputs == List(-1)).
+      filter(x => x.tensor.isSameShapeAs(Tensor.id(2))).
+      filter(x => x.tensor.isRoughlyUpToScalar(Tensor.id(2)))
+    tp.foreach(x => println("---- \n " + x.toString + "\n" + x.tensor))
+    assert(tp.length == 4)
   }
 }

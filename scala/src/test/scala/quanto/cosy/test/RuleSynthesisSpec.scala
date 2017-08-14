@@ -70,7 +70,7 @@ class RuleSynthesisSpec extends FlatSpec {
 
   it should "find small rules" in {
     var results = EquivClassRunBlockStack(1e-14)
-    var rowsAllowed = BlockRowMaker(2, maxInOut = 2, BlockRowMaker.Bian2Qubit)
+    var rowsAllowed = BlockRowMaker(2, BlockRowMaker.Bian2Qubit, maxInOut = Option(2))
     var stacks = BlockStackMaker(2, rowsAllowed)
     stacks.foreach(s => results.add(s))
     results.equivalenceClassesNormalised
@@ -82,7 +82,7 @@ class RuleSynthesisSpec extends FlatSpec {
 
   it should "find small rules" in {
     var results = EquivClassRunBlockStack(1e-14)
-    var rowsAllowed = BlockRowMaker(1, maxInOut = 2, BlockRowMaker.ZXQutrit(3))
+    var rowsAllowed = BlockRowMaker(1, BlockRowMaker.ZXQutrit(3), maxInOut = Option(2))
     var stacks = BlockStackMaker(2, rowsAllowed)
     stacks.foreach(s => results.add(s))
     results.equivalenceClassesNormalised
@@ -95,7 +95,7 @@ class RuleSynthesisSpec extends FlatSpec {
 
   it should "find small rules" in {
     var results = EquivClassRunBlockStack(1e-14)
-    var rowsAllowed = BlockRowMaker(1, maxInOut = 2, BlockRowMaker.ZXQudit(4, 2))
+    var rowsAllowed = BlockRowMaker(1,  BlockRowMaker.ZXQudit(4, 2), maxInOut = Option(2))
     var stacks = BlockStackMaker(2, rowsAllowed)
     stacks.foreach(s => results.add(s))
     results.equivalenceClasses

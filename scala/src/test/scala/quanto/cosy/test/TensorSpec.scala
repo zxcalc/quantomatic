@@ -118,6 +118,13 @@ class TensorSpec extends FlatSpec {
     assert(t1.power(2) == t2)
   }
 
+  it should "create direct sums" in {
+    var t1 = Tensor.diagonal(Array[Complex](1,2))
+    var t2 = Tensor(Array(Array(3,4)))
+    assert((t1 sum t2) == Tensor(Array(Array(1, 0, 0, 0), Array(0, 2, 0, 0), Array(0, 0, 3, 4))))
+    assert((t1 sum t2.transpose) == Tensor(Array(Array(1, 0, 0), Array(0, 2, 0), Array(0, 0, 3), Array(0, 0, 4))))
+  }
+
   behavior of "Tensor comparison"
 
   it should "element equality" in {

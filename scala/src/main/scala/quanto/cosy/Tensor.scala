@@ -246,6 +246,17 @@ class Tensor(c: Array[Array[Complex]]) {
     Tensor(this.height, this.width, (i, j) => this.c(i)(j) + that.contents(i)(j))
   }
 
+  def sum(that: Tensor) : Tensor = {
+    def gen(i: Int, j: Int) : Complex = {
+      if(i < this.height && j < this.width) {
+        this.contents(i)(j)
+      } else if (i >= this.height && j >= this.width) {
+        that.contents(i-this.height)(j-this.width)
+      } else {0}
+    }
+    Tensor(this.height + that.height, this.width + that.width,gen)
+  }
+
   def scaled(factor: Complex): Tensor = {
     // scalar multiplication
     Tensor(this.height, this.width, (i, j) => this.c(i)(j) * factor)
@@ -257,6 +268,15 @@ class Tensor(c: Array[Array[Complex]]) {
       case 0 => Tensor.id(1)
       case 1 => new Tensor(this.c)
       case n => this x this.power(n-1)
+    }
+  }
+
+  def sumPower(index: Int): Tensor = {
+    require(index >= 0)
+    index match {
+      case 0 => Tensor.id(1)
+      case 1 => new Tensor(this.c)
+      case n => this sum this.sumPower(n-1)
     }
   }
 }
