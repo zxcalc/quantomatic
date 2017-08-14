@@ -14,6 +14,7 @@ case class MatchState(
                        candidateEdges: Option[Set[EName]] = None,       // edges to try matching in the target
                        candidateWires: Option[Set[(VName,Int)]] = None, // wire-vertices to try matching bare wires on
                        candidateBBoxes: Option[Set[BBName]] = None,     // bboxes to try matching in the target
+                       bboxOrbits: PFun[VName, VName] = PFun(),         // for smashing redundant matches
                        nextState: Option[MatchState] = None             // next state to try after search terminates
                      ) {
 
@@ -186,6 +187,7 @@ case class MatchState(
           val next1 =
             if (m.pattern.isWildBBox(pbb)) nextState
             else { // only expand/copy non-wild !-boxes, or we'll get infinite matchings
+              val minV = m.pattern.contents(pbb).min
               val (expandGraph, expandOp) = m.pattern.expandBBox(pbb)
               val (copyGraph, copyOp) = m.pattern.copyBBox(pbb)
 
@@ -197,8 +199,9 @@ case class MatchState(
                 else
                   Some(copy(
                     m = m.copy(pattern = copyGraph, bbops = copyOp :: m.bbops),
-                    candidateBBoxes = Some(m.target.bboxes.filter { tbb => reflectsParentBBoxes(pbb, tbb)
-                    })))
+                    candidateBBoxes = Some(m.target.bboxes.filter { tbb => reflectsParentBBoxes(pbb, tbb)}),
+                    bboxOrbits = bboxOrbits + (copyOp.mp.v(minV) -> minV)
+                  ))
 
               //          val schedule =
               //            (expandGraph.adjacentVerts(expandGraph.contents(pbb)) ++
@@ -211,6 +214,7 @@ case class MatchState(
               Some(copy(
                 m = m.copy(pattern = expandGraph, bbops = expandOp :: m.bbops),
                 psNodes = pNodes, // re-schedule everything
+                bboxOrbits = bboxOrbits + (expandOp.mp.v(minV) -> minV),
                 nextState = next2
               ))
             }
@@ -238,8 +242,24 @@ case class MatchState(
     }
   }
 
-  // TODO: stub
-  def pVertexMayBeCompleted(v: VName) = true
+  def matchIsMonotone(pv: VName, tv: VName): Boolean =
+    if (!MatchState.smashSymmetries) true
+    else
+      bboxOrbits.get(pv) match {
+        case Some(rep) =>
+          // check the orbit of v is being matched in a monotone manner w.r.t. v
+          bboxOrbits.codf(rep).forall { pv1 =>
+            m.map.v.get(pv1) match {
+              case None => true
+              case Some(tv1) => (pv <= pv1) == (tv <= tv1)
+            }
+          }
+        case None => true
+      }
+
+  def pVertexMayBeCompleted(v: VName) = {
+    true // TODO: chop the search early if the nhd of v is too small or large
+  }
 
   // TODO: we may only need to check the closest parent, not all parents
 
@@ -266,7 +286,7 @@ case class MatchState(
     * @return
     */
   def matchNewNode(np: VName, nt: VName): Option[MatchState] =
-    if (!reflectsBBoxes(np, nt)) None
+    if (!reflectsBBoxes(np, nt) || !matchIsMonotone(np, nt)) None
     else
       (m.pattern.vdata(np), m.target.vdata(nt)) match {
         case (pd: NodeV, td: NodeV) =>
@@ -321,7 +341,7 @@ case class MatchState(
         else None
       } else if (tVerts contains newVt) {
         (m.pattern.vdata(newVp), m.target.vdata(newVt)) match {
-          case (_: WireV, _: WireV) if reflectsBBoxes(newVp, newVt) =>
+          case (_: WireV, _: WireV) if reflectsBBoxes(newVp, newVt) && matchIsMonotone(newVp, newVt) =>
             (m.pattern.wireVertexGetOtherEdge(newVp, ep), m.target.wireVertexGetOtherEdge(newVt, et)) match {
               case (Some(newEp), Some(newEt)) =>
                 copy(
@@ -349,6 +369,9 @@ object MatchState {
   // for testing e.g. laziness in a single thread
   private var matchCounter = 0
   private var countMatches = false
+
+  // use !-box orbits to ignore redundant matches
+  var smashSymmetries = true
 
   def startCountingMatches() = {
     matchCounter = 0
