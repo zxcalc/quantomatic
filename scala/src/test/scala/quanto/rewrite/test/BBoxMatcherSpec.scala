@@ -6,6 +6,7 @@ import quanto.rewrite._
 import quanto.util.json.Json
 
 class BBoxMatcherSpec extends FlatSpec {
+  //MatchState.smashSymmetries = false
   val rg = Theory.fromFile("red_green")
 
   def loadGraph(name: String) =
@@ -95,8 +96,8 @@ class BBoxMatcherSpec extends FlatSpec {
 
     val matches = Matcher.findMatches(g1, g2)
 
-    // TODO: fix this after symmetry-smashing
-    assert(matches.size === 6)
+    // without symmetry smashing = 6
+    assert(matches.size === 1)
   }
 
   it should "match an instance of the spider law" in {
@@ -167,8 +168,9 @@ class BBoxMatcherSpec extends FlatSpec {
 
     val matches = Matcher.findMatches(g1, g2)
 
-    // TODO: fix this after symmetry-smashing
-    assert(matches.size === 2*6*2)
+
+    // without symmetry smashing = 2*6*2
+    assert(matches.size === 2)
   }
 
 
@@ -244,8 +246,8 @@ class BBoxMatcherSpec extends FlatSpec {
 
     //matches.foreach(m => println(m.bbops.map(_.shortName)))
 
-    // TODO: fix this after symmetry-smashing
-    assert(matches.size === 2*2*2)
+    // // without symmetry smashing = 2*2*2
+    assert(matches.size === 2)
   }
 
   it should "match the LHS of the spider law with angles" in {
@@ -289,8 +291,8 @@ class BBoxMatcherSpec extends FlatSpec {
 
     val matches = Matcher.findMatches(g1, g2)
 
-    // TODO: fix this after symmetry-smashing
-    assert(matches.size === 2*6*2)
+    // without symmetry smashing = 2*6*2
+    assert(matches.size === 2)
   }
 
   it should "instantiate the RHS of the spider law" in {
