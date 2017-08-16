@@ -15,7 +15,9 @@ import scala.util.Random
 class RuleSynthesisSpec extends FlatSpec {
   behavior of "Rule Synthesiser"
 
-  val rg = Theory.fromFile("red_green")
+  implicit val rg : Theory = Theory.fromFile("red_green")
+
+  implicit def derivationToFirstHead(derivation: Derivation) : Graph = AutoReduce.derivationToFirstHead(derivation)
   var emptyRuleList: List[Rule] = List()
   var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
   var results = EquivClassRunAdjMat(numAngles = 2,
@@ -61,7 +63,7 @@ class RuleSynthesisSpec extends FlatSpec {
     )
     var r1 = ruleList.head
     var m = Matcher.findMatches(r1.lhs, r1.lhs)
-    var shrunkRules = RuleSynthesis.discardDirectlyReducibleRules(rules = ruleList, seed = new Random(1))
+    var shrunkRules = RuleSynthesis.discardDirectlyReducibleRules(rules = ruleList, rg, seed = new Random(1))
     println(shrunkRules)
     assert(ruleList.length > shrunkRules.length)
   }
@@ -110,15 +112,16 @@ class RuleSynthesisSpec extends FlatSpec {
     // Pick out S1, S2 and REDUCIBLE
     var smallRules = ctRules.filter(_.description.get.name.matches(raw"S\d|RED.*"))
     var reducibleGraph = smallRules.filter(_.description.get.name.matches(raw"RED.*")).head.lhs
-    var resultingGraph = AutoReduce.greedyReduce(reducibleGraph, smallRules)
-    assert(resultingGraph._1.verts.size < reducibleGraph.verts.size)
+    var resultingDerivation = AutoReduce.greedyReduce(reducibleGraph, smallRules, rg)
+   // println(resultingDerivation.stepsTo(resultingDerivation.firstHead))
+    assert(resultingDerivation.verts.size < reducibleGraph.verts.size)
   }
 
   it should "automatically reduce" in {
     var ctRules = RuleSynthesis.loadRuleDirectory("./examples/ZX_cliffordT")
     // Pick out S1, S2 and REDUCIBLE
     var smallRules = ctRules.filter(_.description.get.name.matches(raw"S\d"))
-    var minimisedRules = RuleSynthesis.minimiseRuleset(smallRules ::: smallRules.map(_.inverse))
+    var minimisedRules = RuleSynthesis.minimiseRuleset(smallRules ::: smallRules.map(_.inverse), rg)
     minimisedRules.foreach(println)
     assert(minimisedRules.exists(r => r.description.get.name.matches(raw".*reduced.*")))
   }

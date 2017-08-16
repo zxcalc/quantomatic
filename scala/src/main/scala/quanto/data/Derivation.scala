@@ -181,6 +181,8 @@ extends TreeSeq[DeriveState]
         if (isHead(step)) children(step).toSeq.map(StepState) :+ HeadState(Some(step))
         else children(step).toSeq.map(StepState)
     }
+
+  def toJson(theory: Theory) : Json = Derivation.toJson(this, theory)
 }
 
 object Derivation {
