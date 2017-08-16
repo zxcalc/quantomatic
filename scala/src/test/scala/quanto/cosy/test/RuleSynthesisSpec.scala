@@ -15,9 +15,10 @@ import scala.util.Random
 class RuleSynthesisSpec extends FlatSpec {
   behavior of "Rule Synthesiser"
 
-  implicit val rg : Theory = Theory.fromFile("red_green")
+  implicit val rg: Theory = Theory.fromFile("red_green")
 
-  implicit def derivationToFirstHead(derivation: Derivation) : Graph = AutoReduce.derivationToFirstHead(derivation)
+  implicit def derivationToFirstHead(derivation: Derivation): Graph = AutoReduce.derivationToFirstHead(derivation)
+
   var emptyRuleList: List[Rule] = List()
   var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
   var results = EquivClassRunAdjMat(numAngles = 2,
@@ -97,7 +98,7 @@ class RuleSynthesisSpec extends FlatSpec {
 
   it should "find small rules" in {
     var results = EquivClassRunBlockStack(1e-14)
-    var rowsAllowed = BlockRowMaker(1,  BlockRowMaker.ZXQudit(4, 2), maxInOut = Option(2))
+    var rowsAllowed = BlockRowMaker(1, BlockRowMaker.ZXQudit(4, 2), maxInOut = Option(2))
     var stacks = BlockStackMaker(2, rowsAllowed)
     stacks.foreach(s => results.add(s))
     results.equivalenceClasses
@@ -113,7 +114,7 @@ class RuleSynthesisSpec extends FlatSpec {
     var smallRules = ctRules.filter(_.description.get.name.matches(raw"S\d|RED.*"))
     var reducibleGraph = smallRules.filter(_.description.get.name.matches(raw"RED.*")).head.lhs
     var resultingDerivation = AutoReduce.greedyReduce(reducibleGraph, smallRules, rg)
-   // println(resultingDerivation.stepsTo(resultingDerivation.firstHead))
+    // println(resultingDerivation.stepsTo(resultingDerivation.firstHead))
     assert(resultingDerivation.verts.size < reducibleGraph.verts.size)
   }
 
@@ -124,6 +125,14 @@ class RuleSynthesisSpec extends FlatSpec {
     var minimisedRules = RuleSynthesis.minimiseRuleset(smallRules ::: smallRules.map(_.inverse), rg)
     minimisedRules.foreach(println)
     assert(minimisedRules.exists(r => r.description.get.name.matches(raw".*reduced.*")))
+  }
+
+  it should "make a long derivation from annealing" in {
+    var ctRules = RuleSynthesis.loadRuleDirectory("./examples/ZX_cliffordT")
+    var target = ctRules.filter(_.description.get.name.matches(raw"RED.*")).head.lhs
+    var remaining = ctRules.filterNot(_.description.get.name.matches(raw"RED.*"))
+    var annealed = AutoReduce.annealingReduce(target, remaining ::: remaining.map(_.inverse), rg, 100, 3, new Random(3))
+    assert(annealed.steps.size > target.verts.size)
   }
 
 }

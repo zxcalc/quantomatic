@@ -61,8 +61,8 @@ object RuleSynthesis {
   }
 
   def minimiseRuleInPresenceOf(rule: Rule, otherRules: List[Rule], theory: Theory, seed: Random = new Random()): Rule = {
-    val minLhs : Graph = AutoReduce.genericReduce(rule.lhs, otherRules, theory, seed)
-    val minRhs : Graph = AutoReduce.genericReduce(rule.rhs, otherRules, theory, seed)
+    val minLhs: Graph = AutoReduce.genericReduce(rule.lhs, otherRules, theory, seed)
+    val minRhs: Graph = AutoReduce.genericReduce(rule.rhs, otherRules, theory, seed)
     val wasItReduced = (minLhs < rule.lhs) || (minRhs < rule.rhs)
     new Rule(minLhs, minRhs, description = Some(RuleDesc(
       (if (rule.description.isDefined) rule.description.get.name else "Unnamed rule") +
@@ -72,7 +72,7 @@ object RuleSynthesis {
   }
 
 
-  implicit def derivationToFirstHead(derivation: Derivation) : Graph = AutoReduce.derivationToFirstHead(derivation)
+  implicit def derivationToFirstHead(derivation: Derivation): Graph = AutoReduce.derivationToFirstHead(derivation)
 }
 
 /**
@@ -144,10 +144,11 @@ object AutoReduce {
 
       val randRule = rulesToUse(seed.nextInt(rulesToUse.length))
       val matches = Matcher.findMatches(randRule.lhs, graph)
-      if (matches.nonEmpty) {
+      val chosenMatch: Option[Match] = matches.find(_ => seed.nextBoolean())
+
+      if (chosenMatch.nonEmpty) {
         // apply a randomly chosen instance of a randomly chosen rule to the graph
-        val randMatchIndex = seed.nextInt(matches.length)
-        val reducedGraph = Rewriter.rewrite(matches(randMatchIndex), randRule.rhs)._1.normalise
+        val reducedGraph = Rewriter.rewrite(chosenMatch.get, randRule.rhs)._1.normalise
         val description = randRule.description.getOrElse(RuleDesc("unnamed rule"))
         annealingReduce(reducedGraph,
           incRules,
