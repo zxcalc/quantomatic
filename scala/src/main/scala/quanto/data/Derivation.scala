@@ -8,26 +8,26 @@ import quanto.util.TreeSeq
 import quanto.layout.ForceLayout
 
 trait DerivationException
+
 case class DerivationLoadException(message: String, cause: Throwable = null)
   extends Exception(message, cause)
-  with DerivationException
+    with DerivationException
 
 sealed abstract class RuleVariant
-case object RuleNormal extends RuleVariant { override def toString = "normal" }
-case object RuleInverse extends RuleVariant { override def toString = "inverse" }
+
+case object RuleNormal extends RuleVariant {
+  override def toString = "normal"
+}
+
+case object RuleInverse extends RuleVariant {
+  override def toString = "inverse"
+}
 
 case class DStep(name: DSName,
                  ruleName: String,
                  rule: Rule,
                  variant: RuleVariant,
                  graph: Graph) {
-  def copy(name: DSName = name,
-           ruleName: String = ruleName,
-           rule: Rule = rule,
-           variant: RuleVariant = variant,
-           graph: Graph = graph)
-  = DStep(name,ruleName,rule,variant,graph)
-
   def layout: DStep = {
     val layoutProc = new ForceLayout
     layoutProc.maxIterations = 400
@@ -38,7 +38,7 @@ case class DStep(name: DSName,
 
 
     graph.verts.foreach { v =>
-      if (graph.isBoundary(v) || (graph.vdata(v).coord != (0.0,0.0) && graph.vdata(v).coord != (0.0,-1.0))) layoutProc.lockVertex(v)
+      if (graph.isBoundary(v) || (graph.vdata(v).coord != (0.0, 0.0) && graph.vdata(v).coord != (0.0, -1.0))) layoutProc.lockVertex(v)
       //if (graph.isBoundary(v) || !rule.rhs.verts.contains(v)) layoutProc.lockVertex(v)
     }
 
@@ -46,6 +46,13 @@ case class DStep(name: DSName,
     val graph1 = layoutProc.layout(graph, randomCoords = false).snapToGrid()
     copy(graph = graph1)
   }
+
+  def copy(name: DSName = name,
+           ruleName: String = ruleName,
+           rule: Rule = rule,
+           variant: RuleVariant = variant,
+           graph: Graph = graph)
+  = DStep(name, ruleName, rule, variant, graph)
 }
 
 object DStep {
@@ -55,44 +62,48 @@ object DStep {
       "parent" -> parent.map(_.toString),
       "rule_name" -> dstep.ruleName,
       "rule" -> Rule.toJson(dstep.rule, thy),
-      "rule_variant" -> (dstep.variant match { case RuleNormal => JsonNull; case v => v.toString }),
+      "rule_variant" -> (dstep.variant match {
+        case RuleNormal => JsonNull;
+        case v => v.toString
+      }),
       "graph" -> Graph.toJson(dstep.graph, thy)
     ).noEmpty
   }
 
-  def fromJson(name: DSName, json: Json, thy: Theory = Theory.DefaultTheory) : DStep = try {
+  def fromJson(name: DSName, json: Json, thy: Theory = Theory.DefaultTheory): DStep = try {
     DStep(
       name = name,
       ruleName = (json / "rule_name").stringValue,
       rule = Rule.fromJson(json / "rule", thy),
-      variant = json ? "rule_variant" match { case JsonString("inverse") => RuleInverse; case _ => RuleNormal },
+      variant = json ? "rule_variant" match {
+        case JsonString("inverse") => RuleInverse;
+        case _ => RuleNormal
+      },
       graph = Graph.fromJson(json / "graph", thy)
     )
   } catch {
     case e: JsonAccessException =>
-      throw new DerivationLoadException(e.getMessage)
+      throw DerivationLoadException(e.getMessage)
     case e: RuleLoadException =>
-      throw new DerivationLoadException("Rule at step '" + name + "': " + e.getMessage)
+      throw DerivationLoadException("Rule at step '" + name + "': " + e.getMessage)
     case e: GraphLoadException =>
-      throw new DerivationLoadException("Graph at step '" + name + "': " + e.getMessage)
+      throw DerivationLoadException("Graph at step '" + name + "': " + e.getMessage)
     case e: Exception =>
       e.printStackTrace()
-      throw new DerivationLoadException("Unexpected error reading JSON")
+      throw DerivationLoadException("Unexpected error reading JSON")
   }
 }
 
 case class Derivation(theory: Theory,
                       root: Graph,
-                      steps: Map[DSName,DStep] = Map(),
+                      steps: Map[DSName, DStep] = Map(),
                       heads: SortedSet[DSName] = SortedSet(),
-                      parentMap: PFun[DSName,DSName] = PFun())
-extends TreeSeq[DeriveState]
-{
-  def copy(theory: Theory = theory,
-           root: Graph = root,
-           steps: Map[DSName,DStep] = steps,
-           heads: SortedSet[DSName] = heads,
-           parent: PFun[DSName,DSName] = parentMap) = Derivation(theory,root,steps,heads,parent)
+                      parentMap: PFun[DSName, DSName] = PFun())
+  extends TreeSeq[DeriveState] {
+  lazy val stateVector: Vector[DeriveState] = {
+    HeadState(None) +:
+      firstSteps.foldRight(Vector[DeriveState]()) { case (step, rest) => dft(step, rest) }
+  }
 
   def stepsTo(head: DSName): Array[DSName] =
     (parentMap.get(head) match {
@@ -100,51 +111,57 @@ extends TreeSeq[DeriveState]
       case None => Array()
     }) :+ head
 
-  def graphsTo(head : DSName) = root +: stepsTo(head).map(s => steps(s).graph)
+  def graphsTo(head: DSName): Array[Graph] = root +: stepsTo(head).map(s => steps(s).graph)
 
 
-  def updateGraphInStep(s: DSName, g: Graph) = {
+  def updateGraphInStep(s: DSName, g: Graph): Derivation = {
     val s1 = steps(s).copy(graph = g)
-    copy (steps = steps + (s -> s1))
+    copy(steps = steps + (s -> s1))
   }
 
-
-  def children(s: DSName) = parentMap.codf(s)
+  def copy(theory: Theory = theory,
+           root: Graph = root,
+           steps: Map[DSName, DStep] = steps,
+           heads: SortedSet[DSName] = heads,
+           parent: PFun[DSName, DSName] = parentMap) = Derivation(theory, root, steps, heads, parent)
 
   def allChildren(s: DSName): Set[DSName] =
-    children(s).foldLeft(Set[DSName]()) { case (set,c) => set union allChildren(c) } + s
+    children(s).foldLeft(Set[DSName]()) { case (set, c) => set union allChildren(c) } + s
 
-  def hasParent(s: DSName) = parentMap.domSet.contains(s)
-  def hasChildren(s: DSName) = parentMap.codSet.contains(s)
-  def isHead(s: DSName) = heads.contains(s)
+  def hasParent(s: DSName): Boolean = parentMap.domSet.contains(s)
 
-  def firstHead = heads.headOption
-  def firstSteps = steps.keySet.filter(!parentMap.domSet.contains(_))
+  def hasChildren(s: DSName): Boolean = parentMap.codSet.contains(s)
 
-  def addHead(h: DSName) = copy(heads = heads + h)
-  def deleteHead(h: DSName) = copy(heads = heads - h)
+  def firstHead: Option[DSName] = heads.headOption
 
-  def addStep(parentOpt: Option[DSName], step: DStep) = parentOpt match {
+  def addHead(h: DSName): Derivation = copy(heads = heads + h)
+
+  def deleteHead(h: DSName): Derivation = copy(heads = heads - h)
+
+  def addStep(parentOpt: Option[DSName], step: DStep): Derivation = parentOpt match {
     case Some(p) =>
-      copy (
+      copy(
         steps = steps + (step.name -> step),
         heads = (if (heads.contains(p)) heads - p else heads) + step.name,
         parent = parentMap + (step.name -> p))
     case None =>
-      copy (
+      copy(
         steps = steps + (step.name -> step),
         heads = heads + step.name)
   }
 
-  def deleteStep(s: DSName) = {
+  def deleteStep(s: DSName): Derivation = {
     val parentOpt = parentMap.get(s)
-    val (steps1,heads1,parent1) = allChildren(s).foldLeft((steps,heads,parentMap)) {
-      case ((ss,hs,p), s1) => (ss - s1, hs - s1, p - s1)
+    val (steps1, heads1, parent1) = allChildren(s).foldLeft((steps, heads, parentMap)) {
+      case ((ss, hs, p), s1) => (ss - s1, hs - s1, p - s1)
     }
 
     copy(
       steps = steps1,
-      heads = parentOpt match { case Some(s) => heads1 + s ; case _ => heads1 },
+      heads = parentOpt match {
+        case Some(s) => heads1 + s;
+        case _ => heads1
+      },
       parent = parent1
     )
   }
@@ -152,27 +169,23 @@ extends TreeSeq[DeriveState]
   // find a head that is downstream from this step
   def fastForward(s: DSName): DSName =
     if (isHead(s)) s
-    else children(s).headOption match { case Some(ch) => fastForward(ch); case None => s }
-
-  private def dft(step: DSName, rest: Vector[DeriveState]) : Vector[DeriveState] =
-    (if (isHead(step)) Vector(StepState(step), HeadState(Some(step)))
-     else Vector(StepState(step))) ++
-    children(step).foldRight(rest) { case (ch,rest1) => dft(ch,rest1) }
-
-  lazy val stateVector: Vector[DeriveState] = {
-    HeadState(None) +:
-    firstSteps.foldRight(Vector[DeriveState]()) { case (step, rest) => dft(step, rest) }
-  }
+    else children(s).headOption match {
+      case Some(ch) => fastForward(ch);
+      case None => s
+    }
 
   // implementations of TreeSeq methods
-  def toSeq : Seq[DeriveState] = stateVector
-  def indexOf(state : DeriveState): Int = stateVector.indexOf(state)
+  def toSeq: Seq[DeriveState] = stateVector
+
+  def indexOf(state: DeriveState): Int = stateVector.indexOf(state)
+
   def parent(state: DeriveState): Option[DeriveState] =
     state match {
       case HeadState(None) => None
       case HeadState(Some(step)) => Some(StepState(step))
-      case StepState(step) => Some(parentMap.get(step) match {case Some(p) => StepState(p); case None => HeadState(None)})
+      case StepState(step) => Some(parentMap.get(step) match { case Some(p) => StepState(p); case None => HeadState(None) })
     }
+
   def children(state: DeriveState): Seq[DeriveState] =
     state match {
       case HeadState(None) => firstSteps.toSeq.map(StepState)
@@ -182,23 +195,36 @@ extends TreeSeq[DeriveState]
         else children(step).toSeq.map(StepState)
     }
 
-  def toJson(theory: Theory) : Json = Derivation.toJson(this, theory)
+  def children(s: DSName) = parentMap.codf(s)
+
+  def isHead(s: DSName): Boolean = heads.contains(s)
+
+  def firstSteps: Set[DSName] = steps.keySet.filter(!parentMap.domSet.contains(_))
+
+  def toJson(theory: Theory): Json = Derivation.toJson(this, theory)
+
+  private def dft(step: DSName, rest: Vector[DeriveState]): Vector[DeriveState] =
+    (if (isHead(step)) Vector(StepState(step), HeadState(Some(step)))
+    else Vector(StepState(step))) ++
+      children(step).foldRight(rest) { case (ch, rest1) => dft(ch, rest1) }
 }
 
 object Derivation {
+  type DerivationWithHead = (Derivation, Option[DSName])
+
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory) = try {
-    val parent = (json ? "steps").asObject.foldLeft(PFun[DSName,DSName]()) {
-      case (pf,(step,obj)) => obj.get("parent") match {
+    val parent = (json ? "steps").asObject.foldLeft(PFun[DSName, DSName]()) {
+      case (pf, (step, obj)) => obj.get("parent") match {
         case Some(JsonString(p)) => pf + (DSName(step) -> DSName(p))
         case _ => pf
       }
     }
 
-    val steps = (json ? "steps").asObject.foldLeft(Map[DSName,DStep]()) {
-      case (mp,(step,obj)) => mp + (DSName(step) -> DStep.fromJson(DSName(step), obj, thy))
+    val steps = (json ? "steps").asObject.foldLeft(Map[DSName, DStep]()) {
+      case (mp, (step, obj)) => mp + (DSName(step) -> DStep.fromJson(DSName(step), obj, thy))
     }
 
-    val heads = (json ? "heads").asArray.foldLeft(SortedSet[DSName]()) { case (set,h) => set + DSName(h.stringValue) }
+    val heads = (json ? "heads").asArray.foldLeft(SortedSet[DSName]()) { case (set, h) => set + DSName(h.stringValue) }
 
     Derivation(
       theory = thy,
@@ -224,5 +250,12 @@ object Derivation {
       "steps" -> JsonObject(steps),
       "heads" -> JsonArray(derive.heads.map(_.toString))
     ).noEmpty
+  }
+
+  implicit def derivationHeadPairToGraph(derivationAndHead: DerivationWithHead): Graph = {
+    derivationAndHead._2 match {
+      case Some(head) => derivationAndHead._1.steps(head).graph
+      case None => derivationAndHead._1.root
+    }
   }
 }

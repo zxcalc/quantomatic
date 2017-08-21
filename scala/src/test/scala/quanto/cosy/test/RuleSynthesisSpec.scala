@@ -4,7 +4,11 @@ import quanto.cosy._
 import org.scalatest.FlatSpec
 import quanto.data._
 import quanto.rewrite.{Matcher, Rewriter}
+import quanto.data.Derivation.DerivationWithHead
 import quanto.util.json.Json
+
+import quanto.cosy.RuleSynthesis._
+import quanto.cosy.AutoReduce._
 
 import scala.util.Random
 
@@ -16,8 +20,6 @@ class RuleSynthesisSpec extends FlatSpec {
   behavior of "Rule Synthesiser"
 
   implicit val rg: Theory = Theory.fromFile("red_green")
-
-  implicit def derivationToFirstHead(derivation: Derivation): Graph = AutoReduce.derivationToFirstHead(derivation)
 
   var emptyRuleList: List[Rule] = List()
   var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
@@ -109,13 +111,13 @@ class RuleSynthesisSpec extends FlatSpec {
   behavior of "ZXClifford+T Reduction"
 
   it should "should greedy reduce" in {
-    var ctRules = RuleSynthesis.loadRuleDirectory("./examples/ZX_cliffordT")
+    var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
     // Pick out S1, S2 and REDUCIBLE
     var smallRules = ctRules.filter(_.description.get.name.matches(raw"S\d|RED.*"))
     var reducibleGraph = smallRules.filter(_.description.get.name.matches(raw"RED.*")).head.lhs
-    var resultingDerivation = AutoReduce.greedyReduce(reducibleGraph, smallRules, rg)
+    var resultingDerivation = greedyReduce(RuleSynthesis.graphToDerivation(reducibleGraph, rg), smallRules)
     // println(resultingDerivation.stepsTo(resultingDerivation.firstHead))
-    assert(resultingDerivation.verts.size < reducibleGraph.verts.size)
+    assert(Derivation.derivationHeadPairToGraph(resultingDerivation).verts.size < reducibleGraph.verts.size)
   }
 
   it should "automatically reduce" in {
@@ -128,11 +130,15 @@ class RuleSynthesisSpec extends FlatSpec {
   }
 
   it should "make a long derivation from annealing" in {
-    var ctRules = RuleSynthesis.loadRuleDirectory("./examples/ZX_cliffordT")
+    var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
     var target = ctRules.filter(_.description.get.name.matches(raw"RED.*")).head.lhs
     var remaining = ctRules.filterNot(_.description.get.name.matches(raw"RED.*"))
-    var annealed = AutoReduce.annealingReduce(target, remaining ::: remaining.map(_.inverse), rg, 100, 3, new Random(3))
-    assert(annealed.steps.size > target.verts.size)
+    var annealed = annealingReduce(RuleSynthesis.graphToDerivation(target, rg),
+      remaining ::: remaining.map(_.inverse),
+      100,
+      3,
+      new Random(3))
+    assert(annealed._1.steps.size > target.verts.size)
   }
 
 }
