@@ -164,10 +164,14 @@ class DerivationPanel(val project: Project)
       tooltip = "Stop"
     }
 
+
+    val GreedyButton = new Button("Greedy Reduce")
+    val AnnealButton = new Button("Anneal")
+
     val topPane = new BorderPanel {
       add(SimprocsScrollPane, BorderPanel.Position.Center)
       add(new FlowPanel(FlowPanel.Alignment.Left)(
-        RefreshButton, SimplifyButton, StopButton
+        RefreshButton, SimplifyButton, StopButton, AnnealButton, GreedyButton
       ), BorderPanel.Position.South)
     }
 
