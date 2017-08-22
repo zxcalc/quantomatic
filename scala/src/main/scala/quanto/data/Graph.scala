@@ -718,6 +718,12 @@ case class Graph(
     (g1, (newW, newE))
   }
 
+  def flipEdge(e: EName): Graph = {
+    val s = source(e)
+    val t = target(e)
+    copy(source = source + (e -> t), target = target + (e -> s))
+  }
+
   def collapseWire(e: EName): Graph = {
     val ws = Set(source(e), target(e))
     deleteEdge(e).mergeVertices(ws, ws.min)
@@ -757,8 +763,7 @@ case class Graph(
     * Put graph in normal form, where each (non-bare) wire has exactly 1 wire vertex
     * @return
     */
-  @tailrec
-  final def normalise: Graph = {
+  def normalise: Graph = {
     var ch = false
     var g = this
 
@@ -778,8 +783,19 @@ case class Graph(
       }
     }
 
-    if (ch) g.normalise
-    else g
+    for (w <- g.verts if g.vdata(w).isWireVertex) {
+      val ine = g.inEdges(w)
+      if (ine.size == 2) g = g.flipEdge(ine.head)
+      else {
+        val oute = g.outEdges(w)
+        if (oute.size == 2) g = g.flipEdge(oute.head)
+      }
+    }
+
+    g
+
+//    if (ch) g.normalise
+//    else g
   }
 
   def minimise: Graph = {
