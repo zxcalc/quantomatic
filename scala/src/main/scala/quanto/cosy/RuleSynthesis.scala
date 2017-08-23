@@ -177,14 +177,20 @@ object AutoReduce {
     } else reduced
   }
 
+  def alwaysTrue(a: Graph, b: Graph) : Boolean = true
+
   def randomApply(derivationWithHead: DerivationWithHead,
                   rules: List[Rule],
                   numberOfApplications: Int,
+                  requirementToKeep: (Graph, Graph) => Boolean = alwaysTrue,
                   seed: Random = new Random()): DerivationWithHead = {
     require(numberOfApplications > 0)
-    if(rules.nonEmpty) {
+    if (rules.nonEmpty) {
       (0 until numberOfApplications).foldLeft(derivationWithHead) {
-        (d, _) => randomSingleApply(d, rules(seed.nextInt(rules.length)), seed)
+        (d, _) => {
+          val suggestedUpdate = randomSingleApply(d, rules(seed.nextInt(rules.length)), seed)
+          if (requirementToKeep(suggestedUpdate,d)) suggestedUpdate else d
+        }
       }
     } else derivationWithHead
   }

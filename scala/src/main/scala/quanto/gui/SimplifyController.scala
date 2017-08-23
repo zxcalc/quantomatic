@@ -98,7 +98,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
 
   private def lteSimproc(): Unit = {
     val reducedDerivation = randomApply((panel.derivation, panel.controller.state.step),
-      allowedRules.filter(r => r.lhs > r.rhs), 100)
+      allowedRules, 100, (suggested, current) => suggested <= current)
     updateDerivation(reducedDerivation, "lte reduce")
   }
 
