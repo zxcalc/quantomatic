@@ -216,7 +216,7 @@ object AutoReduce {
       val reducedGraph = Rewriter.rewrite(chosenMatch.get, rule.rhs)._1.normalise
       val description = rule.description.getOrElse(RuleDesc("unnamed rule"))
       val nextStepName = quanto.data.Names.mapToNameMap(derivationWithHead._1.steps).
-        freshWithSuggestion(DSName(description.name))
+        freshWithSuggestion(DSName(description.name.replaceFirst("^.*\\/", "") + "-0"))
       (derivationWithHead._1.addStep(
         derivationWithHead._2,
         DStep(nextStepName,

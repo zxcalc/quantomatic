@@ -176,6 +176,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       val newRules = d.result.filter(!currentRules.contains(_))
 
       if (newRules.nonEmpty) rules ++= newRules
+      rules = rules.sortBy(r => r.name)
     case ButtonClicked(panel.ManualRewritePane.RemoveRuleButton) =>
       resultLock.acquire()
       panel.ManualRewritePane.Rewrites.selection.items.foreach { line => resultSet -= line.rule }

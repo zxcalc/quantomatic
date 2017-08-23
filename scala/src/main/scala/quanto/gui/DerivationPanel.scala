@@ -167,11 +167,13 @@ class DerivationPanel(val project: Project)
 
     val GreedyButton = new Button("Greedy Reduce")
     val AnnealButton = new Button("Anneal")
+    val RandomButton = new Button("Random x100")
+    val LTEButton = new Button("LTE x100")
 
     val topPane = new BorderPanel {
       add(SimprocsScrollPane, BorderPanel.Position.Center)
       add(new FlowPanel(FlowPanel.Alignment.Left)(
-        RefreshButton, SimplifyButton, StopButton, AnnealButton, GreedyButton
+        RefreshButton, SimplifyButton, StopButton, AnnealButton, GreedyButton, RandomButton, LTEButton
       ), BorderPanel.Position.South)
     }
 
