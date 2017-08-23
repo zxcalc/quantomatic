@@ -37,6 +37,8 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     //    }
   }
 
+  def theory = panel.theory
+
   private def pullSimp(simproc: String, sid: Int, stack: String, parentOpt: Option[DSName]) {
     //    if (simpId == sid) {
     //      val res = QuantoDerive.core ? Call(theory.coreName, "simplify", "pull_next_step",
@@ -71,7 +73,6 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     //        JsonObject("stack" -> JsonString(stack)))
     //    }
   }
-  def theory = panel.theory
 
   private def annealSimproc(): Unit = {
     val reducedDerivation = genericReduce((panel.derivation, panel.controller.state.step),
@@ -88,7 +89,9 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
   }
 
   implicit def ruleFromDesc(ruleDesc: RuleDesc): Rule = {
-    Rule.fromJson(Json.parse(new File(panel.project.rootFolder + "/" + ruleDesc.name + ".qrule")), theory)
+    Rule.fromJson(Json.parse(new File(panel.project.rootFolder + "/" + ruleDesc.name + ".qrule")),
+      theory,
+      description = Some(ruleDesc))
   }
 
   private def allowedRules = panel.rewriteController.rules.map(ruleFromDesc).toList
@@ -105,19 +108,19 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     updateDerivation(reducedDerivation, "random reduce")
   }
 
-  private def moveToStep(stepName: DSName) : Unit = {
+  private def moveToStep(stepName: DSName): Unit = {
     panel.controller.state = StepState(stepName)
   }
 
-  private def updateDerivation(derivationWithHead: DerivationWithHead, desc: String) : Unit = {
+  private def updateDerivation(derivationWithHead: DerivationWithHead, desc: String): Unit = {
     val currentDerivation = panel.document.derivation
 
     panel.document.undoStack.register(desc) {
-      updateDerivation((currentDerivation,panel.controller.state.step), desc)
+      updateDerivation((currentDerivation, panel.controller.state.step), desc)
     }
 
     panel.document.derivation = derivationWithHead._1
-    derivationWithHead._2 match{
+    derivationWithHead._2 match {
       case Some(stepName) => panel.controller.state = StepState(stepName)
       case None => panel.controller.state = HeadState(None)
     }

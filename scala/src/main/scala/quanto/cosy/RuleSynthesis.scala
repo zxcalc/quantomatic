@@ -64,11 +64,8 @@ object RuleSynthesis {
     val minLhs: Graph = AutoReduce.genericReduce(graphToDerivation(rule.lhs, theory), otherRules, seed)
     val minRhs: Graph = AutoReduce.genericReduce(graphToDerivation(rule.rhs, theory), otherRules, seed)
     val wasItReduced = (minLhs < rule.lhs) || (minRhs < rule.rhs)
-    new Rule(minLhs, minRhs, description = Some(RuleDesc(
-      (if (rule.description.isDefined) rule.description.get.name else "Unnamed rule") +
-        (if (rule.description.isDefined && rule.description.get.inverse) " inverted" else "") +
-        (if (wasItReduced) " reduced" else "")
-    )))
+    new Rule(minLhs, minRhs, description = RuleDesc(
+      rule.name + (if (wasItReduced) " reduced" else "")))
   }
 
   def graphToDerivation(graph: Graph, theory: Theory): DerivationWithHead = {
@@ -137,20 +134,13 @@ object AutoReduce {
                       maxTime: Int,
                       timeDilation: Double,
                       seed: Random): DerivationWithHead = {
-    val decRules = rules.filter(r => r.lhs > r.rhs)
-    val incRules = rules.filterNot(r => r.lhs > r.rhs)
-
-    (0 until maxTime).foldLeft(derivationHeadPair) { (d, time) => {
-      val rulesToUse = if (seed.nextDouble() < math.exp(-timeDilation * time / maxTime)) {
-        incRules
-      } else {
-        decRules
-      }
-      if (rulesToUse.nonEmpty) {
-        val randRule = rulesToUse(seed.nextInt(rulesToUse.length))
-        randomSingleApply(d, randRule, seed)
+    (0 until maxTime).foldLeft(derivationHeadPair) { (d, time) =>
+      val allowIncrease = seed.nextDouble() < math.exp(-timeDilation * time / maxTime)
+      if (rules.nonEmpty) {
+        val randRule = rules(seed.nextInt(rules.length))
+        val suggestedNextStep = randomSingleApply(d, randRule, seed)
+        if (allowIncrease || suggestedNextStep < d) suggestedNextStep else d
       } else d
-    }
     }
   }
 
@@ -161,17 +151,12 @@ object AutoReduce {
     remainingRules match {
       case r :: tailRules => Matcher.findMatches(r.lhs, derivationHeadPair) match {
         case ruleMatch #:: t =>
-          val reducedGraph = Rewriter.rewrite(ruleMatch, r.rhs)._1.normalise
-          val description = r.description.getOrElse[RuleDesc](RuleDesc("unnamed rule"))
+          val reducedGraph = Rewriter.rewrite(ruleMatch, r.rhs)._1.minimise
           val stepName = quanto.data.Names.mapToNameMap(derivationHeadPair._1.steps).
-            freshWithSuggestion(DSName(description.name))
+            freshWithSuggestion(DSName(r.description.name))
           greedyReduce((derivationHeadPair._1.addStep(
             derivationHeadPair._2,
-            DStep(stepName,
-              description.name,
-              r,
-              description.inverse,
-              reducedGraph)
+            DStep(stepName, r, reducedGraph)
           ), Some(stepName)),
             rules,
             rules)
@@ -213,16 +198,13 @@ object AutoReduce {
 
     if (chosenMatch.nonEmpty) {
       // apply a randomly chosen instance of the rule to the graph
-      val reducedGraph = Rewriter.rewrite(chosenMatch.get, rule.rhs)._1.normalise
-      val description = rule.description.getOrElse(RuleDesc("unnamed rule"))
+      val reducedGraph = Rewriter.rewrite(chosenMatch.get, rule.rhs)._1.minimise
       val nextStepName = quanto.data.Names.mapToNameMap(derivationWithHead._1.steps).
-        freshWithSuggestion(DSName(description.name.replaceFirst("^.*\\/", "") + "-0"))
+        freshWithSuggestion(DSName(rule.description.name.replaceFirst("^.*\\/", "") + "-0"))
       (derivationWithHead._1.addStep(
         derivationWithHead._2,
         DStep(nextStepName,
-          description.name,
           rule,
-          description.inverse,
           reducedGraph)
       ), Some(nextStepName))
     } else {

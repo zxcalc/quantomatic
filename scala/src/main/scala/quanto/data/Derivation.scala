@@ -56,6 +56,14 @@ case class DStep(name: DSName,
 }
 
 object DStep {
+
+  implicit def booleanToVariant(isInverted : Boolean) : RuleVariant = {
+    if (isInverted) RuleNormal else RuleInverse
+  }
+
+  def apply(name: DSName, rule: Rule, graph: Graph) : DStep =
+    DStep(name, rule.name, rule, rule.description.inverse, graph)
+
   def toJson(dstep: DStep, parent: Option[DSName], thy: Theory = Theory.DefaultTheory): Json = {
     JsonObject(
       "name" -> dstep.name.toString,

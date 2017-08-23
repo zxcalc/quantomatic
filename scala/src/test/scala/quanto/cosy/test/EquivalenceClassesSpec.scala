@@ -108,7 +108,7 @@ class EquivalenceClassesSpec extends FlatSpec {
     amat = amat.addVertex(Vector())
     // LHS of rule is a disconnected red dot of value 0
     var lhsG = results.adjMatToGraph(amat)
-    var singleRedRule = new Rule(lhs = lhsG, rhs = lhsG)
+    var singleRedRule = new Rule(_lhs = lhsG, _rhs = lhsG)
     println("Rule is " + singleRedRule.toString)
 
     var resultsWithOneRule = EquivClassRunAdjMat(

@@ -8,16 +8,28 @@ case class RuleLoadException(message: String, cause: Throwable = null)
   extends Exception(message, cause)
     with RuleException
 
-case class Rule(lhs: Graph, rhs: Graph, derivation: Option[String] = None, description: Option[RuleDesc] = None) {
+case class Rule(private val _lhs: Graph,
+                private val _rhs: Graph,
+                derivation: Option[String] = None,
+                description: RuleDesc = RuleDesc("unnamed")) {
+
   def inverse: Rule = {
-    Rule(rhs, lhs, derivation, if (description.isDefined) Some(description.get.invert) else None)
+    Rule(lhs, rhs, derivation, description.invert)
   }
 
-  override def toString: String = if (description.isDefined) {
-    description.get.name + (if (description.get.inverse) " inverted" else "")
-  } else {
-    lhs.toString + " --> " + rhs.toString
-  }
+  val lhs: Graph = if (description.inverse) _rhs else _lhs
+
+  val rhs: Graph = if (description.inverse) _lhs else _rhs
+
+  val name: String = description.name + (if (description.inverse) " inverted" else "")
+
+  override def toString: String = name + " := "+ _lhs.toString +
+    (if (description.inverse) {
+      "<--"
+    } else {
+      "-->"
+    }) +
+    _rhs.toString
 }
 
 case class RuleDesc(name: String, inverse: Boolean = false) {
@@ -26,15 +38,15 @@ case class RuleDesc(name: String, inverse: Boolean = false) {
 
 object Rule {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory, description: Option[RuleDesc] = None): Rule = try {
-    Rule(lhs = Graph.fromJson(json / "lhs", thy),
-      rhs = Graph.fromJson(json / "rhs", thy),
+    Rule(_lhs = Graph.fromJson(json / "lhs", thy),
+      _rhs = Graph.fromJson(json / "rhs", thy),
       derivation = json.get("derivation") match {
         case Some(JsonString(s)) => Some(s);
         case _ => None
       },
-      description = if (description.isDefined) description else json.get("description") match {
-        case Some(JsonString(s)) => Some(RuleDesc(s));
-        case _ => None
+      description = if (description.isDefined) description.get else json.get("description") match {
+        case Some(JsonString(s)) => RuleDesc(s);
+        case _ => RuleDesc("unnamed")
       })
   } catch {
     case e: JsonAccessException =>

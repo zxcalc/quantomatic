@@ -114,8 +114,8 @@ class RuleSynthesisSpec extends FlatSpec {
   it should "should greedy reduce" in {
     var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
     // Pick out S1, S2 and REDUCIBLE
-    var smallRules = ctRules.filter(_.description.get.name.matches(raw"S\d|RED.*"))
-    var reducibleGraph = smallRules.filter(_.description.get.name.matches(raw"RED.*")).head.lhs
+    var smallRules = ctRules.filter(_.name.matches(raw"S\d|RED.*"))
+    var reducibleGraph = smallRules.filter(_.name.matches(raw"RED.*")).head.lhs
     var resultingDerivation = greedyReduce(RuleSynthesis.graphToDerivation(reducibleGraph, rg), smallRules)
     // println(resultingDerivation.stepsTo(resultingDerivation.firstHead))
     assert(Derivation.derivationHeadPairToGraph(resultingDerivation).verts.size < reducibleGraph.verts.size)
@@ -124,16 +124,16 @@ class RuleSynthesisSpec extends FlatSpec {
   it should "automatically reduce" in {
     var ctRules = RuleSynthesis.loadRuleDirectory("./examples/ZX_cliffordT")
     // Pick out S1, S2 and REDUCIBLE
-    var smallRules = ctRules.filter(_.description.get.name.matches(raw"S\d"))
+    var smallRules = ctRules.filter(_.name.matches(raw"S\d.*"))
     var minimisedRules = RuleSynthesis.minimiseRuleset(smallRules ::: smallRules.map(_.inverse), rg)
     minimisedRules.foreach(println)
-    assert(minimisedRules.exists(r => r.description.get.name.matches(raw".*reduced.*")))
+    assert(minimisedRules.exists(_.name.matches(raw".*reduced.*")))
   }
 
   it should "make a long derivation from annealing" in {
     var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
-    var target = ctRules.filter(_.description.get.name.matches(raw"RED.*")).head.lhs
-    var remaining = ctRules.filterNot(_.description.get.name.matches(raw"RED.*"))
+    var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
+    var remaining = ctRules.filterNot(_.name.matches(raw"RED.*"))
     var annealed = annealingReduce(RuleSynthesis.graphToDerivation(target, rg),
       remaining ::: remaining.map(_.inverse),
       100,
@@ -143,10 +143,10 @@ class RuleSynthesisSpec extends FlatSpec {
   }
   it should "randomly apply appropriate rules" in {
     var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
-    var target = ctRules.filter(_.description.get.name.matches(raw"RED.*")).head.lhs
-    var remaining = ctRules.filter(_.description.get.name.matches(raw"S\d+.*"))
+    var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
+    var remaining = ctRules.filter(_.name.matches(raw"S\d+.*"))
    val reducedDerivation = randomApply((new Derivation(rg, target),None),
-     remaining, 100, new Random(1))
+     remaining, 100, alwaysTrue, new Random(1))
     assert(reducedDerivation._1.steps(reducedDerivation._2.get).graph < target)
  }
 }
