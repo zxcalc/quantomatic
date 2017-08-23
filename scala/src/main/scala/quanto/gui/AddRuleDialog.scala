@@ -11,14 +11,16 @@ class AddRuleDialog(project: Project) extends Dialog {
 
   implicit def buttonIsSelected(radButton: RadioButton) : Boolean = radButton.selected
 
-  def result: Seq[RuleDesc] =
-    if (MainPanel.radIncludeForwards) {
+  def result: Seq[RuleDesc] = {
+    val unsorted = if (MainPanel.radIncludeForwards) {
       MainPanel.FilteredRuleList.selection.items.map(s => RuleDesc(s))
     } else if (MainPanel.radIncludeInverse) {
       MainPanel.FilteredRuleList.selection.items.map(s => RuleDesc(s, inverse = true))
     } else {
-      MainPanel.FilteredRuleList.selection.items.flatMap(s => Seq(RuleDesc(s),RuleDesc(s, inverse = true)))
+      MainPanel.FilteredRuleList.selection.items.flatMap(s => Seq(RuleDesc(s), RuleDesc(s, inverse = true)))
     }
+    unsorted.sortBy(rd => rd.name)
+  }
 
   val AddButton = new Button("Add")
   val CancelButton = new Button("Cancel")
@@ -29,7 +31,7 @@ class AddRuleDialog(project: Project) extends Dialog {
 
   val MainPanel = new BoxPanel(Orientation.Vertical) {
     val Search = new TextField
-    val InitialRules : Vector[String] = project.rules
+    val InitialRules : Vector[String] = project.rules.sorted
 
     var FilteredRuleList : ListView[String] = new ListView[String](InitialRules)
 
@@ -74,7 +76,7 @@ class AddRuleDialog(project: Project) extends Dialog {
       close()
     case ValueChanged(MainPanel.Search) =>
       MainPanel.FilteredRuleList.listData = MainPanel.InitialRules.filter(
-        s => s.startsWith(MainPanel.Search.text)
+        s => s.matches(".*"+MainPanel.Search.text+".*")
       )
   }
 }
