@@ -13,7 +13,7 @@ object FileHelper {
    * @param append true -- append to an existing file;
    *               false -- overwrite the file
    */
-  def printToFile(file_name: java.io.File, append : Boolean = true)
+  def printToFile(file_name: File, append : Boolean = true)
                  (op: java.io.PrintWriter => Unit) {
     val p = new java.io.PrintWriter(new java.io.FileWriter(file_name, append))
     try { op(p) } finally { p.close() }

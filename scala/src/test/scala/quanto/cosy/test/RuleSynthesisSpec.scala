@@ -1,12 +1,13 @@
 package quanto.cosy.test
 
+import java.io.File
+
 import quanto.cosy._
 import org.scalatest.FlatSpec
 import quanto.data._
 import quanto.rewrite.{Matcher, Rewriter}
 import quanto.data.Derivation.DerivationWithHead
 import quanto.util.json.Json
-
 import quanto.cosy.RuleSynthesis._
 import quanto.cosy.AutoReduce._
 
@@ -140,5 +141,12 @@ class RuleSynthesisSpec extends FlatSpec {
       new Random(3))
     assert(annealed._1.steps.size > target.verts.size)
   }
-
+  it should "randomly apply appropriate rules" in {
+    var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
+    var target = ctRules.filter(_.description.get.name.matches(raw"RED.*")).head.lhs
+    var remaining = ctRules.filter(_.description.get.name.matches(raw"S\d+.*"))
+   val reducedDerivation = randomApply((new Derivation(rg, target),None),
+     remaining, 100, new Random(1))
+    assert(reducedDerivation._1.steps(reducedDerivation._2.get).graph < target)
+ }
 }
