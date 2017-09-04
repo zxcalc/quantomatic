@@ -327,8 +327,8 @@ object QuantoDerive extends SimpleSwingApplication {
           val d = new NewProjectDialog()
           d.centerOnScreen()
           d.open()
-          d.result.map {
-            case (thy,name,path) =>
+          d.result match {
+            case Some((thy,name,path)) =>
               println("got: " + (thy, name, path))
               val folder = new File(path + "/" + name)
               if (folder.exists()) {
@@ -352,6 +352,7 @@ object QuantoDerive extends SimpleSwingApplication {
                 //core ! SetMLWorkingDir(rootFolder)
                 updateNewEnabled()
               }
+            case None =>
           }
         }
       }

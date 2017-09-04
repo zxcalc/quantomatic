@@ -14,6 +14,8 @@ import scala.swing.event.ButtonClicked
 import quanto.cosy.AutoReduce._
 import quanto.data.Derivation.DerivationWithHead
 
+import scala.util.Random
+
 
 class SimplifyController(panel: DerivationPanel) extends Publisher {
   implicit val timeout = QuantoDerive.timeout
@@ -75,8 +77,16 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
   }
 
   private def annealSimproc(): Unit = {
-    val reducedDerivation = genericReduce((panel.derivation, panel.controller.state.step),
-      allowedRules)
+    val stepsRequested = Dialog.showInput[String](panel,
+      "How long should the annealing go on for (in steps)",
+      "Annealing Input Required",
+      initial = "100")
+    val stepsAsInt = stepsRequested.getOrElse("0").toInt
+    val reducedDerivation = annealingReduce((panel.derivation, panel.controller.state.step),
+      allowedRules,
+      stepsAsInt,
+      3,
+      new Random())
     updateDerivation(reducedDerivation, "anneal")
   }
 

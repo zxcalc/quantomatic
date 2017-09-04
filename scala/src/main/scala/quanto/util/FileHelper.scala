@@ -8,15 +8,30 @@ import scala.util.matching.Regex
 
 object FileHelper {
   /**
-   * Helper method to print to a file.
-   * @param file_name The file to write into
-   * @param append true -- append to an existing file;
-   *               false -- overwrite the file
-   */
-  def printToFile(file_name: File, append : Boolean = true)
+    * Helper method to print to a file.
+    *
+    * @param file_name The file to write into
+    * @param append    true -- append to an existing file;
+    *                  false -- overwrite the file
+    */
+  def printToFile(file_name: File, append: Boolean = true)
                  (op: java.io.PrintWriter => Unit) {
     val p = new java.io.PrintWriter(new java.io.FileWriter(file_name, append))
-    try { op(p) } finally { p.close() }
+    try {
+      op(p)
+    } finally {
+      p.close()
+    }
+  }
+
+  def readFile[T](file: File, conversion: Json => T): T = conversion(Json.parse(file))
+
+  def readAllOfType[T](directory: String, regexFilter: String, conversion: Json => T): List[T] = {
+    readJSONFromDirectory(directory, regexFilter).map(conversion)
+  }
+
+  def readJSONFromDirectory(directory: String, regexFilter: String): List[Json] = {
+    getListOfFiles(directory, regexFilter).map(Json.parse)
   }
 
   def getListOfFiles(directory: String, regexFilter: String): List[File] = {
@@ -26,9 +41,5 @@ object FileHelper {
     } else {
       List[File]()
     }
-  }
-
-  def readJSONFromDirectory(directory: String, regexFilter: String) : List[Json] = {
-    getListOfFiles(directory,regexFilter).map(Json.parse)
   }
 }

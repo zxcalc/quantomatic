@@ -5,6 +5,9 @@ import scala.swing.event.{ButtonClicked, Key, KeyPressed, ValueChanged}
 import quanto.data._
 import quanto.util.Globals
 
+import scala.util.matching
+import scala.util.matching.Regex
+
 
 class AddRuleDialog(project: Project) extends Dialog {
   modal = true
@@ -75,8 +78,12 @@ class AddRuleDialog(project: Project) extends Dialog {
       MainPanel.FilteredRuleList.selection.indices.clear()
       close()
     case ValueChanged(MainPanel.Search) =>
-      MainPanel.FilteredRuleList.listData = MainPanel.InitialRules.filter(
-        s => s.matches(".*"+MainPanel.Search.text+".*")
-      )
+      try {
+        MainPanel.FilteredRuleList.listData = MainPanel.InitialRules.filter(
+          s => s.matches(".*" + MainPanel.Search.text + ".*"))
+      } catch {
+        case e: Exception =>
+          //Exceptions here are thrown by inelligable regex from the user
+      }
   }
 }
