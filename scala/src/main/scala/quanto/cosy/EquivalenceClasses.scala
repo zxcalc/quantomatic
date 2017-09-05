@@ -329,7 +329,7 @@ class EquivClassRunAdjMat(
   }
 
   override def interpret(that: String): Tensor = {
-    interpretAdjMat(that, gdata, rdata)
+    interpretZXAdjMat(that, gdata, rdata)
   }
 
   def toJSON: JsonObject = {

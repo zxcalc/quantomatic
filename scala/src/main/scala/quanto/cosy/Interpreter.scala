@@ -18,9 +18,9 @@ object Interpreter {
     case _ => Tensor.hadamard x makeHadamards(n - 1, current)
   }
 
-  def interpretSpider(green: Boolean, angle : Double, inputs: Int, outputs: Int): Tensor = {
+  def interpretZXSpider(green: Boolean, angle : Double, inputs: Int, outputs: Int): Tensor = {
     // Converts spider to tensor. If green==false then it is a red spider
-    val toString = green.toString + ":" + angle + ":" + inputs + ":" + outputs
+    val toString = "ZX:" + green.toString + ":" + angle + ":" + inputs + ":" + outputs
     if (cached.contains(toString)) cached(toString) else {
       def gen(i: Int, j: Int): Complex = {
         Complex.zero +
@@ -36,21 +36,53 @@ object Interpreter {
     }
   }
 
-  def interpretAdjMat(adjMat: AdjMat, greenAM: Vector[NodeV], redAM: Vector[NodeV]): Tensor = {
-    interpretAdjMatSpidersFirst(adjMat, greenAM, redAM)
+  def interpretZWSpider(black: Boolean, outputs: Int): Tensor = {
+    require(outputs >= 0)
+    val toString = "ZW:" + black.toString + ":" + outputs
+    val spider = if (cached.contains(toString)) cached(toString) else {
+      black match {
+        case true =>
+          // Black spider
+          outputs match {
+            case 0 => Tensor(Array(Array(0)))
+            case 1 => Tensor(Array(Array(0, 1))).transpose
+            case 2 => Tensor(Array(Array(0, 1, 1, 0))).transpose
+            case 3 => Tensor(Array(Array(0, 1, 1, 0, 1, 0, 0, 0))).transpose
+            case _ =>
+              val bY = Tensor(Array(Array(0, 1, 1, 0), Array(1, 0, 0, 0))).transpose
+              val base = interpretZWSpider(black, outputs - 1)
+              (Tensor.idWires(outputs - 2) x bY) o base
+          }
+
+        case false =>
+          // White spider
+          outputs match {
+            case 0 => Tensor(Array(Array(0)))
+            case _ =>
+              Tensor(1,
+                Math.pow(2, outputs).toInt,
+                (i, j) => (if (j == 0) Complex.one else Complex.zero) -
+                (if(j == Math.pow(2, outputs) - 1) Complex.one else Complex.zero)).transpose
+          }
+      }
+    }
+
+    cached += (toString -> spider)
+    spider
   }
 
-  private def interpretAdjMatUsingCached(adj: AdjMat, greenAM: AngleMap, redAM: AngleMap) = {
-
+  def interpretZXAdjMat(adjMat: AdjMat, greenAM: Vector[NodeV], redAM: Vector[NodeV]): Tensor = {
+    interpretZXAdjMatSpidersFirst(adjMat, greenAM, redAM)
   }
 
-  private def interpretAdjMatSpidersFirst(adj: AdjMat, greenAM: Vector[NodeV], redAM: Vector[NodeV]): Tensor = {
+  def interpretZWAdjMat(adjMat: AdjMat) : Tensor = interpretZWAdjMatSpidersFirst(adjMat)
+
+  private def interpretAdjMat(adj: AdjMat, join: Tensor, vertexToTensor : (Int) => Tensor) : Tensor = {
     // Interpret the graph as (caps) o (crossings) o (vertices)
     if (adj.size == 0) {
       Tensor.id(1)
     } else {
-      val vertices = adj.mat(0)
-      val numVertices = vertices.length
+      val numVertices = adj.mat(0).length
       var vertexNextEdge = Map[Int, Int]()
       var edgesFilled = 0
 
@@ -70,6 +102,26 @@ object Interpreter {
         leg
       }
 
+      for (v <- 0 until numVertices) registerLegs(v)
+      val listTensors = for (v <- 0 until numVertices) yield vertexToTensor(v)
+      val allSpidersTensors = listTensors.foldLeft(Tensor.id(1))((a, b) => a x b)
+      var connectingCaps: Tensor = Tensor.id(1)
+      var connectionList: List[Int] = List()
+      for (i <- 0 until numVertices; j <- i until numVertices) {
+        if (adj.mat(i)(j)) {
+          connectingCaps = connectingCaps x join
+          connectionList = connectionList ++ List(claimLeg(i), claimLeg(j))
+        }
+      }
+      connectingCaps.plugAbove(allSpidersTensors, connectionList)
+    }
+  }
+
+  private def interpretZXAdjMatSpidersFirst(adj: AdjMat, greenAM: Vector[NodeV], redAM: Vector[NodeV]): Tensor = {
+    // Interpret the graph as (caps) o (crossings) o (vertices)
+    if (adj.size == 0) {
+      Tensor.id(1)
+    } else {
       // Tensor representation of a spider
       def vecToSpider(v: Int): Tensor = {
         def pullOutAngle(nv: NodeV) = if (!nv.value.isEmpty) {
@@ -82,30 +134,34 @@ object Interpreter {
           nv.angle.evaluate(Map("pi" -> math.Pi)) * math.Pi
         }
         val (colour, nodeType) = adj.vertexColoursAndTypes(v)
+        val numLegs = adj.mat(v).count(p => p)
         val green = true
         colour match {
           case VertexColour.Boundary => Tensor.id(2)
-          case VertexColour.Green => interpretSpider(green, pullOutAngle(greenAM(nodeType)), 0, numConnections(v))
-          case VertexColour.Red => interpretSpider(!green, pullOutAngle(redAM(nodeType)), 0, numConnections(v))
+          case VertexColour.Green => interpretZXSpider(green, pullOutAngle(greenAM(nodeType)), 0, numLegs)
+          case VertexColour.Red => interpretZXSpider(!green, pullOutAngle(redAM(nodeType)), 0, numLegs)
         }
       }
 
-      var legCount = 0
-      for (v <- 0 until numVertices) registerLegs(v)
-      val allSpidersTensors = (for (v <- 0 until numVertices) yield vecToSpider(v)).
-        foldLeft(Tensor.id(1))((a, b) => a x b)
-      val cap = interpretSpider(green = true, 0, 2, 0)
-      var connectingCaps: Tensor = Tensor.id(1)
-      var connectionList: List[Int] = List()
-      for (i <- 0 until numVertices; j <- i until numVertices) {
-        if (adj.mat(i)(j)) {
-          connectingCaps = connectingCaps x cap
-          connectionList = connectionList ++ List(claimLeg(i), claimLeg(j))
-        }
-      }
+      val cap = interpretZXSpider(green = true, 0, 2, 0)
 
-
-      allSpidersTensors.plugBeneath(connectingCaps, connectionList)
+      interpretAdjMat(adj,cap,vecToSpider)
     }
+  }
+
+  private def interpretZWAdjMatSpidersFirst(adj: AdjMat) : Tensor = {
+    val cup = Tensor(Array(Array(1,0,0,1)))
+    def vertexToSpider(v: Int) : Tensor = {
+      val numLegs = adj.mat(v).count(p => p)
+      val (colour, _) = adj.vertexColoursAndTypes(v)
+      val black = true
+      // Using ZX colours for now
+      colour match {
+        case VertexColour.Boundary => Tensor.id(2)
+        case VertexColour.Green => interpretZWSpider(!black, numLegs)
+        case VertexColour.Red => interpretZWSpider(black, numLegs)
+      }
+    }
+    interpretAdjMat(adj,cup,vertexToSpider)
   }
 }
