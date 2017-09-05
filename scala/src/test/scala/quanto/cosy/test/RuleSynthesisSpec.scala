@@ -134,19 +134,21 @@ class RuleSynthesisSpec extends FlatSpec {
     var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
     var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
     var remaining = ctRules.filterNot(_.name.matches(raw"RED.*"))
-    var annealed = annealingReduce(RuleSynthesis.graphToDerivation(target, rg),
+    var annealed = annealingReduce(
+      RuleSynthesis.graphToDerivation(target, rg),
       remaining ::: remaining.map(_.inverse),
       100,
       3,
-      new Random(3))
+      new Random(3),
+      None)
     assert(annealed._1.steps.size > target.verts.size)
   }
   it should "randomly apply appropriate rules" in {
     var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
     var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
     var remaining = ctRules.filter(_.name.matches(raw"S\d+.*"))
-   val reducedDerivation = randomApply((new Derivation(rg, target),None),
-     remaining, 100, alwaysTrue, new Random(1))
+    val reducedDerivation = randomApply((new Derivation(rg, target), None),
+      remaining, 100, alwaysTrue, new Random(1))
     assert(reducedDerivation._1.steps(reducedDerivation._2.get).graph < target)
- }
+  }
 }

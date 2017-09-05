@@ -122,10 +122,11 @@ object AutoReduce {
   // Simplest entry point
   def annealingReduce(derivationHeadPair: DerivationWithHead,
                       rules: List[Rule],
-                      seed: Random = new Random()): DerivationWithHead = {
+                      seed: Random = new Random(),
+                      vertexLimit : Option[Int] = None): DerivationWithHead = {
     val maxTime = math.pow(derivationHeadPair.verts.size, 2).toInt // Set as squaring #vertices for now
     val timeDilation = 3 // Gives an e^-3 ~ 0.05% chance of a non-reduction rule on the final step
-    annealingReduce(derivationHeadPair, rules, maxTime, timeDilation, seed)
+    annealingReduce(derivationHeadPair, rules, maxTime, timeDilation, seed, vertexLimit)
   }
 
   // Enter here to have control over e.g. how long it runs for
@@ -133,13 +134,16 @@ object AutoReduce {
                       rules: List[Rule],
                       maxTime: Int,
                       timeDilation: Double,
-                      seed: Random): DerivationWithHead = {
+                      seed: Random,
+                      vertexLimit: Option[Int]): DerivationWithHead = {
     (0 until maxTime).foldLeft(derivationHeadPair) { (d, time) =>
       val allowIncrease = seed.nextDouble() < math.exp(-timeDilation * time / maxTime)
       if (rules.nonEmpty) {
         val randRule = rules(seed.nextInt(rules.length))
         val suggestedNextStep = randomSingleApply(d, randRule, seed)
-        if (allowIncrease || suggestedNextStep < d) suggestedNextStep else d
+        val head = Derivation.derivationHeadPairToGraph(d)
+        val smallEnough = vertexLimit.isEmpty || (head.verts.size < vertexLimit.get)
+        if ((allowIncrease && smallEnough) || suggestedNextStep < head) suggestedNextStep else d
       } else d
     }
   }
@@ -177,7 +181,7 @@ object AutoReduce {
     } else reduced
   }
 
-  def alwaysTrue(a: Graph, b: Graph) : Boolean = true
+  def alwaysTrue(a: Graph, b: Graph): Boolean = true
 
   def randomApply(derivationWithHead: DerivationWithHead,
                   rules: List[Rule],
@@ -189,7 +193,7 @@ object AutoReduce {
       (0 until numberOfApplications).foldLeft(derivationWithHead) {
         (d, _) => {
           val suggestedUpdate = randomSingleApply(d, rules(seed.nextInt(rules.length)), seed)
-          if (requirementToKeep(suggestedUpdate,d)) suggestedUpdate else d
+          if (requirementToKeep(suggestedUpdate, d)) suggestedUpdate else d
         }
       }
     } else derivationWithHead

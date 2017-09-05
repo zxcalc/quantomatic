@@ -77,17 +77,22 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
   }
 
   private def annealSimproc(): Unit = {
-    val stepsRequested = Dialog.showInput[String](panel,
-      "How long should the annealing go on for (in steps)",
-      "Annealing Input Required",
-      initial = "100")
-    val stepsAsInt = stepsRequested.getOrElse("0").toInt
-    val reducedDerivation = annealingReduce((panel.derivation, panel.controller.state.step),
-      allowedRules,
-      stepsAsInt,
-      3,
-      new Random())
-    updateDerivation(reducedDerivation, "anneal")
+    val d = new SimulatedAnnealingDialog(panel.project)
+    d.centerOnScreen()
+    d.open()
+
+    val timeSteps = d.MainPanel.TimeSteps.text.toInt
+    val vertexLimit = d.MainPanel.vertexLimit()
+    if (timeSteps > 0) {
+      val reducedDerivation = annealingReduce(
+        (panel.derivation, panel.controller.state.step),
+        allowedRules,
+        timeSteps,
+        3,
+        new Random(),
+        vertexLimit)
+      updateDerivation(reducedDerivation, "anneal")
+    }
   }
 
   refreshSimprocs()
