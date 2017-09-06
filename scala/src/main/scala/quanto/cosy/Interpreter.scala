@@ -18,7 +18,7 @@ object Interpreter {
     case _ => Tensor.hadamard x makeHadamards(n - 1, current)
   }
 
-  def interpretZXSpider(green: Boolean, angle : Double, inputs: Int, outputs: Int): Tensor = {
+  def interpretZXSpider(green: Boolean, angle: Double, inputs: Int, outputs: Int): Tensor = {
     // Converts spider to tensor. If green==false then it is a red spider
     val toString = "ZX:" + green.toString + ":" + angle + ":" + inputs + ":" + outputs
     if (cached.contains(toString)) cached(toString) else {
@@ -62,7 +62,7 @@ object Interpreter {
               Tensor(1,
                 Math.pow(2, outputs).toInt,
                 (i, j) => (if (j == 0) Complex.one else Complex.zero) -
-                (if(j == Math.pow(2, outputs) - 1) Complex.one else Complex.zero)).transpose
+                  (if (j == Math.pow(2, outputs) - 1) Complex.one else Complex.zero)).transpose
           }
       }
     }
@@ -75,9 +75,9 @@ object Interpreter {
     interpretZXAdjMatSpidersFirst(adjMat, greenAM, redAM)
   }
 
-  def interpretZWAdjMat(adjMat: AdjMat) : Tensor = interpretZWAdjMatSpidersFirst(adjMat)
+  def interpretZWAdjMat(adjMat: AdjMat): Tensor = interpretZWAdjMatSpidersFirst(adjMat)
 
-  private def interpretAdjMat(adj: AdjMat, join: Tensor, vertexToTensor : (Int) => Tensor) : Tensor = {
+  private def interpretAdjMat(adj: AdjMat, join: Tensor, vertexToTensor: (Int) => Tensor): Tensor = {
     // Interpret the graph as (caps) o (crossings) o (vertices)
     if (adj.size == 0) {
       Tensor.id(1)
@@ -133,6 +133,7 @@ object Interpreter {
         } else {
           nv.angle.evaluate(Map("pi" -> math.Pi)) * math.Pi
         }
+
         val (colour, nodeType) = adj.vertexColoursAndTypes(v)
         val numLegs = adj.mat(v).count(p => p)
         val green = true
@@ -145,13 +146,14 @@ object Interpreter {
 
       val cap = interpretZXSpider(green = true, 0, 2, 0)
 
-      interpretAdjMat(adj,cap,vecToSpider)
+      interpretAdjMat(adj, cap, vecToSpider)
     }
   }
 
-  private def interpretZWAdjMatSpidersFirst(adj: AdjMat) : Tensor = {
-    val cup = Tensor(Array(Array(1,0,0,1)))
-    def vertexToSpider(v: Int) : Tensor = {
+  private def interpretZWAdjMatSpidersFirst(adj: AdjMat): Tensor = {
+    val cup = Tensor(Array(Array(1, 0, 0, 1)))
+
+    def vertexToSpider(v: Int): Tensor = {
       val numLegs = adj.mat(v).count(p => p)
       val (colour, _) = adj.vertexColoursAndTypes(v)
       val black = true
@@ -162,6 +164,7 @@ object Interpreter {
         case VertexColour.Red => interpretZWSpider(black, numLegs)
       }
     }
-    interpretAdjMat(adj,cup,vertexToSpider)
+
+    interpretAdjMat(adj, cup, vertexToSpider)
   }
 }

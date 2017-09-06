@@ -17,6 +17,7 @@ class Tensor(c: Array[Array[Complex]]) {
   // A tensor as a matrix in the computational basis
   type contentType = Array[Array[Complex]]
   lazy val normalised: Tensor = this.normalise()
+  override lazy val hashCode: Int = this.contents.flatten.count(c => c.re > 0)
   val contents: contentType = c
   val width: Int = contents(0).length
   val height: Int = contents.length
@@ -26,10 +27,6 @@ class Tensor(c: Array[Array[Complex]]) {
     val rightWidth = log2(width) == log2(width).floor
     val rightHeight = log2(height) == log2(height).floor
     rightWidth && rightHeight
-  }
-
-  def isSameShapeAs(that: Tensor): Boolean = {
-    this.width == that.width && this.height == that.height
   }
 
   def compose(that: Tensor): Tensor = {
@@ -95,7 +92,7 @@ class Tensor(c: Array[Array[Complex]]) {
   }
 
   def conjugate: Tensor = {
-    Tensor(this.height,this.width, (i,j) => this.c(i)(j).conjugate)
+    Tensor(this.height, this.width, (i, j) => this.c(i)(j).conjugate)
   }
 
   def plugAbove(that: Tensor, plugThatOutputsToThisInputs: Int => Int): Tensor = {
@@ -171,6 +168,31 @@ class Tensor(c: Array[Array[Complex]]) {
     this.distanceAfterScaling(that) < distance
   }
 
+  def distanceAfterScaling(that: Tensor): Double = {
+    if (this.isSameShapeAs(that)) {
+      var maxEntry = (0, 0)
+      var maxEntryValue = Complex.zero
+      for (i <- this.c.indices; j <- this.c.head.indices) {
+        if (this.c(i)(j).abs > maxEntryValue.abs) {
+          maxEntry = (i, j)
+          maxEntryValue = this.c(i)(j)
+        }
+      }
+      if (maxEntryValue == Complex.zero) {
+        this.distance(that)
+      } else {
+        val sameEntryInThat = that.contents(maxEntry._1)(maxEntry._2)
+        if (sameEntryInThat.abs == 0) {
+          this.distance(that)
+        } else {
+          this.distance(that.scaled(maxEntryValue / sameEntryInThat))
+        }
+      }
+    } else {
+      -1
+    }
+  }
+
   def approximates(maxDist: Double): Tensor => Boolean = {
     // uncurried form of isRoughly
     isRoughly(_, maxDist)
@@ -188,7 +210,37 @@ class Tensor(c: Array[Array[Complex]]) {
   def canEqual(other: Any): Boolean =
     other.isInstanceOf[Tensor]
 
-  override lazy val hashCode: Int = this.contents.flatten.count(c => c.re > 0)
+  def sum(that: Tensor): Tensor = {
+    def gen(i: Int, j: Int): Complex = {
+      if (i < this.height && j < this.width) {
+        this.contents(i)(j)
+      } else if (i >= this.height && j >= this.width) {
+        that.contents(i - this.height)(j - this.width)
+      } else {
+        0
+      }
+    }
+
+    Tensor(this.height + that.height, this.width + that.width, gen)
+  }
+
+  def power(index: Int): Tensor = {
+    require(index >= 0)
+    index match {
+      case 0 => Tensor.id(1)
+      case 1 => new Tensor(this.c)
+      case n => this x this.power(n - 1)
+    }
+  }
+
+  def sumPower(index: Int): Tensor = {
+    require(index >= 0)
+    index match {
+      case 0 => Tensor.id(1)
+      case 1 => new Tensor(this.c)
+      case n => this sum this.sumPower(n - 1)
+    }
+  }
 
   private def normalise(): Tensor = {
     // scale so the largest entry is 1, unless the tensor is roughly 0
@@ -209,29 +261,8 @@ class Tensor(c: Array[Array[Complex]]) {
     (this - that).contents.flatten.foldLeft(0.0) { (a: Double, b: Complex) => math.max(a, b.abs) }
   }
 
-  def distanceAfterScaling(that: Tensor) : Double = {
-    if (this.isSameShapeAs(that)) {
-      var maxEntry = (0,0)
-      var maxEntryValue = Complex.zero
-      for(i <- this.c.indices; j <- this.c.head.indices){
-        if (this.c(i)(j).abs > maxEntryValue.abs) {
-          maxEntry = (i, j)
-          maxEntryValue = this.c(i)(j)
-        }
-      }
-      if(maxEntryValue == Complex.zero) {
-        this.distance(that)
-      }else{
-        val sameEntryInThat = that.contents(maxEntry._1)(maxEntry._2)
-        if(sameEntryInThat.abs == 0){
-          this.distance(that)
-        }else{
-          this.distance(that.scaled(maxEntryValue / sameEntryInThat))
-        }
-      }
-    } else {
-      -1
-    }
+  def isSameShapeAs(that: Tensor): Boolean = {
+    this.width == that.width && this.height == that.height
   }
 
   def -(that: Tensor): Tensor = {
@@ -246,38 +277,9 @@ class Tensor(c: Array[Array[Complex]]) {
     Tensor(this.height, this.width, (i, j) => this.c(i)(j) + that.contents(i)(j))
   }
 
-  def sum(that: Tensor) : Tensor = {
-    def gen(i: Int, j: Int) : Complex = {
-      if(i < this.height && j < this.width) {
-        this.contents(i)(j)
-      } else if (i >= this.height && j >= this.width) {
-        that.contents(i-this.height)(j-this.width)
-      } else {0}
-    }
-    Tensor(this.height + that.height, this.width + that.width,gen)
-  }
-
   def scaled(factor: Complex): Tensor = {
     // scalar multiplication
     Tensor(this.height, this.width, (i, j) => this.c(i)(j) * factor)
-  }
-
-  def power(index: Int): Tensor = {
-    require(index >= 0)
-    index match {
-      case 0 => Tensor.id(1)
-      case 1 => new Tensor(this.c)
-      case n => this x this.power(n-1)
-    }
-  }
-
-  def sumPower(index: Int): Tensor = {
-    require(index >= 0)
-    index match {
-      case 0 => Tensor.id(1)
-      case 1 => new Tensor(this.c)
-      case n => this sum this.sumPower(n-1)
-    }
   }
 }
 
@@ -376,19 +378,19 @@ object Tensor {
     permutation(math.pow(2, size).toInt, permGen)
   }
 
-  def diagonal(entries: Array[Complex]) : Tensor = {
+  def permutation(size: Int, gen: Int => Int): Tensor = {
+    // Produce the matrix that sends i -> gen(i)
+    new Tensor(permutationMatrix(size, gen))
+  }
+
+  def diagonal(entries: Array[Complex]): Tensor = {
     val size = entries.length
-    val generator : Generator = (i: Int, j: Int) => {
+    val generator: Generator = (i: Int, j: Int) => {
       if (i == j) {
         entries(i)
       } else 0
     }
     Tensor(height = size, width = size, generator)
-  }
-
-  def permutation(size: Int, gen: Int => Int): Tensor = {
-    // Produce the matrix that sends i -> gen(i)
-    new Tensor(permutationMatrix(size, gen))
   }
 
   def zero(height: Int, width: Int): Tensor =
@@ -398,7 +400,7 @@ object Tensor {
   // for comparing entries
 
   implicit def fromJson(json: JsonObject): Tensor = {
-    val contents : Array[Array[Complex]] = (json / "contents").asArray.map(
+    val contents: Array[Array[Complex]] = (json / "contents").asArray.map(
       x => x.asArray.map(i => Complex.fromJson(i.asObject)).toArray
     ).toArray
     new Tensor(contents)

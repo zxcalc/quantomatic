@@ -186,11 +186,6 @@ object BlockRowMaker {
     )
   }
 
-  def Hadamard(dimension: Int): Tensor =
-    Tensor(dimension, dimension, (i, j) => ei(2 * math.Pi * i * j / dimension)).scaled(1 / math.sqrt(dimension))
-
-  private def ei(angle: Double) = Complex(math.cos(angle), math.sin(angle))
-
   // Traditionally the number of angles is 3 (Clifford) or 9 (Clifford+T)
   def ZXQutrit(numAngles: Int = 9): List[Block] = {
     val H3 = Hadamard(3)
@@ -232,6 +227,11 @@ object BlockRowMaker {
           Block(1, 1, "r|" + i.toString + "|" + j.toString, H3.dagger o gs o H3))
       }).flatten.toList
   }
+
+  def Hadamard(dimension: Int): Tensor =
+    Tensor(dimension, dimension, (i, j) => ei(2 * math.Pi * i * j / dimension)).scaled(1 / math.sqrt(dimension))
+
+  private def ei(angle: Double) = Complex(math.cos(angle), math.sin(angle))
 
   def ZX(numAngles: Int = 8): List[Block] = List(
     Block(1, 1, " 1 ", Tensor.idWires(1)),

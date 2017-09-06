@@ -10,7 +10,7 @@ import quanto.util.json.JsonObject
   * Created by hector on 24/05/17.
   */
 class InterpreterSpec extends FlatSpec {
-  behavior of "The Interpreter"
+  behavior of "ZX"
   val rg = Theory.fromFile("red_green")
 
   val pi = math.Pi
@@ -149,7 +149,7 @@ class InterpreterSpec extends FlatSpec {
 
   it should "Evaluate the four-output GHZ spider" in {
     var t = Interpreter.interpretZWSpider(black = true, 4)
-    assert(t == Tensor(Array(Array(1,0,0,0,0,1,1,0,0,1,1,0,0,0,0,0))).transpose)
+    assert(t == Tensor(Array(Array(1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0))).transpose)
   }
 
   /* Too intensive!
