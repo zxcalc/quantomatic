@@ -1,12 +1,11 @@
 package quanto.gui
 
+import quanto.cosy.{AutoReduce, SimplificationProcedure}
+import quanto.data.Derivation.DerivationWithHead
+
 import scala.swing._
 import scala.swing.event.{ButtonClicked, Key, KeyPressed, ValueChanged}
 import quanto.data._
-import quanto.util.Globals
-
-import scala.util.matching
-import scala.util.matching.Regex
 
 
 class SimulatedAnnealingDialog(project: Project) extends Dialog {
@@ -18,8 +17,6 @@ class SimulatedAnnealingDialog(project: Project) extends Dialog {
   val CancelButton = new Button("Cancel")
   defaultButton = Some(AnnealButton)
 
-  //  val dir = Files.newDirectoryStream(Paths.get(rootDir), "**/*.qrule")
-  //  for (p <- dir.asScala) println(p)
 
   val MainPanel = new BoxPanel(Orientation.Vertical) {
 

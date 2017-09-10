@@ -8,6 +8,7 @@ import quanto.data._
 import quanto.data.Names._
 import quanto.util.json._
 import akka.pattern.ask
+import scala.concurrent.Future
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.swing.event.ButtonClicked
@@ -15,6 +16,9 @@ import quanto.cosy.AutoReduce._
 import quanto.data.Derivation.DerivationWithHead
 
 import scala.util.Random
+
+import quanto.cosy.AutoReduce
+import quanto.cosy.{SimplificationProcedure, SimplificationInternalState}
 
 
 class SimplifyController(panel: DerivationPanel) extends Publisher {
@@ -84,14 +88,23 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     val timeSteps = d.MainPanel.TimeSteps.text.toInt
     val vertexLimit = d.MainPanel.vertexLimit()
     if (timeSteps > 0) {
-      val reducedDerivation = annealingReduce(
+
+      val initialState : AutoReduce.AnnealingInternalState = new AutoReduce.AnnealingInternalState(allowedRules,0,Some(timeSteps),new Random(),3,vertexLimit)
+      val simproc = new SimplificationProcedure[AutoReduce.AnnealingInternalState](
         (panel.derivation, panel.controller.state.step),
-        allowedRules,
-        timeSteps,
-        3,
-        new Random(),
-        vertexLimit)
-      updateDerivation(reducedDerivation, "anneal")
+        initialState,
+        AutoReduce.annealingStep,
+        AutoReduce.annealingProgress,
+        (der,state) => (state.currentStep == state.maxSteps.get)
+      )
+      val simulatedAnnealingController = new SimprocProgress[AutoReduce.AnnealingInternalState](
+        panel.project,"Simulated Annealing", simproc
+      )
+      println("opening controller")
+      simulatedAnnealingController.centerOnScreen()
+      simulatedAnnealingController.open()
+      println("closing controller")
+      updateDerivation(simulatedAnnealingController.returningDerivation, "annealing reduce")
     }
   }
 

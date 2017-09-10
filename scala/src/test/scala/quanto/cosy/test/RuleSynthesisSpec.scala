@@ -10,8 +10,12 @@ import quanto.data.Derivation.DerivationWithHead
 import quanto.util.json.Json
 import quanto.cosy.RuleSynthesis._
 import quanto.cosy.AutoReduce._
+import quanto.data
 
-import scala.util.Random
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Random, Success}
 
 /**
   * Created by hector on 28/06/17.
@@ -150,5 +154,48 @@ class RuleSynthesisSpec extends FlatSpec {
     val reducedDerivation = randomApply((new Derivation(rg, target), None),
       remaining, 100, alwaysTrue, new Random(1))
     assert(reducedDerivation._1.steps(reducedDerivation._2.get).graph < target)
+  }
+
+  behavior of "Simproc Handler"
+
+  it should "handle annealing" in {
+
+    var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
+    var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
+    var remaining = ctRules.filter(_.name.matches(raw"S\d+.*"))
+    var initialState : AutoReduce.AnnealingInternalState = new AutoReduce.AnnealingInternalState(
+      ctRules,
+      0,
+      Some(20),
+      new Random(),
+      3,
+      None)
+    var simplificationProcedure = new SimplificationProcedure[AutoReduce.AnnealingInternalState](
+      (new Derivation(rg, target), None),
+      initialState,
+      AutoReduce.annealingStep,
+      AutoReduce.annealingProgress,
+      (der,state) => (state.currentStep == state.maxSteps.get)
+    )
+    var returningDerivation = simplificationProcedure.initialDerivation
+    val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
+      //println("future started")
+      while (!simplificationProcedure.stopped) {
+        //println("futured loop")
+        simplificationProcedure.step()
+        println(simplificationProcedure.state.currentStep)
+        returningDerivation = simplificationProcedure.current
+        val graphSize = data.Derivation.derivationHeadPairToGraph(simplificationProcedure.current).verts.size
+      }
+      simplificationProcedure.current
+    }
+    backgroundDerivation onComplete {
+      case Success(_) =>
+        println(returningDerivation)
+        assert(true)
+      case Failure(e) =>
+        assert(false)
+    }
+    Await.result(backgroundDerivation, Duration(10, "seconds"))
   }
 }
