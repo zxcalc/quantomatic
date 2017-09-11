@@ -4,6 +4,10 @@ import quanto.cosy.Interpreter._
 import quanto.data._
 import quanto.util.json.{Json, JsonAccessException, JsonArray, JsonObject}
 
+import scala.concurrent.{Await, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
+
 /**
   * Synthesises diagrams, holds the data and generates equivalence classes
   */
@@ -154,7 +158,8 @@ abstract class EquivClassRun[T](val tolerance: Double = 1e-14) {
   /** Adds the diagrams to classes, does not delete current classes first */
   def findEquivalenceClasses(candidates: Stream[T], message: String = "Stream generation method"): EquivClassRun[T] = {
     val startTime = System.nanoTime()
-    candidates.foreach(add)
+    val futuredAdding = Future.sequence(candidates.map(addThreaded))
+    Await.result(futuredAdding, Duration.Inf)
     val endTime = System.nanoTime()
     val timeTaken = endTime - startTime
     val timeTakenString = "which took " + (timeTaken * 1e-9).toString + "s"
@@ -204,6 +209,13 @@ abstract class EquivClassRun[T](val tolerance: Double = 1e-14) {
   def add(that: T): EquivalenceClass[T] = {
     val tensor = interpret(that)
     add(that, tensor)
+  }
+
+  def addThreaded(that: T): Future[Unit] = {
+    Future {
+      val tensor = interpret(that)
+      add(that, tensor)
+    }
   }
 
   def add(that: T, tensor: Tensor): EquivalenceClass[T] = {
@@ -311,8 +323,9 @@ class EquivClassRunAdjMat(
   var equivalenceClasses: List[EquivalenceClass[String]] = List()
   var equivalenceClassesNormalised: List[EquivalenceClass[String]] = List()
 
-  implicit def hashToAdjMat(hash: String) : AdjMat = AdjMat.fromHash(hash)
-  implicit def adjMatToHash(adjmat: AdjMat) : String = adjmat.hash
+  implicit def hashToAdjMat(hash: String): AdjMat = AdjMat.fromHash(hash)
+
+  implicit def adjMatToHash(adjmat: AdjMat): String = adjmat.hash
 
   def adjMatToGraph(adj: AdjMat): Graph = {
     Graph.fromAdjMat(adj, rdata, gdata)
