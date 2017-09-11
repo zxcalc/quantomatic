@@ -32,7 +32,8 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     panel.SimplifyPane.GreedyButton,
     panel.SimplifyPane.RandomButton,
     panel.SimplifyPane.LTEButton,
-    panel.SimplifyPane.EvaluateButton)
+    panel.SimplifyPane.EvaluateButton,
+    panel.SimplifyPane.PullErrors)
 
   def refreshSimprocs() {
     simpId += 1
@@ -145,6 +146,42 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
 
   refreshSimprocs()
 
+  private def pullErrorsSimproc() : Unit = {
+    val initialDerivation = (panel.derivation, panel.controller.state.step)
+    val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
+    val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
+    val d = new SimpleSelectionPanel(panel.project, boundaries.map(_.toString).toList)
+    d.centerOnScreen()
+    d.open()
+
+    val targets = d.MainPanel.OptionList.selection.items.map(s => VName(s)).toList
+    println(targets)
+    if (targets.nonEmpty) {
+    val initialState: LTEByWeightState = new LTEByWeightState(
+      allowedRules,
+      0,
+      None,
+      new Random(),
+      quanto.cosy.GraphAnalysis.distanceOfErrorsFromEnds(targets),
+      None,
+      None
+    )
+    val simproc = new SimplificationProcedure[LTEByWeightState](
+      (panel.derivation, panel.controller.state.step),
+      initialState,
+      lteByWeightFunctionStep,
+      lteByWeightProgress,
+      (der, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.currentDistance.getOrElse(1) == 0
+    )
+    val progressController = new SimprocProgress[LTEByWeightState](
+      panel.project, "Pull Errors Through", simproc
+    )
+    progressController.centerOnScreen()
+    progressController.open()
+    updateDerivation(progressController.returningDerivation, "pull errors")
+  }
+  }
+
   private def greedySimproc(): Unit = {
 
     val initialState: GreedyInternalState = new GreedyInternalState(
@@ -213,6 +250,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     case ButtonClicked(panel.SimplifyPane.AnnealButton) => annealSimproc()
     case ButtonClicked(panel.SimplifyPane.GreedyButton) => greedySimproc()
     case ButtonClicked(panel.SimplifyPane.RandomButton) => randomSimproc()
+    case ButtonClicked(panel.SimplifyPane.PullErrors) => pullErrorsSimproc()
     case ButtonClicked(panel.SimplifyPane.LTEButton) => lteSimproc()
     case ButtonClicked(panel.SimplifyPane.EvaluateButton) => evaluateSimproc()
     case ButtonClicked(panel.SimplifyPane.SimplifyButton) =>

@@ -80,6 +80,46 @@ class SimulatedAnnealingDialog(project: Project) extends Dialog {
   }
 }
 
+class SimpleSelectionPanel(project: Project, options: List[String]) extends Dialog {
+  modal = true
+  val AddButton = new Button("Accept")
+  val CancelButton = new Button("Cancel")
+  val MainPanel = new BoxPanel(Orientation.Horizontal) {
+    var OptionList : ListView[String] = new ListView[String](options.sorted)
+    val SelectionPane = new ScrollPane(OptionList)
+    SelectionPane.preferredSize = new Dimension(400,200)
+
+
+    contents += Swing.VStrut(10)
+    contents += new BoxPanel(Orientation.Horizontal) {
+      contents += (Swing.HStrut(10), new Label("Select target boundaries:"), Swing.HStrut(5))
+    }
+    contents += Swing.VStrut(5)
+    contents += new BoxPanel(Orientation.Horizontal) {
+      contents += (Swing.HStrut(10), SelectionPane, Swing.HStrut(10))
+    }
+    contents += Swing.VStrut(5)
+    contents += new BoxPanel(Orientation.Horizontal) {
+      contents += (Swing.HStrut(50), AddButton, Swing.HStrut(10), CancelButton, Swing.HStrut(50))
+    }
+
+    contents += Swing.VStrut(10)
+  }
+
+  contents = MainPanel
+
+  listenTo(AddButton, CancelButton)
+
+
+  reactions += {
+    case ButtonClicked(AddButton) =>
+      close()
+    case ButtonClicked(CancelButton) =>
+      MainPanel.OptionList.selection.indices.clear()
+      close()
+  }
+}
+
 
 class EvaluationInputPanel(project: Project) extends Dialog {
   modal = true

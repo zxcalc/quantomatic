@@ -169,11 +169,12 @@ class DerivationPanel(val project: Project)
     val AnnealButton = new Button("Anneal")
     val RandomButton = new Button("Random x100")
     val LTEButton = new Button("LTE x100")
+    val PullErrors = new Button("Pull Errors")
     val EvaluateButton = new Button("Evaluate")
 
     val topPane = new BorderPanel {
       add(new FlowPanel(FlowPanel.Alignment.Left)(
-        AnnealButton, GreedyButton, RandomButton, LTEButton, EvaluateButton
+        AnnealButton, GreedyButton, RandomButton, LTEButton, EvaluateButton, PullErrors
       ), BorderPanel.Position.Center)
     }
 

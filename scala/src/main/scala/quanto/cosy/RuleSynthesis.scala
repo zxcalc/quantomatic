@@ -152,6 +152,24 @@ object ThreadedAutoReduce {
       (d, annealingInternalState.next())
   }
 
+  def lteByWeightFunctionStep(derivation: DerivationWithHead, state: LTEByWeightState):
+  (DerivationWithHead, LTEByWeightState) = {
+    println("In LTE function")
+    println(state)
+    import state._
+    val d = derivation
+    val randRule = rules(seed.nextInt(rules.length))
+    val suggestedNextStep = AutoReduce.randomSingleApply(d, randRule, seed)
+    val suggestedNewSize = weightFunction(suggestedNextStep)
+    require(suggestedNewSize.nonEmpty)
+    if (currentDistance.isEmpty || suggestedNewSize.get <= currentDistance.get) {
+      println("accepting")
+      println(randRule)
+      (suggestedNextStep, state.next(suggestedNewSize.get))
+    } else
+      (d, state.next(currentDistance.get))
+  }
+
   def greedyStep(derivation: DerivationWithHead, state: GreedyInternalState):
   (DerivationWithHead, GreedyInternalState) = {
     val seed = state.seed
@@ -173,6 +191,16 @@ object ThreadedAutoReduce {
     val currentRule = state.remainingRules.headOption
     if (currentRule.nonEmpty) {
       (Some(currentRule.toString), None)
+    } else {
+      (None, None)
+    }
+  }
+
+
+  def lteByWeightProgress(derivation: DerivationWithHead, state: LTEByWeightState): ProgressUpdate = {
+    val currentDistance = state.currentDistance
+    if (currentDistance.nonEmpty) {
+      (Some("Distance: " + currentDistance.toString), None)
     } else {
       (None, None)
     }
@@ -254,6 +282,26 @@ object ThreadedAutoReduce {
     }
   }
 
+  case class LTEByWeightState(val rules: List[Rule],
+                              val currentStep: Int,
+                              val maxSteps: Option[Int],
+                              val seed: Random,
+                              val weightFunction: Graph => Option[Int],
+                              val currentDistance: Option[Int],
+                              val vertexLimit: Option[Int]) extends SimplificationInternalState {
+    def next(distance: Int): LTEByWeightState = {
+      new LTEByWeightState(
+        rules,
+        currentStep + 1,
+        maxSteps,
+        seed,
+        weightFunction,
+        Some(distance),
+        vertexLimit
+      )
+    }
+  }
+
   class GreedyInternalState(val rules: List[Rule],
                             val currentStep: Int,
                             val maxSteps: Option[Int],
@@ -271,6 +319,7 @@ object ThreadedAutoReduce {
       )
     }
   }
+
 
 }
 

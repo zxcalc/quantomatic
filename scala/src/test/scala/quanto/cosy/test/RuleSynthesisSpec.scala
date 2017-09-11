@@ -27,7 +27,9 @@ class RuleSynthesisSpec extends FlatSpec {
 
   implicit val rg: Theory = Theory.fromFile("red_green")
 
-  val ZXRules : List[Rule] = loadRuleDirectory("./examples/ZX_cliffordT")
+  val examplesDirectory = "./examples/"
+  val ZXRules: List[Rule] = loadRuleDirectory(examplesDirectory + "ZX_CliffordT")
+  val ZXErrorRules: List[Rule] = loadRuleDirectory(examplesDirectory + "ZX_errors")
 
   var emptyRuleList: List[Rule] = List()
   var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
@@ -166,7 +168,7 @@ class RuleSynthesisSpec extends FlatSpec {
     var ctRules = ZXRules
     var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
     var remaining = ctRules.filter(_.name.matches(raw"S\d+.*"))
-    var initialState : ThreadedAutoReduce.AnnealingInternalState = new ThreadedAutoReduce.AnnealingInternalState(
+    var initialState: ThreadedAutoReduce.AnnealingInternalState = new ThreadedAutoReduce.AnnealingInternalState(
       ctRules,
       0,
       Some(20),
@@ -178,7 +180,7 @@ class RuleSynthesisSpec extends FlatSpec {
       initialState,
       ThreadedAutoReduce.annealingStep,
       ThreadedAutoReduce.annealingProgress,
-      (der,state) => state.currentStep == state.maxSteps.get
+      (der, state) => state.currentStep == state.maxSteps.get
     )
     var returningDerivation = simplificationProcedure.initialDerivation
     val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
@@ -207,8 +209,8 @@ class RuleSynthesisSpec extends FlatSpec {
     var ctRules = ZXRules
     var target = ctRules.filter(_.name.matches(raw"S1.*")).head.lhs
     val t1 = raw"\beta"
-    val targetString: String = t1.replaceAll(raw"\\",raw"\\\\")
-    val replacementString : String = raw"\pi".replaceAll(raw"\\",raw"\\\\")
+    val targetString: String = t1.replaceAll(raw"\\", raw"\\\\")
+    val replacementString: String = raw"\pi".replaceAll(raw"\\", raw"\\\\")
     val initialDerivation = graphToDerivation(target, rg)
     if (targetString.length > 0) {
 
@@ -227,7 +229,7 @@ class RuleSynthesisSpec extends FlatSpec {
         initialState,
         evaluationStep,
         evaluationProgress,
-        (der,state) => state.currentStep == state.maxSteps.get
+        (der, state) => state.currentStep == state.maxSteps.get
       )
       var returningDerivation = simplificationProcedure.initialDerivation
       val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
@@ -250,4 +252,55 @@ class RuleSynthesisSpec extends FlatSpec {
       Await.result(backgroundDerivation, Duration(10, "seconds"))
     }
   }
+
+  it should "perform LTE simplifications" in {
+    val allowedRules = ZXErrorRules
+    val targetGraph = quanto.util.FileHelper.readFile[Graph](
+      new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
+      Graph.fromJson(_, rg)
+    )
+    val initialDerivation: DerivationWithHead = graphToDerivation(targetGraph, rg)
+    val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
+    val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
+
+    val targets = boundaries.filter(t => t.toString.matches("b[345]")).toList
+    if (targets.nonEmpty) {
+      val initialState: LTEByWeightState = LTEByWeightState(
+        allowedRules,
+        0,
+        Some(50),
+        new Random(),
+        quanto.cosy.GraphAnalysis.distanceOfErrorsFromEnds(targets),
+        None,
+        None
+      )
+      val simplificationProcedure = new SimplificationProcedure[LTEByWeightState](
+        initialDerivation,
+        initialState,
+        lteByWeightFunctionStep,
+        lteByWeightProgress,
+        (der, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.currentDistance.getOrElse(1) == 0
+      )
+      var returningDerivation = simplificationProcedure.initialDerivation
+      val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
+        //println("future started")
+        while (!simplificationProcedure.stopped) {
+          //println("futured loop")
+          simplificationProcedure.step()
+          returningDerivation = simplificationProcedure.current
+          val graphSize = data.Derivation.derivationHeadPairToGraph(simplificationProcedure.current).verts.size
+        }
+        simplificationProcedure.current
+      }
+      backgroundDerivation onComplete {
+        case Success(_) =>
+          println(data.Derivation.derivationHeadPairToGraph(returningDerivation).vdata)
+          assert(true)
+        case Failure(e) =>
+          assert(false)
+      }
+      Await.result(backgroundDerivation, Duration(100000, "seconds"))
+    }
+  }
+
 }
