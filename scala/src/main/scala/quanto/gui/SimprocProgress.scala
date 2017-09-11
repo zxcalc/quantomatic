@@ -1,7 +1,7 @@
 package quanto.gui
 
 import quanto.{cosy, data}
-import quanto.cosy.{AutoReduce, SimplificationInternalState, SimplificationProcedure}
+import quanto.cosy.ThreadedAutoReduce.{SimplificationInternalState, SimplificationProcedure}
 import quanto.data.Derivation.DerivationWithHead
 
 import scala.swing._

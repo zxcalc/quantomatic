@@ -1,8 +1,5 @@
 package quanto.gui
 
-import quanto.cosy.{AutoReduce, SimplificationProcedure}
-import quanto.data.Derivation.DerivationWithHead
-
 import scala.swing._
 import scala.swing.event.{ButtonClicked, Key, KeyPressed, ValueChanged}
 import quanto.data._

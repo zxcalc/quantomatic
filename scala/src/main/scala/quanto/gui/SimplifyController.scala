@@ -17,8 +17,8 @@ import quanto.data.Derivation.DerivationWithHead
 
 import scala.util.Random
 
-import quanto.cosy.AutoReduce
-import quanto.cosy.{SimplificationProcedure, SimplificationInternalState}
+//import quanto.cosy.AutoReduce
+import quanto.cosy.ThreadedAutoReduce._
 
 
 class SimplifyController(panel: DerivationPanel) extends Publisher {
@@ -89,21 +89,19 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     val vertexLimit = d.MainPanel.vertexLimit()
     if (timeSteps > 0) {
 
-      val initialState : AutoReduce.AnnealingInternalState = new AutoReduce.AnnealingInternalState(allowedRules,0,Some(timeSteps),new Random(),3,vertexLimit)
-      val simproc = new SimplificationProcedure[AutoReduce.AnnealingInternalState](
+      val initialState : AnnealingInternalState = new AnnealingInternalState(allowedRules,0,Some(timeSteps),new Random(),3,vertexLimit)
+      val simproc = new SimplificationProcedure[AnnealingInternalState](
         (panel.derivation, panel.controller.state.step),
         initialState,
-        AutoReduce.annealingStep,
-        AutoReduce.annealingProgress,
-        (der,state) => (state.currentStep == state.maxSteps.get)
+        annealingStep,
+        annealingProgress,
+        (der,state) => state.currentStep == state.maxSteps.get
       )
-      val simulatedAnnealingController = new SimprocProgress[AutoReduce.AnnealingInternalState](
+      val simulatedAnnealingController = new SimprocProgress[AnnealingInternalState](
         panel.project,"Simulated Annealing", simproc
       )
-      println("opening controller")
       simulatedAnnealingController.centerOnScreen()
       simulatedAnnealingController.open()
-      println("closing controller")
       updateDerivation(simulatedAnnealingController.returningDerivation, "annealing reduce")
     }
   }
@@ -111,9 +109,27 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
   refreshSimprocs()
 
   private def greedySimproc(): Unit = {
-    val reducedDerivation = greedyReduce((panel.derivation, panel.controller.state.step),
-      allowedRules)
-    updateDerivation(reducedDerivation, "greedy reduce")
+
+    val initialState: GreedyInternalState = new GreedyInternalState(
+      allowedRules,
+      0,
+      None,
+      new Random(),
+      allowedRules,
+      None)
+    val simproc = new SimplificationProcedure[GreedyInternalState](
+      (panel.derivation, panel.controller.state.step),
+      initialState,
+      greedyStep,
+      greedyProgress,
+      (der, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.remainingRules.isEmpty
+    )
+    val progressController = new SimprocProgress[GreedyInternalState](
+      panel.project, "Greedy Reduction", simproc
+    )
+    progressController.centerOnScreen()
+    progressController.open()
+    updateDerivation(progressController.returningDerivation, "greedy reduce")
   }
 
   implicit def ruleFromDesc(ruleDesc: RuleDesc): Rule = {

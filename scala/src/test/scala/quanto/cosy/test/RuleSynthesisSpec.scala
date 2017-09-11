@@ -163,18 +163,18 @@ class RuleSynthesisSpec extends FlatSpec {
     var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
     var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
     var remaining = ctRules.filter(_.name.matches(raw"S\d+.*"))
-    var initialState : AutoReduce.AnnealingInternalState = new AutoReduce.AnnealingInternalState(
+    var initialState : ThreadedAutoReduce.AnnealingInternalState = new ThreadedAutoReduce.AnnealingInternalState(
       ctRules,
       0,
       Some(20),
       new Random(),
       3,
       None)
-    var simplificationProcedure = new SimplificationProcedure[AutoReduce.AnnealingInternalState](
+    var simplificationProcedure = new ThreadedAutoReduce.SimplificationProcedure[ThreadedAutoReduce.AnnealingInternalState](
       (new Derivation(rg, target), None),
       initialState,
-      AutoReduce.annealingStep,
-      AutoReduce.annealingProgress,
+      ThreadedAutoReduce.annealingStep,
+      ThreadedAutoReduce.annealingProgress,
       (der,state) => (state.currentStep == state.maxSteps.get)
     )
     var returningDerivation = simplificationProcedure.initialDerivation
