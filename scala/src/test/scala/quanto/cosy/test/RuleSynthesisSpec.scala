@@ -27,6 +27,8 @@ class RuleSynthesisSpec extends FlatSpec {
 
   implicit val rg: Theory = Theory.fromFile("red_green")
 
+  val ZXRules : List[Rule] = loadRuleDirectory("./examples/ZX_cliffordT")
+
   var emptyRuleList: List[Rule] = List()
   var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
   var results = EquivClassRunAdjMat(numAngles = 2,
@@ -117,7 +119,7 @@ class RuleSynthesisSpec extends FlatSpec {
   behavior of "ZXClifford+T Reduction"
 
   it should "should greedy reduce" in {
-    var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
+    var ctRules = ZXRules
     // Pick out S1, S2 and REDUCIBLE
     var smallRules = ctRules.filter(_.name.matches(raw"S\d|RED.*"))
     var reducibleGraph = smallRules.filter(_.name.matches(raw"RED.*")).head.lhs
@@ -127,7 +129,7 @@ class RuleSynthesisSpec extends FlatSpec {
   }
 
   it should "automatically reduce" in {
-    var ctRules = RuleSynthesis.loadRuleDirectory("./examples/ZX_cliffordT")
+    var ctRules = ZXRules
     // Pick out S1, S2 and REDUCIBLE
     var smallRules = ctRules.filter(_.name.matches(raw"S\d.*"))
     var minimisedRules = RuleSynthesis.minimiseRuleset(smallRules ::: smallRules.map(_.inverse), rg)
@@ -136,7 +138,7 @@ class RuleSynthesisSpec extends FlatSpec {
   }
 
   it should "make a long derivation from annealing" in {
-    var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
+    var ctRules = ZXRules
     var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
     var remaining = ctRules.filterNot(_.name.matches(raw"RED.*"))
     var annealed = annealingReduce(
@@ -149,7 +151,7 @@ class RuleSynthesisSpec extends FlatSpec {
     assert(annealed._1.steps.size > target.verts.size)
   }
   it should "randomly apply appropriate rules" in {
-    var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
+    var ctRules = ZXRules
     var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
     var remaining = ctRules.filter(_.name.matches(raw"S\d+.*"))
     val reducedDerivation = randomApply((new Derivation(rg, target), None),
@@ -161,7 +163,7 @@ class RuleSynthesisSpec extends FlatSpec {
 
   it should "handle annealing" in {
 
-    var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
+    var ctRules = ZXRules
     var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
     var remaining = ctRules.filter(_.name.matches(raw"S\d+.*"))
     var initialState : ThreadedAutoReduce.AnnealingInternalState = new ThreadedAutoReduce.AnnealingInternalState(
@@ -202,7 +204,7 @@ class RuleSynthesisSpec extends FlatSpec {
 
   it should "evaluate a graph" in {
 
-    var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
+    var ctRules = ZXRules
     var target = ctRules.filter(_.name.matches(raw"S1.*")).head.lhs
     val t1 = raw"\beta"
     val targetString: String = t1.replaceAll(raw"\\",raw"\\\\")
