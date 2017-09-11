@@ -116,6 +116,7 @@ class EvaluationInputPanel(project: Project) extends Dialog {
       close()
     case ButtonClicked(CancelButton) =>
       ReplacementText.text = ""
+      TargetText.text = ""
       close()
   }
 }
