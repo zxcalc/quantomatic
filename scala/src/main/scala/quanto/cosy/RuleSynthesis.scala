@@ -92,8 +92,10 @@ object ThreadedAutoReduce {
     val vertexName = state.vertices(state.currentStep)
     val graph = Derivation.derivationHeadPairToGraph(derivation)
     val vertexData = graph.vdata(vertexName)
+    //println("Acting on vertex "+state.currentStep)
     vertexData match {
       case node: NodeV =>
+        //println("Data " + vertexData.asInstanceOf[NodeV].value)
         if (node.value.matches(state.targetString)) {
           val newNode = node.withValue(node.value.replaceAll(state.targetString, state.replacementString))
           val nextGraph = graph.copy(vdata = graph.vdata + (vertexName -> newNode))

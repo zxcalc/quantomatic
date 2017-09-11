@@ -89,6 +89,7 @@ class EvaluationInputPanel(project: Project) extends Dialog {
 
   val EvaluationButton = new Button("Evaluate")
   val CancelButton = new Button("Cancel")
+  defaultButton = Some(EvaluationButton)
   val MainPanel = new BoxPanel(Orientation.Vertical) {
 
     contents += Swing.VStrut(10)

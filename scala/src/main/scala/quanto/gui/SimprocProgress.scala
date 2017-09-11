@@ -54,11 +54,11 @@ class SimprocProgress[T <: SimplificationInternalState](
 
 
   var returningDerivation: DerivationWithHead = simplificationProcedure.initialDerivation
-  println("created future")
+  //println("created future")
   val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
-    println ("future started")
+    //println ("future started")
     while (!simplificationProcedure.stopped) {
-      println ("futured loop")
+      //println ("futured loop")
       simplificationProcedure.step()
       Swing.onEDT {
         returningDerivation = simplificationProcedure.current
@@ -83,6 +83,8 @@ class SimprocProgress[T <: SimplificationInternalState](
   }
   backgroundDerivation onComplete {
     case Success(_) => Swing.onEDT {
+      //println("Success")
+      dispose()
       close()
     }
     case Failure(e) => Swing.onEDT {
