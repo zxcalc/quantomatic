@@ -79,3 +79,43 @@ class SimulatedAnnealingDialog(project: Project) extends Dialog {
       MainPanel.VertexLimit.editable = MainPanel.radYesVertexLimit
   }
 }
+
+
+class EvaluationInputPanel(project: Project) extends Dialog {
+  modal = true
+
+  val TargetText = new TextField(raw"\beta")
+  val ReplacementText = new TextField(raw"\pi")
+
+  val EvaluationButton = new Button("Evaluate")
+  val CancelButton = new Button("Cancel")
+  val MainPanel = new BoxPanel(Orientation.Vertical) {
+
+    contents += Swing.VStrut(10)
+    contents += new BoxPanel(Orientation.Horizontal) {
+      contents += (Swing.HStrut(10), new Label("Target:"), Swing.HStrut(5), TargetText, Swing.HStrut(10))
+    }
+    contents += Swing.VStrut(5)
+    contents += new BoxPanel(Orientation.Horizontal) {
+      contents += (Swing.HStrut(10), new Label("Replacement:"), Swing.HStrut(5), ReplacementText, Swing.HStrut(10))
+    }
+    contents += Swing.VStrut(5)
+    contents += new BoxPanel(Orientation.Horizontal) {
+      contents += (Swing.HStrut(50), EvaluationButton, Swing.HStrut(10), CancelButton, Swing.HStrut(50))
+    }
+
+    contents += Swing.VStrut(10)
+  }
+
+  contents = MainPanel
+
+  listenTo(EvaluationButton, CancelButton)
+
+  reactions += {
+    case ButtonClicked(EvaluationButton) =>
+      close()
+    case ButtonClicked(CancelButton) =>
+      ReplacementText.text = ""
+      close()
+  }
+}

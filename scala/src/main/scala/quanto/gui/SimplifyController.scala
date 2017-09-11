@@ -31,7 +31,8 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     panel.SimplifyPane.AnnealButton,
     panel.SimplifyPane.GreedyButton,
     panel.SimplifyPane.RandomButton,
-    panel.SimplifyPane.LTEButton)
+    panel.SimplifyPane.LTEButton,
+    panel.SimplifyPane.EvaluateButton)
 
   def refreshSimprocs() {
     simpId += 1
@@ -78,6 +79,42 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     //      QuantoDerive.core ! Call(theory.coreName, "simplify", "delete_stack",
     //        JsonObject("stack" -> JsonString(stack)))
     //    }
+  }
+
+  private def evaluateSimproc() : Unit = {
+    val d = new EvaluationInputPanel(panel.project)
+    d.centerOnScreen()
+    d.open()
+
+    val targetString: String = d.TargetText.text.replaceAll(raw"\\",raw"\\\\")
+    val replacementString : String = d.ReplacementText.text.replaceAll(raw"\\",raw"\\\\")
+    val initialDerivation = (panel.derivation, panel.controller.state.step)
+    if (targetString.length > 0) {
+
+      val initialState: EvaluationInternalState = new EvaluationInternalState(
+        List(),
+        0,
+        Some(initialDerivation.verts.size),
+        new Random(),
+        initialDerivation.verts.toList,
+        targetString,
+        replacementString,
+        Some(initialDerivation.verts.size)
+      )
+      val simproc = new SimplificationProcedure[EvaluationInternalState](
+        initialDerivation,
+        initialState,
+        evaluationStep,
+        evaluationProgress,
+        (der,state) => state.currentStep == state.maxSteps.get
+      )
+      val evluationProgressController = new SimprocProgress[EvaluationInternalState](
+        panel.project,"Evaluation", simproc
+      )
+      evluationProgressController.centerOnScreen()
+      evluationProgressController.open()
+      updateDerivation(evluationProgressController.returningDerivation, "evaluation")
+    }
   }
 
   private def annealSimproc(): Unit = {
@@ -177,6 +214,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     case ButtonClicked(panel.SimplifyPane.GreedyButton) => greedySimproc()
     case ButtonClicked(panel.SimplifyPane.RandomButton) => randomSimproc()
     case ButtonClicked(panel.SimplifyPane.LTEButton) => lteSimproc()
+    case ButtonClicked(panel.SimplifyPane.EvaluateButton) => evaluateSimproc()
     case ButtonClicked(panel.SimplifyPane.SimplifyButton) =>
     //      if (!panel.SimplifyPane.Simprocs.selection.indices.isEmpty) {
     //        simpId += 1

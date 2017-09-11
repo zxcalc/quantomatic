@@ -74,6 +74,108 @@ object RuleSynthesis {
 }
 
 object ThreadedAutoReduce {
+
+  type ProgressUpdate = (Option[String], Option[Double])
+
+  def evaluationProgress(derivationWithHead: DerivationWithHead, internalState: EvaluationInternalState):
+  ProgressUpdate = {
+    val progressDouble = internalState.currentStep.toDouble / internalState.vertices.size.toDouble
+    (progressDouble match {
+      case 0 => Some("Initialising")
+      case 1 => Some("Complete")
+      case _ => Some("Running")
+    }, Some(progressDouble))
+  }
+
+  def evaluationStep(derivation: DerivationWithHead, state: EvaluationInternalState):
+  (DerivationWithHead, EvaluationInternalState) = {
+    val vertexName = state.vertices(state.currentStep)
+    val graph = Derivation.derivationHeadPairToGraph(derivation)
+    val vertexData = graph.vdata(vertexName)
+    vertexData match {
+      case node: NodeV =>
+        if (node.value.matches(state.targetString)) {
+          val newNode = node.withValue(node.value.replaceAll(state.targetString, state.replacementString))
+          val nextGraph = graph.copy(vdata = graph.vdata + (vertexName -> newNode))
+
+          val nextStepName = quanto.data.Names.mapToNameMap(derivation._1.steps).
+            freshWithSuggestion(DSName(state.targetString + "->" + state.replacementString + "--0"))
+          val nextDerivation = (derivation._1.addStep(
+            derivation._2,
+            DStep(nextStepName,
+              Rule(new Graph(), new Graph(), None, RuleDesc("evaluation")),
+              nextGraph)
+          ), Some(nextStepName))
+
+          (nextDerivation, state.next())
+        } else {
+          (derivation, state.next())
+        }
+      case _ => (derivation, state.next())
+    }
+  }
+
+  def annealingProgress(derivationWithHead: DerivationWithHead, internalState: AnnealingInternalState):
+  ProgressUpdate = {
+    val progressDouble = internalState.currentStep.toDouble / internalState.maxSteps.getOrElse(1).toDouble
+    (progressDouble match {
+      case 0 => Some("Initialising")
+      case 1 => Some("Complete")
+      case _ => Some("Running")
+    }, Some(progressDouble))
+  }
+
+  def annealingStep(derivationWithHead: DerivationWithHead, annealingInternalState: AnnealingInternalState):
+  (DerivationWithHead, AnnealingInternalState) = {
+    require(annealingInternalState.maxSteps.nonEmpty)
+    val time = annealingInternalState.currentStep
+    val seed = annealingInternalState.seed
+    val timeDilation = annealingInternalState.timeDilation
+    val maxTime = annealingInternalState.maxSteps.get
+    val rules = annealingInternalState.rules
+    val vertexLimit = annealingInternalState.vertexLimit
+    val d = derivationWithHead
+
+    val allowIncrease = seed.nextDouble() < math.exp(-timeDilation * time / maxTime)
+    if (rules.nonEmpty) {
+      val randRule = rules(seed.nextInt(rules.length))
+      val suggestedNextStep = AutoReduce.randomSingleApply(d, randRule, seed)
+      val head = Derivation.derivationHeadPairToGraph(d)
+      val smallEnough = vertexLimit.isEmpty || (head.verts.size < vertexLimit.get)
+      if ((allowIncrease && smallEnough) || suggestedNextStep < head) {
+        (suggestedNextStep, annealingInternalState.next())
+      } else
+        (d, annealingInternalState.next())
+    } else
+      (d, annealingInternalState.next())
+  }
+
+  def greedyStep(derivation: DerivationWithHead, state: GreedyInternalState):
+  (DerivationWithHead, GreedyInternalState) = {
+    val seed = state.seed
+    val nextRule = state.remainingRules.headOption
+    val remainingRules = state.remainingRules
+    if (nextRule.nonEmpty) {
+      val suggestedDerivation = AutoReduce.randomSingleApply(derivation, nextRule.get, seed)
+      if (suggestedDerivation < derivation) {
+        (suggestedDerivation, state.next(remainingRules))
+      } else {
+        (derivation, state.next(remainingRules.tail))
+      }
+    } else {
+      (derivation, state)
+    }
+  }
+
+  def greedyProgress(derivation: DerivationWithHead, state: GreedyInternalState): ProgressUpdate = {
+    val currentRule = state.remainingRules.headOption
+    if (currentRule.nonEmpty) {
+      (Some(currentRule.toString), None)
+    } else {
+      (None, None)
+    }
+  }
+
   /**
     * Similar to AutoReduce, but used with the GUI so can be halted
     */
@@ -118,45 +220,25 @@ object ThreadedAutoReduce {
     }
   }
 
-
-  type ProgressUpdate = (Option[String], Option[Double])
-
-
-  def annealingProgress(derivationWithHead: DerivationWithHead, internalState: AnnealingInternalState):
-  (Option[String], Option[Double]) = {
-    val progressDouble = internalState.currentStep.toDouble / internalState.maxSteps.getOrElse(1).toDouble
-    (progressDouble match {
-      case 0 => Some("Initialising")
-      case 1 => Some("Complete")
-      case _ => Some("Running")
-    }, Some(progressDouble))
+  class EvaluationInternalState(val rules: List[Rule],
+                                val currentStep: Int,
+                                val maxSteps: Option[Int],
+                                val seed: Random,
+                                val vertices: List[VName],
+                                val targetString: String,
+                                val replacementString: String,
+                                val vertexLimit: Option[Int]) extends SimplificationInternalState {
+    def next(): EvaluationInternalState = {
+      new EvaluationInternalState(rules,
+        currentStep + 1,
+        maxSteps,
+        seed,
+        vertices,
+        targetString,
+        replacementString,
+        vertexLimit)
+    }
   }
-
-  def annealingStep(derivationWithHead: DerivationWithHead, annealingInternalState: AnnealingInternalState):
-  (DerivationWithHead, AnnealingInternalState) = {
-    require(annealingInternalState.maxSteps.nonEmpty)
-    val time = annealingInternalState.currentStep
-    val seed = annealingInternalState.seed
-    val timeDilation = annealingInternalState.timeDilation
-    val maxTime = annealingInternalState.maxSteps.get
-    val rules = annealingInternalState.rules
-    val vertexLimit = annealingInternalState.vertexLimit
-    val d = derivationWithHead
-
-    val allowIncrease = seed.nextDouble() < math.exp(-timeDilation * time / maxTime)
-    if (rules.nonEmpty) {
-      val randRule = rules(seed.nextInt(rules.length))
-      val suggestedNextStep = AutoReduce.randomSingleApply(d, randRule, seed)
-      val head = Derivation.derivationHeadPairToGraph(d)
-      val smallEnough = vertexLimit.isEmpty || (head.verts.size < vertexLimit.get)
-      if ((allowIncrease && smallEnough) || suggestedNextStep < head) {
-        (suggestedNextStep, annealingInternalState.next())
-      } else
-        (d, annealingInternalState.next())
-    } else
-      (d, annealingInternalState.next())
-  }
-
 
   class AnnealingInternalState(val rules: List[Rule],
                                val currentStep: Int,
@@ -167,24 +249,6 @@ object ThreadedAutoReduce {
                               ) extends SimplificationInternalState {
     def next(): AnnealingInternalState = {
       new AnnealingInternalState(rules, currentStep + 1, maxSteps, seed, timeDilation, vertexLimit)
-    }
-  }
-
-
-  def greedyStep(derivation: DerivationWithHead, state: GreedyInternalState):
-  (DerivationWithHead, GreedyInternalState) = {
-    val seed = state.seed
-    val nextRule = state.remainingRules.headOption
-    val remainingRules = state.remainingRules
-    if (nextRule.nonEmpty) {
-      val suggestedDerivation = AutoReduce.randomSingleApply(derivation, nextRule.get, seed)
-      if (suggestedDerivation < derivation) {
-        (suggestedDerivation, state.next(remainingRules))
-      } else {
-        (derivation, state.next(remainingRules.tail))
-      }
-    } else {
-      (derivation, state)
     }
   }
 
@@ -203,15 +267,6 @@ object ThreadedAutoReduce {
         updatedRemainingRules,
         vertexLimit
       )
-    }
-  }
-
-  def greedyProgress(derivation: DerivationWithHead, state: GreedyInternalState): ProgressUpdate = {
-    val currentRule = state.remainingRules.headOption
-    if (currentRule.nonEmpty) {
-      (Some(currentRule.toString), None)
-    } else {
-      (None, None)
     }
   }
 

@@ -10,6 +10,7 @@ import quanto.data.Derivation.DerivationWithHead
 import quanto.util.json.Json
 import quanto.cosy.RuleSynthesis._
 import quanto.cosy.AutoReduce._
+import quanto.cosy.ThreadedAutoReduce._
 import quanto.data
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -175,7 +176,7 @@ class RuleSynthesisSpec extends FlatSpec {
       initialState,
       ThreadedAutoReduce.annealingStep,
       ThreadedAutoReduce.annealingProgress,
-      (der,state) => (state.currentStep == state.maxSteps.get)
+      (der,state) => state.currentStep == state.maxSteps.get
     )
     var returningDerivation = simplificationProcedure.initialDerivation
     val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
@@ -197,5 +198,54 @@ class RuleSynthesisSpec extends FlatSpec {
         assert(false)
     }
     Await.result(backgroundDerivation, Duration(10, "seconds"))
+  }
+
+  it should "evaluate a graph" in {
+
+    var ctRules = loadRuleDirectory("./examples/ZX_cliffordT")
+    var target = ctRules.filter(_.name.matches(raw"S1.*")).head.lhs
+    val t1 = raw"\beta"
+    val targetString: String = t1.replaceAll(raw"\\",raw"\\\\")
+    val replacementString : String = raw"\pi".replaceAll(raw"\\",raw"\\\\")
+    val initialDerivation = graphToDerivation(target, rg)
+    if (targetString.length > 0) {
+
+      val initialState: EvaluationInternalState = new EvaluationInternalState(
+        List(),
+        0,
+        Some(initialDerivation.verts.size),
+        new Random(),
+        initialDerivation.verts.toList,
+        targetString,
+        replacementString,
+        Some(initialDerivation.verts.size)
+      )
+      val simplificationProcedure = new SimplificationProcedure[EvaluationInternalState](
+        initialDerivation,
+        initialState,
+        evaluationStep,
+        evaluationProgress,
+        (der,state) => state.currentStep == state.maxSteps.get
+      )
+      var returningDerivation = simplificationProcedure.initialDerivation
+      val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
+        //println("future started")
+        while (!simplificationProcedure.stopped) {
+          //println("futured loop")
+          simplificationProcedure.step()
+          returningDerivation = simplificationProcedure.current
+          val graphSize = data.Derivation.derivationHeadPairToGraph(simplificationProcedure.current).verts.size
+        }
+        simplificationProcedure.current
+      }
+      backgroundDerivation onComplete {
+        case Success(_) =>
+          println(data.Derivation.derivationHeadPairToGraph(returningDerivation).vdata)
+          assert(true)
+        case Failure(e) =>
+          assert(false)
+      }
+      Await.result(backgroundDerivation, Duration(10, "seconds"))
+    }
   }
 }
