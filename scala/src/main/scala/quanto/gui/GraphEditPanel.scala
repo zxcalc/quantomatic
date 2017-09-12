@@ -80,25 +80,25 @@ class GraphEditControls(theory: Theory) extends Publisher {
         EdgeDirected.enabled = false
         GraphToolGroup.select(SelectButton)
       case AddVertexTool() =>
+        if(previousTool.nonEmpty && previousTool.get == AddVertexButton){
+          //VertexTypeSelect.selection.index = (VertexTypeSelect.selection.index + 1) % vertexOptions.size
+        }
         VertexTypeLabel.enabled = true
         VertexTypeSelect.enabled = true
         EdgeTypeLabel.enabled = false
         EdgeTypeSelect.enabled = false
         EdgeDirected.enabled = false
         GraphToolGroup.select(AddVertexButton)
-        if(previousTool.nonEmpty && previousTool.get == AddVertexButton){
-          VertexTypeSelect.selection.index = (VertexTypeSelect.selection.index + 1) % vertexOptions.size
-        }
       case AddEdgeTool() =>
+        if(previousTool.nonEmpty && previousTool.get == AddEdgeButton){
+          //EdgeTypeSelect.selection.index = (EdgeTypeSelect.selection.index + 1) % edgeOptions.size
+        }
         VertexTypeLabel.enabled = false
         VertexTypeSelect.enabled = false
         EdgeTypeLabel.enabled = true
         EdgeTypeSelect.enabled = true
         EdgeDirected.enabled = true
         GraphToolGroup.select(AddEdgeButton)
-        if(previousTool.nonEmpty && previousTool.get == AddEdgeButton){
-          EdgeTypeSelect.selection.index = (EdgeTypeSelect.selection.index + 1) % edgeOptions.size
-        }
       case AddBangBoxTool() =>
         VertexTypeLabel.enabled = false
         VertexTypeSelect.enabled = false
