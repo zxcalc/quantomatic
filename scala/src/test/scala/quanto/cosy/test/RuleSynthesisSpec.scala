@@ -31,6 +31,8 @@ class RuleSynthesisSpec extends FlatSpec {
   val ZXRules: List[Rule] = loadRuleDirectory(examplesDirectory + "ZX_CliffordT")
   val ZXErrorRules: List[Rule] = loadRuleDirectory(examplesDirectory + "ZX_errors")
 
+  val waitTime = 1000 // seconds
+
   var emptyRuleList: List[Rule] = List()
   var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
   var results = EquivClassRunAdjMat(numAngles = 2,
@@ -249,7 +251,7 @@ class RuleSynthesisSpec extends FlatSpec {
         case Failure(e) =>
           assert(false)
       }
-      Await.result(backgroundDerivation, Duration(10, "seconds"))
+      Await.result(backgroundDerivation, Duration(waitTime, "seconds"))
     }
   }
 
@@ -272,6 +274,7 @@ class RuleSynthesisSpec extends FlatSpec {
         new Random(),
         quanto.cosy.GraphAnalysis.distanceOfErrorsFromEnds(targets),
         None,
+        heldVertices = None,
         None
       )
       val simplificationProcedure = new SimplificationProcedure[LTEByWeightState](
@@ -299,7 +302,7 @@ class RuleSynthesisSpec extends FlatSpec {
         case Failure(e) =>
           assert(false)
       }
-      Await.result(backgroundDerivation, Duration(100000, "seconds"))
+      Await.result(backgroundDerivation, Duration(waitTime, "seconds"))
     }
   }
 

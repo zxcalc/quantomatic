@@ -159,10 +159,9 @@ object ThreadedAutoReduce {
     import state._
     val d = derivation
     val randRule = rules(seed.nextInt(rules.length))
-    val suggestedNextStep = AutoReduce.randomSingleApply(d, randRule, seed)
+    val suggestedNextStep = AutoReduce.randomSingleApply(d, randRule, seed, state.heldVertices)
     val suggestedNewSize = weightFunction(suggestedNextStep)
-    require(suggestedNewSize.nonEmpty)
-    if (currentDistance.isEmpty || suggestedNewSize.get <= currentDistance.get) {
+    if (suggestedNewSize.nonEmpty && (currentDistance.isEmpty || suggestedNewSize.get <= currentDistance.get)) {
       println("accepting")
       println(randRule)
       (suggestedNextStep, state.next(suggestedNewSize.get))
@@ -200,7 +199,7 @@ object ThreadedAutoReduce {
   def lteByWeightProgress(derivation: DerivationWithHead, state: LTEByWeightState): ProgressUpdate = {
     val currentDistance = state.currentDistance
     if (currentDistance.nonEmpty) {
-      (Some("Distance: " + currentDistance.toString), None)
+      (Some(f"Distance: ${currentDistance.get}%2.2f"), None)
     } else {
       (None, None)
     }
@@ -282,21 +281,23 @@ object ThreadedAutoReduce {
     }
   }
 
-  case class LTEByWeightState(val rules: List[Rule],
-                              val currentStep: Int,
-                              val maxSteps: Option[Int],
-                              val seed: Random,
-                              val weightFunction: Graph => Option[Int],
-                              val currentDistance: Option[Int],
-                              val vertexLimit: Option[Int]) extends SimplificationInternalState {
-    def next(distance: Int): LTEByWeightState = {
-      new LTEByWeightState(
+  case class LTEByWeightState(rules: List[Rule],
+                              currentStep: Int,
+                              maxSteps: Option[Int],
+                              seed: Random,
+                              weightFunction: Graph => Option[Double],
+                              currentDistance: Option[Double],
+                              heldVertices: Option[Set[VName]],
+                              vertexLimit: Option[Int]) extends SimplificationInternalState {
+    def next(distance: Double): LTEByWeightState = {
+      LTEByWeightState(
         rules,
         currentStep + 1,
         maxSteps,
         seed,
         weightFunction,
         Some(distance),
+        heldVertices,
         vertexLimit
       )
     }
@@ -452,12 +453,13 @@ object AutoReduce {
 
   def randomSingleApply(derivationWithHead: DerivationWithHead,
                         rule: Rule,
-                        seed: Random = new Random()): DerivationWithHead = {
+                        seed: Random = new Random(),
+                        blockedVertices: Option[Set[VName]] = None): DerivationWithHead = {
 
     val matches = Matcher.findMatches(rule.lhs, derivationWithHead)
     val chosenMatch: Option[Match] = matches.find(_ => seed.nextBoolean())
-
-    if (chosenMatch.nonEmpty) {
+    val hitsBlockedVertex = chosenMatch.nonEmpty && chosenMatch.get.map.v.exists(vv => blockedVertices.contains(vv._2))
+    if (chosenMatch.nonEmpty && !hitsBlockedVertex) {
       // apply a randomly chosen instance of the rule to the graph
       val reducedGraph = Rewriter.rewrite(chosenMatch.get, rule.rhs)._1.minimise
       val nextStepName = quanto.data.Names.mapToNameMap(derivationWithHead._1.steps).

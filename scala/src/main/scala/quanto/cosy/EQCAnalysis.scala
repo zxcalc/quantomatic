@@ -17,7 +17,7 @@ object GraphAnalysis {
     bool2(tensor.contents)
   }
 
-  def distanceOfErrorsFromEnds(ends: List[VName])(graph: Graph): Option[Int] = {
+  def distanceOfErrorsFromEnds(ends: List[VName])(graph: Graph): Option[Double] = {
     val vertexList = graph.verts.toList
 
     def namesToIndex(name: VName) = vertexList.indexOf(name)
@@ -27,6 +27,19 @@ object GraphAnalysis {
       filter(name => !graph.vdata(name).isBoundary && !graph.vdata(name).isWireVertex).
       filter(name => graph.vdata(name).asInstanceOf[NodeV].angle != AngleExpression(0))
     val errors = errorNames.map(namesToIndex)
+    val distanceMatrices = pathConnectionMatrices(graph)
+    pathDistanceSet(distanceMatrices, errors, targets)
+  }
+
+  def distanceSpecialFromEnds(specials: List[VName])(ends: List[VName])(graph: Graph) : Option[Double] = {
+
+    val vertexList = graph.verts.toList
+
+    def namesToIndex(name: VName) = vertexList.indexOf(name)
+
+    val targets = ends.map(namesToIndex).toSet
+    // Called errors for historical reasons
+    val errors = specials.map(namesToIndex).toSet
     val distanceMatrices = pathConnectionMatrices(graph)
     pathDistanceSet(distanceMatrices, errors, targets)
   }
@@ -62,17 +75,27 @@ object GraphAnalysis {
     (vertexNames, vertexNames.foldLeft(Vector[Vector[Boolean]]())((vs, v) => vs :+ setToVector(graph.adjacentVerts(v))))
   }
 
-  def pathDistanceSet(matrices: List[(Int, Tensor)], vertexSet1: Set[Int], vertexSet2: Set[Int]): Option[Int] = {
+  def pathDistanceSet(matrices: List[(Int, Tensor)], vertexSet1: Set[Int], vertexSet2: Set[Int]): Option[Double] = {
 
-    val distances = (for (a <- vertexSet1) yield {
-      val shortest = (for (b <- vertexSet2) yield {
+    val distances = (for (a <- vertexSet1.toList) yield {
+      val shortest = (for (b <- vertexSet2.toList) yield {
         pathDistance(matrices, a, b)
       }).filter(p => p.nonEmpty).map(p => p.get)
       if (shortest.nonEmpty) Some(shortest.min) else None
     }
       ).filter(p => p.nonEmpty).map(p => p.get)
 
-    if (distances.isEmpty) None else Some(distances.max)
+    def intsWithCount(ints: List[Int]) : Double = {
+      val max = ints.max
+      val count = max match {
+        case 0 => 1
+        case _ => ints.count(c => c == max)
+      }
+
+      max + ((count-1).toDouble / count.toDouble)
+    }
+
+    if (distances.isEmpty) None else Some(intsWithCount(distances))
   }
 
   def pathDistance(matrices: List[(Int, Tensor)], v1Index: Int, v2Index: Int): Option[Int] = {

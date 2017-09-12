@@ -33,7 +33,8 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     panel.SimplifyPane.RandomButton,
     panel.SimplifyPane.LTEButton,
     panel.SimplifyPane.EvaluateButton,
-    panel.SimplifyPane.PullErrors)
+    panel.SimplifyPane.PullErrorsButton,
+    panel.SimplifyPane.BalloonButton)
 
   def refreshSimprocs() {
     simpId += 1
@@ -150,19 +151,20 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     val initialDerivation = (panel.derivation, panel.controller.state.step)
     val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
     val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
-    val d = new SimpleSelectionPanel(panel.project, boundaries.map(_.toString).toList)
+    val d = new SimpleSelectionPanel(panel.project,"Select target boundaries:", boundaries.map(_.toString).toList)
     d.centerOnScreen()
     d.open()
 
     val targets = d.MainPanel.OptionList.selection.items.map(s => VName(s)).toList
     println(targets)
     if (targets.nonEmpty) {
-    val initialState: LTEByWeightState = new LTEByWeightState(
+    val initialState: LTEByWeightState = LTEByWeightState(
       allowedRules,
       0,
       None,
       new Random(),
       quanto.cosy.GraphAnalysis.distanceOfErrorsFromEnds(targets),
+      None,
       None,
       None
     )
@@ -180,6 +182,49 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     progressController.open()
     updateDerivation(progressController.returningDerivation, "pull errors")
   }
+  }
+
+
+  private def pullSpecialsSimproc() : Unit = {
+    val initialDerivation = (panel.derivation, panel.controller.state.step)
+    val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
+    val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
+    val d = new SimpleSelectionPanel(panel.project, "Select target boundaries:", boundaries.map(_.toString).toList)
+    d.centerOnScreen()
+    d.open()
+
+    val e = new SimpleSelectionPanel(panel.project, "Select vertices to hold in place:" , graph.verts.map(_.toString).toList)
+    e.centerOnScreen()
+    e.open()
+
+    val targets = d.MainPanel.OptionList.selection.items.map(s => VName(s)).toList
+    val specials = e.MainPanel.OptionList.selection.items.map(s => VName(s)).toList
+    println(targets)
+    if (targets.nonEmpty) {
+      val initialState: LTEByWeightState = LTEByWeightState(
+        allowedRules,
+        0,
+        None,
+        new Random(),
+        quanto.cosy.GraphAnalysis.distanceSpecialFromEnds(specials)(targets),
+        None,
+        heldVertices = Some(specials.toSet),
+        None
+      )
+      val simproc = new SimplificationProcedure[LTEByWeightState](
+        (panel.derivation, panel.controller.state.step),
+        initialState,
+        lteByWeightFunctionStep,
+        lteByWeightProgress,
+        (der, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.currentDistance.getOrElse(1) == 0
+      )
+      val progressController = new SimprocProgress[LTEByWeightState](
+        panel.project, "Pull Errors Through", simproc
+      )
+      progressController.centerOnScreen()
+      progressController.open()
+      updateDerivation(progressController.returningDerivation, "pull errors")
+    }
   }
 
   private def greedySimproc(): Unit = {
@@ -250,9 +295,10 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     case ButtonClicked(panel.SimplifyPane.AnnealButton) => annealSimproc()
     case ButtonClicked(panel.SimplifyPane.GreedyButton) => greedySimproc()
     case ButtonClicked(panel.SimplifyPane.RandomButton) => randomSimproc()
-    case ButtonClicked(panel.SimplifyPane.PullErrors) => pullErrorsSimproc()
+    case ButtonClicked(panel.SimplifyPane.PullErrorsButton) => pullErrorsSimproc()
     case ButtonClicked(panel.SimplifyPane.LTEButton) => lteSimproc()
     case ButtonClicked(panel.SimplifyPane.EvaluateButton) => evaluateSimproc()
+    case ButtonClicked(panel.SimplifyPane.BalloonButton) => pullSpecialsSimproc()
     case ButtonClicked(panel.SimplifyPane.SimplifyButton) =>
     //      if (!panel.SimplifyPane.Simprocs.selection.indices.isEmpty) {
     //        simpId += 1
