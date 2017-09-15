@@ -158,8 +158,8 @@ abstract class EquivClassRun[T](val tolerance: Double = 1e-14) {
   /** Adds the diagrams to classes, does not delete current classes first */
   def findEquivalenceClasses(candidates: Stream[T], message: String = "Stream generation method"): EquivClassRun[T] = {
     val startTime = System.nanoTime()
-    val futuredAdding = Future.sequence(candidates.map(addThreaded))
-    Await.result(futuredAdding, Duration.Inf)
+    val withInterpretations = candidates.map(c => (c, interpret(c)))
+    withInterpretations.foreach(ct => add(ct._1, ct._2))
     val endTime = System.nanoTime()
     val timeTaken = endTime - startTime
     val timeTakenString = "which took " + (timeTaken * 1e-9).toString + "s"
@@ -209,13 +209,6 @@ abstract class EquivClassRun[T](val tolerance: Double = 1e-14) {
   def add(that: T): EquivalenceClass[T] = {
     val tensor = interpret(that)
     add(that, tensor)
-  }
-
-  def addThreaded(that: T): Future[Unit] = {
-    Future {
-      val tensor = interpret(that)
-      add(that, tensor)
-    }
   }
 
   def add(that: T, tensor: Tensor): EquivalenceClass[T] = {

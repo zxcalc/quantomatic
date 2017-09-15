@@ -1,7 +1,8 @@
 package quanto.gui
 
 import quanto.{cosy, data}
-import quanto.cosy.ThreadedAutoReduce.{SimplificationInternalState, SimplificationProcedure}
+import quanto.cosy.SimplificationProcedure
+import quanto.cosy.SimplificationProcedure.SimplificationState
 import quanto.data.Derivation.DerivationWithHead
 
 import scala.swing._
@@ -12,7 +13,7 @@ import scala.util.{Failure, Success}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class SimprocProgress[T <: SimplificationInternalState](
+class SimprocProgress[T <: SimplificationState](
                                                          project: Project,
                                                          actionName: String,
                                                          simplificationProcedure: SimplificationProcedure[T]
@@ -82,7 +83,8 @@ class SimprocProgress[T <: SimplificationInternalState](
     simplificationProcedure.current
   }
   backgroundDerivation onComplete {
-    case Success(_) => Swing.onEDT {
+    case Success(finalDerivation) => Swing.onEDT {
+      returningDerivation = finalDerivation
       //println("Success")
       dispose()
       close()

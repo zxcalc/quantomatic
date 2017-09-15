@@ -123,7 +123,7 @@ object Interpreter {
       Tensor.id(1)
     } else {
       // Tensor representation of a spider
-      def vecToSpider(v: Int): Tensor = {
+      def vertexToSpider(v: Int): Tensor = {
         def pullOutAngle(nv: NodeV) = if (!nv.value.isEmpty) {
           try {
             nv.value.toDouble
@@ -146,7 +146,7 @@ object Interpreter {
 
       val cap = interpretZXSpider(green = true, 0, 2, 0)
 
-      interpretAdjMat(adj, cap, vecToSpider)
+      interpretAdjMat(adj, cap, vertexToSpider)
     }
   }
 

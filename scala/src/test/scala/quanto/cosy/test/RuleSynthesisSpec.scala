@@ -7,10 +7,8 @@ import org.scalatest.FlatSpec
 import quanto.data._
 import quanto.rewrite.{Matcher, Rewriter}
 import quanto.data.Derivation.DerivationWithHead
-import quanto.util.json.Json
 import quanto.cosy.RuleSynthesis._
 import quanto.cosy.AutoReduce._
-import quanto.cosy.ThreadedAutoReduce._
 import quanto.data
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -31,7 +29,7 @@ class RuleSynthesisSpec extends FlatSpec {
   val ZXRules: List[Rule] = loadRuleDirectory(examplesDirectory + "ZX_CliffordT")
   val ZXErrorRules: List[Rule] = loadRuleDirectory(examplesDirectory + "ZX_errors")
 
-  val waitTime = 1000 // seconds
+  val waitTime = 60 // seconds
 
   var emptyRuleList: List[Rule] = List()
   var diagramStream = ColbournReadEnum.enumerate(2, 2, 2, 2)
@@ -40,6 +38,11 @@ class RuleSynthesisSpec extends FlatSpec {
     rulesList = emptyRuleList,
     theory = rg)
   results.findEquivalenceClasses(diagramStream.map(_.hash), "ColbournRead 2 2 2 2")
+
+  it should "have done something" in {
+    assert(diagramStream.toList.length > 5)
+    assert(results.equivalenceClasses.length > 5)
+  }
 
   it should "turn a class into rules" in {
     var ruleList = RuleSynthesis.graphEquivClassReduction[String](
@@ -161,149 +164,6 @@ class RuleSynthesisSpec extends FlatSpec {
     val reducedDerivation = randomApply((new Derivation(rg, target), None),
       remaining, 100, alwaysTrue, new Random(1))
     assert(reducedDerivation._1.steps(reducedDerivation._2.get).graph < target)
-  }
-
-  behavior of "Simproc Handler"
-
-  it should "handle annealing" in {
-
-    var ctRules = ZXRules
-    var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
-    var remaining = ctRules.filter(_.name.matches(raw"S\d+.*"))
-    var initialState: ThreadedAutoReduce.AnnealingInternalState = new ThreadedAutoReduce.AnnealingInternalState(
-      ctRules,
-      0,
-      Some(20),
-      new Random(),
-      3,
-      None)
-    var simplificationProcedure = new ThreadedAutoReduce.SimplificationProcedure[ThreadedAutoReduce.AnnealingInternalState](
-      (new Derivation(rg, target), None),
-      initialState,
-      ThreadedAutoReduce.annealingStep,
-      ThreadedAutoReduce.annealingProgress,
-      (der, state) => state.currentStep == state.maxSteps.get
-    )
-    var returningDerivation = simplificationProcedure.initialDerivation
-    val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
-      //println("future started")
-      while (!simplificationProcedure.stopped) {
-        //println("futured loop")
-        simplificationProcedure.step()
-        println(simplificationProcedure.state.currentStep)
-        returningDerivation = simplificationProcedure.current
-        val graphSize = data.Derivation.derivationHeadPairToGraph(simplificationProcedure.current).verts.size
-      }
-      simplificationProcedure.current
-    }
-    backgroundDerivation onComplete {
-      case Success(_) =>
-        println(returningDerivation)
-        assert(true)
-      case Failure(e) =>
-        assert(false)
-    }
-    Await.result(backgroundDerivation, Duration(10, "seconds"))
-  }
-
-  it should "evaluate a graph" in {
-
-    var ctRules = ZXRules
-    var target = ctRules.filter(_.name.matches(raw"S1.*")).head.lhs
-    val t1 = raw"\beta"
-    val targetString: String = t1.replaceAll(raw"\\", raw"\\\\")
-    val replacementString: String = raw"\pi".replaceAll(raw"\\", raw"\\\\")
-    val initialDerivation = graphToDerivation(target, rg)
-    if (targetString.length > 0) {
-
-      val initialState: EvaluationInternalState = new EvaluationInternalState(
-        List(),
-        0,
-        Some(initialDerivation.verts.size),
-        new Random(),
-        initialDerivation.verts.toList,
-        targetString,
-        replacementString,
-        Some(initialDerivation.verts.size)
-      )
-      val simplificationProcedure = new SimplificationProcedure[EvaluationInternalState](
-        initialDerivation,
-        initialState,
-        evaluationStep,
-        evaluationProgress,
-        (der, state) => state.currentStep == state.maxSteps.get
-      )
-      var returningDerivation = simplificationProcedure.initialDerivation
-      val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
-        //println("future started")
-        while (!simplificationProcedure.stopped) {
-          //println("futured loop")
-          simplificationProcedure.step()
-          returningDerivation = simplificationProcedure.current
-          val graphSize = data.Derivation.derivationHeadPairToGraph(simplificationProcedure.current).verts.size
-        }
-        simplificationProcedure.current
-      }
-      backgroundDerivation onComplete {
-        case Success(_) =>
-          println(data.Derivation.derivationHeadPairToGraph(returningDerivation).vdata)
-          assert(true)
-        case Failure(e) =>
-          assert(false)
-      }
-      Await.result(backgroundDerivation, Duration(waitTime, "seconds"))
-    }
-  }
-
-  it should "perform LTE simplifications" in {
-    val allowedRules = ZXErrorRules
-    val targetGraph = quanto.util.FileHelper.readFile[Graph](
-      new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
-      Graph.fromJson(_, rg)
-    )
-    val initialDerivation: DerivationWithHead = graphToDerivation(targetGraph, rg)
-    val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
-    val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
-
-    val targets = boundaries.filter(t => t.toString.matches("b[345]")).toList
-    if (targets.nonEmpty) {
-      val initialState: LTEByWeightState = LTEByWeightState(
-        allowedRules,
-        0,
-        Some(50),
-        new Random(),
-        quanto.cosy.GraphAnalysis.distanceOfErrorsFromEnds(targets),
-        None,
-        heldVertices = None,
-        None
-      )
-      val simplificationProcedure = new SimplificationProcedure[LTEByWeightState](
-        initialDerivation,
-        initialState,
-        lteByWeightFunctionStep,
-        lteByWeightProgress,
-        (der, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.currentDistance.getOrElse(1) == 0
-      )
-      var returningDerivation = simplificationProcedure.initialDerivation
-      val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
-        //println("future started")
-        while (!simplificationProcedure.stopped) {
-          //println("futured loop")
-          simplificationProcedure.step()
-          returningDerivation = simplificationProcedure.current
-          val graphSize = data.Derivation.derivationHeadPairToGraph(simplificationProcedure.current).verts.size
-        }
-        simplificationProcedure.current
-      }
-      backgroundDerivation onComplete {
-        case Success(_) =>
-          println(data.Derivation.derivationHeadPairToGraph(returningDerivation).vdata)
-          assert(true)
-        case Failure(e) =>
-          assert(false)
-      }
-      Await.result(backgroundDerivation, Duration(waitTime, "seconds"))
-    }
   }
 
 }

@@ -141,7 +141,6 @@ class DerivationPanel(val project: Project)
     val Simprocs = new ListView[String]
     val SimprocsScrollPane = new ScrollPane(Simprocs)
     SimprocsScrollPane.preferredSize = new Dimension(400,200)
-
     val Preview = new GraphView(theory, DummyRef)
     val PreviewScrollPane = new ScrollPane(Preview)
     Preview.zoom = 0.6
@@ -165,18 +164,11 @@ class DerivationPanel(val project: Project)
     }
 
 
-    val GreedyButton = new Button("Greedy Reduce")
-    val AnnealButton = new Button("Anneal")
-    val RandomButton = new Button("Random x100")
-    val LTEButton = new Button("LTE x100")
-    val PullErrorsButton = new Button("Pull Errors")
-    val BalloonButton = new Button("Pull w/ Held")
-    val EvaluateButton = new Button("Evaluate")
-
     val topPane = new BorderPanel {
-      add(new FlowPanel(FlowPanel.Alignment.Left)(
-        AnnealButton, GreedyButton, RandomButton, LTEButton, EvaluateButton, PullErrorsButton, BalloonButton
-      ), BorderPanel.Position.Center)
+      add(SimprocsScrollPane, BorderPanel.Position.Center)
+      add(new FlowPanel(FlowPanel.Alignment.Center)(
+        SimplifyButton
+      ), BorderPanel.Position.South)
     }
 
     add(new SplitPane(Orientation.Horizontal, topPane, PreviewScrollPane), BorderPanel.Position.Center)

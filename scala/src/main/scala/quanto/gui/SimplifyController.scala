@@ -8,33 +8,22 @@ import quanto.data._
 import quanto.data.Names._
 import quanto.util.json._
 import akka.pattern.ask
-import scala.concurrent.Future
 
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.swing.event.ButtonClicked
-import quanto.cosy.AutoReduce._
+import quanto.cosy.SimplificationProcedure
+import quanto.cosy.GraphAnalysis
 import quanto.data.Derivation.DerivationWithHead
 
 import scala.util.Random
-
-//import quanto.cosy.AutoReduce
-import quanto.cosy.ThreadedAutoReduce._
 
 
 class SimplifyController(panel: DerivationPanel) extends Publisher {
   implicit val timeout = QuantoDerive.timeout
   private var simpId = 0 // incrementing the simpId will (lazily) cancel any pending simplification jobs
 
-  listenTo(panel.SimplifyPane.RefreshButton,
-    panel.SimplifyPane.SimplifyButton,
-    panel.SimplifyPane.StopButton,
-    panel.SimplifyPane.AnnealButton,
-    panel.SimplifyPane.GreedyButton,
-    panel.SimplifyPane.RandomButton,
-    panel.SimplifyPane.LTEButton,
-    panel.SimplifyPane.EvaluateButton,
-    panel.SimplifyPane.PullErrorsButton,
-    panel.SimplifyPane.BalloonButton)
+  listenTo(panel.SimplifyPane.SimplifyButton)
 
   def refreshSimprocs() {
     simpId += 1
@@ -83,17 +72,20 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     //    }
   }
 
-  private def evaluateSimproc() : Unit = {
+  private def evaluateSimproc(): Unit = {
     val d = new EvaluationInputPanel(panel.project)
     d.centerOnScreen()
     d.open()
 
-    val targetString: String = d.TargetText.text.replaceAll(raw"\\",raw"\\\\")
-    val replacementString : String = d.ReplacementText.text.replaceAll(raw"\\",raw"\\\\")
+    val targetString: String = d.TargetText.text.replaceAll(raw"\\", raw"\\\\")
+    val replacementString: String = d.ReplacementText.text.replaceAll(raw"\\", raw"\\\\")
     val initialDerivation = (panel.derivation, panel.controller.state.step)
+
+    import quanto.cosy.SimplificationProcedure.Evaluation._
+
     if (targetString.length > 0) {
 
-      val initialState: EvaluationInternalState = new EvaluationInternalState(
+      val initialState: State = new State(
         List(),
         0,
         Some(initialDerivation.verts.size),
@@ -103,15 +95,15 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
         replacementString,
         Some(initialDerivation.verts.size)
       )
-      val simproc = new SimplificationProcedure[EvaluationInternalState](
+      val simproc = new SimplificationProcedure[State](
         initialDerivation,
         initialState,
-        evaluationStep,
-        evaluationProgress,
-        (der,state) => state.currentStep == state.maxSteps.get
+        step,
+        progress,
+        (der, state) => state.currentStep == state.maxSteps.get
       )
-      val evluationProgressController = new SimprocProgress[EvaluationInternalState](
-        panel.project,"Evaluation", simproc
+      val evluationProgressController = new SimprocProgress[State](
+        panel.project, "Evaluation", simproc
       )
       evluationProgressController.centerOnScreen()
       evluationProgressController.open()
@@ -127,17 +119,17 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     val timeSteps = d.MainPanel.TimeSteps.text.toInt
     val vertexLimit = d.MainPanel.vertexLimit()
     if (timeSteps > 0) {
-
-      val initialState : AnnealingInternalState = new AnnealingInternalState(allowedRules,0,Some(timeSteps),new Random(),3,vertexLimit)
-      val simproc = new SimplificationProcedure[AnnealingInternalState](
+import quanto.cosy.SimplificationProcedure.Annealing._
+      val initialState: State = new State(allowedRules, 0, Some(timeSteps), new Random(), 3, vertexLimit)
+      val simproc = new SimplificationProcedure[State](
         (panel.derivation, panel.controller.state.step),
         initialState,
-        annealingStep,
-        annealingProgress,
-        (der,state) => state.currentStep == state.maxSteps.get
+        step,
+        progress,
+        (der, state) => state.currentStep == state.maxSteps.get
       )
-      val simulatedAnnealingController = new SimprocProgress[AnnealingInternalState](
-        panel.project,"Simulated Annealing", simproc
+      val simulatedAnnealingController = new SimprocProgress[State](
+        panel.project, "Simulated Annealing", simproc
       )
       simulatedAnnealingController.centerOnScreen()
       simulatedAnnealingController.open()
@@ -147,45 +139,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
 
   refreshSimprocs()
 
-  private def pullErrorsSimproc() : Unit = {
-    val initialDerivation = (panel.derivation, panel.controller.state.step)
-    val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
-    val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
-    val d = new SimpleSelectionPanel(panel.project,"Select target boundaries:", boundaries.map(_.toString).toList)
-    d.centerOnScreen()
-    d.open()
-
-    val targets = d.MainPanel.OptionList.selection.items.map(s => VName(s)).toList
-    println(targets)
-    if (targets.nonEmpty) {
-    val initialState: LTEByWeightState = LTEByWeightState(
-      allowedRules,
-      0,
-      None,
-      new Random(),
-      quanto.cosy.GraphAnalysis.distanceOfErrorsFromEnds(targets),
-      None,
-      None,
-      None
-    )
-    val simproc = new SimplificationProcedure[LTEByWeightState](
-      (panel.derivation, panel.controller.state.step),
-      initialState,
-      lteByWeightFunctionStep,
-      lteByWeightProgress,
-      (der, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.currentDistance.getOrElse(1) == 0
-    )
-    val progressController = new SimprocProgress[LTEByWeightState](
-      panel.project, "Pull Errors Through", simproc
-    )
-    progressController.centerOnScreen()
-    progressController.open()
-    updateDerivation(progressController.returningDerivation, "pull errors")
-  }
-  }
-
-
-  private def pullSpecialsSimproc() : Unit = {
+  private def pullErrorsSimproc(): Unit = {
     val initialDerivation = (panel.derivation, panel.controller.state.step)
     val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
     val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
@@ -193,15 +147,68 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     d.centerOnScreen()
     d.open()
 
-    val e = new SimpleSelectionPanel(panel.project, "Select vertices to hold in place:" , graph.verts.map(_.toString).toList)
+    val targets = d.MainPanel.OptionList.selection.items.map(s => VName(s)).toList
+
+    val e = new SimpleSelectionPanel(panel.project, "Select greedy rules:", allowedRules.map(_.description.name).toList)
+    e.centerOnScreen()
+    e.open()
+
+    val greedyRules = e.MainPanel.OptionList.selection.items.map(s => ruleFromDesc(RuleDesc(s))).toList
+
+
+
+    println(targets)
+    import quanto.cosy.SimplificationProcedure.PullErrors
+    if (targets.nonEmpty && allowedRules.nonEmpty) {
+
+      val initialState: PullErrors.State = PullErrors.State(
+        allowedRules.filterNot(r => greedyRules.contains(r)),
+        0,
+        None,
+        new Random(),
+        PullErrors.errorsDistance(targets.toSet),
+        greedyRules = Some(greedyRules),
+        currentDistance = None,
+        heldVertices = None,
+        vertexLimit = None
+      )
+
+
+      val simplificationProcedure = new quanto.cosy.SimplificationProcedure[PullErrors.State](
+        initialDerivation,
+        initialState,
+        PullErrors.step,
+        PullErrors.progress,
+        (_, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.currentDistance.getOrElse(2.0) < 1
+      )
+      val progressController = new SimprocProgress[PullErrors.State](
+        panel.project, "Pull Errors Through", simplificationProcedure
+      )
+      progressController.centerOnScreen()
+      progressController.open()
+      updateDerivation(progressController.returningDerivation, "pull errors")
+    }
+  }
+
+
+  private def pullSpecialsSimproc(): Unit = {
+    val initialDerivation = (panel.derivation, panel.controller.state.step)
+    val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
+    val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
+    val d = new SimpleSelectionPanel(panel.project, "Select target boundaries:", boundaries.map(_.toString).toList)
+    d.centerOnScreen()
+    d.open()
+
+    val e = new SimpleSelectionPanel(panel.project, "Select vertices to hold in place:", graph.verts.map(_.toString).toList)
     e.centerOnScreen()
     e.open()
 
     val targets = d.MainPanel.OptionList.selection.items.map(s => VName(s)).toList
     val specials = e.MainPanel.OptionList.selection.items.map(s => VName(s)).toList
+    import quanto.cosy.SimplificationProcedure.LTEByWeight._
     println(targets)
     if (targets.nonEmpty) {
-      val initialState: LTEByWeightState = LTEByWeightState(
+      val initialState: State = State(
         allowedRules,
         0,
         None,
@@ -211,14 +218,14 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
         heldVertices = Some(specials.toSet),
         None
       )
-      val simproc = new SimplificationProcedure[LTEByWeightState](
+      val simproc = new SimplificationProcedure[State](
         (panel.derivation, panel.controller.state.step),
         initialState,
-        lteByWeightFunctionStep,
-        lteByWeightProgress,
+        step,
+        progress,
         (der, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.currentDistance.getOrElse(1) == 0
       )
-      val progressController = new SimprocProgress[LTEByWeightState](
+      val progressController = new SimprocProgress[State](
         panel.project, "Pull Errors Through", simproc
       )
       progressController.centerOnScreen()
@@ -228,28 +235,93 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
   }
 
   private def greedySimproc(): Unit = {
-
-    val initialState: GreedyInternalState = new GreedyInternalState(
+    import quanto.cosy.SimplificationProcedure.Greedy._
+    val initialState: State = new State(
       allowedRules,
       0,
       None,
       new Random(),
       allowedRules,
       None)
-    val simproc = new SimplificationProcedure[GreedyInternalState](
+    val simproc = new SimplificationProcedure[State](
       (panel.derivation, panel.controller.state.step),
       initialState,
-      greedyStep,
-      greedyProgress,
+      step,
+      progress,
       (der, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.remainingRules.isEmpty
     )
-    val progressController = new SimprocProgress[GreedyInternalState](
+    val progressController = new SimprocProgress[State](
       panel.project, "Greedy Reduction", simproc
     )
     progressController.centerOnScreen()
     progressController.open()
     updateDerivation(progressController.returningDerivation, "greedy reduce")
   }
+
+  private def lteSimproc(): Unit = {
+    import quanto.cosy.SimplificationProcedure.LTEByWeight._
+    val initialState: State = State(
+      rules = allowedRules,
+      currentStep = 0,
+      currentDistance = None,
+      maxSteps = Some(100),
+      seed = new Random(),
+      weightFunction = g => Some(g.verts.size + g.edges.size),
+      heldVertices = None,
+      vertexLimit = None)
+    val simproc = new SimplificationProcedure[State](
+      (panel.derivation, panel.controller.state.step),
+      initialState,
+      step,
+      progress,
+      (der, state) => state.currentStep == state.maxSteps.getOrElse(-1)
+    )
+    val progressController = new SimprocProgress[State](
+      panel.project, "Greedy Reduction", simproc
+    )
+    progressController.centerOnScreen()
+    progressController.open()
+    updateDerivation(progressController.returningDerivation, "lte reduce")
+  }
+
+
+  private def randomSimproc(): Unit = {
+    import quanto.cosy.SimplificationProcedure.LTEByWeight._
+    val initialState: State = State(
+      rules = allowedRules,
+      currentStep = 0,
+      currentDistance = None,
+      maxSteps = Some(100),
+      seed = new Random(),
+      weightFunction = g => None,
+      heldVertices = None,
+      vertexLimit = None)
+    val simproc = new SimplificationProcedure[State](
+      (panel.derivation, panel.controller.state.step),
+      initialState,
+      step,
+      progress,
+      (der, state) => state.currentStep == state.maxSteps.getOrElse(-1)
+    )
+    val progressController = new SimprocProgress[State](
+      panel.project, "Random Rule Application", simproc
+    )
+    progressController.centerOnScreen()
+    progressController.open()
+    updateDerivation(progressController.returningDerivation, "random apply")
+  }
+
+
+  val availableProcedures: Map[String, () => Unit] = Map(
+    "Random x 100" -> randomSimproc,
+    "Graph shrink x 100" -> lteSimproc,
+    "Greedy reduce" -> greedySimproc,
+    "Pull specials" -> pullSpecialsSimproc,
+    "Pull pi-errors" -> pullErrorsSimproc,
+    "Anneal" -> annealSimproc,
+    "Evaluate" -> evaluateSimproc
+  )
+  Swing.onEDT { panel.SimplifyPane.Simprocs.listData = availableProcedures.keys.toSeq }
 
   implicit def ruleFromDesc(ruleDesc: RuleDesc): Rule = {
     Rule.fromJson(Json.parse(new File(panel.project.rootFolder + "/" + ruleDesc.name + ".qrule")),
@@ -259,23 +331,12 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
 
   private def allowedRules = panel.rewriteController.rules.map(ruleFromDesc).toList
 
-  private def lteSimproc(): Unit = {
-    val reducedDerivation = randomApply((panel.derivation, panel.controller.state.step),
-      allowedRules, 100, (suggested, current) => suggested <= current)
-    updateDerivation(reducedDerivation, "lte reduce")
-  }
-
-  private def randomSimproc(): Unit = {
-    val reducedDerivation = randomApply((panel.derivation, panel.controller.state.step),
-      allowedRules, 100)
-    updateDerivation(reducedDerivation, "random reduce")
-  }
-
   private def moveToStep(stepName: DSName): Unit = {
     panel.controller.state = StepState(stepName)
   }
 
   private def updateDerivation(derivationWithHead: DerivationWithHead, desc: String): Unit = {
+    println("updating derivation")
     val currentDerivation = panel.document.derivation
 
     panel.document.undoStack.register(desc) {
@@ -292,36 +353,12 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
 
   reactions += {
     case ButtonClicked(panel.SimplifyPane.RefreshButton) => refreshSimprocs()
-    case ButtonClicked(panel.SimplifyPane.AnnealButton) => annealSimproc()
-    case ButtonClicked(panel.SimplifyPane.GreedyButton) => greedySimproc()
-    case ButtonClicked(panel.SimplifyPane.RandomButton) => randomSimproc()
-    case ButtonClicked(panel.SimplifyPane.PullErrorsButton) => pullErrorsSimproc()
-    case ButtonClicked(panel.SimplifyPane.LTEButton) => lteSimproc()
-    case ButtonClicked(panel.SimplifyPane.EvaluateButton) => evaluateSimproc()
-    case ButtonClicked(panel.SimplifyPane.BalloonButton) => pullSpecialsSimproc()
     case ButtonClicked(panel.SimplifyPane.SimplifyButton) =>
-    //      if (!panel.SimplifyPane.Simprocs.selection.indices.isEmpty) {
-    //        simpId += 1
-    //        val simproc = panel.SimplifyPane.Simprocs.selection.items(0).asInstanceOf[String]
-    //        val res = QuantoDerive.core ? Call(theory.coreName, "simplify", "simplify", JsonObject(
-    //          "simproc" -> JsonString(simproc),
-    //          "graph"   -> Graph.toJson(panel.LhsView.graph, theory)
-    //        ))
-    //        res.map {
-    //          case Success(JsonString(stack)) =>
-    //            Swing.onEDT {
-    //              QuantoDerive.ConsoleProgress.indeterminate = true
-    //              pullSimp(simproc, simpId, stack, panel.controller.state.step)
-    //            }
-    //
-    //          case _ => println("ERROR: Unexpected result from core: " + res) // TODO: errror dialogs
-    //        }
-    //      }
-    case ButtonClicked(panel.SimplifyPane.StopButton) =>
-      Swing.onEDT {
-        QuantoDerive.ConsoleProgress.indeterminate = false
-      }
-      simpId += 1
+        if (panel.SimplifyPane.Simprocs.selection.indices.nonEmpty) {
+          val procedureName: String = panel.SimplifyPane.Simprocs.selection.items(0)
+          val procedure = availableProcedures(procedureName)
+          procedure.apply()
+        }
   }
 
 }
