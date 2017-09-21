@@ -657,7 +657,63 @@ class MatcherSpec extends FlatSpec {
   }
 
   it should "match a bialg LHS on itself" in {
-    val g1 = loadGraph("bialg-lhs")
+    val g1 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "bang_boxes" : {
+        |    "bx0" : {
+        |      "contents" : [ "b0", "v1" ]
+        |    },
+        |    "bx1" : {
+        |      "contents" : [ "b1", "v0" ]
+        |    }
+        |  },
+        |  "wire_vertices" : {
+        |    "b0" : {
+        |      "annotation" : {
+        |        "boundary" : true,
+        |        "coord" : [ -1.5, 4.25 ]
+        |      }
+        |    },
+        |    "b1" : {
+        |      "annotation" : {
+        |        "boundary" : true,
+        |        "coord" : [ -1.5, -1.75 ]
+        |      }
+        |    }
+        |  },
+        |  "node_vertices" : {
+        |    "v0" : {
+        |      "data" : {
+        |        "type" : "X",
+        |        "value" : ""
+        |      },
+        |      "annotation" : {
+        |        "coord" : [ -1.5, 0.25 ]
+        |      }
+        |    },
+        |    "v1" : {
+        |      "annotation" : {
+        |        "coord" : [ -1.5, 2.5 ]
+        |      }
+        |    }
+        |  },
+        |  "undir_edges" : {
+        |    "e0" : {
+        |      "src" : "b0",
+        |      "tgt" : "v1"
+        |    },
+        |    "e1" : {
+        |      "src" : "v1",
+        |      "tgt" : "v0"
+        |    },
+        |    "e2" : {
+        |      "src" : "v0",
+        |      "tgt" : "b1"
+        |    }
+        |  }
+        |}
+      """.stripMargin), thy = rg)
     val matches = Matcher.findMatches(g1, g1)
     assert(matches.nonEmpty)
   }
