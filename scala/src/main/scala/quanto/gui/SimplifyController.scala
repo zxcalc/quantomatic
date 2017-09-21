@@ -126,7 +126,7 @@ import quanto.cosy.SimplificationProcedure.Annealing._
         initialState,
         step,
         progress,
-        (der, state) => state.currentStep == state.maxSteps.get
+        (_, state) => state.currentStep == state.maxSteps.get
       )
       val simulatedAnnealingController = new SimprocProgress[State](
         panel.project, "Simulated Annealing", simproc
@@ -143,13 +143,17 @@ import quanto.cosy.SimplificationProcedure.Annealing._
     val initialDerivation = (panel.derivation, panel.controller.state.step)
     val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
     val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
-    val d = new SimpleSelectionPanel(panel.project, "Select target boundaries:", boundaries.map(_.toString).toList)
+    val d = new SimpleSelectionPanel(panel.project,
+      "Select target boundaries:",
+      boundaries.toList.sorted.map(_.toString))
     d.centerOnScreen()
     d.open()
 
     val targets = d.MainPanel.OptionList.selection.items.map(s => VName(s)).toList
 
-    val e = new SimpleSelectionPanel(panel.project, "Select greedy rules:", allowedRules.map(_.description.name).toList)
+    val e = new SimpleSelectionPanel(panel.project,
+      "Select greedy rules:",
+      allowedRules.map(_.description.name))
     e.centerOnScreen()
     e.open()
 
@@ -195,11 +199,15 @@ import quanto.cosy.SimplificationProcedure.Annealing._
     val initialDerivation = (panel.derivation, panel.controller.state.step)
     val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
     val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
-    val d = new SimpleSelectionPanel(panel.project, "Select target boundaries:", boundaries.map(_.toString).toList)
+    val d = new SimpleSelectionPanel(panel.project,
+      "Select target boundaries:",
+      boundaries.toList.sorted.map(_.toString))
     d.centerOnScreen()
     d.open()
 
-    val e = new SimpleSelectionPanel(panel.project, "Select vertices to hold in place:", graph.verts.map(_.toString).toList)
+    val e = new SimpleSelectionPanel(panel.project,
+      "Select vertices to hold in place:",
+      graph.verts.toList.sorted.map(_.toString))
     e.centerOnScreen()
     e.open()
 
@@ -223,7 +231,7 @@ import quanto.cosy.SimplificationProcedure.Annealing._
         initialState,
         step,
         progress,
-        (der, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.currentDistance.getOrElse(1) == 0
+        (_, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.currentDistance.getOrElse(1) == 0
       )
       val progressController = new SimprocProgress[State](
         panel.project, "Pull Errors Through", simproc
@@ -243,15 +251,15 @@ import quanto.cosy.SimplificationProcedure.Annealing._
       new Random(),
       allowedRules,
       None)
-    val simproc = new SimplificationProcedure[State](
+    val simplificationProcedure = new SimplificationProcedure[State](
       (panel.derivation, panel.controller.state.step),
       initialState,
       step,
       progress,
-      (der, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.remainingRules.isEmpty
+      (_, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.remainingRules.isEmpty
     )
     val progressController = new SimprocProgress[State](
-      panel.project, "Greedy Reduction", simproc
+      panel.project, "Greedy Reduction", simplificationProcedure
     )
     progressController.centerOnScreen()
     progressController.open()
@@ -274,7 +282,7 @@ import quanto.cosy.SimplificationProcedure.Annealing._
       initialState,
       step,
       progress,
-      (der, state) => state.currentStep == state.maxSteps.getOrElse(-1)
+      (_, state) => state.currentStep == state.maxSteps.getOrElse(-1)
     )
     val progressController = new SimprocProgress[State](
       panel.project, "Greedy Reduction", simproc
@@ -293,7 +301,7 @@ import quanto.cosy.SimplificationProcedure.Annealing._
       currentDistance = None,
       maxSteps = Some(100),
       seed = new Random(),
-      weightFunction = g => None,
+      weightFunction = _ => None,
       heldVertices = None,
       vertexLimit = None)
     val simproc = new SimplificationProcedure[State](
@@ -301,7 +309,7 @@ import quanto.cosy.SimplificationProcedure.Annealing._
       initialState,
       step,
       progress,
-      (der, state) => state.currentStep == state.maxSteps.getOrElse(-1)
+      (_, state) => state.currentStep == state.maxSteps.getOrElse(-1)
     )
     val progressController = new SimprocProgress[State](
       panel.project, "Random Rule Application", simproc
@@ -331,9 +339,6 @@ import quanto.cosy.SimplificationProcedure.Annealing._
 
   private def allowedRules = panel.rewriteController.rules.map(ruleFromDesc).toList
 
-  private def moveToStep(stepName: DSName): Unit = {
-    panel.controller.state = StepState(stepName)
-  }
 
   private def updateDerivation(derivationWithHead: DerivationWithHead, desc: String): Unit = {
     println("updating derivation")
