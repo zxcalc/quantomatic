@@ -173,14 +173,25 @@ class BBoxMatcherSpec extends FlatSpec {
     val g1 = Graph.fromJson(Json.parse(
       """
         |{
-        |  "node_vertices": {
-        |    "v0": {"data": {"type": "Z"}}
+        |  "bang_boxes" : {
+        |    "bx0" : {
+        |      "contents" : [ "v0" ]
+        |    },
+        |    "bx1" : {
+        |      "contents" : [ "v0" ],
+        |      "parent" : "bx0"
+        |    }
         |  },
-        |  "undir_edges": {
-        |  },
-        |  "bang_boxes": {
-        |    "bb0": {"contents": ["v0"]},
-        |    "bb1": {"contents": ["v0"]}
+        |  "node_vertices" : {
+        |    "v0" : {
+        |      "data" : {
+        |        "type" : "Z",
+        |        "value" : ""
+        |      },
+        |      "annotation" : {
+        |        "coord" : [ -4.75, 2.25 ]
+        |      }
+        |    }
         |  }
         |}
       """.stripMargin), thy = rg)
@@ -190,12 +201,10 @@ class BBoxMatcherSpec extends FlatSpec {
         |  "node_vertices": {
         |    "v0": {"data": {"type": "Z"}},
         |    "v1": {"data": {"type": "Z"}},
-        |    "v2": {"data": {"type": "Z"}},
         |    "v3": {"data": {"type": "Z"}}
         |  },
         |  "undir_edges": {
-        |    "e0": {"src": "v0", "tgt": "v1"},
-        |    "e1": {"src": "v0", "tgt": "v2"}
+        |    "e0": {"src": "v0", "tgt": "v1"}
         |  }
         |}
       """.stripMargin), thy = rg)
@@ -304,7 +313,8 @@ class BBoxMatcherSpec extends FlatSpec {
         |      "contents" : [ "v1", "v2" ]
         |    },
         |    "bx1" : {
-        |      "contents" : [ "v2" ]
+        |      "contents" : [ "v2" ],
+        |      "parent" : "bx0"
         |    }
         |  },
         |  "node_vertices" : {
