@@ -97,7 +97,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
               QuantoDerive.CoreStatus.text = "Python ran sucessfully"
               QuantoDerive.CoreStatus.foreground = new Color(0, 150, 0)
             } catch {
-              case e =>
+              case e : Throwable =>
                 QuantoDerive.CoreStatus.text = "Error in python code"
                 QuantoDerive.CoreStatus.foreground = Color.RED
                 Swing.onEDT { e.printStackTrace(output) }

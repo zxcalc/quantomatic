@@ -97,7 +97,7 @@ class ScalaEditPanel extends BorderPanel with HasDocument {
               QuantoDerive.CoreStatus.text = "Scala compiled sucessfully"
               QuantoDerive.CoreStatus.foreground = new Color(0, 150, 0)
             } catch {
-              case e =>
+              case e : Throwable =>
                 QuantoDerive.CoreStatus.text = "Error in scala code"
                 QuantoDerive.CoreStatus.foreground = Color.RED
                 Swing.onEDT { e.printStackTrace(scalaOutput) }
