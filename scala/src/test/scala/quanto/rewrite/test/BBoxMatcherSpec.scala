@@ -42,7 +42,7 @@ class BBoxMatcherSpec extends FlatSpec {
     assert(matches.size === 2)
   }
 
-  it should "match an empty bbox exactly once on a graph" in {
+  it should "match an empty (wild) bbox twice" in {
     val g1 = Graph.fromJson(Json.parse(
       """
         |{
@@ -65,7 +65,9 @@ class BBoxMatcherSpec extends FlatSpec {
 
     val matches = Matcher.findMatches(g1, g2)
 
-    assert(matches.size === 1)
+    // This is a wild !-box. So, it should be matched twice, once as a drop and
+    // once as a kill.
+    assert(matches.size === 2)
   }
 
   it should "match a graph with 1 bbox on itself" in {
@@ -211,12 +213,15 @@ class BBoxMatcherSpec extends FlatSpec {
 
     val matches = Matcher.findMatches(g1, g2)
 
-    // v3 has no neighbours
-    // the empty match
+    // Note bx0 is a wild !-box, since it doesn't contain any vertices which are
+    // not also in its children. Hence, it should only be dropped or killed.
 
-    // Then find the powerset of the above
+    // Should find 3 matches, corresponding to:
+    //   1. killing bx0
+    //   2. dropping bx0 and killing bx1
+    //   3. dropping bx0, expanding bx1, killing bx1
 
-    assert(matches.size === 4)
+    assert(matches.size === 3)
   }
 
 

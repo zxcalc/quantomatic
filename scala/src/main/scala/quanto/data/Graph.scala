@@ -19,7 +19,12 @@ case class GraphSearchContext(exploredV: Set[VName], exploredE: Set[EName])
 class GraphLoadException(message: String, cause: Throwable = null)
 extends GraphException(message, cause)
 
-sealed abstract class BBOp { def bb: BBName; def shortName: String }
+sealed abstract class BBOp {
+  def bb: BBName
+  def shortName: String
+  //override def toString: String = shortName
+}
+
 case class BBExpand(bb: BBName, mp: GraphMap) extends BBOp { def shortName = "E(" + bb + ")" }
 case class BBCopy(bb: BBName, mp: GraphMap) extends BBOp { def shortName = "C(" + bb + ")" }
 case class BBDrop(bb: BBName) extends BBOp { def shortName = "D(" + bb + ")" }
@@ -900,7 +905,8 @@ case class Graph(
 
   def isWildBBox(bb: BBName): Boolean = {
     // TODO: check for bare wires as well
-    contents(bb).isEmpty
+    // a wild !-box is a !-box which contains no vertices which are not in other !-boxes
+    contents(bb).forall(v => bboxesContaining(v).size > 1)
   }
 
   def toJson(theory: Theory) : Json = Graph.toJson(this, theory)

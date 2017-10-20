@@ -185,8 +185,11 @@ case class MatchState(
           val (killGraph, killOp) = m.pattern.killBBox(pbb)
 
           val next1 =
-            if (m.pattern.isWildBBox(pbb)) nextState
-            else { // only expand/copy non-wild !-boxes, or we'll get infinite matchings
+            if (m.pattern.isWildBBox(pbb)) {
+              // if a !-box is wild, drop it, rather than copy/expand
+              val (dropGraph, dropOp) = m.pattern.dropBBox(pbb)
+              Some(copy(m = m.copy(pattern = dropGraph, bbops = dropOp :: m.bbops)))
+            } else { // only expand/copy non-wild !-boxes, or we'll get infinite matchings
               val minV = m.pattern.contents(pbb).min
               val (expandGraph, expandOp) = m.pattern.expandBBox(pbb)
               val (copyGraph, copyOp) = m.pattern.copyBBox(pbb)
