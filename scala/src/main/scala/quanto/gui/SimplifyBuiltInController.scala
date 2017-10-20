@@ -19,7 +19,7 @@ import quanto.data.Derivation.DerivationWithHead
 import scala.util.Random
 
 
-class SimplifyController(panel: DerivationPanel) extends Publisher {
+class SimplifyBuiltInController(panel: DerivationPanel) extends Publisher {
   implicit val timeout = QuantoDerive.timeout
   private var simpId = 0 // incrementing the simpId will (lazily) cancel any pending simplification jobs
 

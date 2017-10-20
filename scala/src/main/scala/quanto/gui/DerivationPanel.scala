@@ -268,6 +268,6 @@ class DerivationPanel(val project: Project)
   val controller = new DerivationController(this)
 
   val rewriteController = new RewriteController(this)
-  val simplifyController = new SimplifyController(this)
+  val simplifyController = new SimplifyBuiltInController(this)
 //  rewriteController.rules = Vector(RuleDesc("axioms/test1", inverse = false), RuleDesc("axioms/test2", inverse = true))
 }
