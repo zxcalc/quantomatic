@@ -8,6 +8,7 @@ import quanto.core._
 import quanto.data._
 import quanto.data.Names._
 import quanto.gui.QuantoDerive
+import quanto.rewrite.Simproc
 import quanto.util.json._
 import akka.pattern.ask
 import scala.concurrent.duration._
@@ -126,4 +127,8 @@ object Scripting {
 
     def copy() : derivation = { val d1 = new derivation(start); d1.d = d; d1 }
   }
+
+  val EMPTY: Simproc = Simproc.empty
+
+  def register_simproc(s: String, sp: Simproc) { project.simprocs += s -> sp }
 }
