@@ -23,14 +23,14 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
   implicit val timeout = QuantoDerive.timeout
   private var simpId = 0 // incrementing the simpId will (lazily) cancel any pending simplification jobs
 
-  listenTo(panel.SimplifyPane.SimplifyButton)
+  listenTo(panel.SimplifyBuiltInPane.SimplifyButton)
 
   def refreshSimprocs() {
     simpId += 1
     //    val res = QuantoDerive.core ? Call(theory.coreName, "simplify", "list")
     //    res.map {
     //      case Success(JsonArray(procs)) =>
-    //        Swing.onEDT { panel.SimplifyPane.Simprocs.listData = procs.map(_.stringValue) }
+    //        Swing.onEDT { panel.SimplifyBuiltInPane.Simprocs.listData = procs.map(_.stringValue) }
     //      case r => println("ERROR: Unexpected result from core: " + r) // TODO: errror dialogs
     //    }
   }
@@ -329,7 +329,7 @@ import quanto.cosy.SimplificationProcedure.Annealing._
     "Anneal" -> annealSimproc,
     "Evaluate" -> evaluateSimproc
   )
-  Swing.onEDT { panel.SimplifyPane.Simprocs.listData = availableProcedures.keys.toSeq }
+  Swing.onEDT { panel.SimplifyBuiltInPane.Simprocs.listData = availableProcedures.keys.toSeq }
 
   implicit def ruleFromDesc(ruleDesc: RuleDesc): Rule = {
     Rule.fromJson(Json.parse(new File(panel.project.rootFolder + "/" + ruleDesc.name + ".qrule")),
@@ -357,10 +357,9 @@ import quanto.cosy.SimplificationProcedure.Annealing._
 
 
   reactions += {
-    case ButtonClicked(panel.SimplifyPane.RefreshButton) => refreshSimprocs()
-    case ButtonClicked(panel.SimplifyPane.SimplifyButton) =>
-        if (panel.SimplifyPane.Simprocs.selection.indices.nonEmpty) {
-          val procedureName: String = panel.SimplifyPane.Simprocs.selection.items(0)
+    case ButtonClicked(panel.SimplifyBuiltInPane.SimplifyButton) =>
+        if (panel.SimplifyBuiltInPane.Simprocs.selection.indices.nonEmpty) {
+          val procedureName: String = panel.SimplifyBuiltInPane.Simprocs.selection.items(0)
           val procedure = availableProcedures(procedureName)
           procedure.apply()
         }

@@ -141,6 +141,43 @@ class DerivationPanel(val project: Project)
     val Simprocs = new ListView[String]
     val SimprocsScrollPane = new ScrollPane(Simprocs)
     SimprocsScrollPane.preferredSize = new Dimension(400,200)
+
+    val Preview = new GraphView(theory, DummyRef)
+    val PreviewScrollPane = new ScrollPane(Preview)
+    Preview.zoom = 0.6
+
+    val RefreshButton = new Button {
+      icon = new ImageIcon(GraphEditor.getClass.getResource("view-refresh.png"), "Refresh")
+      preferredSize = toolbarDim
+      tooltip = "Refresh"
+    }
+
+    val SimplifyButton = new Button {
+      icon = new ImageIcon(GraphEditor.getClass.getResource("start.png"))
+      preferredSize = toolbarDim
+      tooltip = "Start"
+    }
+
+    val StopButton = new Button {
+      icon = new ImageIcon(GraphEditor.getClass.getResource("stop.png"))
+      preferredSize = toolbarDim
+      tooltip = "Stop"
+    }
+
+    val topPane = new BorderPanel {
+      add(SimprocsScrollPane, BorderPanel.Position.Center)
+      add(new FlowPanel(FlowPanel.Alignment.Left)(
+        RefreshButton, SimplifyButton, StopButton
+      ), BorderPanel.Position.South)
+    }
+
+    add(new SplitPane(Orientation.Horizontal, topPane, PreviewScrollPane), BorderPanel.Position.Center)
+  }
+
+  val SimplifyBuiltInPane = new BorderPanel {
+    val Simprocs = new ListView[String]
+    val SimprocsScrollPane = new ScrollPane(Simprocs)
+    SimprocsScrollPane.preferredSize = new Dimension(400,200)
     val Preview = new GraphView(theory, DummyRef)
     val PreviewScrollPane = new ScrollPane(Preview)
     Preview.zoom = 0.6
@@ -168,47 +205,11 @@ class DerivationPanel(val project: Project)
     add(new SplitPane(Orientation.Horizontal, topPane, PreviewScrollPane), BorderPanel.Position.Center)
   }
 
-  val SimplifyCustomPane = new BorderPanel {
-    val Simprocs = new ListView[String]
-    val SimprocsScrollPane = new ScrollPane(Simprocs)
-    SimprocsScrollPane.preferredSize = new Dimension(400,200)
-    val Preview = new GraphView(theory, DummyRef)
-    val PreviewScrollPane = new ScrollPane(Preview)
-    Preview.zoom = 0.6
-
-    val RefreshButton = new Button {
-      icon = new ImageIcon(GraphEditor.getClass.getResource("view-refresh.png"), "Refresh")
-      preferredSize = toolbarDim
-      tooltip = "Refresh"
-    }
-
-    val SimplifyButton = new Button {
-      icon = new ImageIcon(GraphEditor.getClass.getResource("start.png"))
-      preferredSize = toolbarDim
-      tooltip = "Start"
-    }
-
-    val StopButton = new Button {
-      icon = new ImageIcon(GraphEditor.getClass.getResource("stop.png"))
-      preferredSize = toolbarDim
-      tooltip = "Stop"
-    }
-
-
-    val topPane = new BorderPanel {
-      add(SimprocsScrollPane, BorderPanel.Position.Center)
-      add(new FlowPanel(FlowPanel.Alignment.Center)(
-        RefreshButton, SimplifyButton, StopButton
-      ), BorderPanel.Position.South)
-    }
-
-    add(new SplitPane(Orientation.Horizontal, topPane, PreviewScrollPane), BorderPanel.Position.Center)
-  }
 
   val RhsRewritePane = new TabbedPane
   RhsRewritePane.pages += new TabbedPane.Page("Rewrite", ManualRewritePane)
-  RhsRewritePane.pages += new TabbedPane.Page("Simplify (built-in)", SimplifyPane)
-  RhsRewritePane.pages += new TabbedPane.Page("Simplify (custom)", SimplifyCustomPane)
+  RhsRewritePane.pages += new TabbedPane.Page("Simplify", SimplifyPane)
+  RhsRewritePane.pages += new TabbedPane.Page("Simplify (built-in)", SimplifyBuiltInPane)
 
   val LhsLabel = new Label("(root)")
   val RhsLabel = new Label("(head)")
