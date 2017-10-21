@@ -14,6 +14,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
   implicit val timeout = QuantoDerive.timeout
   private var simpId = 0 // incrementing the simpId will (lazily) cancel any pending simplification jobs
 
+
   listenTo(panel.SimplifyPane.RefreshButton, panel.SimplifyPane.SimplifyButton, panel.SimplifyPane.StopButton)
 
   def theory = panel.theory
@@ -71,7 +72,24 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     case ButtonClicked(panel.SimplifyPane.SimplifyButton) =>
       if (panel.SimplifyPane.Simprocs.selection.indices.nonEmpty) {
         simpId += 1
-        val simproc = panel.SimplifyPane.Simprocs.selection.items(0).asInstanceOf[String]
+        val simpName = panel.SimplifyPane.Simprocs.selection.items(0)
+
+        QuantoDerive.CurrentProject.flatMap { pr => pr.simprocs.get(simpName) }.foreach { simproc =>
+          for ((graph,rule) <- simproc.simp(panel.LhsView.graph)) {
+            val suggest = simpName + "-" + rule.name.replaceFirst("^.*\\/", "") + "-0"
+            val sname = panel.derivation.steps.freshWithSuggestion(DSName(suggest))
+            val step = DStep(
+              name = DSName("s"),
+              rule = rule,
+              graph = graph.minimise).layout
+
+            Swing.onEDT {
+              panel.document.derivation = panel.document.derivation.addStep(panel.controller.state.step, step)
+              panel.controller.state = HeadState(Some(step.name))
+            }
+          }
+        }
+
 //        val res = QuantoDerive.core ? Call(theory.coreName, "simplify", "simplify", JsonObject(
 //          "simproc" -> JsonString(simproc),
 //          "graph"   -> Graph.toJson(panel.LhsView.graph, theory)

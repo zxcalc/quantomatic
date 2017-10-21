@@ -30,20 +30,23 @@ object Scripting {
   }
   def theory: Theory = project.theory
 
-  def load_graph(s: String) = {
+  def load_graph(s: String): Graph = {
     val path = project.rootFolder + "/" + s + ".qgraph"
     Graph.fromJson(Json.parse(new File(path)), theory)
   }
 
-  def save_graph(g: Graph, s: String) = {
+  def save_graph(g: Graph, s: String) {
     val path = project.rootFolder + "/" + s + ".qgraph"
     val json = Graph.toJson(g, theory)
     json.writeTo(new File(path))
   }
 
-  def load_rule(s: String) = {
+  def load_rule(s: String): Rule = {
     val path = project.rootFolder + "/" + s + ".qrule"
-    (s, Rule.fromJson(Json.parse(new File(path)), theory))
+    Rule.fromJson(
+      Json.parse(new File(path)),
+      theory,
+      Some(RuleDesc(s, inverse = false)))
   }
 
   def plug(g1: Graph, g2: Graph, b1: String, b2: String) =
@@ -128,7 +131,8 @@ object Scripting {
     def copy() : derivation = { val d1 = new derivation(start); d1.d = d; d1 }
   }
 
-  val EMPTY: Simproc = Simproc.empty
+  val EMPTY = Simproc.EMPTY
+  def REWRITE(rule: Rule) = Simproc.REWRITE(rule)
 
   def register_simproc(s: String, sp: Simproc) { project.simprocs += s -> sp }
 }

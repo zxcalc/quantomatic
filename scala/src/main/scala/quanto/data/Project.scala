@@ -1,5 +1,6 @@
 package quanto.data
 
+import quanto.rewrite.Simproc
 import quanto.util.json._
 import java.io.File
 
@@ -22,7 +23,7 @@ case class Project(theoryFile: String, rootFolder: String = "") {
   )
 
   def rules: Vector[String] = rulesInPath(rootFolder)
-  var simprocs: Map[String, Any] = Map()
+  var simprocs: Map[String, Simproc] = Map()
 
   private def rulesInPath(p: String): Vector[String] = {
     val f = new File(p)
