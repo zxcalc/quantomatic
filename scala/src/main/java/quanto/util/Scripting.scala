@@ -3,7 +3,7 @@ package quanto.util
 import java.io.File
 
 import akka.util.Timeout
-import org.python.core.{PyList, PyArray}
+import org.python.core.{PyObject, PyList, PyArray}
 import quanto.core._
 import quanto.data._
 import quanto.data.Names._
@@ -14,6 +14,7 @@ import akka.pattern.ask
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 import ExecutionContext.Implicits.global
+import scala.collection.JavaConverters._
 
 
 // object providing functions specifically for python scripting
@@ -23,6 +24,9 @@ object Scripting {
 
   class NoProject extends Exception
   class RewriteError extends Exception
+
+  def listToPyList[A](list: List[A]): PyList = new PyList(list.asJava)
+  def pyListToList[A](pyList: PyList): List[A] = pyList.asInstanceOf[java.lang.Iterable[A]].asScala.toList
 
   def project: Project = QuantoDerive.CurrentProject match {
     case Some(p) => p
@@ -47,6 +51,10 @@ object Scripting {
       Json.parse(new File(path)),
       theory,
       Some(RuleDesc(s, inverse = false)))
+  }
+
+  def load_rules(ss: PyList): PyList = {
+    listToPyList(pyListToList[String](ss).map(load_rule))
   }
 
   def plug(g1: Graph, g2: Graph, b1: String, b2: String) =
@@ -86,10 +94,6 @@ object Scripting {
 //      case _ => null
 //    }
   }
-
-  def delete_rewrite_stack(stack: (String,String)) = null
-//    QuantoDerive.core ! Call(theory.coreName, "rewrite", "delete_rewrite_stack",
-//      JsonObject("stack" -> JsonString(stack._2)))
 
   class derivation(start : Graph) {
     var d = Derivation(theory, start)
@@ -132,7 +136,14 @@ object Scripting {
   }
 
   val EMPTY = Simproc.EMPTY
-  def REWRITE(rule: Rule) = Simproc.REWRITE(rule)
+  def REWRITE(o: Object) = o match {
+    case list: PyList => Simproc.REWRITE(pyListToList(list))
+    case _ => Simproc.REWRITE(List(o.asInstanceOf[Rule]))
+  }
+
+  def REPEAT(s: Simproc) = Simproc.REPEAT(s)
+  def REDUCE(o: Object) = REPEAT(REWRITE(o))
+
 
   def register_simproc(s: String, sp: Simproc) { project.simprocs += s -> sp }
 }
