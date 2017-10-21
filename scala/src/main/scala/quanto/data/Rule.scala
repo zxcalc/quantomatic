@@ -32,7 +32,7 @@ case class Rule(private val _lhs: Graph,
     _rhs.toString
 }
 
-case class RuleDesc(name: String, inverse: Boolean = false) {
+case class RuleDesc(name: String = "unnamed", inverse: Boolean = false) {
   def invert: RuleDesc = RuleDesc(name, !inverse)
 }
 

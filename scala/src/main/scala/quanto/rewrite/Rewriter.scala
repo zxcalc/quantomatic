@@ -26,7 +26,7 @@ object Rewriter {
     rhs1.copy(vdata = vdata)
   }
 
-	def rewrite(m: Match, rhs: Graph): (Graph, Rule) = {
+	def rewrite(m: Match, rhs: Graph, desc: RuleDesc = RuleDesc()): (Graph, Rule) = {
     // expand bare wires in the match
     val m1 = m.normalize
 
@@ -58,6 +58,6 @@ object Rewriter {
     val quotientRhs = rhsE.rename(vmap.toMap, emap.toMap, m1.map.bb.toMap)
 
     // compute the pushout as a union of the context with the quotiented domain of the matching
-    (quotientRhs.appendGraph(context), Rule(quotientLhs, quotientRhs))
+    (quotientRhs.appendGraph(context), Rule(quotientLhs, quotientRhs, description = desc))
   }
 }

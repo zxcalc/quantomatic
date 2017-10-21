@@ -50,7 +50,7 @@ object Simproc {
       Matcher.findMatches(rule.lhs, g).headOption match {
         case None => Iterator.empty
         case Some(m) =>
-          Iterator.single(Rewriter.rewrite(m, rule.rhs))
+          Iterator.single(Rewriter.rewrite(m, rule.rhs, rule.description))
       }
   }
 }

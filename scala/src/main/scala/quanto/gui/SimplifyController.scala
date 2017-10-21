@@ -1,5 +1,6 @@
 package quanto.gui
 
+import scala.concurrent.Future
 import scala.swing._
 import quanto.core._
 import quanto.data._
@@ -73,20 +74,24 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
       if (panel.SimplifyPane.Simprocs.selection.indices.nonEmpty) {
         simpId += 1
         val simpName = panel.SimplifyPane.Simprocs.selection.items(0)
+        var parentOpt = panel.controller.state.step
 
-        QuantoDerive.CurrentProject.flatMap { pr => pr.simprocs.get(simpName) }.foreach { simproc =>
-          for ((graph,rule) <- simproc.simp(panel.LhsView.graph)) {
-            val suggest = simpName + "-" + rule.name.replaceFirst("^.*\\/", "") + "-0"
-            val sname = panel.derivation.steps.freshWithSuggestion(DSName(suggest))
-            val step = DStep(
-              name = DSName("s"),
-              rule = rule,
-              graph = graph.minimise).layout
+        val result = QuantoDerive.CurrentProject.flatMap { pr => pr.simprocs.get(simpName) }.map { simproc =>
+          Future[Boolean] {
+            for ((graph, rule) <- simproc.simp(panel.LhsView.graph)) {
+              val suggest = simpName + "-" + rule.name.replaceFirst("^.*\\/", "") + "-0"
+              val step = DStep(
+                name = panel.derivation.steps.freshWithSuggestion(DSName(suggest)),
+                rule = rule,
+                graph = graph.minimise).layout
 
-            Swing.onEDT {
-              panel.document.derivation = panel.document.derivation.addStep(panel.controller.state.step, step)
-              panel.controller.state = HeadState(Some(step.name))
+              panel.document.derivation = panel.document.derivation.addStep(parentOpt, step)
+              parentOpt = Some(step.name)
+
+              Swing.onEDT { panel.controller.state = HeadState(Some(step.name)) }
             }
+
+            true
           }
         }
 
