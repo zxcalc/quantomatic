@@ -1,5 +1,6 @@
 package quanto.gui
 
+import org.python.core.{PySystemState, PyDictionary}
 import org.python.util.PythonInterpreter
 
 import scala.swing._
@@ -92,7 +93,10 @@ class PythonEditPanel extends BorderPanel with HasDocument {
           def run() {
             try {
               val python = new PythonInterpreter
+              QuantoDerive.CurrentProject.foreach(pr => python.getSystemState.path.add(pr.rootFolder))
               python.set("output", output)
+
+              //python.set("output", output)
               python.exec(code.getBuffer.getText)
               QuantoDerive.CoreStatus.text = "Python ran sucessfully"
               QuantoDerive.CoreStatus.foreground = new Color(0, 150, 0)

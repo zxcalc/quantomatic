@@ -1,6 +1,7 @@
 package quanto.rewrite
 
 import quanto.data._
+import quanto.layout.ForceLayout
 
 
 abstract class Simproc {
@@ -27,9 +28,9 @@ abstract class Simproc {
           if (iterT != null) {
             iterT.next()
           } else if (iterS.hasNext) {
-            val (g,r) = iterS.next()
-            lastGraphS = g
-            (g,r)
+            val (g1,r1) = iterS.next()
+            lastGraphS = g1
+            (g1,r1)
           } else {
             iterT = t.simp(lastGraphS)
             iterT.next()
@@ -43,6 +44,19 @@ abstract class Simproc {
 }
 
 object Simproc {
+  private def layout(gr: (Graph, Rule)) = {
+    val (graph, rule) = gr
+    val layoutProc = new ForceLayout
+    layoutProc.maxIterations = 400
+    layoutProc.keepCentered = false
+    layoutProc.nodeCharge = 0.0
+    layoutProc.gravity = 0.0
+
+    val rhsi = rule.rhs.verts.filter(!rule.rhs.isBoundary(_))
+    graph.verts.foreach { v =>  if (!rhsi.contains(v)) layoutProc.lockVertex(v) }
+    (layoutProc.layout(graph, randomCoords = false).snapToGrid(), rule)
+  }
+
   object EMPTY extends Simproc { override def simp(g: Graph): Iterator[(Graph,Rule)] = Iterator.empty }
 
   // takes a list of rules and rewrites w.r.t. the first that gets a match
@@ -50,11 +64,37 @@ object Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = {
       for (rule <- rules)
         Matcher.findMatches(rule.lhs, g).headOption.foreach { m =>
-          return Iterator.single(Rewriter.rewrite(m, rule.rhs, rule.description))
+          return Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
         }
       Iterator.empty
     }
   }
+
+  def REWRITE_TARGETED(rule: Rule, vp: VName, targ: Graph => Option[VName]) = new Simproc {
+    override def simp(g: Graph): Iterator[(Graph, Rule)] = {
+      targ(g).flatMap { vt =>
+        val ms = Matcher.initialise(rule.lhs, g, g.verts)
+        ms.matchNewNode(vp, vt).flatMap(_.nextMatch())
+      } match {
+        case Some((m,_)) => Iterator.single(Rewriter.rewrite(m, rule.rhs, rule.description))
+        case None => Iterator.empty
+      }
+    }
+  }
+
+  def REWRITE_METRIC(rules: List[Rule], metric: Graph => Int, min: Int = 0) =
+    new Simproc {
+      override def simp(g: Graph): Iterator[(Graph, Rule)] = {
+        if (metric(g) <= min) return Iterator.empty
+        for (rule <- rules) {
+          Matcher.findMatches(rule.lhs, g).foreach { m =>
+            val (g1,r1) = Rewriter.rewrite(m, rule.rhs, rule.description)
+            if (metric(g1) < metric(g)) return Iterator.single(layout((g1,r1)))
+          }
+        }
+        Iterator.empty
+      }
+    }
 
   def REPEAT(s: Simproc): Simproc = new Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = new Iterator[(Graph, Rule)] {
@@ -73,17 +113,16 @@ object Simproc {
 
       override def next(): (Graph,Rule) =
         if (iterS.hasNext) {
-          val (g,r) = iterS.next()
-          lastGraphS = g
-          (g,r)
-        }
-        else {
+          val (g1,r1) = iterS.next()
+          lastGraphS = g1
+          (g1,r1)
+        } else {
           val iterT = s.simp(lastGraphS)
           if (iterT.hasNext) {
             iterS = iterT
-            val (g,r) = iterS.next()
-            lastGraphS = g
-            (g,r)
+            val (g1,r1) = iterS.next()
+            lastGraphS = g1
+            (g1,r1)
           } else null
         }
     }

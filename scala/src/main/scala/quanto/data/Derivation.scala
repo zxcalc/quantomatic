@@ -36,9 +36,11 @@ case class DStep(name: DSName,
     //layoutProc.edgeLength = 0.1
     layoutProc.gravity = 0.0
 
+    val rhsi = rule.rhs.verts.filter(!rule.rhs.isBoundary(_))
 
     graph.verts.foreach { v =>
-      if (graph.isBoundary(v) || (graph.vdata(v).coord != (0.0, 0.0) && graph.vdata(v).coord != (0.0, -1.0))) layoutProc.lockVertex(v)
+      if (!rhsi.contains(v)) layoutProc.lockVertex(v)
+      //if (graph.isBoundary(v) || (graph.vdata(v).coord != (0.0, 0.0) && graph.vdata(v).coord != (0.0, -1.0))) layoutProc.lockVertex(v)
       //if (graph.isBoundary(v) || !rule.rhs.verts.contains(v)) layoutProc.lockVertex(v)
     }
 

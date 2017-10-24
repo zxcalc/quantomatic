@@ -183,12 +183,16 @@ case class MatchState(
           }
         case None =>
           val (killGraph, killOp) = m.pattern.killBBox(pbb)
+          val killState = copy(
+            m = m.copy(pattern = killGraph, bbops = killOp :: m.bbops)
+          )
 
-          val next1 =
+          val expState =
             if (m.pattern.isWildBBox(pbb)) {
               // if a !-box is wild, drop it, rather than copy/expand
               val (dropGraph, dropOp) = m.pattern.dropBBox(pbb)
-              Some(copy(m = m.copy(pattern = dropGraph, bbops = dropOp :: m.bbops)))
+              copy(m = m.copy(pattern = dropGraph, bbops = dropOp :: m.bbops),
+                   nextState = Some(killState))
             } else { // only expand/copy non-wild !-boxes, or we'll get infinite matchings
               val minV = m.pattern.contents(pbb).min
               val (expandGraph, expandOp) = m.pattern.expandBBox(pbb)
@@ -197,14 +201,15 @@ case class MatchState(
               val expanded = m.bbops.exists { case BBExpand(bb1, _) => bb1 == pbb; case _ => false }
 
               // only copy bboxes that have never been expanded
-              val next2 =
-                if (expanded) nextState
+              val copyState =
+                if (expanded) killState
                 else
-                  Some(copy(
+                  copy(
                     m = m.copy(pattern = copyGraph, bbops = copyOp :: m.bbops),
                     candidateBBoxes = Some(m.target.bboxes.filter { tbb => reflectsParentBBoxes(pbb, tbb)}),
-                    bboxOrbits = bboxOrbits + (copyOp.mp.v(minV) -> minV)
-                  ))
+                    bboxOrbits = bboxOrbits + (copyOp.mp.v(minV) -> minV),
+                    nextState = Some(killState)
+                  )
 
               //          val schedule =
               //            (expandGraph.adjacentVerts(expandGraph.contents(pbb)) ++
@@ -214,19 +219,16 @@ case class MatchState(
               //                bboxesMatched(v)
               //              }
 
-              Some(copy(
+              copy(
                 m = m.copy(pattern = expandGraph, bbops = expandOp :: m.bbops),
                 psNodes = pNodes, // re-schedule everything
                 bboxOrbits = bboxOrbits + (expandOp.mp.v(minV) -> minV),
-                nextState = next2
-              ))
+                nextState = Some(copyState)
+              )
             }
 
 
-          copy(
-            m = m.copy(pattern = killGraph, bbops = killOp :: m.bbops),
-            nextState = next1
-          ).nextMatch()
+          expState.nextMatch()
       }
 
     // if there is nothing left to do, check if the match is complete and return it if so. If not, continue
@@ -260,8 +262,13 @@ case class MatchState(
         case None => true
       }
 
-  def pVertexMayBeCompleted(v: VName) = {
-    true // TODO: chop the search early if the nhd of v is too small or large
+  def pVertexMayBeCompleted(vp: VName) = {
+    val allVerts = m.pattern.adjacentVerts(vp)
+    val concreteVerts = allVerts.filter(v => m.pattern.bboxesContaining(v).isEmpty)
+    val hasBBox = allVerts.size > concreteVerts.size
+    val tArity = m.target.arity(m.map.v(vp))
+
+    concreteVerts.size == tArity || (hasBBox && concreteVerts.size <= tArity)
   }
 
   // TODO: we may only need to check the closest parent, not all parents

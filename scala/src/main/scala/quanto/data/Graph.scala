@@ -49,6 +49,10 @@ case class Graph(
   def isCircle(vn: VName): Boolean =
     vdata(vn).isWireVertex && inEdges(vn).size == 1 && inEdges(vn) == outEdges(vn)
 
+  def typeOf(v: VName) = vdata(v).typ
+  def isAdjacentToBoundary(v: VName): Boolean = adjacentVerts(v).exists(isBoundary)
+  def isWireVertex(v: VName) = vdata(v).isWireVertex
+
   def representsWire(vn: VName) = vdata(vn).isWireVertex &&
     (predVerts(vn).headOption match {
       case None => true
@@ -62,6 +66,7 @@ case class Graph(
         case Some(vn1) => isOutput(vn1)
       })
 
+  def arity(v: VName) = adjacentEdges(v).size
 
   def verts: Set[VName] = vdata.keySet
   def edges: Set[EName] = edata.keySet

@@ -13,7 +13,8 @@ import scala.swing.event.ButtonClicked
 
 class SimplifyController(panel: DerivationPanel) extends Publisher {
   implicit val timeout = QuantoDerive.timeout
-  private var simpId = 0 // incrementing the simpId will (lazily) cancel any pending simplification jobs
+  private var simpId = 0
+  private var activeSimp: Option[Future[Boolean]] = None
 
 
   listenTo(panel.SimplifyPane.RefreshButton, panel.SimplifyPane.SimplifyButton, panel.SimplifyPane.StopButton)
@@ -74,16 +75,18 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
       if (panel.SimplifyPane.Simprocs.selection.indices.nonEmpty) {
         simpId += 1
         val simpName = panel.SimplifyPane.Simprocs.selection.items(0)
-        var parentOpt = panel.controller.state.step
 
-        val result = QuantoDerive.CurrentProject.flatMap { pr => pr.simprocs.get(simpName) }.map { simproc =>
-          Future[Boolean] {
+        QuantoDerive.CurrentProject.flatMap { pr => pr.simprocs.get(simpName) }.foreach { simproc =>
+          var parentOpt = panel.controller.state.step
+          QuantoDerive.ConsoleProgress.indeterminate = true
+
+          val res = Future[Boolean] {
             for ((graph, rule) <- simproc.simp(panel.LhsView.graph)) {
               val suggest = simpName + "-" + rule.name.replaceFirst("^.*\\/", "") + "-0"
               val step = DStep(
                 name = panel.derivation.steps.freshWithSuggestion(DSName(suggest)),
                 rule = rule,
-                graph = graph.minimise).layout
+                graph = graph.minimise) // layout is already done by simproc now
 
               panel.document.derivation = panel.document.derivation.addStep(parentOpt, step)
               parentOpt = Some(step.name)
@@ -93,7 +96,10 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
 
             true
           }
+
+          res.onComplete(_ => QuantoDerive.ConsoleProgress.indeterminate = false)
         }
+
 
 //        val res = QuantoDerive.core ? Call(theory.coreName, "simplify", "simplify", JsonObject(
 //          "simproc" -> JsonString(simproc),

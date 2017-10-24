@@ -57,7 +57,10 @@ object Rewriter {
     val quotientLhs = m1.pattern.rename(m1.map.v.toMap, m1.map.e.toMap, m1.map.bb.toMap)
     val quotientRhs = rhsE.rename(vmap.toMap, emap.toMap, m1.map.bb.toMap)
 
+    val ruleInst = if (desc.inverse) Rule(quotientRhs, quotientLhs, description = desc)
+                   else Rule(quotientLhs, quotientRhs, description = desc)
+
     // compute the pushout as a union of the context with the quotiented domain of the matching
-    (quotientRhs.appendGraph(context), Rule(quotientLhs, quotientRhs, description = desc))
+    (quotientRhs.appendGraph(context), ruleInst)
   }
 }

@@ -27,6 +27,7 @@ abstract class VData extends GraphElementData {
 
   /** Create a copy of the current vertex with the new coordinates  */
   def withCoord(c: (Double,Double)): VData
+  def typ: String
 
   def isWireVertex: Boolean
   def isBoundary : Boolean
@@ -142,6 +143,7 @@ case class WireV(
   annotation: JsonObject = JsonObject(),
   theory: Theory = Theory.DefaultTheory) extends VData
 {
+  def typ = "wire"
   def isWireVertex = true
   def isBoundary = annotation.get("boundary") match { case Some(JsonBool(b)) => b; case _ => false }
   def withCoord(c: (Double,Double)) =

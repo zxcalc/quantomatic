@@ -3,7 +3,7 @@ package quanto.util
 import java.io.File
 
 import akka.util.Timeout
-import org.python.core.{PyObject, PyList, PyArray}
+import org.python.core._
 import quanto.core._
 import quanto.data._
 import quanto.data.Names._
@@ -27,6 +27,9 @@ object Scripting {
 
   def listToPyList[A](list: List[A]): PyList = new PyList(list.asJava)
   def pyListToList[A](pyList: PyList): List[A] = pyList.asInstanceOf[java.lang.Iterable[A]].asScala.toList
+
+  def each[A](i: Iterable[A]) = i.asJava
+  def verts(g: Graph) = each(g.verts)
 
   def project: Project = QuantoDerive.CurrentProject match {
     case Some(p) => p
@@ -135,14 +138,41 @@ object Scripting {
     def copy() : derivation = { val d1 = new derivation(start); d1.d = d; d1 }
   }
 
+//  def test(f: PyFunction) = {
+//    val g = Graph.fromJson("{\"node_vertices\": [\"n0\"]}")
+//    val i = Py.py2int(f.__call__(Py.java2py(g)))
+//    2 * i
+//  }
+
+
+  // python wrappers for simproc combinators
   val EMPTY = Simproc.EMPTY
   def REWRITE(o: Object) = o match {
     case list: PyList => Simproc.REWRITE(pyListToList(list))
     case _ => Simproc.REWRITE(List(o.asInstanceOf[Rule]))
   }
 
+  def REWRITE_METRIC(o: Object, metric: PyFunction, min: Int = 0) = {
+    val rules = o match {
+      case list: PyList => pyListToList(list)
+      case _ => List(o.asInstanceOf[Rule])
+    }
+
+    Simproc.REWRITE_METRIC(rules, {g => Py.py2int(metric.__call__(Py.java2py(g)))}, min)
+  }
+
+  def REWRITE_TARGETED(rule: Rule, v: String, targ: PyFunction) = {
+    Simproc.REWRITE_TARGETED(rule, VName(v),
+      { g =>
+        val v = targ.__call__(Py.java2py(g))
+        if (v.isInstanceOf[PyNone]) None
+        else Some(VName(v.toString))
+      })
+  }
+
   def REPEAT(s: Simproc) = Simproc.REPEAT(s)
   def REDUCE(o: Object) = REPEAT(REWRITE(o))
+  def REDUCE_METRIC(o: Object, metric: PyFunction, min: Int = 0) = REPEAT(REWRITE_METRIC(o, metric, min))
 
 
   def register_simproc(s: String, sp: Simproc) { project.simprocs += s -> sp }
