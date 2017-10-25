@@ -199,7 +199,7 @@ class ForceLayout extends GraphLayout with Constraints {
 
   def compute() {
     iteration = 0
-    while (alpha > 0.01 && iteration < maxIterations) {
+    while (iteration < maxIterations && alpha >= 0.0001) {
       step()
       iteration += 1
     }

@@ -47,14 +47,19 @@ object Simproc {
   private def layout(gr: (Graph, Rule)) = {
     val (graph, rule) = gr
     val layoutProc = new ForceLayout
-    layoutProc.maxIterations = 400
     layoutProc.keepCentered = false
-    layoutProc.nodeCharge = 0.0
-    layoutProc.gravity = 0.0
+    //layoutProc.nodeCharge = 2
+
+    layoutProc.alpha0 = 0.005
+    layoutProc.alphaAdjust = 1.0
+    //layoutProc.keepCentered = false
 
     val rhsi = rule.rhs.verts.filter(!rule.rhs.isBoundary(_))
+    //println(rhsi)
     graph.verts.foreach { v =>  if (!rhsi.contains(v)) layoutProc.lockVertex(v) }
+    //graph.verts.foreach { v =>  if (graph.isBoundary(v)) layoutProc.lockVertex(v) }
     (layoutProc.layout(graph, randomCoords = false).snapToGrid(), rule)
+    //(graph, rule)
   }
 
   object EMPTY extends Simproc { override def simp(g: Graph): Iterator[(Graph,Rule)] = Iterator.empty }
@@ -64,7 +69,7 @@ object Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = {
       for (rule <- rules)
         Matcher.findMatches(rule.lhs, g).headOption.foreach { m =>
-          return Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
+            return Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
         }
       Iterator.empty
     }
@@ -73,11 +78,18 @@ object Simproc {
   def REWRITE_TARGETED(rule: Rule, vp: VName, targ: Graph => Option[VName]) = new Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = {
       targ(g).flatMap { vt =>
-        val ms = Matcher.initialise(rule.lhs, g, g.verts)
-        ms.matchNewNode(vp, vt).flatMap(_.nextMatch())
+        //println("REWRITE_TARGETED(" + rule.name + ", " + vt + ")")
+        if (g.verts contains vt) {
+          val ms = Matcher.initialise(rule.lhs, g, g.verts)
+          ms.matchNewNode(vp, vt).flatMap(_.nextMatch())
+        } else None
       } match {
-        case Some((m,_)) => Iterator.single(Rewriter.rewrite(m, rule.rhs, rule.description))
-        case None => Iterator.empty
+        case Some((m,_)) =>
+          //println("SUCCESS")
+          Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
+        case None =>
+          //println("FAILED")
+          Iterator.empty
       }
     }
   }

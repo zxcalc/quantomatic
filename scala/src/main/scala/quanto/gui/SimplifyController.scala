@@ -2,13 +2,13 @@ package quanto.gui
 
 import scala.concurrent.Future
 import scala.swing._
-import quanto.core._
 import quanto.data._
 import quanto.data.Names._
 import quanto.util.json._
 import akka.pattern.ask
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.swing.event.ButtonClicked
+import scala.util.{Failure, Success, Try}
 
 
 class SimplifyController(panel: DerivationPanel) extends Publisher {
@@ -97,7 +97,13 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
             true
           }
 
-          res.onComplete(_ => QuantoDerive.ConsoleProgress.indeterminate = false)
+          res.onComplete {
+            case Success(b) =>
+              QuantoDerive.ConsoleProgress.indeterminate = false
+            case Failure(e) =>
+              QuantoDerive.ConsoleProgress.indeterminate = false
+              e.printStackTrace()
+          }
         }
 
 

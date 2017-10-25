@@ -49,8 +49,9 @@ case class Graph(
   def isCircle(vn: VName): Boolean =
     vdata(vn).isWireVertex && inEdges(vn).size == 1 && inEdges(vn) == outEdges(vn)
 
-  def typeOf(v: VName) = vdata(v).typ
+  def typeOf(v: VName): String = vdata(v).typ
   def isAdjacentToBoundary(v: VName): Boolean = adjacentVerts(v).exists(isBoundary)
+  def isAdjacentToType(v: VName, t: String): Boolean = adjacentVerts(v).exists(typeOf(_) == t)
   def isWireVertex(v: VName) = vdata(v).isWireVertex
 
   def representsWire(vn: VName) = vdata(vn).isWireVertex &&

@@ -17,7 +17,8 @@ object Matcher {
     val tgtVars = tgt.freeVars.toVector
     val patN = pat.normalise
     val tgtN = tgt.normalise
-    val restrict1 = restrictTo.foldRight(restrictTo) { (v, s) =>
+    val restrict0 = restrictTo intersect tgtN.verts
+    val restrict1 = restrict0.foldRight(restrict0) { (v, s) =>
       if (tgtN.verts contains v) {
         s union tgtN.adjacentVerts(v)
       } else s
