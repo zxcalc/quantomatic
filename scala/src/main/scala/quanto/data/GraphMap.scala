@@ -1,7 +1,5 @@
 package quanto.data
 
-import reflect.runtime.universe._
-
 // a graph homomorphism
 case class GraphMap(
                      v: PFun[VName, VName] = PFun(),

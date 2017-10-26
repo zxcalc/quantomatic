@@ -24,7 +24,7 @@ libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test"
 
 libraryDependencies += "org.scala-lang.modules" % "scala-swing_2.11" % "1.0.1"
 
-libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value
+//libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.5"
 
@@ -49,6 +49,12 @@ appbundle.organization := "org.quantomatic"
 appbundle.version := "0.2.0"
 
 appbundle.icon := Some(file("../docs/graphics/quantoderive.icns"))
+
+test in assembly := {}
+
+assemblyJarName in assembly := "Quantomatic.jar"
+
+mainClass in assembly := Some("quanto.gui.QuantoDerive")
 
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
