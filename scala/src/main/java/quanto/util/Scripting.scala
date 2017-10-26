@@ -138,6 +138,11 @@ object Scripting {
     def copy() : derivation = { val d1 = new derivation(start); d1.d = d; d1 }
   }
 
+  def vertex_angle_is(g: Graph, v: VName, a: String) = g.vdata(v) match {
+    case nv: NodeV => nv.angle == AngleExpression.parse(a)
+    case _ => false
+  }
+
 //  def test(f: PyFunction) = {
 //    val g = Graph.fromJson("{\"node_vertices\": [\"n0\"]}")
 //    val i = Py.py2int(f.__call__(Py.java2py(g)))
@@ -152,13 +157,22 @@ object Scripting {
     case _ => Simproc.REWRITE(List(o.asInstanceOf[Rule]))
   }
 
-  def REWRITE_METRIC(o: Object, metric: PyFunction, min: Int = 0) = {
+  def REWRITE_METRIC(o: Object, metric: PyFunction) = {
     val rules = o match {
       case list: PyList => pyListToList(list)
       case _ => List(o.asInstanceOf[Rule])
     }
 
-    Simproc.REWRITE_METRIC(rules, {g => Py.py2int(metric.__call__(Py.java2py(g)))}, min)
+    Simproc.REWRITE_METRIC(rules, {g => Py.py2int(metric.__call__(Py.java2py(g)))})
+  }
+
+  def REWRITE_WEAK_METRIC(o: Object, metric: PyFunction) = {
+    val rules = o match {
+      case list: PyList => pyListToList(list)
+      case _ => List(o.asInstanceOf[Rule])
+    }
+
+    Simproc.REWRITE_WEAK_METRIC(rules, {g => Py.py2int(metric.__call__(Py.java2py(g)))})
   }
 
   def REWRITE_TARGETED(rule: Rule, v: String, targ: PyFunction) = {
@@ -171,8 +185,12 @@ object Scripting {
   }
 
   def REPEAT(s: Simproc) = Simproc.REPEAT(s)
+
+  // REDUCE_XXX(-) := REPEAT(REWRITE_XXX(-))
   def REDUCE(o: Object) = REPEAT(REWRITE(o))
-  def REDUCE_METRIC(o: Object, metric: PyFunction, min: Int = 0) = REPEAT(REWRITE_METRIC(o, metric, min))
+  def REDUCE_TARGETED(rule: Rule, v: String, targ: PyFunction) = REPEAT(REWRITE_TARGETED(rule, v, targ))
+  def REDUCE_METRIC(o: Object, metric: PyFunction) = REPEAT(REWRITE_METRIC(o, metric))
+  def REDUCE_WEAK_METRIC(o: Object, metric: PyFunction) = REPEAT(REWRITE_WEAK_METRIC(o, metric))
 
 
   def register_simproc(s: String, sp: Simproc) { project.simprocs += s -> sp }

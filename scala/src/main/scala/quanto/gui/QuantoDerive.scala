@@ -624,6 +624,7 @@ object QuantoDerive extends SimpleSwingApplication {
                 case "qrule"   => Some(new RuleDocumentPage(project.theory))
                 case "qderive" => Some(new DerivationDocumentPage(project))
                 case "py"      => Some(new PythonDocumentPage)
+                case "ML"      => Some(new MLDocumentPage)
                 case _         => None
               }
 

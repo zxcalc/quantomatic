@@ -50,8 +50,9 @@ object Simproc {
     layoutProc.keepCentered = false
     //layoutProc.nodeCharge = 2
 
-    layoutProc.alpha0 = 0.005
+    layoutProc.alpha0 = 0.01
     layoutProc.alphaAdjust = 1.0
+    layoutProc.maxIterations = 300
     //layoutProc.keepCentered = false
 
     val rhsi = rule.rhs.verts.filter(!rule.rhs.isBoundary(_))
@@ -78,30 +79,44 @@ object Simproc {
   def REWRITE_TARGETED(rule: Rule, vp: VName, targ: Graph => Option[VName]) = new Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = {
       targ(g).flatMap { vt =>
-        //println("REWRITE_TARGETED(" + rule.name + ", " + vt + ")")
+        println("REWRITE_TARGETED(" + rule.name + ", " + vt + ")")
         if (g.verts contains vt) {
           val ms = Matcher.initialise(rule.lhs, g, g.verts)
           ms.matchNewNode(vp, vt).flatMap(_.nextMatch())
         } else None
       } match {
         case Some((m,_)) =>
-          //println("SUCCESS")
+          println("SUCCESS")
           Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
         case None =>
-          //println("FAILED")
+          println("FAILED")
           Iterator.empty
       }
     }
   }
 
-  def REWRITE_METRIC(rules: List[Rule], metric: Graph => Int, min: Int = 0) =
+  def REWRITE_METRIC(rules: List[Rule], metric: Graph => Int) =
     new Simproc {
       override def simp(g: Graph): Iterator[(Graph, Rule)] = {
-        if (metric(g) <= min) return Iterator.empty
+        if (metric(g) <= 0) return Iterator.empty
         for (rule <- rules) {
           Matcher.findMatches(rule.lhs, g).foreach { m =>
             val (g1,r1) = Rewriter.rewrite(m, rule.rhs, rule.description)
             if (metric(g1) < metric(g)) return Iterator.single(layout((g1,r1)))
+          }
+        }
+        Iterator.empty
+      }
+    }
+
+  def REWRITE_WEAK_METRIC(rules: List[Rule], metric: Graph => Int) =
+    new Simproc {
+      override def simp(g: Graph): Iterator[(Graph, Rule)] = {
+        if (metric(g) <= 0) return Iterator.empty
+        for (rule <- rules) {
+          Matcher.findMatches(rule.lhs, g).foreach { m =>
+            val (g1,r1) = Rewriter.rewrite(m, rule.rhs, rule.description)
+            if (metric(g1) <= metric(g)) return Iterator.single(layout((g1,r1)))
           }
         }
         Iterator.empty
