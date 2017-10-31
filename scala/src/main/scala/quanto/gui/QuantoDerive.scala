@@ -3,13 +3,14 @@ package quanto.gui
 
 import org.python.util.PythonInterpreter
 
+import scala.io.Source
 import scala.swing._
 import scala.swing.event.{SelectionChanged, Key}
 import javax.swing.{UIManager, KeyStroke}
 import java.awt.event.KeyEvent
 import quanto.util.json.{JsonString, Json}
 import quanto.data._
-import java.io.{FilenameFilter, IOException, File}
+import java.io.{PrintWriter, FilenameFilter, IOException, File}
 import javax.swing.plaf.metal.MetalLookAndFeel
 import java.util.prefs.Preferences
 import quanto.gui.histview.HistView
@@ -30,6 +31,16 @@ object QuantoDerive extends SimpleSwingApplication {
   val actorSystem = ActorSystem("QuantoDerive")
   //val core = actorSystem.actorOf(Props { new Core }, "core")
   implicit val timeout = Timeout(1.day)
+
+  // copy python mode xml into a temp file, as jEdit component can't handle JAR resources
+  lazy val pythonModeFile = {
+    val f = File.createTempFile("python", "xml")
+    f.deleteOnExit()
+    val pr = new PrintWriter(f)
+    Source.fromInputStream(getClass.getResourceAsStream("python.xml")).foreach(pr.print)
+    pr.close()
+    f.getCanonicalPath
+  }
 
   // pre-initialise jython, so its zippy when the user clicks "run" in a script
   new Thread(new Runnable { def run() { new PythonInterpreter() }}).start()
@@ -385,7 +396,7 @@ object QuantoDerive extends SimpleSwingApplication {
                   updateNewEnabled()
                 }
               } else {
-                error("Folder does not contain a QuantoDerive project")
+                error("Folder does not contain a Quantomatic project")
               }
             case _ =>
           }
@@ -699,7 +710,7 @@ object QuantoDerive extends SimpleSwingApplication {
 //  }
 
   def top = new MainFrame {
-    title = "QuantoDerive"
+    title = "Quantomatic"
     contents = Main
 
     size = new Dimension(1280,720)

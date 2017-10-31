@@ -19,9 +19,10 @@ class PythonEditPanel extends BorderPanel with HasDocument {
 
   val pyMode = new Mode("Python")
 
-  val modeXml = if (Globals.isBundle) new File("python.xml").getAbsolutePath
-  else getClass.getResource("python.xml").getPath
-  pyMode.setProperty("file", modeXml)
+  //val modeXml =
+  //  if (Globals.isBundle) new File("python.xml").getAbsolutePath
+  //  else getClass.getResource("python.xml").getPath
+  pyMode.setProperty("file", QuantoDerive.pythonModeFile)
   //println(sml.getProperty("file"))
   val code = StandaloneTextArea.createTextArea()
 
