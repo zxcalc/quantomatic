@@ -4,17 +4,13 @@ import java.io.File
 
 import akka.util.Timeout
 import org.python.core._
-import quanto.core._
 import quanto.data._
-import quanto.data.Names._
 import quanto.gui.QuantoDerive
 import quanto.rewrite.Simproc
 import quanto.util.json._
-import akka.pattern.ask
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
-import ExecutionContext.Implicits.global
+
 import scala.collection.JavaConverters._
+import scala.concurrent.duration._
 
 
 // object providing functions specifically for python scripting
