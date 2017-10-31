@@ -8,6 +8,8 @@ core/heaps
 *.o
 *.log
 .*.swp
+*.iml
+.idea2
 /core/bin
 /core/heaps
 *.rules_v2
