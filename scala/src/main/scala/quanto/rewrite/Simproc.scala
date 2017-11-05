@@ -79,17 +79,17 @@ object Simproc {
   def REWRITE_TARGETED(rule: Rule, vp: VName, targ: Graph => Option[VName]) = new Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = {
       targ(g).flatMap { vt =>
-        println("REWRITE_TARGETED(" + rule.name + ", " + vt + ")")
+        //println("REWRITE_TARGETED(" + rule.name + ", " + vt + ")")
         if (g.verts contains vt) {
           val ms = Matcher.initialise(rule.lhs, g, g.verts)
           ms.matchNewNode(vp, vt).flatMap(_.nextMatch())
         } else None
       } match {
         case Some((m,_)) =>
-          println("SUCCESS")
+          //println("SUCCESS")
           Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
         case None =>
-          println("FAILED")
+          //println("FAILED")
           Iterator.empty
       }
     }

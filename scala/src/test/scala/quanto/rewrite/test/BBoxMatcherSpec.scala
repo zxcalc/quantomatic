@@ -715,4 +715,131 @@ class BBoxMatcherSpec extends FlatSpec {
 
     assert(m.pattern.boundary === rhs1.boundary)
   }
+
+  it should "match the LHS of bialgebra law on itself" in {
+    val bialg = Graph.fromJson(Json.parse(
+    """
+      |{
+      |  "bang_boxes": {
+      |    "bx0":{"contents":["b0","v0"]},
+      |    "bx2":{"contents":["b1","v1"]}
+      |  },
+      |  "wire_vertices":["b0","b1"],
+      |  "node_vertices":{
+      |    "v0":{"data":{"type":"X","value":""}},
+      |    "v1":{"data":{"type":"Z","value":""}}
+      |  },
+      |  "undir_edges":{
+      |    "e0":{"src":"b0","tgt":"v0"},
+      |    "e1":{"src":"v0","tgt":"v1"},
+      |    "e2":{"src":"v1","tgt":"b1"}
+      |  }
+      |}
+    """.stripMargin
+    ), thy=rg)
+
+    val matches = Matcher.findMatches(bialg, bialg)
+
+    // should match once as empty graph (killing both bboxes), and once as id
+    assert(matches.size === 2)
+  }
+
+  it should "match the LHS of bialgebra law on two id spiders" in {
+    val bialg = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "bang_boxes": {
+        |    "bx0":{"contents":["b0","v0"]},
+        |    "bx2":{"contents":["b1","v1"]}
+        |  },
+        |  "wire_vertices":["b0","b1"],
+        |  "node_vertices":{
+        |    "v0":{"data":{"type":"X","value":""}},
+        |    "v1":{"data":{"type":"Z","value":""}}
+        |  },
+        |  "undir_edges":{
+        |    "e0":{"src":"b0","tgt":"v0"},
+        |    "e1":{"src":"v0","tgt":"v1"},
+        |    "e2":{"src":"v1","tgt":"b1"}
+        |  }
+        |}
+      """.stripMargin
+    ), thy=rg)
+
+    val bialgInst = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices":["b0","b1"],
+        |  "node_vertices":{
+        |    "v0":{"data":{"type":"X","value":""}},
+        |    "v1":{"data":{"type":"Z","value":""}}
+        |  },
+        |  "undir_edges":{
+        |    "e0":{"src":"b0","tgt":"v0"},
+        |    "e1":{"src":"v0","tgt":"v1"},
+        |    "e2":{"src":"v1","tgt":"b1"}
+        |  }
+        |}
+      """.stripMargin
+    ), thy=rg)
+
+    val matches = Matcher.findMatches(bialg, bialgInst)
+    matches.size
+
+    // should match once as empty graph (killing both bboxes), and once using one copy of each bbox
+    assert(matches.size === 2)
+  }
+
+  it should "match the LHS of bialgebra law on a 4-cycle" in {
+    val bialg = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "bang_boxes": {
+        |    "bx0":{"contents":["b0","v0"]},
+        |    "bx2":{"contents":["b1","v1"]}
+        |  },
+        |  "wire_vertices":["b0","b1"],
+        |  "node_vertices":{
+        |    "v0":{"data":{"type":"X","value":""}},
+        |    "v1":{"data":{"type":"Z","value":""}}
+        |  },
+        |  "undir_edges":{
+        |    "e0":{"src":"b0","tgt":"v0"},
+        |    "e1":{"src":"v0","tgt":"v1"},
+        |    "e2":{"src":"v1","tgt":"b1"}
+        |  }
+        |}
+      """.stripMargin
+    ), thy=rg)
+
+    val bialgInst = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices":["b0a","b1a","b0b","b1b"],
+        |  "node_vertices":{
+        |    "v0a":{"data":{"type":"X","value":""}},
+        |    "v0b":{"data":{"type":"X","value":""}},
+        |    "v1a":{"data":{"type":"Z","value":""}},
+        |    "v1b":{"data":{"type":"Z","value":""}}
+        |  },
+        |  "undir_edges":{
+        |    "e0a":{"src":"b0a","tgt":"v0a"},
+        |    "e0b":{"src":"b0b","tgt":"v0b"},
+        |    "e1aa":{"src":"v0a","tgt":"v1a"},
+        |    "e1ab":{"src":"v0a","tgt":"v1b"},
+        |    "e1ba":{"src":"v0b","tgt":"v1a"},
+        |    "e1bb":{"src":"v0b","tgt":"v1b"},
+        |    "e2a":{"src":"v1a","tgt":"b1a"},
+        |    "e2b":{"src":"v1b","tgt":"b1b"}
+        |  }
+        |}
+      """.stripMargin
+    ), thy=rg)
+
+    val matches = Matcher.findMatches(bialg, bialgInst)
+    matches.size
+
+    // should match once as empty graph (killing both bboxes), and once using two copies of each bbox
+    assert(matches.size === 2)
+  }
 }

@@ -827,7 +827,13 @@ case class Graph(
     val g = fullSubgraph(contents(bb), bboxChildren(bb))
 
     var mp1 = g.makeRenaming(verts union avoidV, edges, bboxes, mp)
-    val gfr = mp1.image(g)
+    var gfr = mp1.image(g)
+
+    // add each expanded vertex to the bboxes that it was already in
+    g.verts.foreach{v =>
+      ((bboxesContaining(v) -- bboxChildren(bb)) - bb).foreach{ bb1 => gfr = gfr.addToBBox(mp1.v(v), bb1) }
+    }
+
     var g1 = appendGraph(gfr)
 
     var freshE = g1.edges
