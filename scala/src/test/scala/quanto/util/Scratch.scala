@@ -1,8 +1,5 @@
 package quanto.util
 
-import scala.reflect.runtime.currentMirror
-import scala.tools.reflect.ToolBox
-
 import org.python.util.PythonInterpreter
 
 object Scratch extends App {
@@ -10,7 +7,7 @@ object Scratch extends App {
 
   val pi = new PythonInterpreter
   pi.exec("f = 4")
-  pi.exec("print \"butts from python\"")
+  pi.exec("print \"hello from python\"")
 
 //  val toolbox = currentMirror.mkToolBox()
 
