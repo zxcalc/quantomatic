@@ -6,16 +6,16 @@ import quanto.util.QuadTree
 
 class LayoutSpec extends FlatSpec {
 
-  behavior of "Dot layout"
-
-  val dotLayout = new DotLayout
-
-  var dotGraph: Graph = Graph.random(10,20)
-
-  it should "lay out a graph" in {
-    dotGraph = dotLayout.layout(dotGraph)
-    println(dotLayout.dotString)
-  }
+//  behavior of "Dot layout"
+//
+//  val dotLayout = new DotLayout
+//
+//  var dotGraph: Graph = Graph.random(10,20)
+//
+//  it should "lay out a graph" in {
+//    dotGraph = dotLayout.layout(dotGraph)
+//    println(dotLayout.dotString)
+//  }
 
   behavior of "Quad tree"
 
