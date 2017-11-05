@@ -50,7 +50,7 @@ appbundle.version := "0.2.0"
 
 appbundle.icon := Some(file("../docs/graphics/quantoderive.icns"))
 
-test in assembly := {}
+//test in assembly := {}
 
 assemblyJarName in assembly := "Quantomatic.jar"
 
