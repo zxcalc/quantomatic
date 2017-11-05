@@ -21,7 +21,7 @@ import scala.util.{Failure, Random, Success}
 class SimplificationProcedureSpec extends FlatSpec {
   implicit val rg: Theory = Theory.fromFile("red_green")
 
-  val examplesDirectory = "./examples/"
+  val examplesDirectory = "../examples/"
   val ZXRules: List[Rule] = loadRuleDirectory(examplesDirectory + "ZX_CliffordT")
   val ZXErrorRules: List[Rule] = loadRuleDirectory(examplesDirectory + "ZX_errors")
 
@@ -221,58 +221,60 @@ class SimplificationProcedureSpec extends FlatSpec {
     }
   }
 
-  it should "perform large error pull simplifications" in {
-    val allowedRules = ZXErrorRules
-    val targetGraph = quanto.util.FileHelper.readFile[Graph](
-      new File(examplesDirectory + "ZX_errors/Huge_With_Error.qgraph"),
-      Graph.fromJson(_, rg)
-    )
-    val initialDerivation: DerivationWithHead = graphToDerivation(targetGraph, rg)
-    val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
-    val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
-    import SimplificationProcedure.PullErrors._
-    val targets = boundaries.filter(t => t.toString.matches(raw"b(1[1-9]|2\d)")).toList
-    if (targets.nonEmpty) {
-      val initialState: State = State(
-        allowedRules.filterNot(r => r.name.matches(raw".*g_ann")),
-        0,
-        None,
-        new Random(),
-        weightFunction = errorsDistance(targets.toSet),
-        Some(ZXErrorRules.filter(r => r.name.matches(raw".*g_ann"))),
-        None,
-        heldVertices = None,
-        None
-      )
-      val simplificationProcedure = new SimplificationProcedure[State](
-        initialDerivation,
-        initialState,
-        step,
-        progress,
-        (_, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.currentDistance.getOrElse(2.0) < 1
-      )
-      var returningDerivation = simplificationProcedure.initialDerivation
-      val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
-        //println("future started")
-        while (!simplificationProcedure.stopped) {
-          //println("futured loop")
-          simplificationProcedure.step()
-          returningDerivation = simplificationProcedure.current
-        }
-        simplificationProcedure.current
-      }
-      backgroundDerivation onComplete {
-        case Success(_) =>
-          println("Success")
-          println(simplificationProcedure.state.currentDistance)
-          println(data.Derivation.derivationHeadPairToGraph(returningDerivation).vdata)
-          assert(true)
-        case Failure(_) =>
-          assert(false)
-      }
-      Await.result(backgroundDerivation, Duration(waitTime, "seconds"))
-    }
-  }
+  // AK: Commented this one out, since it takes way too long for a unit test.
+
+//  it should "perform large error pull simplifications" in {
+//    val allowedRules = ZXErrorRules
+//    val targetGraph = quanto.util.FileHelper.readFile[Graph](
+//      new File(examplesDirectory + "ZX_errors/Huge_With_Error.qgraph"),
+//      Graph.fromJson(_, rg)
+//    )
+//    val initialDerivation: DerivationWithHead = graphToDerivation(targetGraph, rg)
+//    val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
+//    val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
+//    import SimplificationProcedure.PullErrors._
+//    val targets = boundaries.filter(t => t.toString.matches(raw"b(1[1-9]|2\d)")).toList
+//    if (targets.nonEmpty) {
+//      val initialState: State = State(
+//        allowedRules.filterNot(r => r.name.matches(raw".*g_ann")),
+//        0,
+//        None,
+//        new Random(),
+//        weightFunction = errorsDistance(targets.toSet),
+//        Some(ZXErrorRules.filter(r => r.name.matches(raw".*g_ann"))),
+//        None,
+//        heldVertices = None,
+//        None
+//      )
+//      val simplificationProcedure = new SimplificationProcedure[State](
+//        initialDerivation,
+//        initialState,
+//        step,
+//        progress,
+//        (_, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.currentDistance.getOrElse(2.0) < 1
+//      )
+//      var returningDerivation = simplificationProcedure.initialDerivation
+//      val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
+//        //println("future started")
+//        while (!simplificationProcedure.stopped) {
+//          //println("futured loop")
+//          simplificationProcedure.step()
+//          returningDerivation = simplificationProcedure.current
+//        }
+//        simplificationProcedure.current
+//      }
+//      backgroundDerivation onComplete {
+//        case Success(_) =>
+//          println("Success")
+//          println(simplificationProcedure.state.currentDistance)
+//          println(data.Derivation.derivationHeadPairToGraph(returningDerivation).vdata)
+//          assert(true)
+//        case Failure(_) =>
+//          assert(false)
+//      }
+//      Await.result(backgroundDerivation, Duration(waitTime, "seconds"))
+//    }
+//  }
 
 
 }

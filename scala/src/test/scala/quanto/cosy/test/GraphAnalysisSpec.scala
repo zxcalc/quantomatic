@@ -17,7 +17,7 @@ class GraphAnalysisSpec extends FlatSpec {
 
 
   val rg: Theory = Theory.fromFile("red_green")
-  val examplesDirectory = "./examples/"
+  val examplesDirectory = "../examples/"
   val ZXRules: List[Rule] = loadRuleDirectory(examplesDirectory + "ZX_CliffordT")
   val ZXErrorRules: List[Rule] = loadRuleDirectory(examplesDirectory + "ZX_errors")
   var emptyRuleList: List[Rule] = List()
