@@ -5,5 +5,8 @@
         "subject": "quantomatic"
     },
     "version": { "name": "bleeding-edge" },
-    "files": [{"includePattern": "scala/target/scala-[^/]*/(Quantomatic\\.jar)", "uploadPattern": "$1"}]
+    "files": [{
+      "includePattern": "scala/target/scala-2.11/Quantomatic.jar",
+      "uploadPattern": "Quantomatic.jar"
+    }]
 }
