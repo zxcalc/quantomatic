@@ -1,2 +1,12 @@
 language: scala
-script: ./build.sh
+scala:
+  - 2.11.8
+script: "./build.sh"
+deploy:
+  provider: s3
+  access_key_id: AKIAIVLCECVCUB3UJ4GA
+  secret_access_key:
+    secure: KGMi8K5k75EBZ6Oq1T1ome2Bzp2Wc6gbd1MUAWTr6Io61Pa0Lih5bYNCL8NndBhQVVuqFfJuQbbM022QqlaXwJeorMXCDZZPa/HNMuqOfJdQ85OPmOQClhPQGYMjviAmaOFzbTAFzD6PPCrJMN3iJGpiXuQO1UZk8FtzvUTMWZo=
+  bucket: quantomatic
+  skip_cleanup: true
+  local_dir: scala/target/scala-2.11
