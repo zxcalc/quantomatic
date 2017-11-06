@@ -458,7 +458,7 @@ case class Graph(
     mp
   }
 
-  def renameAvoiding(g: Graph): Graph = makeRenaming(g.verts, g.edges, g.bboxes).image(g)
+  def renameAvoiding(g: Graph): Graph = makeRenaming(g.verts, g.edges, g.bboxes).image(this)
 
   // append the given graph. note that its names should already be fresh
   def appendGraph(g: Graph): Graph = {

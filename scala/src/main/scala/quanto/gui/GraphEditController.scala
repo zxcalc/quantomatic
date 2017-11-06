@@ -338,19 +338,23 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     if (!readOnly) {
       val data = Toolkit.getDefaultToolkit.getSystemClipboard.getContents(this)
       if (data.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+        //println("data supported")
         try {
           val jsonString = data.getTransferData(DataFlavor.stringFlavor).asInstanceOf[String]
-          val g = Graph.fromJson(Json.parse(jsonString), theory).renameAvoiding(graph)
+          val g = Graph.fromJson(Json.parse(jsonString), theory)
+          val gfr = g.renameAvoiding(graph)
           undoStack.start("Paste from clipboard")
-          replaceGraph(graph.appendGraph(g), "")
-          replaceSelection(vs = g.verts, es = Set(), bbs = g.bboxes, "")
+          replaceGraph(graph.appendGraph(gfr), "")
+          replaceSelection(vs = gfr.verts, es = Set(), bbs = gfr.bboxes, "")
           undoStack.commit()
         } catch {
-          case _: Exception => // silently fail if clipboard data doesn't parse
+          case e: Exception =>
+            // Fail silently if clipboard doesn't contain a parsable quantomatic graph
+            //e.printStackTrace()
         }
 
         view.repaint()
-      }
+      } //else println("data not supported")
     }
   }
 
