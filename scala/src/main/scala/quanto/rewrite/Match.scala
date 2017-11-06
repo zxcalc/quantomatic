@@ -40,14 +40,14 @@ case class Match(pattern0: Graph, // the pattern without bbox operations
   def normalize: Match = {
     bareWireMap.headOption match {
       case Some((tw, pw +: pws)) =>
-        val (target1, (newW, newE)) = target.expandWire(tw)
+        val (target1, (newW1, newW2, newE)) = target.expandWire(tw)
         val emap1 = map.e + (pattern.outEdges(pw).head -> newE)
 
         var vmap1 = map.v
         for (pw1 <- map.v.codf(tw)) {
-          if (pattern.isInput(pw1)) vmap1 = vmap1 + (pw1 -> newW)
+          if (pattern.isInput(pw1)) vmap1 = vmap1 + (pw1 -> newW2)
         }
-        vmap1 = vmap1 + (pw -> tw) + (pattern.succVerts(pw).head -> newW)
+        vmap1 = vmap1 + (pw -> newW1) + (pattern.succVerts(pw).head -> newW2)
 
         copy(
           map = map.copy(v = vmap1, e = emap1),

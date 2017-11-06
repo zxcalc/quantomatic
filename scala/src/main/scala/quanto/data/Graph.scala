@@ -709,7 +709,7 @@ case class Graph(
     g
   }
 
-  def expandWire(w: VName): (Graph, (VName, EName)) = {
+  def expandWire(w: VName): (Graph, (VName, VName, EName)) = {
     val ed = adjacentEdges(w).headOption match {
       case Some(e) => edata(e)
       case None =>
@@ -719,14 +719,23 @@ case class Graph(
     val newW = verts.freshWithSuggestion(w)
     val newE = edges.freshWithSuggestion(Names.defaultEName)
     val newBB = inBBox.domf(w).foldRight(inBBox) { (bb, mp) => mp + (newW -> bb) }
-    val g = addVertex(newW, vdata(w)).addEdge(newE, ed, w -> newW).copy(inBBox = newBB)
-    val g1 = outEdges(w).headOption match {
-      case Some(e) =>
-        g.deleteEdge(e).addEdge(e, ed, newW -> g.target(e))
-      case None => g
-    }
 
-    (g1, (newW, newE))
+    var g = addVertex(newW, vdata(w)).copy(inBBox = newBB)
+
+    outEdges(w).headOption match {
+      case None => // 'w' is an output, so it should stay an output
+        g = g.addEdge(newE, ed, newW -> w)
+        inEdges(w).headOption.foreach{e =>
+          g = g.deleteEdge(e).addEdge(e, ed, source(e) -> newW)
+        }
+
+        (g, (newW, w, newE))
+      case Some(e) => // 'w' is not an output, so we don't care
+        g = g.addEdge(newE, ed, w -> newW)
+        g = g.deleteEdge(e).addEdge(e, ed, newW -> target(e))
+
+        (g, (w, newW, newE))
+    }
   }
 
   def flipEdge(e: EName): Graph = {
