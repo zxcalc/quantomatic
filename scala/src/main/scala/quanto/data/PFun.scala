@@ -3,6 +3,7 @@ package quanto.data
 import collection.immutable.TreeSet
 import scala.collection.{TraversableLike, GenTraversableOnce, mutable, IterableLike}
 import scala.collection.generic.CanBuildFrom
+import Names._
 
 /**
  * Basically a map, but with cached inverse images
@@ -19,7 +20,7 @@ import scala.collection.generic.CanBuildFrom
  * @author Aleks Kissinger
  * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/PFun.scala Source code]]
  */
-class PFun[A,B]
+class PFun[A, B]
 (f : Map[A,B], finv: Map[B,TreeSet[A]])
 (implicit keyOrd: Ordering[A])
   extends BinRel[A,B] with IterableLike[(A,B), PFun[A,B]]
@@ -38,6 +39,8 @@ class PFun[A,B]
       }) + (kv._2 -> (finv.getOrElse(kv._2, TreeSet[A]()) + kv._1))
     new PFun(f + kv,finv1)
   }
+
+  def contains(kv: (A,B)) = f.get(kv._1).contains(kv._2)
 
   def unmap(kv: (A, B)) = f.get(kv._1) match {
     case Some(v) if v == kv._2 =>
@@ -71,6 +74,10 @@ class PFun[A,B]
           finv - v
         )
     }
+  }
+
+  def restrictDom(s: Set[A]): PFun[A,B] = {
+    s.foldRight(PFun[A,B]()) { (k,mp) => get(k) match { case Some(v) => mp + (k -> v); case None => mp } }
   }
 
   /** Same as '''unmapDom''' */
@@ -148,7 +155,10 @@ class PFun[A,B]
  */
 object PFun {
   /** Create an instance of PFun from a sequence of pairs */
-  def apply[A,B](kvs: (A,B)*)(implicit keyOrd: Ordering[A]) : PFun[A,B] = {
+  def apply[A, B](kvs: (A,B)*)(implicit keyOrd: Ordering[A]) : PFun[A,B] = {
     kvs.foldLeft(new PFun[A,B](Map(),Map())){ (pf: PFun[A,B], kv: (A,B)) => pf + kv }
   }
+
+  implicit def mapToPFun[A, B](mp: Map[A,B])(implicit keyOrd: Ordering[A]): PFun[A,B] = PFun(mp.toSeq:_*)
+  implicit def pFunToMap[A, B](f: PFun[A,B]): Map[A,B] = f.toMap
 }

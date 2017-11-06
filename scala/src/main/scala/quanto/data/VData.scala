@@ -1,5 +1,6 @@
 package quanto.data
 
+import quanto.data.Theory.ValueType
 import quanto.util.json._
 
 /**
@@ -11,6 +12,8 @@ import quanto.util.json._
  * @author Aleks Kissinger
  */
 abstract class VData extends GraphElementData {
+  def annotation : JsonObject
+
   /**
    * Get coordinates of vertex
    * @throws JsonAccessException
@@ -24,6 +27,7 @@ abstract class VData extends GraphElementData {
 
   /** Create a copy of the current vertex with the new coordinates  */
   def withCoord(c: (Double,Double)): VData
+  def typ: String
 
   def isWireVertex: Boolean
   def isBoundary : Boolean
@@ -63,23 +67,36 @@ case class NodeV(
   def typeInfo = theory.vertexTypes(typ)
 
   // support input of old-style graphs, where data may be stored at value/pretty
-  val value: Json = data ? "value" match {
-    case str : JsonString => str
-    case obj : JsonObject => obj.getOrElse("pretty", JsonString(""))
-    case _ => JsonString("")
+  val value: String = data ? "value" match {
+    case str : JsonString => str.stringValue
+    case obj : JsonObject => obj.getOrElse("pretty", JsonString("")).stringValue
+    case _ => ""
   }
 
-  def withCoord(c: (Double,Double)) =
-    copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
-  
-  /** Create a copy of the current vertex with the new value */
-  def withValue(s: String) =
-    copy(data = data.setPath("$.value", s).asObject)
 
-  def isWireVertex = false
-  def isBoundary = false
+  // if the theory says this node should have an angle, try to parse it from value,
+  // and store it in "angle". If it should have an angle, but parsing fails, set
+  // angle to "0".
+  val (angle: AngleExpression, hasAngle: Boolean) =
+    if (theory.vertexTypes(typ).value.typ == ValueType.AngleExpr)
+     try { (AngleExpression.parse(value), true) }
+     catch { case _: AngleParseException => (AngleExpression(), true) }
+    else (AngleExpression(), false)
 
-  override def toJson =
+    def withCoord(c: (Double,Double)) =
+      copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
+
+    /** Create a copy of the current vertex with the new value */
+    def withValue(s: String) =
+      copy(data = data.setPath("$.value", s).asObject)
+
+    def withTyp(s: String) =
+      copy(data = data.setPath("$.type", s).asObject)
+
+    def isWireVertex = false
+    def isBoundary = false
+
+    override def toJson =
     if (data == theory.defaultVertexData)
       JsonObject("annotation" -> annotation).noEmpty
     else
@@ -126,6 +143,7 @@ case class WireV(
   annotation: JsonObject = JsonObject(),
   theory: Theory = Theory.DefaultTheory) extends VData
 {
+  def typ = "wire"
   def isWireVertex = true
   def isBoundary = annotation.get("boundary") match { case Some(JsonBool(b)) => b; case _ => false }
   def withCoord(c: (Double,Double)) =

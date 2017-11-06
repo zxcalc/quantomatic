@@ -57,6 +57,7 @@ object Theory {
 
   object ValueType extends Enumeration with JsonEnumConversions {
     val String = Value("string")
+    val AngleExpr = Value("angle_expr")
     val LongString = Value("long_string")
     val Enum = Value("enum")
     val Empty = Value("empty")
@@ -98,7 +99,7 @@ object Theory {
         validateWithCore = json.getOrElse("validate_with_core", false)
       )
 
-    implicit def toJson(v: ValueDesc) =
+    implicit def toJson(v: ValueDesc): JsonObject =
       JsonObject(
         "type" -> v.typ,
         "enum_options" -> v.enumOptions,
@@ -283,4 +284,15 @@ object Theory {
     ),
     defaultVertexType = "string"
   )
+
+  /**
+    * Load a built-in theory from JSON file
+    *
+    * @param theoryFile name of the .qtheory file, without extension
+    * @return a theory object
+    */
+  def fromFile(theoryFile: String): Theory = {
+    Theory.fromJson(Json.parse(
+      new Json.Input(Theory.getClass.getResourceAsStream(theoryFile + ".qtheory"))))
+  }
 }

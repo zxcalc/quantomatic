@@ -16,7 +16,7 @@ class ForceLayout extends GraphLayout with Constraints {
   //var charge: VName => Double = (v => if (graph.vdata(v).isWireVertex) 3.0 else 5.0)
   var nodeCharge = 5.0
 
-  def charge(v:VName) = if (graph.vdata(v).isWireVertex) 1.0 else nodeCharge
+  def charge(v:VName) = if (graph.vdata(v).isWireVertex && nodeCharge != 0.0) 1.0 else nodeCharge
 
   // spring strength on edges
   var strength = 2.5
@@ -134,7 +134,7 @@ class ForceLayout extends GraphLayout with Constraints {
       var p = coord(v)
       quad.visit { nd =>
         nd.value match {
-          case Some((optV,nodeCharge)) =>
+          case Some((optV,nodeCharge1)) =>
             val (dx1,dy1) = (nd.p._1 - p._1, nd.p._2 - p._2)
             val dx = if (abs(dx1) < 0.01) 0.01 else dx1
             val dy = if (abs(dy1) < 0.01) 0.01 else dy1
@@ -144,8 +144,8 @@ class ForceLayout extends GraphLayout with Constraints {
             else {
               // if the Barnes-Hut criterion is satisfied, act with the total charge of this region
               if ((nd.x2 - nd.x1) / math.sqrt(d2) < theta) {
-                energy += (charge(v) + nodeCharge) / d2
-                val kx = alpha * nodeCharge / d2
+                energy += (charge(v) + nodeCharge1) / d2
+                val kx = alpha * nodeCharge1 / d2
                 val ky = if (this.isInstanceOf[Ranking] || this.isInstanceOf[IRanking]) kx * 1.5 else kx
                 p = (p._1 - dx*kx, p._2 - dy*ky)
                 true
@@ -199,7 +199,7 @@ class ForceLayout extends GraphLayout with Constraints {
 
   def compute() {
     iteration = 0
-    while (alpha > 0.01 && iteration < maxIterations) {
+    while (iteration < maxIterations && alpha >= 0.0001) {
       step()
       iteration += 1
     }

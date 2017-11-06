@@ -21,6 +21,9 @@ abstract class EData extends GraphElementData {
 
   /** Create a copy of the current edge data, but with the new value */
   def withValue(v: String): EData
+
+  def toDirEdge = DirEdge(data, annotation, theory)
+  def toUndirEdge = UndirEdge(data, annotation, theory)
 }
 
 /**

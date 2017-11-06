@@ -2,13 +2,15 @@ package quanto.gui
 
 import scala.swing._
 import scala.collection.JavaConversions._
-import javax.swing.{SwingUtilities, JScrollPane, JTree}
-import javax.swing.tree.{TreePath, TreeModel}
-import java.io.{FilenameFilter, File}
+import javax.swing.{JScrollPane, JTree, SwingUtilities}
+import javax.swing.tree.{TreeModel, TreePath}
+import java.io.{File, FilenameFilter}
 import javax.swing.event._
-import java.awt.BorderLayout
+import java.awt.{BorderLayout, Desktop}
+
 import quanto.util._
-import java.awt.event.{MouseEvent, MouseAdapter}
+import java.awt.event.{MouseAdapter, MouseEvent}
+
 import scala.swing.event.Event
 
 abstract class FileTreeEvent extends Event
@@ -26,13 +28,29 @@ class FileTree extends BorderPanel {
 
   fileTree.setEditable(true)
 
+
   fileTree.addMouseListener(new MouseAdapter {
     override def mousePressed(e: MouseEvent) {
-      if (e.getClickCount == 2)
-        fileTree.getLastSelectedPathComponent match {
-          case FileNode(file) => publish(FileOpened(file))
-          case _ =>
-        }
+      e.getButton match {
+        case MouseEvent.BUTTON1 =>
+
+          if (e.getClickCount == 2)
+            fileTree.getLastSelectedPathComponent match {
+              case FileNode(file) => publish(FileOpened(file))
+              case _ =>
+            }
+        case _ =>
+          if (e.isPopupTrigger) {
+            // TODO: Make actual popup menu
+            // cf https://stackoverflow.com/questions/938753/scala-popup-menu
+            // Needs access to a swing component to have as parent
+            fileTree.getLastSelectedPathComponent match {
+              case FileNode(file) => Desktop.getDesktop.browse(file.toURI)
+              case _ =>
+            }
+          }
+      }
+
     }
   })
 

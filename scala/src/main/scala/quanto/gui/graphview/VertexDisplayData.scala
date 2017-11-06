@@ -8,7 +8,13 @@ import quanto.gui._
 import quanto.core.data.TexConstants
 
 case class VDisplay(shape: Shape, color: Color, label: Option[LabelDisplayData]) {
-  def pointHit(pt: Point2D) = shape.contains(pt)
+  def pointHit(pt: Point2D) = {
+    val bnd = shape.getBounds2D
+    pt.getX >= bnd.getMinX - GraphView.VertexSelectionTolerence &&
+      pt.getX <= bnd.getMaxX + GraphView.VertexSelectionTolerence &&
+      pt.getY >= bnd.getMinY - GraphView.VertexSelectionTolerence &&
+      pt.getY <= bnd.getMaxY + GraphView.VertexSelectionTolerence
+  }
   def rectHit(r: Rectangle2D) = shape.intersects(r)
 }
 
@@ -52,11 +58,9 @@ trait VertexDisplayData { self: GraphView =>
       vertexDisplay(v) = data match {
         case vertexData : NodeV =>
           val style = vertexData.typeInfo.style
-          val text = if(zoom < GraphView.zoomCutOut &&
-                     vertexData.value.stringValue != "")
-                       "~"
-                     else
-                       TexConstants.translate(vertexData.value.stringValue)
+          val label = if (vertexData.hasAngle) vertexData.angle.toString else vertexData.value
+          val text = if(zoom < GraphView.zoomCutOut && label != "") "~"
+                     else TexConstants.translate(label)
             /*vertexData.typeInfo.value.typ match {
             case Theory.ValueType.String => vertexData.value
             case _ => ""

@@ -1,18 +1,22 @@
 package quanto.gui
 
+import javax.swing.filechooser.FileNameExtensionFilter
+
+import quanto.data.Theory
+import quanto.util.FileHelper
+
 import scala.swing._
 import scala.swing.event.ButtonClicked
 
 class NewProjectDialog extends Dialog {
   modal = true
   val NameField = new TextField()
-  val LocationField = new TextField(System.getProperty("user.home"))
-  val BrowseButton = new Button("...")
-  // TODO: make these not hard-coded
-  val theoryNames = Vector("Red/Green", "GHZ/W")//, "Proof Strategy Graph", "String Vertex/Edge")
-  val theoryFiles = Vector("red_green", "ghz_w")//, "strategy_graph", "string_ve")
+  val ProjectLocationField = new TextField(System.getProperty("user.home"))
+  val BrowseProjectButton = new Button("...")
+  val TheoryLocationField = new TextField("<Select a .qtheory file>")
+  val BrowseTheoryButton = new Button("...")
+  val theoryName = new TextField("")
 
-  val TheoryField = new ComboBox(theoryNames)
   val CreateButton = new Button("Create")
   val CancelButton = new Button("Cancel")
   defaultButton = Some(CreateButton)
@@ -26,7 +30,7 @@ class NewProjectDialog extends Dialog {
     contents += new BoxPanel(Orientation.Horizontal) {
       val nameLabel = new Label("Name", null, Alignment.Right)
       nameLabel.preferredSize = new Dimension(80, 30)
-      LocationField.preferredSize = new Dimension(235, 30)
+      ProjectLocationField.preferredSize = new Dimension(235, 30)
 
       contents += (Swing.HStrut(10), nameLabel, Swing.HStrut(5), NameField, Swing.HStrut(10))
     }
@@ -36,11 +40,11 @@ class NewProjectDialog extends Dialog {
     contents += new BoxPanel(Orientation.Horizontal) {
       val locationLabel = new Label("Location", null, Alignment.Right)
       locationLabel.preferredSize = new Dimension(80, 30)
-      LocationField.preferredSize = new Dimension(200, 30)
-      BrowseButton.preferredSize = new Dimension(30, 30)
+      ProjectLocationField.preferredSize = new Dimension(200, 30)
+      BrowseProjectButton.preferredSize = new Dimension(30, 30)
 
-      contents += (Swing.HStrut(10), locationLabel, Swing.HStrut(5), LocationField,
-        Swing.HStrut(5), BrowseButton, Swing.HStrut(10))
+      contents += (Swing.HStrut(10), locationLabel, Swing.HStrut(5), ProjectLocationField,
+        Swing.HStrut(5), BrowseProjectButton, Swing.HStrut(10))
     }
 
     contents += Swing.VStrut(5)
@@ -48,9 +52,11 @@ class NewProjectDialog extends Dialog {
     contents += new BoxPanel(Orientation.Horizontal) {
       val theoryLabel = new Label("Theory ", null, Alignment.Right)
       theoryLabel.preferredSize = new Dimension(80, 30)
-      TheoryField.preferredSize = new Dimension(235, 30)
+      ProjectLocationField.preferredSize = new Dimension(200, 30)
+      BrowseTheoryButton.preferredSize = new Dimension(30, 30)
 
-      contents += (Swing.HStrut(10), theoryLabel, Swing.HStrut(5), TheoryField, Swing.HStrut(10))
+      contents += (Swing.HStrut(10), theoryLabel, Swing.HStrut(5), TheoryLocationField,
+        Swing.HStrut(5), BrowseTheoryButton, Swing.HStrut(10))
     }
 
     contents += Swing.VStrut(5)
@@ -64,20 +70,30 @@ class NewProjectDialog extends Dialog {
 
   contents = mainPanel
 
-  listenTo(BrowseButton, CreateButton, CancelButton)
+  listenTo(BrowseProjectButton, CreateButton, CancelButton, BrowseTheoryButton)
 
   reactions += {
     case ButtonClicked(CreateButton) =>
-      result = Some((theoryFiles(TheoryField.peer.getSelectedIndex), NameField.text, LocationField.text))
+      result = Some((TheoryLocationField.text, NameField.text, ProjectLocationField.text))
       close()
     case ButtonClicked(CancelButton) =>
       close()
-    case ButtonClicked(BrowseButton) =>
+    case ButtonClicked(BrowseProjectButton) =>
       val chooser = new FileChooser()
       chooser.fileSelectionMode = FileChooser.SelectionMode.DirectoriesOnly
       chooser.showOpenDialog(mainPanel) match {
         case FileChooser.Result.Approve =>
-          LocationField.text = chooser.selectedFile.toString
+          ProjectLocationField.text = chooser.selectedFile.toString
+        case _ =>
+      }
+    case ButtonClicked(BrowseTheoryButton) =>
+      val chooser = new FileChooser()
+      val qtheoryExtensionFilter = new FileNameExtensionFilter("Theory files", "qtheory")
+      chooser.fileSelectionMode = FileChooser.SelectionMode.FilesOnly
+      chooser.fileFilter = qtheoryExtensionFilter
+      chooser.showOpenDialog(mainPanel) match {
+        case FileChooser.Result.Approve =>
+          TheoryLocationField.text = chooser.selectedFile.toString
         case _ =>
       }
   }

@@ -41,7 +41,8 @@ fun output r =
       Json.Object (
         Json.empty_obj |> update ("lhs",(GraphJSON.output (Rule.get_lhs r)))
                        |> update ("rhs",(GraphJSON.output (Rule.get_rhs r)))
-                       |> (if Json.is_empty_obj (Rule.get_rule_annotation r) then I
+                       |> (if Json.is_empty_obj (Rule.get_rule_annotation r)
+                           then update ("annotation", Json.mk_object [("layout", Json.Bool true)])
                            else update ("annotation", Json.Object (Rule.get_rule_annotation r)))
       )
 

@@ -1,57 +1,29 @@
 theory scratch
-imports lib
+imports quanto
 begin
 
-ML_file "isabelle/use_thy.ML";
-
 ML {*
+open RG_SimpUtil;
+open RG_Theory;
 
-val lex = Scan.make_lexicon (map Symbol.explode
-    ["theory", "begin", "end", "imports", "ML_file", ";"]);
+val _ = cd "/Users/alek/git/quantomatic/core/test";
+val g = load_graph "graphs/target-test";
+val r = snd (load_rule "rules/rotate-targeted");
+val l = Rule.get_lhs r;
+val vs = Graph.get_vertices_in_bbox l (B.mk "bx0");
+val bb = Graph.is_bboxed l (V.mk "v0");
 
-fun ws s = s |> Scan.many (Token.is_improper o fst);
-fun kw k s = s |> Scan.one (Token.keyword_with (fn k' => k' = k));
-fun name s = s |> Scan.one (Token.is_name);
+fun concrete_nhd_size g bb = 
+  V.NSet.cardinality (V.NSet.filter
+    (not o Graph.is_bboxed g)
+    (Graph.get_adj_vertices_to_set g
+      (Graph.get_vertices_in_bbox g bb)))
 
-val parseme = "(* comment (* nest *) *) theory   jub\n imports \"and such\" \n begin \n (* comment *) ML_file \"test/foo.ML\"; \n end \n";
+fun max_concrete_nhd_bbox g bset =
+  B.NSet.maximize (concrete_nhd_size g) bset
 
-(*val ts = Token.source {do_recover=NONE} (K (lex,Scan.empty_lexicon)) (Position.file "foo.thy") src;*)
+val bb = max_concrete_nhd_bbox l (Graph.get_bboxes l)
 
-
-fun header s =  s |> kw "theory" -- name -- kw "imports" -- Scan.repeat name -- kw "begin";
-fun useline s = s |> kw "ML_file" |-- name >>
-  (fn t => (use (Token.content_of t); t));
-
-fun thy_file s = s |> header |-- Scan.repeat (useline || kw ";") --| kw "end";
-
-fun token_source pos str =
-  str
-  |> Source.of_string
-  |> Symbol.source
-  |> Token.source {do_recover = NONE} (K (lex,Scan.empty_lexicon)) pos;
-
-fun read_source pos source =
-  let val res =
-    source
-    |> Token.source_proper
-    |> Source.source Token.stopper (Scan.single (Scan.error thy_file)) NONE
-    |> Source.get_single;
-  in
-    (case res of
-      SOME (h, _) => h
-    | NONE => error ("Unexpected end of input" ^ Position.here pos))
-  end;
 *}
-
-ML {*
-val p = Path.explode "~/git/quantomatic/newcore/lib.thy";
-val str = File.read p;
-val pos = Position.file "foo.thy";
-val ts = token_source pos str |> Token.source_proper;
-val res = read_source pos ts;
-
-Token.content_of (hd res);
-*}
-
 
 end

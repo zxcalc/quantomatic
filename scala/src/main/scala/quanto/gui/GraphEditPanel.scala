@@ -12,9 +12,11 @@ case class MouseStateChanged(m : MouseState) extends Event
 class GraphEditControls(theory: Theory) extends Publisher {
 
   val VertexTypeLabel  = new Label("Vertex Type:  ") { xAlignment = Alignment.Right; enabled = false }
-  val VertexTypeSelect = new ComboBox(theory.vertexTypes.keys.toSeq :+ "<wire>") { enabled = false }
+  val vertexOptions : Seq[String] = theory.vertexTypes.keys.toSeq :+ "<wire>"
+  val VertexTypeSelect = new ComboBox(vertexOptions) { enabled = false }
   val EdgeTypeLabel    = new Label("Edge Type:  ") { xAlignment = Alignment.Right; enabled = false }
-  val EdgeTypeSelect   = new ComboBox(theory.edgeTypes.keys.toSeq) { enabled = false }
+  val edgeOptions : Seq[String] = theory.edgeTypes.keys.toSeq
+  val EdgeTypeSelect   = new ComboBox(edgeOptions) { enabled = false }
   val EdgeDirected     = new CheckBox("directed") { selected = false; enabled = false }
 
   // Bottom panel
@@ -67,6 +69,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
     AddBangBoxButton)
 
   def setMouseState(m : MouseState) {
+    val previousTool = GraphToolGroup.selected
     publish(MouseStateChanged(m))
     m match {
       case SelectTool() =>
@@ -77,6 +80,9 @@ class GraphEditControls(theory: Theory) extends Publisher {
         EdgeDirected.enabled = false
         GraphToolGroup.select(SelectButton)
       case AddVertexTool() =>
+        if(previousTool.nonEmpty && previousTool.get == AddVertexButton){
+          //VertexTypeSelect.selection.index = (VertexTypeSelect.selection.index + 1) % vertexOptions.size
+        }
         VertexTypeLabel.enabled = true
         VertexTypeSelect.enabled = true
         EdgeTypeLabel.enabled = false
@@ -84,6 +90,9 @@ class GraphEditControls(theory: Theory) extends Publisher {
         EdgeDirected.enabled = false
         GraphToolGroup.select(AddVertexButton)
       case AddEdgeTool() =>
+        if(previousTool.nonEmpty && previousTool.get == AddEdgeButton){
+          //EdgeTypeSelect.selection.index = (EdgeTypeSelect.selection.index + 1) % edgeOptions.size
+        }
         VertexTypeLabel.enabled = false
         VertexTypeSelect.enabled = false
         EdgeTypeLabel.enabled = true

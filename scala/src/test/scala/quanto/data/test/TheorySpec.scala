@@ -158,7 +158,9 @@ class TheorySpec extends FlatSpec {
     """.stripMargin)
 
   it should "save to JSON" in {
-    assert(Theory.toJson(thy) === thyJson)
+    var compiled = Theory.toJson(thy)
+    var expected = thyJson
+    assert(compiled == expected)
   }
 
   it should "load from JSON" in {

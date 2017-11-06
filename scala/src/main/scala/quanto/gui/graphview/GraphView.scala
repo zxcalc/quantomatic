@@ -247,12 +247,12 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
     }
 
     // draw highlights under nodes/edges, but over bboxes
-    highlights.map { h =>
+    highlights.foreach { h =>
       val c = new Color(h.color.getRed, h.color.getGreen, h.color.getBlue, 100)
       g.setStroke(new BasicStroke(10))
       g.setColor(c)
       h.vertices.foreach { v =>
-        vertexDisplay.get(v).map { d =>
+        vertexDisplay.get(v).foreach { d =>
           g.draw(d.shape)
         }
       }
@@ -263,14 +263,20 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
         g.setColor(Color.BLUE)
         g.setStroke(new BasicStroke(2))
       } else {
-        g.setColor(Color.BLACK)
-        g.setStroke(new BasicStroke(1))
+        if (graph.edata(e).isDirected) {
+          g.setColor(Color.GRAY)
+          g.setStroke(new BasicStroke(1))
+        } else {
+          g.setColor(Color.BLACK)
+          g.setStroke(new BasicStroke(2))
+        }
+
       }
 
       g.draw(ed.path)
 
-      ed.label map { ld =>
-        ld.backgroundColor.map { bg =>
+      ed.label.foreach { ld =>
+        ld.backgroundColor.foreach { bg =>
           g.setColor(bg)
           g.fill(new Rectangle2D.Double(
             ld.bounds.getMinX - 3.0, ld.bounds.getMinY - 3.0,
@@ -341,8 +347,8 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
       g.draw(shape)
 
-      label.map { ld =>
-        ld.backgroundColor.map { bg =>
+      label.foreach { ld =>
+        ld.backgroundColor.foreach { bg =>
           g.setColor(bg)
           g.fill(new Rectangle2D.Double(
             ld.bounds.getMinX - 3.0, ld.bounds.getMinY - 3.0,
@@ -379,7 +385,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
       g.draw(rect)
     }
 
-    edgeOverlay.map { case EdgeOverlay(pt, startV, endVOpt) =>
+    edgeOverlay.foreach { case EdgeOverlay(pt, startV, endVOpt) =>
       g.setColor(EdgeOverlayColor)
       g.setStroke(new BasicStroke(2))
       g.draw(vertexDisplay(startV).shape)
@@ -410,7 +416,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
         g.draw(new Line2D.Double(startPt._1, startPt._2, endPt._1, endPt._2))
     }
 
-    bboxOverlay.map { case BBoxOverlay(pt, bb, endVOpt, endBBOpt) =>
+    bboxOverlay.foreach { case BBoxOverlay(pt, bb, endVOpt, endBBOpt) =>
       val corner = bboxDisplay(bb).corner
 
       g.setStroke(new BasicStroke(2))
@@ -436,7 +442,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
               val corner1 = bboxDisplay(endBB).corner
 
               if (graph.bboxParent.get(endBB) == Some(bb)) g.setColor(Color.RED)
-              else if (graph.bboxParents(bb).contains(endBB)) g.setColor(Color.GRAY)
+              else if (graph.bboxParentList(bb).contains(endBB)) g.setColor(Color.GRAY)
               g.draw(corner1)
 
               (corner1.getCenterX, corner1.getCenterY)
@@ -510,11 +516,12 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
         val coord = coordToString(trans_coord)
 
         val data = vd match {
-          case vertexData : NodeV => vertexData.value
-          case _ => JsonString("")
+          case vertexData : NodeV => if (vertexData.value == "") ""
+                                     else "$" + vertexData.value + "$"
+          case _ => ""
         }
 
-        p.println("\t\t\\node [style=" + style +"] (" + number + ") at " + coord + " {" + data.stringValue +"};")
+        p.println("\t\t\\node [style=" + style +"] (" + number + ") at " + coord + " {" + data +"};")
       }
 
       /* fill in corners of !-boxes */
@@ -581,7 +588,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
             start = 1
           }
 
-          val angle_diff = 180.0 / (size - start)
+          val angle_diff = 80.0 / (size - start)
           var angle_it = angle_diff
           var right_left = "left="
 
@@ -661,7 +668,8 @@ object GraphView {
   final val WireRadius = 0.1
   final val ArrowheadLength = 0.15
   final val ArrowheadAngle = 0.2 * Pi
-  final val EdgeSelectionRadius = 3.0
+  final val EdgeSelectionRadius = 7.0
+  final val VertexSelectionTolerence = 3.0
   final val VertexLabelFont = new Font("Dialog", AWTFont.PLAIN, 8)
   final val EdgeLabelFont = new Font("Dialog", AWTFont.PLAIN, 8)
 

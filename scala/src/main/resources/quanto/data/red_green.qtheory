@@ -5,16 +5,15 @@
     "X" : {
       "value" : {
         "path" : "$.value",
-        "validate_with_core" : false,
-        "latex_constants" : false,
-        "type" : "string"
+        "latex_constants" : true,
+        "type" : "angle_expr"
       },
       "style" : {
         "label" : {
           "position" : "inside",
-          "fg_color" : [ 0.0, 0.2, 0.0 ]
+          "fg_color" : [ 1.0, 1.0, 1.0 ]
         },
-        "stroke_color" : [ 0.0, 0.2, 0.0 ],
+        "stroke_color" : [ 0.0, 0.0, 0.0 ],
         "fill_color" : [ 1.0, 0.0, 0.0 ],
         "shape" : "circle"
       },
@@ -26,14 +25,13 @@
     "Z" : {
       "value" : {
         "path" : "$.value",
-        "validate_with_core" : false,
-        "latex_constants" : false,
-        "type" : "string"
+        "latex_constants" : true,
+        "type" : "angle_expr"
       },
       "style" : {
         "label" : {
           "position" : "inside",
-          "fg_color" : [ 0.0, 0.2, 0.0 ]
+          "fg_color" : [ 0.0, 0.0, 0.0 ]
         },
         "stroke_color" : [ 0.0, 0.0, 0.0 ],
         "fill_color" : [ 0.0, 0.8, 0.0 ],
@@ -47,7 +45,6 @@
     "hadamard" : {
       "value" : {
         "path" : "$.value",
-        "validate_with_core" : false,
         "latex_constants" : false,
         "type" : "string"
       },
@@ -68,7 +65,6 @@
     "var" : {
       "value" : {
         "path" : "$.value",
-        "validate_with_core" : false,
         "latex_constants" : false,
         "type" : "string"
       },
@@ -91,7 +87,6 @@
     "string" : {
       "value" : {
         "path" : "$.value",
-        "validate_with_core" : false,
         "latex_constants" : false,
         "type" : "string"
       },

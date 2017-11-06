@@ -67,8 +67,8 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
             panel.LhsLabel.text = head.toString
             panel.LhsView.graphRef = panel.document.stepRef(head)
           case None => // at the root
-            panel.NextButton.enabled = !derivation.firstSteps.isEmpty
-            panel.FastForwardButton.enabled = !derivation.heads.isEmpty
+            panel.NextButton.enabled = derivation.firstSteps.nonEmpty
+            panel.FastForwardButton.enabled = derivation.heads.nonEmpty
             panel.LhsLabel.text = "(root)"
             panel.LhsView.graphRef = panel.document.rootRef
         }
@@ -98,15 +98,17 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
             panel.LhsView.graphRef = panel.document.rootRef
         }
 
-        val lhsV = panel.LhsView.graphRef.graph.verts
-        val rhsV = panel.RhsView.graphRef.graph.verts
+
+
+        val lhsV = derivation.steps(step).rule.lhs.verts //panel.LhsView.graphRef.graph.verts
+        val rhsV = derivation.steps(step).rule.rhs.verts //panel.RhsView.graphRef.graph.verts
 
         // highlight where the rule was applied
         panel.LhsView.clearHighlights()
-        panel.LhsView.addHighlight(new Highlight(Color.RED, lhsV -- rhsV))
+        panel.LhsView.addHighlight(new Highlight(Color.RED, lhsV))
 
         panel.RhsView.clearHighlights()
-        panel.RhsView.addHighlight(new Highlight(Color.BLUE, rhsV -- lhsV))
+        panel.RhsView.addHighlight(new Highlight(Color.BLUE, rhsV))
 
         panel.NextButton.enabled = true
         panel.FastForwardButton.enabled = true

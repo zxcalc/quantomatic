@@ -7,7 +7,10 @@ import math._
 
 case class EDisplay(path: Path2D.Double, lines: List[Line2D.Double], label: Option[LabelDisplayData]) {
   def pointHit(pt: Point2D) = {
-    lines exists (_.ptSegDistSq(pt) < GraphView.EdgeSelectionRadius*GraphView.EdgeSelectionRadius)
+    lines exists { l =>
+      //println("line starts " + l.getP1 + " ends " + l.getP2 + ", distance to " + pt + " is " + l.ptSegDistSq(pt))
+      l.ptSegDistSq(pt) <= GraphView.EdgeSelectionRadius*GraphView.EdgeSelectionRadius
+    }
   }
 }
 
