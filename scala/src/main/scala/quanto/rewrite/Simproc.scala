@@ -48,9 +48,9 @@ object Simproc {
     val (graph, rule) = gr
     val layoutProc = new ForceLayout
     layoutProc.keepCentered = false
-    //layoutProc.nodeCharge = 2
+    layoutProc.nodeCharge = 0.1
 
-    layoutProc.alpha0 = 0.01
+    layoutProc.alpha0 = 0.05
     layoutProc.alphaAdjust = 1.0
     layoutProc.maxIterations = 300
     //layoutProc.keepCentered = false
