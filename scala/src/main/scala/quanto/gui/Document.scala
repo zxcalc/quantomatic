@@ -87,7 +87,9 @@ abstract class Document extends Publisher {
   }
 
   def titleDescription =
-    file.map(f => f.getName).getOrElse("untitled") + (if (unsavedChanges) "*" else "")
+    file.map(f => f.getName).getOrElse("Untitled") +
+      (if (description.length > 0) " "+description else "") +
+      (if (unsavedChanges) "*" else "")
 
   /**
    * Try to save a document in current file if it exists and prompt the
