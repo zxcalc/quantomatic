@@ -80,7 +80,11 @@ trait VertexDisplayData { self: GraphView =>
                 labelDisplay.bounds.getMinX - 5.0, labelDisplay.bounds.getMinY - 3.0,
                 labelDisplay.bounds.getWidth + 10.0, labelDisplay.bounds.getHeight + 6.0)
             case Theory.VertexShape.Circle =>
-              val r = max((labelDisplay.bounds.getWidth / 2.0) + 3.0, trans.scaleToScreen(0.25))
+              // radius should fit to label if required
+              val r = max(
+                (labelDisplay.bounds.getWidth / 2.0) + trans.scaleToScreen(GraphView.NodeTextPadding),
+                trans.scaleToScreen(GraphView.NodeRadius)
+              )
 
               new Ellipse2D.Double(
                 labelDisplay.bounds.getCenterX - r,

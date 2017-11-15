@@ -664,14 +664,19 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 }
 
 object GraphView {
-  final val NodeRadius = 0.16
-  final val WireRadius = 0.1
-  final val ArrowheadLength = 0.15
-  final val ArrowheadAngle = 0.2 * Pi
-  final val EdgeSelectionRadius = 7.0
-  final val VertexSelectionTolerence = 3.0
-  final val VertexLabelFont = new Font("Dialog", AWTFont.PLAIN, 8)
-  final val EdgeLabelFont = new Font("Dialog", AWTFont.PLAIN, 8)
+
+  def scale(d: Double) : Double = {d*UserOptions.graphScale*UserOptions.uiScale}
+  implicit def round(d: Double) : Int = {math.floor(d).toInt}
+
+  final def NodeRadius : Double = scale(0.16)
+  final def NodeTextPadding : Double = scale(0.1)
+  final def WireRadius : Double = scale(0.1)
+  final def ArrowheadLength : Double = scale(0.15)
+  final val ArrowheadAngle : Double = 0.2 * Pi
+  final def EdgeSelectionRadius : Double = scale(7.0)
+  final def VertexSelectionTolerence : Double = scale(3.0)
+  final def VertexLabelFont = new Font("Dialog", AWTFont.PLAIN, scale(8))
+  final def EdgeLabelFont = new Font("Dialog", AWTFont.PLAIN, scale(8))
 
   final val zoomCutOut = 0.36
 

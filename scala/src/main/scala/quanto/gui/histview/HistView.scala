@@ -2,12 +2,17 @@ package quanto.gui.histview
 
 import swing._
 import quanto.util._
-import java.awt.{Font => AWTFont,FontMetrics,Graphics}
+import java.awt.{FontMetrics, Graphics, Font => AWTFont}
+
+import quanto.gui.UserOptions
+
 import scala.swing.ListView.IntervalMode
 
 
 class HistView[A <: HistNode](data: TreeSeq[A]) extends ListView[(Seq[TreeSeq.Decoration[A]],A)](data.flatten) {
-  private var itemWidth = -1
+  private def scale(d: Double) : Double = UserOptions.scale(d)
+  private def scaleInt(n: Int) : Int = UserOptions.scaleInt(n)
+  private var itemWidth = -1 // -1 used as "to initialise" value
   private var _treeData = data
   selection.intervalMode = IntervalMode.Single // multiple selection doesn't make sense for history view
 
@@ -22,7 +27,7 @@ class HistView[A <: HistNode](data: TreeSeq[A]) extends ListView[(Seq[TreeSeq.De
     val gr = peer.getGraphics
     for ((dec,value) <- listData) {
       val bds = gr.getFontMetrics(HistView.ItemFont).getStringBounds(value.toString, gr)
-      val width = (TreeSeq.decorationWidth(dec) + 1) * HistView.xIncrement + bds.getWidth
+      val width = (TreeSeq.decorationWidth(dec) + scaleInt(1)) * HistView.xIncrement + bds.getWidth
       itemWidth = math.max(itemWidth, width.toInt)
     }
   }
@@ -32,7 +37,7 @@ class HistView[A <: HistNode](data: TreeSeq[A]) extends ListView[(Seq[TreeSeq.De
                      focused: Boolean, a: (Seq[TreeSeq.Decoration[A]], A), index: Int): Component =
     {
       if (itemWidth == -1) computeItemWidth()
-      new HistViewItem[A](a._1, a._2, isSelected, new Dimension(math.max(itemWidth,bounds.getWidth.toInt),30))
+      new HistViewItem[A](a._1, a._2, isSelected, new Dimension(itemWidth,scaleInt(30)))
     }
   }
 
@@ -51,6 +56,6 @@ class HistView[A <: HistNode](data: TreeSeq[A]) extends ListView[(Seq[TreeSeq.De
 }
 
 object HistView {
-  final val ItemFont = new Font("Dialog", AWTFont.PLAIN, 12)
-  final val xIncrement = 15.0
+  final def ItemFont = new Font("Dialog", AWTFont.PLAIN, UserOptions.fontSize)
+  final def xIncrement = UserOptions.scaleInt(15)
 }

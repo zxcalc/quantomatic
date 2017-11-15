@@ -1,15 +1,17 @@
 package quanto.gui
 
-import org.python.core.{PySystemState, PyDictionary}
+import org.python.core.{PyDictionary, PySystemState}
 import org.python.util.PythonInterpreter
 
 import scala.swing._
-import org.gjt.sp.jedit.{Registers, Mode}
+import org.gjt.sp.jedit.{Mode, Registers}
 import org.gjt.sp.jedit.textarea.StandaloneTextArea
-import java.awt.{Color, BorderLayout}
-import java.awt.event.{KeyEvent, KeyAdapter}
+import java.awt.{BorderLayout, Color, Font}
+import java.awt.event.{KeyAdapter, KeyEvent}
 import javax.swing.ImageIcon
+
 import quanto.util.swing.ToolBar
+
 import scala.swing.event.ButtonClicked
 import quanto.util._
 import java.io.{File, PrintStream}
@@ -25,7 +27,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
   pyMode.setProperty("file", QuantoDerive.pythonModeFile)
   //println(sml.getProperty("file"))
   val code = StandaloneTextArea.createTextArea()
-
+  code.setFont(UserOptions.font)
   //mlCode.setFont(new Font("Menlo", Font.PLAIN, 14))
 
   val buf = new JEditBuffer1
@@ -99,7 +101,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
 
               //python.set("output", output)
               python.exec(code.getBuffer.getText)
-              QuantoDerive.CoreStatus.text = "Python ran sucessfully"
+              QuantoDerive.CoreStatus.text = "Python ran successfully"
               QuantoDerive.CoreStatus.foreground = new Color(0, 150, 0)
             } catch {
               case e : Throwable =>

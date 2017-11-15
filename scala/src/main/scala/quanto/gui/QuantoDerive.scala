@@ -50,13 +50,16 @@ object QuantoDerive extends SimpleSwingApplication {
   def error(msg: String) = Dialog.showMessage(
     title = "Error", message = msg, messageType = Dialog.Message.Error)
 
+
+  val prefs = Preferences.userRoot().node(this.getClass.getName)
+
   try {
     UIManager.setLookAndFeel(new MetalLookAndFeel) // tabs in OSX PLAF look bad
+    UserOptions.uiScale = prefs.getDouble("uiScale", 1.0)
   } catch {
     case e: Exception => e.printStackTrace()
   }
 
-  val prefs = Preferences.userRoot().node(this.getClass.getName)
 
   var CurrentProject : Option[Project] = prefs.get("lastProjectFolder", null) match {
     case path : String =>
@@ -573,6 +576,22 @@ object QuantoDerive extends SimpleSwingApplication {
         }
       }
     }
+
+    contents += new Separator
+
+    val IncreaseUIScaling = new Action("Increase UI scaling") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.Equals}
+      def apply(){UserOptions.uiScale *= 1.2}
+    }
+    val DecreaseUIScaling = new Action("Decrease UI scaling") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.Minus}
+      def apply(){UserOptions.uiScale *= 0.8}
+    }
+    val ResetUIScaling = new Action("Reset UI scaling") {
+      menu.contents += new MenuItem(this) {}
+      def apply(){UserOptions.uiScale = 1}
+    }
+
   }
 
   val ExportMenu = new Menu("Export") { menu =>
