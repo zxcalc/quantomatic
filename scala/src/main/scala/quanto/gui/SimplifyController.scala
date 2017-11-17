@@ -9,6 +9,7 @@ import akka.pattern.ask
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.swing.event.ButtonClicked
 import scala.util.{Failure, Success, Try}
+import quanto.util.UserAlerts.SelfAlertingProcess
 
 
 class SimplifyController(panel: DerivationPanel) extends Publisher {
@@ -78,7 +79,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
 
         QuantoDerive.CurrentProject.flatMap { pr => pr.simprocs.get(simpName) }.foreach { simproc =>
           var parentOpt = panel.controller.state.step
-          QuantoDerive.ConsoleProgress.indeterminate = true
+          val processReporting = new SelfAlertingProcess("Simproc: " + simpName)
 
           val res = Future[Boolean] {
             for ((graph, rule) <- simproc.simp(panel.LhsView.graph)) {
@@ -99,9 +100,9 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
 
           res.onComplete {
             case Success(b) =>
-              QuantoDerive.ConsoleProgress.indeterminate = false
+              processReporting.finish()
             case Failure(e) =>
-              QuantoDerive.ConsoleProgress.indeterminate = false
+              processReporting.fail()
               e.printStackTrace()
           }
         }

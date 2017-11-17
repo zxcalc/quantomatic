@@ -1,6 +1,7 @@
 package quanto.gui
 import javax.swing.UIManager
 import java.awt.{Component, Font, GraphicsConfiguration, Window}
+import java.text.SimpleDateFormat
 import java.util.prefs.Preferences
 import javax.swing.plaf.FontUIResource
 
@@ -75,6 +76,18 @@ object UserOptions {
   def graphScale : Double = _graphScale
   def graphScale_=(n: Double): Unit ={
     _graphScale = n
+  }
+
+  private var _preferredTimeFormat : SimpleDateFormat = new SimpleDateFormat("HH:mm:ss")
+  def preferredTimeFormat : SimpleDateFormat = _preferredTimeFormat
+  def preferredTimeFormat_=(format: String): Unit = {
+    try {
+      _preferredTimeFormat = new SimpleDateFormat(format)
+    }
+      catch {
+        case e: Exception =>
+          e.printStackTrace()
+      }
   }
 
 }

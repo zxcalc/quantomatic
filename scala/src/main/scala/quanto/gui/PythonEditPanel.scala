@@ -11,6 +11,7 @@ import java.awt.event.{KeyAdapter, KeyEvent}
 import javax.swing.ImageIcon
 
 import quanto.util.swing.ToolBar
+import quanto.util.UserAlerts.{alert, Elevation, SelfAlertingProcess}
 
 import scala.swing.event.ButtonClicked
 import quanto.util._
@@ -89,8 +90,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
   reactions += {
     case ButtonClicked(RunButton) =>
       if (execThread == null) {
-        QuantoDerive.CoreStatus.text = "Running python code"
-        QuantoDerive.CoreStatus.foreground = Color.BLUE
+        val processReporting = new SelfAlertingProcess("Python from source")
 
         execThread = new Thread(new Runnable {
           def run() {
@@ -101,12 +101,10 @@ class PythonEditPanel extends BorderPanel with HasDocument {
 
               //python.set("output", output)
               python.exec(code.getBuffer.getText)
-              QuantoDerive.CoreStatus.text = "Python ran successfully"
-              QuantoDerive.CoreStatus.foreground = new Color(0, 150, 0)
+              processReporting.finish()
             } catch {
               case e : Throwable =>
-                QuantoDerive.CoreStatus.text = "Error in python code"
-                QuantoDerive.CoreStatus.foreground = Color.RED
+                processReporting.fail()
                 Swing.onEDT { e.printStackTrace(output) }
             } finally {
               execThread = null
@@ -116,8 +114,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
         execThread.start()
 
       } else {
-        QuantoDerive.CoreStatus.text = "Python already running"
-        QuantoDerive.CoreStatus.foreground = Color.RED
+        alert("Python already running, please wait until complete", Elevation.WARNING)
       }
 
     case ButtonClicked(InterruptButton) =>

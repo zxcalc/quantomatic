@@ -27,7 +27,7 @@ import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
 import java.awt.Color
 
-import quanto.util.{Globals, WebHelper}
+import quanto.util.{Globals, UserAlerts, WebHelper}
 
 
 object QuantoDerive extends SimpleSwingApplication {
@@ -636,13 +636,41 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
-  val CoreStatus = new Label("OK")
-  CoreStatus.foreground = new Color(0,150,0)
-  val ConsoleProgress = new ProgressBar
 
-  val StatusBar = new GridPanel(1,2) {
-    contents += new FlowPanel(FlowPanel.Alignment.Left) ( new Label("Quantomatic status:"), CoreStatus )
-    contents += new FlowPanel(FlowPanel.Alignment.Right) ( ConsoleProgress )
+  val UserMessage = new Label(UserAlerts.latestMessage.toString)
+  val ConsoleProgress = new ProgressBar
+  val ConsoleProgressLabel = new Label(" ")
+  val StatusBar = new GridPanel(1, 2) {
+    contents += new FlowPanel(FlowPanel.Alignment.Left)(UserMessage)
+    contents += new FlowPanel(FlowPanel.Alignment.Right)(ConsoleProgressLabel, ConsoleProgress)
+  }
+
+  ConsoleProgress.preferredSize = ConsoleProgressSize //Currently doesn't respond to UI scaling
+
+  def ConsoleProgressSize: Dimension = new Dimension(UserOptions.scaleInt(100), UserOptions.scaleInt(15))
+
+
+  listenTo(UserAlerts.AlertPublisher)
+  reactions += {
+    case UserAlerts.UserAlertEvent(alert: UserAlerts.Alert) =>
+      UserMessage.text = alert.toString
+      UserMessage.foreground = alert.color
+    case UserAlerts.UserProcessUpdate(_) =>
+      UserAlerts.leastCompleteProcess match {
+        case Some(process) => if (process.determinate) {
+          ConsoleProgress.indeterminate = false
+          ConsoleProgress.value = process.value
+        } else {
+          ConsoleProgress.indeterminate = true
+        }
+        case _ => ConsoleProgress.value = 100
+      }
+      val ongoing = UserAlerts.ongoingProcesses.filter(op => op.value < 100)
+      ongoing.count(_ => true) match {
+        case 0 => ConsoleProgressLabel.text = " " //keep non-empty so the progressbar stays in line with text
+        case 1 => ConsoleProgressLabel.text = ongoing.head.name
+        case n => ConsoleProgressLabel.text = n.toString + " processes ongoing"
+      }
   }
 
   val Main = new BorderPanel {
