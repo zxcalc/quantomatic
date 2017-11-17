@@ -2,8 +2,6 @@ package quanto.util
 
 import java.util.{Calendar, Date, UUID}
 
-import quanto.gui.UserOptions
-
 import scala.swing.{Color, Publisher}
 import scala.swing.event.Event
 

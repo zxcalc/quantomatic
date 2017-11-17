@@ -25,9 +25,10 @@ import akka.actor.PoisonPill
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
-import java.awt.Color
+import java.awt.{Color, Window}
+import javax.swing.SwingUtilities
 
-import quanto.util.{Globals, UserAlerts, WebHelper}
+import quanto.util.{Globals, UserAlerts, UserOptions, WebHelper}
 
 
 object QuantoDerive extends SimpleSwingApplication {
@@ -98,6 +99,18 @@ object QuantoDerive extends SimpleSwingApplication {
   })
 
   ProjectFileTree.root = CurrentProject.map { _.rootFolder }
+
+
+  listenTo(quanto.util.UserOptions.OptionsChanged)
+  reactions += {
+    case quanto.util.UserOptions.UIRedrawRequest() =>
+      requestUIRefresh()
+  }
+  def requestUIRefresh(): Unit = {
+    for (w <-  Window.getWindows) {
+      SwingUtilities.updateComponentTreeUI(w)
+    }
+  }
 
   val MainTabbedPane = new ClosableTabbedPane
 
@@ -584,15 +597,15 @@ object QuantoDerive extends SimpleSwingApplication {
     contents += new Separator
 
     val IncreaseUIScaling = new Action("Increase UI scaling") {
-      menu.contents += new MenuItem(this) { mnemonic = Key.Equals}
+      menu.contents += new MenuItem(this) { mnemonic = Key.I}
       def apply(){UserOptions.uiScale *= 1.2}
     }
     val DecreaseUIScaling = new Action("Decrease UI scaling") {
-      menu.contents += new MenuItem(this) { mnemonic = Key.Minus}
+      menu.contents += new MenuItem(this) { mnemonic = Key.D}
       def apply(){UserOptions.uiScale *= 0.8}
     }
     val ResetUIScaling = new Action("Reset UI scaling") {
-      menu.contents += new MenuItem(this) {}
+      menu.contents += new MenuItem(this) { mnemonic = Key.R}
       def apply(){UserOptions.uiScale = 1}
     }
 

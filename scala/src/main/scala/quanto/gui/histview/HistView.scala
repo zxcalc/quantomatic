@@ -4,8 +4,6 @@ import swing._
 import quanto.util._
 import java.awt.{FontMetrics, Graphics, Font => AWTFont}
 
-import quanto.gui.UserOptions
-
 import scala.swing.ListView.IntervalMode
 
 

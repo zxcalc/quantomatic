@@ -6,7 +6,7 @@ import java.awt.{BasicStroke, Color, RenderingHints}
 import quanto.util.TreeSeq._
 import java.awt.geom.{Ellipse2D, Line2D, Path2D, Rectangle2D}
 
-import quanto.gui.UserOptions
+import quanto.util.UserOptions
 
 class HistViewItem[A <: HistNode](decorate: Seq[Decoration[A]], item: A, selected: Boolean,
                       sz: Dimension) extends Component {

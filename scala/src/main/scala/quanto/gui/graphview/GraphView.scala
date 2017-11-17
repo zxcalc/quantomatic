@@ -3,15 +3,19 @@ package quanto.gui.graphview
 import quanto.data._
 import quanto.gui._
 import quanto.data.Names._
+
 import swing._
 import event.FocusEvent
-import java.awt.{Font => AWTFont, BasicStroke, RenderingHints, Color}
+import java.awt.{BasicStroke, Color, RenderingHints, Font => AWTFont}
+
 import math._
 import java.awt.geom.{AffineTransform, Line2D, Rectangle2D}
 import java.awt.Font
 import java.awt.font.TextLayout
 import java.io.File
+
 import quanto.util.FileHelper.printToFile
+import quanto.util.UserOptions
 import quanto.util.json.JsonString
 
 

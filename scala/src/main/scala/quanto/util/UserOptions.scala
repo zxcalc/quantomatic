@@ -1,11 +1,13 @@
-package quanto.gui
-import javax.swing.UIManager
-import java.awt.{Component, Font, GraphicsConfiguration, Window}
+package quanto.util
+
+import java.awt.Font
 import java.text.SimpleDateFormat
 import java.util.prefs.Preferences
+import javax.swing.UIManager
 import javax.swing.plaf.FontUIResource
 
-import scala.swing.MainFrame
+import scala.swing.Publisher
+import scala.swing.event.Event
 
 class UserOptions {
 
@@ -13,6 +15,16 @@ class UserOptions {
 
 object UserOptions {
 
+
+  case class UIRedrawRequest() extends Event
+
+  object OptionsChanged extends Publisher
+
+  private def requestUIRefresh(): Unit = {
+    OptionsChanged.publish(UIRedrawRequest())
+  }
+
+  // Changes the default font but doesn't request redraw
   private def setUIFont(f: FontUIResource): Unit = {
     val keys = UIManager.getDefaults.keys
     while ( {
@@ -21,10 +33,6 @@ object UserOptions {
       val key = keys.nextElement
       val value = UIManager.get(key)
       if (value.isInstanceOf[FontUIResource]) UIManager.put(key, f)
-    }
-    import javax.swing.SwingUtilities
-    for (w <-  Window.getWindows) {
-      SwingUtilities.updateComponentTreeUI(w)
     }
   }
 
@@ -37,6 +45,7 @@ object UserOptions {
     setUIFont(new FontUIResource(_fontFamily, _fontDecoration, fontSize))
     val prefs = Preferences.userRoot().node(this.getClass.getName)
     prefs.putDouble("uiScale", _uiScale)
+    requestUIRefresh()
   }
 
   def scale(d: Double) : Double = {
