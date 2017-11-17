@@ -5,25 +5,29 @@ import org.python.util.PythonInterpreter
 
 import scala.io.Source
 import scala.swing._
-import scala.swing.event.{SelectionChanged, Key}
-import javax.swing.{UIManager, KeyStroke}
+import scala.swing.event.{Key, SelectionChanged}
+import javax.swing.{KeyStroke, UIManager}
 import java.awt.event.KeyEvent
-import quanto.util.json.{JsonString, Json}
+
+import quanto.util.json.{Json, JsonString}
 import quanto.data._
-import java.io.{PrintWriter, FilenameFilter, IOException, File}
+import java.io.{File, FilenameFilter, IOException, PrintWriter}
 import javax.swing.plaf.metal.MetalLookAndFeel
 import java.util.prefs.Preferences
+
 import quanto.gui.histview.HistView
-import akka.actor.{Props, ActorSystem}
+import akka.actor.{ActorSystem, Props}
 import quanto.core._
 import akka.pattern.ask
 import akka.util.Timeout
 import akka.actor.PoisonPill
+
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
 import java.awt.Color
-import quanto.util.Globals
+
+import quanto.util.{Globals, WebHelper}
 
 
 object QuantoDerive extends SimpleSwingApplication {
@@ -594,6 +598,23 @@ object QuantoDerive extends SimpleSwingApplication {
 
   }
 
+  val HelpMenu = new Menu("Help") { menu =>
+    val CloseAction = new Action("Quantomatic website") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.Q }
+      def apply() {
+        WebHelper.openWebpage("https://quantomatic.github.io/")
+      }
+    }
+
+    val SimprocAPIAction = new Action("Simproc API") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.S }
+      def apply() {
+        WebHelper.openWebpage("https://quantomatic.github.io/SimprocAPI.html")
+      }
+    }
+
+  }
+
   val ExportMenu = new Menu("Export") { menu =>
     val ExportAction = new Action("Export to LaTeX") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_E, CommandMask))
@@ -735,7 +756,7 @@ object QuantoDerive extends SimpleSwingApplication {
     size = new Dimension(1280,720)
 
     menuBar = new MenuBar {
-      contents += (FileMenu, EditMenu, DeriveMenu, WindowMenu, ExportMenu)
+      contents += (FileMenu, EditMenu, DeriveMenu, WindowMenu, ExportMenu, HelpMenu)
     }
 
     import javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE
