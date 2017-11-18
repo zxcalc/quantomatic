@@ -2,6 +2,7 @@ package quanto.rewrite.test
 import org.scalatest._
 import quanto.rewrite._
 import quanto.data._
+import quanto.data.Names._
 
 
 class AngleExpressionMatcherSpec extends FlatSpec {

@@ -2,6 +2,7 @@ package quanto.data.test
 
 import org.scalatest._
 import quanto.data._
+import quanto.data.Names._
 import AngleExpression._
 import quanto.util.Rational
 

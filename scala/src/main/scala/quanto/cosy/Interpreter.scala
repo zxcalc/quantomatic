@@ -128,10 +128,12 @@ object Interpreter {
           try {
             nv.value.toDouble
           } catch {
-            case e: Error => nv.angle.evaluate(Map("pi" -> math.Pi)) * math.Pi
+            case e: Error => nv.angle.evaluate(Map()) * math.Pi
           }
         } else {
-          nv.angle.evaluate(Map("pi" -> math.Pi)) * math.Pi
+          // AK: note, I replaced "pi -> math.Pi" with (). "PI" should never appear as a variable
+          // name in an AngleExpression
+          nv.angle.evaluate(Map()) * math.Pi
         }
 
         val (colour, nodeType) = adj.vertexColoursAndTypes(v)

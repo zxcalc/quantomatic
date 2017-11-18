@@ -125,7 +125,7 @@ case class Graph(
   def bboxesContaining(vn: VName): Set[BBName] = inBBox.domf(vn)
 
 
-  def vars: Set[String] = vdata.values.foldLeft(Set.empty[String]) {
+  def vars: Set[Var] = vdata.values.foldLeft(Set.empty[Var]) {
     case (vs, d: NodeV) =>
       vs ++ d.angle.vars
     case (vs,_) => vs
@@ -925,7 +925,7 @@ case class Graph(
     case BBKill(bb) => killBBox(bb)._1
   }
 
-  def freeVars: Set[String] = vdata.foldRight(Set[String]()) {
+  def freeVars: Set[Var] = vdata.foldRight(Set[Var]()) {
     case ((_,d: NodeV), s) => s union d.angle.vars
     case (_, s) => s
   }

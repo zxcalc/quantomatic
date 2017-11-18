@@ -198,7 +198,7 @@ case class MatchState(
               val (expandGraph, expandOp) = m.pattern.expandBBox(pbb)
               val (copyGraph, copyOp) = m.pattern.copyBBox(pbb)
 
-              val expanded = m.bbops.exists { case BBExpand(bb1, _) => bb1 == pbb; case _ => false }
+              val expanded = m.bbops.exists { case BBExpand(bb1, _, _) => bb1 == pbb; case _ => false }
 
               // only copy bboxes that have never been expanded
               val copyState =

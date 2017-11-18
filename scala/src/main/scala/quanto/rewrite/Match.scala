@@ -9,7 +9,7 @@ case class Match(pattern0: Graph, // the pattern without bbox operations
                  map: GraphMap = GraphMap(),
                  bareWireMap: Map[VName, Vector[VName]] = Map(),
                  bbops: List[BBOp] = List(),
-                 subst: Map[String,AngleExpression] = Map()) {
+                 subst: Map[Var,AngleExpression] = Map()) {
 
   def addVertex(vPair: (VName, VName)): Match = {
     copy(map = map addVertex vPair)

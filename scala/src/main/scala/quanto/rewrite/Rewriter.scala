@@ -8,7 +8,9 @@ object Rewriter {
     // ensure that *all* boundary names used in expanding bbops are avoided
     val fullBoundary = m.bbops.foldRight(m.pattern0.boundary) { (bbop, vs) =>
       bbop match {
-        case BBExpand(_, mp) => vs union mp.v.directImage(vs)
+        case BBExpand(_, mp, fresh) =>
+          // TODO: fresh
+          vs union mp.v.directImage(vs)
         case BBCopy(_, mp) => vs union mp.v.directImage(vs)
         case _ => vs
       }

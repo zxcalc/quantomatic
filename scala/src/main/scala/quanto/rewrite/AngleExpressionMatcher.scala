@@ -4,7 +4,7 @@ import quanto.data._
 import quanto.util._
 
 
-class AngleExpressionMatcher(pVars : Vector[String], tVars : Vector[String], mat : RationalMatrix) {
+class AngleExpressionMatcher(pVars : Vector[Var], tVars : Vector[Var], mat : RationalMatrix) {
   val pvSet = pVars.toSet
   val tvSet = tVars.toSet
 
@@ -22,11 +22,11 @@ class AngleExpressionMatcher(pVars : Vector[String], tVars : Vector[String], mat
   }
 
 
-  def toMap : Map[String, AngleExpression] =
+  def toMap : Map[Var, AngleExpression] =
     if (mat.numCols == 0) Map()
-    else mat.rows.foldLeft(Map[String,AngleExpression]()) { (mp, row) =>
+    else mat.rows.foldLeft(Map[Var,AngleExpression]()) { (mp, row) =>
       val p = RationalMatrix.findPivot(row)
-      var coeffs = Map[String,Rational]()
+      var coeffs = Map[Var,Rational]()
       for (i <- p+1 until mat.line)
         if (row(i) != Rational(0)) coeffs = coeffs + (pVars(i) -> row(i) * -1)
       for (i <- mat.line to row.length - 2)
@@ -37,6 +37,6 @@ class AngleExpressionMatcher(pVars : Vector[String], tVars : Vector[String], mat
 }
 
 object AngleExpressionMatcher {
-  def apply(pVars : Vector[String], tVars : Vector[String]) =
+  def apply(pVars : Vector[Var], tVars : Vector[Var]) =
     new AngleExpressionMatcher(pVars, tVars, new RationalMatrix(Vector(), pVars.length))
 }

@@ -12,7 +12,7 @@ class AngleParseException(message: String)
 class AngleEvaluationException(message: String)
   extends Exception(message)
 
-class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
+class AngleExpression(val const : Rational, val coeffs : Map[Var,Rational]) {
   lazy val vars = coeffs.keySet
 
   def *(r : Rational): AngleExpression =
@@ -26,15 +26,15 @@ class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
 
   def -(e: AngleExpression) : AngleExpression = this + (e * -1)
 
-  def subst(v : String, e : AngleExpression) : AngleExpression = {
+  def subst(v : Var, e : AngleExpression) : AngleExpression = {
     val c = coeffs.getOrElse(v,Rational(0))
     this - AngleExpression(Rational(0), Map(v -> c)) + (e * c)
   }
 
-  def subst(mp : Map[String, AngleExpression]): AngleExpression =
+  def subst(mp : Map[Var, AngleExpression]): AngleExpression =
     mp.foldLeft(this) { case (e, (v,e1)) => e.subst(v,e1) }
 
-  def evaluate(mp: Map[String, Double]) : Double = {
+  def evaluate(mp: Map[Var, Double]) : Double = {
     try {
       const + coeffs.foldLeft(0.0) { (a, b) => a + (mp(b._1) * Rational.rationalToDouble(b._2)) }
     } catch {
@@ -79,7 +79,7 @@ class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
 
 object AngleExpression {
   def apply(const : Rational = Rational(0),
-            coeffs : Map[String,Rational] = Map()) =
+            coeffs : Map[Var,Rational] = Map()) =
     new AngleExpression(const mod 2, coeffs.filter { case (_,c) => !c.isZero })
 
   val ZERO = AngleExpression(Rational(0))
@@ -104,7 +104,7 @@ object AngleExpression {
     def frac : Parser[AngleExpression] =
       INT_OPT ~ "*".? ~ PI ~ "/" ~ INT ^^ { case n ~ _ ~ _ ~ _ ~ d => AngleExpression(Rational(n,d)) } |
       INT_OPT ~ "*".? ~ IDENT ~ "/" ~ INT ^^ {
-        case n ~ _ ~ x ~ _ ~ d => AngleExpression(Rational(0), Map(x -> Rational(n,d)))
+        case n ~ _ ~ x ~ _ ~ d => AngleExpression(Rational(0), Map(Var(x) -> Rational(n,d)))
       }
 
     def term : Parser[AngleExpression] =
@@ -112,8 +112,8 @@ object AngleExpression {
       "-" ~ term ^^ { case _ ~ t => t * -1 } |
       coeff ~ "*".? ~ PI ^^ { case c ~ _ ~ _ => AngleExpression(c) } |
       PI ^^ { _ => ONE_PI } |
-      coeff ~ "*".? ~ IDENT ^^ { case c ~ _ ~ x => AngleExpression(Rational(0), Map(x -> c)) } |
-      IDENT ^^ { case x => AngleExpression(Rational(0), Map(x -> Rational(1))) } |
+      coeff ~ "*".? ~ IDENT ^^ { case c ~ _ ~ x => AngleExpression(Rational(0), Map(Var(x) -> c)) } |
+      IDENT ^^ { case x => AngleExpression(Rational(0), Map(Var(x) -> Rational(1))) } |
       coeff ^^ { AngleExpression(_) } |
       "(" ~ expr ~ ")" ^^ { case _ ~ t ~ _ => t }
 

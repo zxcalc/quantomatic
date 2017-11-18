@@ -3,7 +3,7 @@ package quanto.data
 import quanto.util.json.JsonString
 
 import scala.collection._
-import quanto.util.StringNamer
+import quanto.util.{Rational, StringNamer}
 
 
 
@@ -39,6 +39,7 @@ case class VName(s: String) extends Name[VName] { protected val mk = VName(_) }
 case class EName(s: String) extends Name[EName] { protected val mk = EName(_) }
 case class BBName(s: String) extends Name[BBName] { protected val mk = BBName(_) }
 case class DSName(s: String) extends Name[DSName] { protected val mk = DSName(_) }
+case class Var(s: String) extends Name[Var] { protected val mk = Var(_) }
 
 class DuplicateNameException[N <: Name[N]](ty: String, val name: N)
   extends Exception("Duplicate " + ty + " name: '" + name + "'")
@@ -89,15 +90,18 @@ object Names {
   implicit def stringToEName(s: String): EName  = EName(s)
   implicit def stringToBBName(s: String): BBName = BBName(s)
   implicit def stringToDSName(s: String): DSName = DSName(s)
+  implicit def stringToVar(s: String): Var = Var(s)
 
-  implicit def stringSetToGNameSet(set: Set[String]): Set[GName] = set map GName.apply
-  implicit def stringSetToVNameSet(set: Set[String]): Set[VName] = set map VName.apply
-  implicit def stringSetToENameSet(set: Set[String]): Set[EName] = set map EName.apply
-  implicit def stringSetToBBNameSet(set: Set[String]): Set[BBName] = set map BBName.apply
-  implicit def stringSetToDSNameSet(set: Set[String]): Set[DSName] = set map DSName.apply
+//  implicit def stringSetToGNameSet(set: Set[String]): Set[GName] = set map GName.apply
+//  implicit def stringSetToVNameSet(set: Set[String]): Set[VName] = set map VName.apply
+//  implicit def stringSetToENameSet(set: Set[String]): Set[EName] = set map EName.apply
+//  implicit def stringSetToBBNameSet(set: Set[String]): Set[BBName] = set map BBName.apply
+//  implicit def stringSetToDSNameSet(set: Set[String]): Set[DSName] = set map DSName.apply
 
   // edge creation methods take a pair of vertices
   implicit def stringPairToVNamePair(t: (String,String)): (VName, VName) = (VName(t._1), VName(t._2))
+  implicit def stringRationalPairToVarRationalPair(t: (String,Rational)): (Var, Rational) = (Var(t._1), t._2)
+  implicit def stringDoublePairToVarDoublePair(t: (String,Double)): (Var, Double) = (Var(t._1), t._2)
 
   // these can be used to save names into JSON without conversion
   implicit def gNameToJsonString(n: GName): JsonString = quanto.util.json.JsonString(n.toString)
@@ -110,4 +114,5 @@ object Names {
   implicit val defaultGName = GName("g0")
   implicit val defaultBBName = BBName("bx0")
   implicit val defaultDSName = DSName("0")
+  implicit val defaultVar = Var("x")
 }
