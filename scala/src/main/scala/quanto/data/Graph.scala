@@ -25,9 +25,9 @@ sealed abstract class BBOp {
   //override def toString: String = shortName
 }
 
-case class BBExpand(bb: BBName, mp: GraphMap) extends BBOp { def shortName = "E(" + bb + ")" }
+case class BBExpand(bb: BBName, mp: GraphMap, fresh: PFun[String,String]) extends BBOp { def shortName = "E(" + bb + ")" }
 case class BBCopy(bb: BBName, mp: GraphMap) extends BBOp { def shortName = "C(" + bb + ")" }
-case class BBDrop(bb: BBName) extends BBOp { def shortName = "D(" + bb + ")" }
+case class BBDrop(bb: BBName, fresh: PFun[String,String]) extends BBOp { def shortName = "D(" + bb + ")" }
 case class BBKill(bb: BBName) extends BBOp { def shortName = "K(" + bb + ")" }
 
 
@@ -856,7 +856,9 @@ case class Graph(
       g1 = g1.addEdge(e1, edata(e), mp1.v.getOrElse(s,s) -> mp1.v.getOrElse(t,t))
     }
 
-    (g1, BBExpand(bb,mp1))
+    // TODO: fresh names
+
+    (g1, BBExpand(bb,mp1,PFun()))
   }
 
   /**
@@ -882,7 +884,8 @@ case class Graph(
     * @return the new graph and a record containing relevant data for replaying the drop
     */
   def dropBBox(bb: BBName): (Graph, BBDrop) = {
-    (deleteBBox(bb), BBDrop(bb))
+    // TODO: fresh names
+    (deleteBBox(bb), BBDrop(bb, PFun()))
   }
 
   /**
@@ -909,13 +912,16 @@ case class Graph(
     * @return
     */
   def applyBBOp(bbop: BBOp, avoidV: Set[VName] = Set()): Graph = bbop match {
-    case BBExpand(bb, mp) =>
+    case BBExpand(bb, mp, fresh) =>
+      // TODO: fresh names
       val mp1 = GraphMap(v = mp.v.filterKeys(v => verts.contains(v) && isBoundary(v)), bb = mp.bb)
       expandBBox(bb, avoidV, mp1)._1
     case BBCopy(bb, mp) =>
       val mp1 = GraphMap(v = mp.v.filterKeys(v => verts.contains(v) && isBoundary(v)), bb = mp.bb)
       copyBBox(bb, avoidV, mp1)._1
-    case BBDrop(bb) => dropBBox(bb)._1
+    case BBDrop(bb, fresh) =>
+      // TODO: fresh names
+      dropBBox(bb)._1
     case BBKill(bb) => killBBox(bb)._1
   }
 

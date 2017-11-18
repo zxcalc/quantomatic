@@ -91,7 +91,7 @@ object AngleExpression {
     override def skipWhitespace = true
     def INT: Parser[Int] = """[0-9]+""".r ^^ { _.toInt }
     def INT_OPT : Parser[Int] = INT.? ^^ { _.getOrElse(1) }
-    def IDENT : Parser[String] = """[\\a-zA-Z_][a-zA-Z0-9_]*""".r ^^ { _.toString }
+    def IDENT : Parser[String] = """[\\a-zA-Z_\[][a-zA-Z0-9_]*\]?""".r ^^ { _.toString }
     def PI : Parser[Unit] = """\\?[pP][iI]""".r ^^ { _ => Unit }
 
 
