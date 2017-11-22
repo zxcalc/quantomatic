@@ -26,6 +26,15 @@ class AngleExpression(val const : Rational, val coeffs : Map[Var,Rational]) {
 
   def -(e: AngleExpression) : AngleExpression = this + (e * -1)
 
+  def subst(x: Var, y: Var) : AngleExpression = {
+    AngleExpression(
+      const,
+      coeffs.foldLeft(Map[Var,Rational]()) { case (co, (k,v)) =>
+        if (k == x) co + (y -> v)
+        else co + (x -> v)
+      })
+  }
+
   def subst(v : Var, e : AngleExpression) : AngleExpression = {
     val c = coeffs.getOrElse(v,Rational(0))
     this - AngleExpression(Rational(0), Map(v -> c)) + (e * c)

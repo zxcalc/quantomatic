@@ -25,9 +25,9 @@ sealed abstract class BBOp {
   //override def toString: String = shortName
 }
 
-case class BBExpand(bb: BBName, mp: GraphMap, fresh: PFun[String,String]) extends BBOp { def shortName = "E(" + bb + ")" }
+case class BBExpand(bb: BBName, mp: GraphMap, fresh: PFun[Var,Var]) extends BBOp { def shortName = "E(" + bb + ")" }
 case class BBCopy(bb: BBName, mp: GraphMap) extends BBOp { def shortName = "C(" + bb + ")" }
-case class BBDrop(bb: BBName, fresh: PFun[String,String]) extends BBOp { def shortName = "D(" + bb + ")" }
+case class BBDrop(bb: BBName, fresh: PFun[Var,Var]) extends BBOp { def shortName = "D(" + bb + ")" }
 case class BBKill(bb: BBName) extends BBOp { def shortName = "K(" + bb + ")" }
 
 
@@ -826,12 +826,35 @@ case class Graph(
     }
   }
 
+  // TODO: stub
+  def freshenVars(vs: Set[VName], avoidVar: Set[Var], fresh: PFun[Var,Var]): (Graph, PFun[Var,Var]) = {
+    var avoid1 = avoidVar ++ freeVars
+    var g1 = this
+    var fresh1 = fresh
+
+    for (v <- vs) vdata(v) match {
+      case data : NodeV =>
+        for (x <- data.angle.vars) {
+          if (x.toString.charAt(0) == '[' && x.toString.charAt(x.toString.length-1) == ']') {
+            val inner = x.toString.substring(1,x.toString.length-2)
+          }
+        }
+      case _ => // do nothing
+    }
+
+    (g1, fresh1)
+  }
+
   /**
     * make a copy of the given bbox's contents, without copying the bbox itself
     * @param bb the bbox to be expanded
     * @return the new graph and a record containing relevant data for replaying the expansion
     */
-  def expandBBox(bb: BBName, avoidV: Set[VName] = Set(), mp: GraphMap = GraphMap()): (Graph, BBExpand) = {
+  def expandBBox(bb: BBName, avoidV: Set[VName] = Set(),
+                 mp: GraphMap = GraphMap(),
+                 freshVars: Boolean = true,
+                 avoidVar: Set[Var] = Set(),
+                 fresh: PFun[Var,Var] = PFun()): (Graph, BBExpand) = {
     if (bboxParent.domSet contains bb) throw new GraphException("Attempted to expand non-toplevel bbox")
     val g = fullSubgraph(contents(bb), bboxChildren(bb))
 
@@ -843,7 +866,11 @@ case class Graph(
       ((bboxesContaining(v) -- bboxChildren(bb)) - bb).foreach{ bb1 => gfr = gfr.addToBBox(mp1.v(v), bb1) }
     }
 
-    var g1 = appendGraph(gfr)
+    var (g1,fresh1) =
+      if (freshVars)
+        appendGraph(gfr).freshenVars(gfr.verts.filter(gfr.bboxesContaining(_).isEmpty), avoidVar, fresh)
+      else
+        (appendGraph(gfr), fresh)
 
     var freshE = g1.edges
 
@@ -858,7 +885,7 @@ case class Graph(
 
     // TODO: fresh names
 
-    (g1, BBExpand(bb,mp1,PFun()))
+    (g1, BBExpand(bb,mp1,fresh1))
   }
 
   /**
@@ -867,7 +894,7 @@ case class Graph(
     * @return the new graph and a record containing relevant data for replaying the copy
     */
   def copyBBox(bb: BBName, avoidV: Set[VName] = Set(), mp: GraphMap = GraphMap()): (Graph, BBCopy) = {
-    var (g1, bbe) = expandBBox(bb, avoidV, mp)
+    var (g1, bbe) = expandBBox(bb, avoidV, mp, freshVars = false)
     val mp1 = if (bbe.mp.bb.domSet contains bb) bbe.mp
               else bbe.mp.copy(bb = bbe.mp.bb + (bb -> g1.bboxes.freshWithSuggestion(bb)))
     val bb1 = mp1.bb(bb)
@@ -883,9 +910,9 @@ case class Graph(
     * @param bb the bbox to be dropped
     * @return the new graph and a record containing relevant data for replaying the drop
     */
-  def dropBBox(bb: BBName): (Graph, BBDrop) = {
-    // TODO: fresh names
-    (deleteBBox(bb), BBDrop(bb, PFun()))
+  def dropBBox(bb: BBName, avoidVar: Set[Var] = Set(), fresh: PFun[Var,Var] = PFun()): (Graph, BBDrop) = {
+    val (g1,fresh1) = deleteBBox(bb).freshenVars(verts.filter(bboxesContaining(_) == Set(bb)), avoidVar, fresh)
+    (g1, BBDrop(bb, fresh1))
   }
 
   /**
@@ -911,17 +938,15 @@ case class Graph(
     * @param avoidV an optional set of (extra) vertices to avoid when copying !-box contents
     * @return
     */
-  def applyBBOp(bbop: BBOp, avoidV: Set[VName] = Set()): Graph = bbop match {
+  def applyBBOp(bbop: BBOp, avoidV: Set[VName] = Set(), avoidVar: Set[Var] = Set()): Graph = bbop match {
     case BBExpand(bb, mp, fresh) =>
-      // TODO: fresh names
       val mp1 = GraphMap(v = mp.v.filterKeys(v => verts.contains(v) && isBoundary(v)), bb = mp.bb)
-      expandBBox(bb, avoidV, mp1)._1
+      expandBBox(bb, avoidV, mp1, freshVars = true, avoidVar, fresh)._1
     case BBCopy(bb, mp) =>
       val mp1 = GraphMap(v = mp.v.filterKeys(v => verts.contains(v) && isBoundary(v)), bb = mp.bb)
       copyBBox(bb, avoidV, mp1)._1
     case BBDrop(bb, fresh) =>
-      // TODO: fresh names
-      dropBBox(bb)._1
+      dropBBox(bb, avoidVar, fresh)._1
     case BBKill(bb) => killBBox(bb)._1
   }
 
