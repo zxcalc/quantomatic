@@ -1,0 +1,14 @@
+{
+    "package": {
+        "name": "quantomatic",
+        "repo": "quantomatic",
+        "subject": "quantomatic"
+    },
+    "version": { "name": "v0.6.1" },
+    "files": [{
+      "includePattern": "scala/target/scala-2.11/Quantomatic.jar",
+      "uploadPattern": "Quantomatic.jar",
+      "matrixParams": {"override": 1}
+    }],
+    "publish": true
+}
