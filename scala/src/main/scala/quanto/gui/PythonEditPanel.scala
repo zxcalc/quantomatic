@@ -1,15 +1,18 @@
 package quanto.gui
 
-import org.python.core.{PySystemState, PyDictionary}
+import org.python.core.{PyDictionary, PySystemState}
 import org.python.util.PythonInterpreter
 
 import scala.swing._
-import org.gjt.sp.jedit.{Registers, Mode}
+import org.gjt.sp.jedit.{Mode, Registers}
 import org.gjt.sp.jedit.textarea.StandaloneTextArea
-import java.awt.{Color, BorderLayout}
-import java.awt.event.{KeyEvent, KeyAdapter}
+import java.awt.{BorderLayout, Color, Font}
+import java.awt.event.{KeyAdapter, KeyEvent}
 import javax.swing.ImageIcon
+
 import quanto.util.swing.ToolBar
+import quanto.util.UserAlerts.{alert, Elevation, SelfAlertingProcess}
+
 import scala.swing.event.ButtonClicked
 import quanto.util._
 import java.io.{File, PrintStream}
@@ -25,7 +28,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
   pyMode.setProperty("file", QuantoDerive.pythonModeFile)
   //println(sml.getProperty("file"))
   val code = StandaloneTextArea.createTextArea()
-
+  code.setFont(UserOptions.font)
   //mlCode.setFont(new Font("Menlo", Font.PLAIN, 14))
 
   val buf = new JEditBuffer1
@@ -87,8 +90,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
   reactions += {
     case ButtonClicked(RunButton) =>
       if (execThread == null) {
-        QuantoDerive.CoreStatus.text = "Running python code"
-        QuantoDerive.CoreStatus.foreground = Color.BLUE
+        val processReporting = new SelfAlertingProcess("Python from source")
 
         execThread = new Thread(new Runnable {
           def run() {
@@ -99,12 +101,10 @@ class PythonEditPanel extends BorderPanel with HasDocument {
 
               //python.set("output", output)
               python.exec(code.getBuffer.getText)
-              QuantoDerive.CoreStatus.text = "Python ran sucessfully"
-              QuantoDerive.CoreStatus.foreground = new Color(0, 150, 0)
+              processReporting.finish()
             } catch {
               case e : Throwable =>
-                QuantoDerive.CoreStatus.text = "Error in python code"
-                QuantoDerive.CoreStatus.foreground = Color.RED
+                processReporting.fail()
                 Swing.onEDT { e.printStackTrace(output) }
             } finally {
               execThread = null
@@ -114,8 +114,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
         execThread.start()
 
       } else {
-        QuantoDerive.CoreStatus.text = "Python already running"
-        QuantoDerive.CoreStatus.foreground = Color.RED
+        alert("Python already running, please wait until complete", Elevation.WARNING)
       }
 
     case ButtonClicked(InterruptButton) =>

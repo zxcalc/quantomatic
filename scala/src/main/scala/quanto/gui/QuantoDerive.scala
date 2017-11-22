@@ -5,25 +5,30 @@ import org.python.util.PythonInterpreter
 
 import scala.io.Source
 import scala.swing._
-import scala.swing.event.{SelectionChanged, Key}
-import javax.swing.{UIManager, KeyStroke}
+import scala.swing.event.{Key, SelectionChanged}
+import javax.swing.{KeyStroke, UIManager}
 import java.awt.event.KeyEvent
-import quanto.util.json.{JsonString, Json}
+
+import quanto.util.json.{Json, JsonString}
 import quanto.data._
-import java.io.{PrintWriter, FilenameFilter, IOException, File}
+import java.io.{File, FilenameFilter, IOException, PrintWriter}
 import javax.swing.plaf.metal.MetalLookAndFeel
 import java.util.prefs.Preferences
+
 import quanto.gui.histview.HistView
-import akka.actor.{Props, ActorSystem}
+import akka.actor.{ActorSystem, Props}
 import quanto.core._
 import akka.pattern.ask
 import akka.util.Timeout
 import akka.actor.PoisonPill
+
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
-import java.awt.Color
-import quanto.util.Globals
+import java.awt.{Color, Window}
+import javax.swing.SwingUtilities
+
+import quanto.util.{Globals, UserAlerts, UserOptions, WebHelper}
 
 
 object QuantoDerive extends SimpleSwingApplication {
@@ -50,13 +55,16 @@ object QuantoDerive extends SimpleSwingApplication {
   def error(msg: String) = Dialog.showMessage(
     title = "Error", message = msg, messageType = Dialog.Message.Error)
 
+
+  val prefs = Preferences.userRoot().node(this.getClass.getName)
+
   try {
     UIManager.setLookAndFeel(new MetalLookAndFeel) // tabs in OSX PLAF look bad
+    UserOptions.uiScale = prefs.getDouble("uiScale", 1.0)
   } catch {
     case e: Exception => e.printStackTrace()
   }
 
-  val prefs = Preferences.userRoot().node(this.getClass.getName)
 
   var CurrentProject : Option[Project] = prefs.get("lastProjectFolder", null) match {
     case path : String =>
@@ -91,6 +99,18 @@ object QuantoDerive extends SimpleSwingApplication {
   })
 
   ProjectFileTree.root = CurrentProject.map { _.rootFolder }
+
+
+  listenTo(quanto.util.UserOptions.OptionsChanged)
+  reactions += {
+    case quanto.util.UserOptions.UIRedrawRequest() =>
+      requestUIRefresh()
+  }
+  def requestUIRefresh(): Unit = {
+    for (w <-  Window.getWindows) {
+      SwingUtilities.updateComponentTreeUI(w)
+    }
+  }
 
   val MainTabbedPane = new ClosableTabbedPane
 
@@ -573,6 +593,39 @@ object QuantoDerive extends SimpleSwingApplication {
         }
       }
     }
+
+    contents += new Separator
+
+    val IncreaseUIScaling = new Action("Increase UI scaling") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.I}
+      def apply(){UserOptions.uiScale *= 1.2}
+    }
+    val DecreaseUIScaling = new Action("Decrease UI scaling") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.D}
+      def apply(){UserOptions.uiScale *= 0.8}
+    }
+    val ResetUIScaling = new Action("Reset UI scaling") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.R}
+      def apply(){UserOptions.uiScale = 1}
+    }
+
+  }
+
+  val HelpMenu = new Menu("Help") { menu =>
+    val CloseAction = new Action("Quantomatic website") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.Q }
+      def apply() {
+        WebHelper.openWebpage("https://quantomatic.github.io/")
+      }
+    }
+
+    val SimprocAPIAction = new Action("Simproc API") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.S }
+      def apply() {
+        WebHelper.openWebpage("https://quantomatic.github.io/SimprocAPI.html")
+      }
+    }
+
   }
 
   val ExportMenu = new Menu("Export") { menu =>
@@ -596,13 +649,41 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
-  val CoreStatus = new Label("OK")
-  CoreStatus.foreground = new Color(0,150,0)
-  val ConsoleProgress = new ProgressBar
 
-  val StatusBar = new GridPanel(1,2) {
-    contents += new FlowPanel(FlowPanel.Alignment.Left) ( new Label("Quantomatic status:"), CoreStatus )
-    contents += new FlowPanel(FlowPanel.Alignment.Right) ( ConsoleProgress )
+  val UserMessage = new Label(UserAlerts.latestMessage.toString)
+  val ConsoleProgress = new ProgressBar
+  val ConsoleProgressLabel = new Label(" ")
+  val StatusBar = new GridPanel(1, 2) {
+    contents += new FlowPanel(FlowPanel.Alignment.Left)(UserMessage)
+    contents += new FlowPanel(FlowPanel.Alignment.Right)(ConsoleProgressLabel, ConsoleProgress)
+  }
+
+  ConsoleProgress.preferredSize = ConsoleProgressSize //Currently doesn't respond to UI scaling
+
+  def ConsoleProgressSize: Dimension = new Dimension(UserOptions.scaleInt(100), UserOptions.scaleInt(15))
+
+
+  listenTo(UserAlerts.AlertPublisher)
+  reactions += {
+    case UserAlerts.UserAlertEvent(alert: UserAlerts.Alert) =>
+      UserMessage.text = alert.toString
+      UserMessage.foreground = alert.color
+    case UserAlerts.UserProcessUpdate(_) =>
+      UserAlerts.leastCompleteProcess match {
+        case Some(process) => if (process.determinate) {
+          ConsoleProgress.indeterminate = false
+          ConsoleProgress.value = process.value
+        } else {
+          ConsoleProgress.indeterminate = true
+        }
+        case _ => ConsoleProgress.value = 100
+      }
+      val ongoing = UserAlerts.ongoingProcesses.filter(op => op.value < 100)
+      ongoing.count(_ => true) match {
+        case 0 => ConsoleProgressLabel.text = " " //keep non-empty so the progressbar stays in line with text
+        case 1 => ConsoleProgressLabel.text = ongoing.head.name
+        case n => ConsoleProgressLabel.text = n.toString + " processes ongoing"
+      }
   }
 
   val Main = new BorderPanel {
@@ -716,7 +797,7 @@ object QuantoDerive extends SimpleSwingApplication {
     size = new Dimension(1280,720)
 
     menuBar = new MenuBar {
-      contents += (FileMenu, EditMenu, DeriveMenu, WindowMenu, ExportMenu)
+      contents += (FileMenu, EditMenu, DeriveMenu, WindowMenu, ExportMenu, HelpMenu)
     }
 
     import javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE
