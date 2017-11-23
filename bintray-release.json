@@ -7,7 +7,7 @@
     "version": { "name": "v0.6.1" },
     "files": [{
       "includePattern": "scala/target/scala-2.11/Quantomatic.jar",
-      "uploadPattern": "Quantomatic.jar",
+      "uploadPattern": "Quantomatic-0.6.1.jar",
       "matrixParams": {"override": 1}
     }],
     "publish": true
