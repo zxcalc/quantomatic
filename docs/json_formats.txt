@@ -168,6 +168,20 @@ VALUE_DESC ::=
   "validate_with_core": JSON_BOOL
 }
 
+========================
+PROJECT
+========================
+
+File extension: .qproject
+
+A project file contains user specific settings for this workspace,
+and a description of the theory in use.
+
+PROJECT ::=
+{
+  "name" : JSON_STRING,
+  "theory" : THEORY
+}
 
 
 

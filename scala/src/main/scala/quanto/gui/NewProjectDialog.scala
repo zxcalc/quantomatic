@@ -6,71 +6,102 @@ import quanto.data.Theory
 import quanto.util.FileHelper
 
 import scala.swing._
-import scala.swing.event.ButtonClicked
+import scala.swing.event.{ButtonClicked, SelectionChanged}
+import quanto.util.UserOptions.scaleInt
 
 class NewProjectDialog extends Dialog {
   modal = true
   val NameField = new TextField()
   val ProjectLocationField = new TextField(System.getProperty("user.home"))
   val BrowseProjectButton = new Button("...")
-  val TheoryLocationField = new TextField("<Select a .qtheory file>")
+  val TheoryChoiceDropdown = new ComboBox(Seq[String]("ZX", "ZW", "From existing project", "From .qtheory file"))
+  val TheoryLocationField = new TextField("")
   val BrowseTheoryButton = new Button("...")
   val theoryName = new TextField("")
+
 
   val CreateButton = new Button("Create")
   val CancelButton = new Button("Cancel")
   defaultButton = Some(CreateButton)
-
-  var result : Option[(String,String,String)] = None
-
   val mainPanel = new BoxPanel(Orientation.Vertical) {
 
-    contents += Swing.VStrut(10)
+    contents += Swing.VStrut(scaleInt(10))
 
     contents += new BoxPanel(Orientation.Horizontal) {
       val nameLabel = new Label("Name", null, Alignment.Right)
-      nameLabel.preferredSize = new Dimension(80, 30)
-      ProjectLocationField.preferredSize = new Dimension(235, 30)
+      nameLabel.preferredSize = new Dimension(scaleInt(80), scaleInt(30))
+      ProjectLocationField.preferredSize = new Dimension(scaleInt(235), scaleInt(30))
 
-      contents += (Swing.HStrut(10), nameLabel, Swing.HStrut(5), NameField, Swing.HStrut(10))
+      contents += (Swing.HStrut(scaleInt(10)),
+        nameLabel,
+        Swing.HStrut(scaleInt(5)),
+        NameField,
+        Swing.HStrut(scaleInt(10)))
     }
 
-    contents += Swing.VStrut(5)
+    contents += Swing.VStrut(scaleInt(5))
 
     contents += new BoxPanel(Orientation.Horizontal) {
       val locationLabel = new Label("Location", null, Alignment.Right)
-      locationLabel.preferredSize = new Dimension(80, 30)
-      ProjectLocationField.preferredSize = new Dimension(200, 30)
-      BrowseProjectButton.preferredSize = new Dimension(30, 30)
+      locationLabel.preferredSize = new Dimension(scaleInt(80), scaleInt(30))
+      ProjectLocationField.preferredSize = new Dimension(scaleInt(200), scaleInt(30))
+      BrowseProjectButton.preferredSize = new Dimension(scaleInt(30), scaleInt(30))
 
-      contents += (Swing.HStrut(10), locationLabel, Swing.HStrut(5), ProjectLocationField,
-        Swing.HStrut(5), BrowseProjectButton, Swing.HStrut(10))
+      contents += (Swing.HStrut(scaleInt(10)), locationLabel, Swing.HStrut(scaleInt(5)), ProjectLocationField,
+        Swing.HStrut(scaleInt(5)), BrowseProjectButton, Swing.HStrut(scaleInt(10)))
     }
 
-    contents += Swing.VStrut(5)
+    contents += Swing.VStrut(scaleInt(5))
 
     contents += new BoxPanel(Orientation.Horizontal) {
       val theoryLabel = new Label("Theory ", null, Alignment.Right)
-      theoryLabel.preferredSize = new Dimension(80, 30)
-      ProjectLocationField.preferredSize = new Dimension(200, 30)
-      BrowseTheoryButton.preferredSize = new Dimension(30, 30)
+      theoryLabel.preferredSize = new Dimension(scaleInt(80), scaleInt(30))
+      ProjectLocationField.preferredSize = new Dimension(scaleInt(200), scaleInt(30))
+      BrowseTheoryButton.preferredSize = new Dimension(scaleInt(30), scaleInt(30))
 
-      contents += (Swing.HStrut(10), theoryLabel, Swing.HStrut(5), TheoryLocationField,
-        Swing.HStrut(5), BrowseTheoryButton, Swing.HStrut(10))
+      val locationAndButton : BoxPanel = new BoxPanel(Orientation.Horizontal) {
+        contents += (TheoryLocationField, Swing.VStrut(scaleInt(5)), BrowseTheoryButton)
+      }
+
+      val theoryAndLocation: BoxPanel = new BoxPanel(Orientation.Vertical) {
+        contents += (TheoryChoiceDropdown, Swing.VStrut(scaleInt(5)), locationAndButton)
+      }
+
+      contents += (Swing.HStrut(scaleInt(10)), theoryLabel, Swing.HStrut(scaleInt(5)),
+        theoryAndLocation, Swing.HStrut(scaleInt(10)))
     }
 
-    contents += Swing.VStrut(5)
+    contents += Swing.VStrut(scaleInt(5))
 
     contents += new BoxPanel(Orientation.Horizontal) {
-      contents += (CreateButton, Swing.HStrut(5), CancelButton)
+      contents += (CreateButton, Swing.HStrut(scaleInt(5)), CancelButton)
     }
 
-    contents += Swing.VStrut(10)
+    contents += Swing.VStrut(scaleInt(10))
   }
+  var result: Option[(String, String, String)] = None
 
   contents = mainPanel
 
-  listenTo(BrowseProjectButton, CreateButton, CancelButton, BrowseTheoryButton)
+  listenTo(BrowseProjectButton, CreateButton, CancelButton, BrowseTheoryButton, TheoryChoiceDropdown.selection)
+  var fileChoiceFilter = "*"
+  var fileChoiceFilterDescription = ""
+
+  def disableFileChoosers(replacementText: String): Unit = {
+    BrowseTheoryButton.enabled = false
+    TheoryLocationField.enabled = false
+    TheoryLocationField.text = replacementText
+  }
+
+  def enableFileChoosers(filterDescription: String, filter: String): Unit = {
+    BrowseTheoryButton.enabled = true
+    TheoryLocationField.enabled = true
+    TheoryLocationField.text = ""
+    fileChoiceFilterDescription = filterDescription
+    fileChoiceFilter = filter
+  }
+
+  disableFileChoosers("red_green")
 
   reactions += {
     case ButtonClicked(CreateButton) =>
@@ -88,13 +119,24 @@ class NewProjectDialog extends Dialog {
       }
     case ButtonClicked(BrowseTheoryButton) =>
       val chooser = new FileChooser()
-      val qtheoryExtensionFilter = new FileNameExtensionFilter("Theory files", "qtheory")
+      val qtheoryExtensionFilter = new FileNameExtensionFilter(fileChoiceFilterDescription, fileChoiceFilter)
       chooser.fileSelectionMode = FileChooser.SelectionMode.FilesOnly
       chooser.fileFilter = qtheoryExtensionFilter
       chooser.showOpenDialog(mainPanel) match {
         case FileChooser.Result.Approve =>
           TheoryLocationField.text = chooser.selectedFile.toString
         case _ =>
+      }
+    case SelectionChanged(TheoryChoiceDropdown) =>
+      TheoryChoiceDropdown.selection.item match {
+        case "ZX" =>
+          disableFileChoosers("red_green")
+        case "ZW" =>
+          disableFileChoosers("black_white")
+        case "From existing project" =>
+          enableFileChoosers("Project files", "qproject")
+        case "From .qtheory file" =>
+          enableFileChoosers("Theory files", "qtheory")
       }
   }
 }

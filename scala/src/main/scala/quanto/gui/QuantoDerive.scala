@@ -65,20 +65,41 @@ object QuantoDerive extends SimpleSwingApplication {
     case e: Exception => e.printStackTrace()
   }
 
+  def unloadProject() {
+    CurrentProject = None
+    ProjectFileTree.root = None
+  }
 
-  var CurrentProject : Option[Project] = prefs.get("lastProjectFolder", null) match {
-    case path : String =>
-      try {
-        println("project path: " + path)
-        val projectFile = new File(path + "/main.qproject")
-        if (projectFile.exists) Some(Project.fromJson(Json.parse(projectFile), path))
-        else None
-      } catch {
-        case e: Exception =>
-          e.printStackTrace()
-          None
+  def loadProject(projectLocation: String) : Option[Project] = {
+    UserAlerts.alert(s"Opening project: $projectLocation")
+    val projectFile = new File(projectLocation + "/main.qproject")
+    try {
+      if (projectFile.exists) {
+        val parsedInput = Json.parse(projectFile)
+        val project = Project.fromJson(parsedInput, projectLocation)
+        // Old .qproject files had links rather than embedded theories
+        if (Project.toJson(project).toString != parsedInput.toString) {
+          UserAlerts.alert("Updating out of date .qproject file")
+          Project.toJson(project).writeTo(new File(projectLocation + "/main.qproject"))
+        }
+        CurrentProject = Some(project)
+        ProjectFileTree.root = Some(projectLocation)
+        prefs.put("lastProjectFolder", projectLocation)
+        UserAlerts.alert(s"Successfully loaded project: $projectLocation")
+        Some(project)
+      } else {
+        UserAlerts.alert("Selected project file does not exist", UserAlerts.Elevation.ERROR)
+        unloadProject()
+        None
       }
-    case _ => None
+    } catch {
+      case e: Exception =>
+        throw new ProjectLoadException("Error loading project",e)
+        unloadProject()
+        None
+    } finally {
+      FileMenu.updateNewEnabled()
+    }
   }
 
   //CurrentProject.map { pr => core ! SetMLWorkingDir(pr.rootFolder) }
@@ -98,7 +119,18 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   })
 
-  ProjectFileTree.root = CurrentProject.map { _.rootFolder }
+
+  var CurrentProject : Option[Project] = prefs.get("lastProjectFolder", null) match {
+    case path : String =>
+      try {
+        loadProject(path)
+      } catch {
+        case e: Exception =>
+          e.printStackTrace()
+          None
+      }
+    case _ => None
+  }
 
 
   listenTo(quanto.util.UserOptions.OptionsChanged)
@@ -359,8 +391,8 @@ object QuantoDerive extends SimpleSwingApplication {
           d.centerOnScreen()
           d.open()
           d.result match {
-            case Some((thy,name,path)) =>
-              println("got: " + (thy, name, path))
+            case Some((theoryFile,name,path)) =>
+              println("got: " + (theoryFile, name, path))
               val folder = new File(path + "/" + name)
               if (folder.exists()) {
                 Dialog.showMessage(
@@ -375,11 +407,9 @@ object QuantoDerive extends SimpleSwingApplication {
                 new File(folder.getPath + "/derivations").mkdir()
                 new File(folder.getPath + "/simprocs").mkdir()
                 val rootFolder = folder.getAbsolutePath
-                val proj = Project(theoryFile = thy, rootFolder = rootFolder)
+                val proj = Project.fromTheoryOrProjectFile(theoryFile, rootFolder, name)
                 Project.toJson(proj).writeTo(new File(folder.getPath + "/main.qproject"))
-                CurrentProject = Some(proj)
-                ProjectFileTree.root = Some(rootFolder)
-                prefs.put("lastProjectFolder", rootFolder)
+                loadProject(folder.getPath)
                 //core ! SetMLWorkingDir(rootFolder)
                 updateNewEnabled()
               }
@@ -401,10 +431,7 @@ object QuantoDerive extends SimpleSwingApplication {
               val projectFile = new File(rootFolder + "/main.qproject")
               if (projectFile.exists) {
                 try {
-                  val proj = Project.fromJson(Json.parse(projectFile), rootFolder)
-                  CurrentProject = Some(proj)
-                  ProjectFileTree.root = Some(rootFolder)
-                  prefs.put("lastProjectFolder", rootFolder.toString)
+                  loadProject(rootFolder)
                   //core ! SetMLWorkingDir(rootFolder)
                 } catch {
                   case _: ProjectLoadException =>
@@ -791,7 +818,14 @@ object QuantoDerive extends SimpleSwingApplication {
 //  }
 
   def top = new MainFrame {
-    title = "Quantomatic"
+    override def title : String = {
+      if (CurrentProject.isEmpty) {"Quantomatic"} else {
+        CurrentProject.get.name match {
+          case "" => "Quantomatic"
+          case s => "Quantomatic - $s"
+        }
+      }
+    }
     contents = Main
 
     size = new Dimension(1280,720)
