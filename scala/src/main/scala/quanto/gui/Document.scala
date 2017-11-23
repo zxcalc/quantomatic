@@ -49,7 +49,7 @@ abstract class Document extends Publisher {
   }
 
   def save(fopt: Option[File] = None) {
-    fopt.orElse(file).map { f =>
+    fopt.orElse(file).foreach { f =>
       try {
         saveDocument(f)
         file = Some(f)
@@ -87,12 +87,12 @@ abstract class Document extends Publisher {
   }
 
   def titleDescription : String = {
-
-    val name : String = file.map(f => f.getName).getOrElse("Untitled")
-    // If there is a description then use in instead of the file extension
-    val nameDescription = if (description.length > 0) name.replaceAll("\\.[^.]*$", "") + " " + description else name
-    val nameDescriptionChanges = nameDescription + (if (unsavedChanges) "*" else "")
-    nameDescriptionChanges
+    file.map(f => f.getName).getOrElse("Untitled").replaceAll("\\.[^.]*$", "")
+//    val name : String = file.map(f => f.getName).getOrElse("Untitled")
+//    // If there is a description then use in instead of the file extension
+//    val nameDescription = if (description.length > 0) name.replaceAll("\\.[^.]*$", "") + " " + description else name
+//    val nameDescriptionChanges = nameDescription + (if (unsavedChanges) "*" else "")
+//    nameDescriptionChanges
   }
 
   /**

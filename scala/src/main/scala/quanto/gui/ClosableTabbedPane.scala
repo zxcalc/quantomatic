@@ -2,7 +2,7 @@ package quanto.gui
 
 import scala.swing._
 import javax.swing.border.EmptyBorder
-import javax.swing.Icon
+import javax.swing.{ImageIcon, Icon}
 import java.awt.{Color, BasicStroke, RenderingHints, Graphics}
 
 class ClosablePage(title0: String, component0: Component, val closeAction: () => Boolean)
@@ -21,7 +21,15 @@ object ClosablePage {
 
   class TabComponent(p: ClosablePage) extends BoxPanel(Orientation.Horizontal) {
     opaque = false
-    val titleLabel = new Label(p.title)
+    val icon = p match {
+      case _: GraphDocumentPage => new ImageIcon(getClass.getResource("graph-icon.png"), "Graph")
+      case _: RuleDocumentPage => new ImageIcon(getClass.getResource("rule-icon.png"), "Rule")
+      case _: DerivationDocumentPage => new ImageIcon(getClass.getResource("derive-icon.png"), "Derivation")
+      case _: PythonDocumentPage => new ImageIcon(getClass.getResource("text-x-script.png"), "Python Script")
+      case _ => new ImageIcon(getClass.getResource("text-x-generic.png"), "Document")
+    }
+
+    val titleLabel = new Label(p.title,icon,Alignment.Left)
     titleLabel.border = new EmptyBorder(new Insets(5,5,5,10))
     contents += titleLabel
 
