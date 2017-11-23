@@ -249,7 +249,7 @@ object QuantoDerive extends SimpleSwingApplication {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask))
       menu.contents += new MenuItem(this) { mnemonic = Key.G }
       def apply() {
-        CurrentProject.map{ project =>
+        CurrentProject.foreach{ project =>
           val page = new GraphDocumentPage(project.theory)
           MainTabbedPane += page
           MainTabbedPane.selection.index = page.index
@@ -261,7 +261,7 @@ object QuantoDerive extends SimpleSwingApplication {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask | Key.Modifier.Shift))
       menu.contents += new MenuItem(this) { mnemonic = Key.X }
       def apply() {
-        CurrentProject.map{ project =>
+        CurrentProject.foreach{ project =>
           val page = new RuleDocumentPage(project.theory)
           MainTabbedPane += page
           MainTabbedPane.selection.index = page.index
@@ -285,7 +285,7 @@ object QuantoDerive extends SimpleSwingApplication {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Y, CommandMask | Key.Modifier.Shift))
       menu.contents += new MenuItem(this) { mnemonic = Key.Y }
       def apply() {
-        CurrentProject.map{ project =>
+        CurrentProject.foreach{ project =>
           val page = new PythonDocumentPage
           MainTabbedPane += page
           MainTabbedPane.selection.index = page.index
@@ -452,7 +452,7 @@ object QuantoDerive extends SimpleSwingApplication {
 
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask))
       enabled = false
-      def apply() = currentDocument.map { doc =>
+      def apply() = currentDocument.foreach { doc =>
         doc.document.undoStack.undo()
       }
 
@@ -471,7 +471,7 @@ object QuantoDerive extends SimpleSwingApplication {
       reactions += {
         case DocumentChanged(_) => updateUndoCommand()
         case SelectionChanged(_) =>
-          currentDocument.map { doc => listenTo(doc.document) }
+          currentDocument.foreach { doc => listenTo(doc.document) }
           updateUndoCommand()
       }
     }
@@ -482,7 +482,7 @@ object QuantoDerive extends SimpleSwingApplication {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask | Key.Modifier.Shift))
       enabled = false
 
-      def apply() = currentDocument.map { doc =>
+      def apply() = currentDocument.foreach { doc =>
         doc.document.undoStack.redo()
       }
 
@@ -501,7 +501,7 @@ object QuantoDerive extends SimpleSwingApplication {
       reactions += {
         case DocumentChanged(_) => updateRedoCommand()
         case SelectionChanged(_) =>
-          currentDocument.map { doc => listenTo(doc.document) }
+          currentDocument.foreach { doc => listenTo(doc.document) }
           updateRedoCommand()
       }
     }
@@ -511,19 +511,19 @@ object QuantoDerive extends SimpleSwingApplication {
     val CutAction = new Action("Cut") {
       menu.contents += new MenuItem(this) { mnemonic = Key.U }
       //accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_X, CommandMask))
-      def apply() { currentGraphController.map(_.cutSubgraph()) }
+      def apply() { currentGraphController.foreach(_.cutSubgraph()) }
     }
 
     val CopyAction = new Action("Copy") {
       menu.contents += new MenuItem(this) { mnemonic = Key.C }
       //accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_C, CommandMask))
-      def apply() { currentGraphController.map(_.copySubgraph()) }
+      def apply() { currentGraphController.foreach(_.copySubgraph()) }
     }
 
     val PasteAction = new Action("Paste") {
       menu.contents += new MenuItem(this) { mnemonic = Key.P }
       //accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_V, CommandMask))
-      def apply() { currentGraphController.map(_.pasteSubgraph()) }
+      def apply() { currentGraphController.foreach(_.pasteSubgraph()) }
     }
 
     contents += new Separator
@@ -531,7 +531,7 @@ object QuantoDerive extends SimpleSwingApplication {
     val SnapToGridAction = new Action("Snap to grid") {
       menu.contents += new MenuItem(this) { mnemonic = Key.S }
       //accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_G, CommandMask))
-      def apply() { currentGraphController.map(_.snapToGrid()) }
+      def apply() { currentGraphController.foreach(_.snapToGrid()) }
     }
 
 //    val LayoutAction = new Action("Layout Graph") with Reactor {
