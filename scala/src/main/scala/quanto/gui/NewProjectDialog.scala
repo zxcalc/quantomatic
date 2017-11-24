@@ -1,9 +1,10 @@
 package quanto.gui
 
+import java.io.File
 import javax.swing.filechooser.FileNameExtensionFilter
 
 import quanto.data.Theory
-import quanto.util.FileHelper
+import quanto.util.{FileHelper, UserAlerts}
 
 import scala.swing._
 import scala.swing.event.{ButtonClicked, SelectionChanged}
@@ -105,8 +106,20 @@ class NewProjectDialog extends Dialog {
 
   reactions += {
     case ButtonClicked(CreateButton) =>
-      result = Some((TheoryLocationField.text, NameField.text, ProjectLocationField.text))
-      close()
+      val theory = TheoryLocationField.text
+      val name = NameField.text
+      val path = ProjectLocationField.text
+      val folder = new File(path + "/" + name)
+      if (name.isEmpty) {
+        UserAlerts.errorbox("Please enter a name for your project.")
+      } else if (folder.exists()) {
+        UserAlerts.errorbox("That folder is already in use.")
+      } else if (theory.isEmpty) {
+        UserAlerts.errorbox("Please choose a theory.")
+      } else {
+        result = Some((theory, name, path))
+        close()
+      }
     case ButtonClicked(CancelButton) =>
       close()
     case ButtonClicked(BrowseProjectButton) =>

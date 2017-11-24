@@ -391,14 +391,15 @@ object QuantoDerive extends SimpleSwingApplication {
           d.centerOnScreen()
           d.open()
           d.result match {
-            case Some((theoryFile,name,path)) =>
+            case Some((theoryFile, name, path)) =>
               println("got: " + (theoryFile, name, path))
               val folder = new File(path + "/" + name)
-              if (folder.exists()) {
-                Dialog.showMessage(
-                  title = "Error",
-                  message = "A file or folder already exists with that name.",
-                  messageType = Dialog.Message.Error)
+              if (name.isEmpty) {
+                UserAlerts.errorbox("Please enter a name for your project.")
+              } else if (folder.exists()) {
+                UserAlerts.errorbox("That folder is already in use.")
+              } else if (theoryFile.isEmpty) {
+                UserAlerts.errorbox("Please enter a theory file.")
               } else {
                 folder.mkdirs()
                 new File(folder.getPath + "/graphs").mkdir()

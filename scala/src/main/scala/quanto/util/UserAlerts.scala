@@ -2,7 +2,7 @@ package quanto.util
 
 import java.util.{Calendar, Date, UUID}
 
-import scala.swing.{Color, Publisher}
+import scala.swing.{Color, Dialog, Publisher}
 import scala.swing.event.Event
 
 
@@ -106,6 +106,14 @@ object UserAlerts {
   }
 
   def alert(message: String) : Unit = alert(message, Elevation.NOTICE)
+
+  def errorbox(message: String) : Unit = {
+    alert(message, Elevation.ERROR)
+    Dialog.showMessage(
+      title = "Error",
+      message = message,
+      messageType = Dialog.Message.Error)
+  }
 
   def alert(message: String, elevation: Elevation.Elevation): Unit ={
     val newAlert = Alert(Calendar.getInstance().getTime, elevation, message)
