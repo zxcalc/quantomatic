@@ -25,7 +25,7 @@ import akka.actor.PoisonPill
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
-import java.awt.{Color, Window}
+import java.awt.{Color, Desktop, Window}
 import javax.swing.SwingUtilities
 
 import quanto.util.{Globals, UserAlerts, UserOptions, WebHelper}
@@ -131,6 +131,11 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     case _ => None
   }
+
+  def popup(menu: PopupMenu, x: Int, y: Int) : Unit = {
+    menu.show(Main, x, y)
+  }
+
 
 
   listenTo(quanto.util.UserOptions.OptionsChanged)
@@ -272,6 +277,47 @@ object QuantoDerive extends SimpleSwingApplication {
 //        }
 //      })
 //  }
+
+
+  def FolderContextMenu(folder: File) : PopupMenu = new PopupMenu { //Context menu for project folders
+    menu =>
+
+    val OpenLocationAction: Action = new Action("Open Folder") {
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.L
+      }
+
+      def apply() {
+        Desktop.getDesktop.browse(folder.toURI)
+      }
+    }
+
+  }
+
+  def FileContextMenu(file: File): PopupMenu = new PopupMenu { //Context menu for project files
+    menu =>
+
+    val OpenLocationAction: Action = new Action("Open File Location") {
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.L
+      }
+
+      def apply() {
+        Desktop.getDesktop.browse(file.getParentFile.toURI)
+      }
+    }
+
+
+    val DeleteFile: Action = new Action("Delete File") {
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.D
+      }
+
+      def apply() {
+        file.delete()
+      }
+    }
+  }
 
 
   object FileMenu extends Menu("File") { menu =>
@@ -722,6 +768,17 @@ object QuantoDerive extends SimpleSwingApplication {
   listenTo(ProjectFileTree, MainTabbedPane.selection)
 
   reactions += {
+    case FileContextRequested(file, e) =>
+      val (x,y) = if (e.nonEmpty){
+        (e.get.getX, e.get.getY)
+      } else {
+        (0,0)
+      }
+      if(file.isDirectory){
+        popup(FolderContextMenu(file), x, y)
+      } else {
+        popup(FileContextMenu(file), x, y)
+      }
     case FileOpened(file) =>
       CurrentProject match {
         case Some(project) =>
