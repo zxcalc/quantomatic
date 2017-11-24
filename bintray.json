@@ -4,7 +4,9 @@
         "repo": "quantomatic",
         "subject": "quantomatic"
     },
-    "version": { "name": "bleeding-edge" },
+    "version": {
+      "name": "bleeding-edge"
+    },
     "files": [{
       "includePattern": "scala/target/scala-2.11/Quantomatic.jar",
       "uploadPattern": "bleeding-edge/Quantomatic.jar",
