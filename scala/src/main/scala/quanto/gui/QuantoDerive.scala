@@ -7,7 +7,7 @@ import scala.io.Source
 import scala.swing._
 import scala.swing.event.{Key, SelectionChanged}
 import javax.swing.{KeyStroke, UIManager}
-import java.awt.event.KeyEvent
+import java.awt.event.{KeyEvent, MouseAdapter, MouseEvent}
 
 import quanto.util.json.{Json, JsonString}
 import quanto.data._
@@ -130,6 +130,17 @@ object QuantoDerive extends SimpleSwingApplication {
           None
       }
     case _ => None
+  }
+
+  // Access via even is preferred, as then we can pinpoint where to put the popup
+  def popup(menu: PopupMenu, e: Option[MouseEvent]) : Unit = {
+    if (e.nonEmpty){
+      val componentBounds = e.get.getComponent.getBounds
+      val shift : Int = UserOptions.scaleInt(5)
+      popup(menu, e.get.getX + componentBounds.x + shift, e.get.getY + componentBounds.y+ shift)
+    } else {
+      popup(menu, 0, 0)
+    }
   }
 
   def popup(menu: PopupMenu, x: Int, y: Int) : Unit = {
@@ -723,61 +734,18 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
-
-  val UserMessage = new Label(UserAlerts.latestMessage.toString)
-  val ConsoleProgress = new ProgressBar
-  val ConsoleProgressLabel = new Label(" ")
-  val StatusBar = new GridPanel(1, 2) {
-    contents += new FlowPanel(FlowPanel.Alignment.Left)(UserMessage)
-    contents += new FlowPanel(FlowPanel.Alignment.Right)(ConsoleProgressLabel, ConsoleProgress)
-  }
-
-  ConsoleProgress.preferredSize = ConsoleProgressSize //Currently doesn't respond to UI scaling
-
-  def ConsoleProgressSize: Dimension = new Dimension(UserOptions.scaleInt(100), UserOptions.scaleInt(15))
+  val StatusBar = new StatusBar()
 
 
-  listenTo(UserAlerts.AlertPublisher)
-  reactions += {
-    case UserAlerts.UserAlertEvent(alert: UserAlerts.Alert) =>
-      UserMessage.text = alert.toString
-      UserMessage.foreground = alert.color
-    case UserAlerts.UserProcessUpdate(_) =>
-      UserAlerts.leastCompleteProcess match {
-        case Some(process) => if (process.determinate) {
-          ConsoleProgress.indeterminate = false
-          ConsoleProgress.value = process.value
-        } else {
-          ConsoleProgress.indeterminate = true
-        }
-        case _ => ConsoleProgress.value = 100
-      }
-      val ongoing = UserAlerts.ongoingProcesses.filter(op => op.value < 100)
-      ongoing.count(_ => true) match {
-        case 0 => ConsoleProgressLabel.text = " " //keep non-empty so the progressbar stays in line with text
-        case 1 => ConsoleProgressLabel.text = ongoing.head.name
-        case n => ConsoleProgressLabel.text = n.toString + " processes ongoing"
-      }
-  }
-
-  val Main = new BorderPanel {
-    add(Split, BorderPanel.Position.Center)
-    add(StatusBar, BorderPanel.Position.South)
-  }
 
   listenTo(ProjectFileTree, MainTabbedPane.selection)
 
   reactions += {
     case FileContextRequested(file, e) =>
-      val (x,y) = if (e.nonEmpty){
-        (e.get.getX, e.get.getY)
-      } else {
-        (0,0)
-      }
       if(file.isDirectory){
-        popup(FolderContextMenu(file), x, y)
+        popup(FolderContextMenu(file), e)
       } else {
-        popup(FileContextMenu(file), x, y)
+        popup(FileContextMenu(file), e)
       }
     case FileOpened(file) =>
       CurrentProject match {
@@ -874,6 +842,14 @@ object QuantoDerive extends SimpleSwingApplication {
 //  versionResp.onSuccess { case Success(JsonString(version)) =>
 //    Swing.onEDT { CoreStatus.text = "OK"; CoreStatus.foreground = new Color(0,150,0) }
 //  }
+
+
+
+  // The highest level GUI contents
+  val Main = new BorderPanel {
+    add(Split, BorderPanel.Position.Center)
+    add(StatusBar.Status, BorderPanel.Position.South)
+  }
 
   def top = new MainFrame {
     override def title : String = {

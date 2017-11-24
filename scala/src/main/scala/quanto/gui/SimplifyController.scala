@@ -6,6 +6,8 @@ import quanto.data._
 import quanto.data.Names._
 import quanto.util.json._
 import akka.pattern.ask
+import quanto.util.UserAlerts
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.swing.event.ButtonClicked
 import scala.util.{Failure, Success, Try}
@@ -123,7 +125,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
 //        }
       }
     case ButtonClicked(panel.SimplifyPane.StopButton) =>
-      Swing.onEDT { QuantoDerive.ConsoleProgress.indeterminate = false }
+      UserAlerts.alert("Simproc halted")
       simpId += 1
   }
 

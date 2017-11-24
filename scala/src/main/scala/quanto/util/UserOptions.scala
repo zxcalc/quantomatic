@@ -81,6 +81,12 @@ object UserOptions {
     uiScale = n / 14.0 //changing uiScale triggers redraw and font size changes
   }
 
+  private var _logging : Boolean = false
+  def logging : Boolean = _logging
+  def logging_=(b: Boolean) : Unit = {
+    _logging = b
+  }
+
   private var _graphScale : Double = 1
   def graphScale : Double = _graphScale
   def graphScale_=(n: Double): Unit ={
