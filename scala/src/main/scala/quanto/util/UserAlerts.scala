@@ -1,6 +1,7 @@
 package quanto.util
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 import java.util.{Calendar, Date, UUID}
 
 import scala.swing.{Color, Dialog, Publisher}
@@ -21,6 +22,7 @@ object UserAlerts {
 
   class SelfAlertingProcess(name: String) extends UserStartedProcess(name) {
     alert(name + ": Started")
+    val startTime : Long = Calendar.getInstance().getTimeInMillis
 
     override def fail(): Unit = {
       super.fail()
@@ -29,7 +31,8 @@ object UserAlerts {
 
     override def finish(): Unit = {
       super.finish()
-      alert(name + ": Finished")
+      val timeTaken = TimeUnit.SECONDS.toSeconds(Calendar.getInstance().getTimeInMillis - startTime)
+      alert(name + s": Finished ${timeTaken / 1000.0}s")
     }
   }
 
