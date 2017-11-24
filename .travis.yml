@@ -4,16 +4,16 @@ scala:
 script: "./build.sh"
 deploy:
   - provider: bintray
-      on:
-        branch: integration
-      file: bintray.json
-      user: akissinger
-      key:
-        secure: QZRPJBN2LrXdJ094LwUbU7EQaeyq+3/cIXQ1iqIijybRLr05EUuxQtPWkhx0LQqmcBmpAJivhekdIT5zkVP1Eq22xFK+pEsw6TmsL5oTxQR1kF66hNr4Gg/2k7rPykzxh2m3rlx6+jBeek6Hsno/u6kROJb2fGvLG0vv8n9V/Q0=
+    on:
+      branch: integration
+    file: bintray.json
+    user: akissinger
+    key:
+      secure: QZRPJBN2LrXdJ094LwUbU7EQaeyq+3/cIXQ1iqIijybRLr05EUuxQtPWkhx0LQqmcBmpAJivhekdIT5zkVP1Eq22xFK+pEsw6TmsL5oTxQR1kF66hNr4Gg/2k7rPykzxh2m3rlx6+jBeek6Hsno/u6kROJb2fGvLG0vv8n9V/Q0=
   - provider: bintray
-      on:
-        branch: stable
-      file: bintray-release.json
-      user: akissinger
-      key:
-        secure: QZRPJBN2LrXdJ094LwUbU7EQaeyq+3/cIXQ1iqIijybRLr05EUuxQtPWkhx0LQqmcBmpAJivhekdIT5zkVP1Eq22xFK+pEsw6TmsL5oTxQR1kF66hNr4Gg/2k7rPykzxh2m3rlx6+jBeek6Hsno/u6kROJb2fGvLG0vv8n9V/Q0=
+    on:
+      branch: stable
+    file: bintray-release.json
+    user: akissinger
+    key:
+      secure: QZRPJBN2LrXdJ094LwUbU7EQaeyq+3/cIXQ1iqIijybRLr05EUuxQtPWkhx0LQqmcBmpAJivhekdIT5zkVP1Eq22xFK+pEsw6TmsL5oTxQR1kF66hNr4Gg/2k7rPykzxh2m3rlx6+jBeek6Hsno/u6kROJb2fGvLG0vv8n9V/Q0=
