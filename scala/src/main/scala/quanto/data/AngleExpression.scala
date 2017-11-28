@@ -55,7 +55,11 @@ class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
     if (!const.isZero) {
       fst = false
       if (const.isOne) s += "\\pi"
-      else s += const.toString + " \\pi"
+      else {
+        if (const.n == 1) s += "\\pi/" + const.d
+        else s += const.n + "\\pi/" + const.d
+//        s += const.toString + " \\pi"
+      }
     }
 
     coeffs.foreach { case (x,c) =>
