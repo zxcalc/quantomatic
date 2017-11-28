@@ -53,12 +53,15 @@ class AngleExpression(val const : Rational, val coeffs : Map[String,Rational]) {
     var fst = true
     var s = ""
     if (!const.isZero) {
+
       fst = false
       if (const.isOne) s += "\\pi"
       else {
-        if (const.n == 1) s += "\\pi/" + const.d
-        else s += const.n + "\\pi/" + const.d
-//        s += const.toString + " \\pi"
+        val (n,sgn) =
+          if (const.n > const.d && const.n < 2 * const.d) (2 * const.d - const.n, "-")
+          else (const.n, "")
+        if (n == 1) s += sgn + "\\pi/" + const.d
+        else s += sgn + n.toString + "\\pi/" + const.d
       }
     }
 
