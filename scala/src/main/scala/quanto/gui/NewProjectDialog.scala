@@ -15,7 +15,12 @@ class NewProjectDialog extends Dialog {
   val NameField = new TextField()
   val ProjectLocationField = new TextField(System.getProperty("user.home"))
   val BrowseProjectButton = new Button("...")
-  val TheoryChoiceDropdown = new ComboBox(Seq[String]("ZX", "ZW", "From existing project", "From .qtheory file"))
+  val TheoryChoiceDropdown = new ComboBox(Seq[String](
+    "ZX",
+    "ZW",
+    "From existing project",
+    "From .qtheory file",
+    "plain"))
   val TheoryLocationField = new TextField("")
   val BrowseTheoryButton = new Button("...")
   val theoryName = new TextField("")
@@ -102,7 +107,7 @@ class NewProjectDialog extends Dialog {
     fileChoiceFilter = filter
   }
 
-  disableFileChoosers("red_green")
+  disableFileChoosers("ZX")
 
   reactions += {
     case ButtonClicked(CreateButton) =>
@@ -143,9 +148,11 @@ class NewProjectDialog extends Dialog {
     case SelectionChanged(TheoryChoiceDropdown) =>
       TheoryChoiceDropdown.selection.item match {
         case "ZX" =>
-          disableFileChoosers("red_green")
+          disableFileChoosers("ZX")
         case "ZW" =>
-          disableFileChoosers("black_white")
+          disableFileChoosers("ZW")
+        case "plain" =>
+          disableFileChoosers("plain")
         case "From existing project" =>
           enableFileChoosers("Project files", "qproject")
         case "From .qtheory file" =>

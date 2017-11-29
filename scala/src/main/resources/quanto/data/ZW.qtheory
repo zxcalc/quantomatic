@@ -1,0 +1,74 @@
+{
+  "name" : "ZW",
+  "core_name" : "zw",
+  "vertex_types" : {
+    "Z" : {
+      "value" : {
+        "type" : "string",
+        "latex_constants" : true,
+        "validate_with_core" : true
+      },
+      "style" : {
+        "label" : {
+          "position" : "inside",
+          "fg_color" : [ 0.0, 0.0, 0.0 ]
+        },
+        "stroke_color" : [ 0.0, 0.0, 0.0 ],
+        "fill_color" : [ 1.0, 1.0, 1.0 ],
+        "shape" : "circle"
+      },
+      "default_data" : {
+        "type" : "Z",
+        "label" : "",
+        "value" : {
+          "pretty" : ""
+        }
+      }
+    },
+    "W" : {
+      "value" : {
+        "type" : "string",
+        "latex_constants" : true,
+        "validate_with_core" : true
+      },
+      "style" : {
+        "label" : {
+          "position" : "inside",
+          "fg_color" : [ 0.0, 0.0, 0.0 ]
+        },
+        "stroke_color" : [ 0.0, 0.0, 0.0 ],
+        "fill_color" : [ 0.0, 0.0, 0.0 ],
+        "shape" : "circle"
+      },
+      "default_data" : {
+        "type" : "W",
+        "label" : "",
+        "value" : {
+          "pretty" : ""
+        }
+      }
+    }
+  },
+  "default_vertex_type" : "Z",
+  "default_edge_type" : "plain",
+  "edge_types" : {
+    "plain" : {
+      "value" : {
+        "type" : "empty",
+        "latex_constants" : false,
+        "validate_with_core" : false
+      },
+      "style" : {
+        "stroke_color" : [ 0.0, 0.0, 0.0 ],
+        "stroke_width" : 1,
+        "label" : {
+          "position" : "auto",
+          "fg_color" : [ 0.0, 0.0, 0.0 ]
+        }
+      },
+      "default_data" : {
+        "type" : "plain"
+      }
+    }
+  }
+}
