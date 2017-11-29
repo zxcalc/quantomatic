@@ -72,15 +72,65 @@ private class CloseIcon(rollover : Boolean) extends Icon {
   }
 }
 
-class ClosableTabbedPane extends TabbedPane { tabbedPane =>
-  def +=(p: ClosablePage) {
+// Handler for the TabbedPane object, to distance the swing from the Java
+// TabbedPanes hold Java Components, but we want to interact with Documents
+class DocumentTabs {
+  val tabbedPane = new TabbedPane()
+  private var pageIndex: Map[DocumentPage, Int] = Map()
+
+  def component: TabbedPane = tabbedPane
+
+  def +=(p: DocumentPage) {
     pages += p
-    peer.setTabComponentAt(pages.length-1, p.tabComponent.peer)
+    tabbedPane.peer.setTabComponentAt(pages.length - 1, p.tabComponent.peer)
+    pageIndex += (p -> (pages.length - 1))
+    focus(p)
   }
+
+  def focus(index: Int): Unit = {
+    selection.index = index
+  }
+
+  def remove(page: DocumentPage): Unit = {
+    remove(pageIndex(page))
+  }
+
+  def remove(index: Int): Unit = {
+    val preFocus = currentFocus()
+    pages.remove(index)
+    for (page <- pageIndex.keys) {
+      if (pageIndex(page) > index) {
+        pageIndex += (page -> (pageIndex(page) - 1))
+      }
+    }
+    if (preFocus.nonEmpty) focus(preFocus.get)
+  }
+
+  def focus(p: DocumentPage): Unit = {
+    try {
+      selection.index = pageIndex(p)
+    } catch {
+      case e: Exception => selection.index = -1
+    }
+  }
+
+  def selection = tabbedPane.selection
+
+  def currentFocus(): Option[DocumentPage] = {
+    pageIndex.find(kv => kv._2 == selection.index).map(_._1)
+  }
+
+  private def pages = tabbedPane.pages
 
   def currentContent: Option[Component] =
     if (selection.index == -1) None
     else Some(selection.page.content)
+
+  def documents: Iterable[DocumentPage] = pageIndex.keys
+
+  def clear(): Unit = {
+    pages.clear()
+  }
 }
 
 

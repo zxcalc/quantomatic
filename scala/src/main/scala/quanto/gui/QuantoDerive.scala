@@ -177,16 +177,12 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
-  val MainTabbedPane = new ClosableTabbedPane
+  val MainDocumentTabs = new DocumentTabs
 
-  def currentDocument: Option[HasDocument] =
-    MainTabbedPane.currentContent match {
-      case Some(doc: HasDocument) => Some(doc)
-      case _ => None
-    }
+  def currentDocument: Option[DocumentPage] = MainDocumentTabs.currentFocus()
 
   def currentGraphController: Option[GraphEditController] =
-    MainTabbedPane.currentContent match {
+    MainDocumentTabs.currentContent match {
       case Some(p: GraphEditPanel) => Some(p.graphEditController)
       case Some(p: RuleEditPanel) => Some(p.focusedController)
       case _ => None
@@ -224,11 +220,11 @@ object QuantoDerive extends SimpleSwingApplication {
 
   object Split extends SplitPane {
     orientation = Orientation.Vertical
-    contents_=(LeftSplit, MainTabbedPane)
+    contents_=(LeftSplit, MainDocumentTabs.component)
   }
 
   def hasUnsaved =
-    MainTabbedPane.pages.exists { p => p.content match {
+    MainDocumentTabs.documents.exists { p => p.content match {
       case c : HasDocument => c.document.unsavedChanges
       case _ => false
     }}
@@ -240,8 +236,8 @@ object QuantoDerive extends SimpleSwingApplication {
    * (depends on user choice)
    */
   def trySaveAll() = {
-    MainTabbedPane.pages.forall { p =>
-      MainTabbedPane.selection.index = p.index // focus a pane before saving
+    MainDocumentTabs.documents.forall { p =>
+      MainDocumentTabs.focus(p) // focus a pane before saving
       p.content match {
         case c : HasDocument => c.document.trySave()
         case _ => false
@@ -265,17 +261,17 @@ object QuantoDerive extends SimpleSwingApplication {
       // Result(0) = Save, Result(1) = Discard, Result(2) = Cancel
       if (choice == Dialog.Result(2)) false
       else if (choice == Dialog.Result(1)) {
-        MainTabbedPane.pages.clear()
+        MainDocumentTabs.clear()
         true
       }
       else {
         val b = trySaveAll()
-        if (b) MainTabbedPane.pages.clear()
+        if (b) MainDocumentTabs.clear()
         b
       }
     }
     else {
-      MainTabbedPane.pages.clear()
+      MainDocumentTabs.clear()
       true
     }
   }
@@ -357,8 +353,7 @@ object QuantoDerive extends SimpleSwingApplication {
       def apply() {
         CurrentProject.foreach{ project =>
           val page = new GraphDocumentPage(project.theory)
-          MainTabbedPane += page
-          MainTabbedPane.selection.index = page.index
+          MainDocumentTabs += page
         }
       }
     }
@@ -369,8 +364,7 @@ object QuantoDerive extends SimpleSwingApplication {
       def apply() {
         CurrentProject.foreach{ project =>
           val page = new RuleDocumentPage(project.theory)
-          MainTabbedPane += page
-          MainTabbedPane.selection.index = page.index
+          MainDocumentTabs += page
         }
       }
     }
@@ -393,8 +387,7 @@ object QuantoDerive extends SimpleSwingApplication {
       def apply() {
         CurrentProject.foreach{ project =>
           val page = new PythonDocumentPage
-          MainTabbedPane += page
-          MainTabbedPane.selection.index = page.index
+          MainDocumentTabs += page
         }
       }
     }
@@ -419,7 +412,7 @@ object QuantoDerive extends SimpleSwingApplication {
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.S }
       def apply() {
-        MainTabbedPane.currentContent match {
+        MainDocumentTabs.currentContent match {
           case Some(doc: HasDocument) =>
             doc.document.file match {
               case Some(_) => doc.document.save()
@@ -435,7 +428,7 @@ object QuantoDerive extends SimpleSwingApplication {
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.A }
       def apply() {
-        MainTabbedPane.currentContent match {
+        MainDocumentTabs.currentContent match {
           case Some(doc: HasDocument) =>
             doc.document.showSaveAsDialog(CurrentProject.map(_.rootFolder))
           case _ =>
@@ -448,9 +441,9 @@ object QuantoDerive extends SimpleSwingApplication {
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.V }
       def apply() {
-        val selection = MainTabbedPane.selection.index
+        val selection = MainDocumentTabs.selection.index
         trySaveAll()
-        MainTabbedPane.selection.index = selection
+        MainDocumentTabs.selection.index = selection
       }
     }
 
@@ -544,16 +537,16 @@ object QuantoDerive extends SimpleSwingApplication {
 
       def apply() {
         CurrentProject.foreach { project =>
-          val page = MainTabbedPane.pages.find(tp => tp.title == "Theory Editor") match {
+          val page = MainDocumentTabs.documents.find(tp => tp.title == "Theory Editor") match {
             case Some(p) => p
             case None =>
               val p = new TheoryPage()
               listenTo(p.document)
               p.title = "Theory Editor"
-              MainTabbedPane += p
+              MainDocumentTabs += p
               p
           }
-          MainTabbedPane.selection.index = page.index
+          MainDocumentTabs.focus(page)
         }
       }
     }
@@ -589,7 +582,7 @@ object QuantoDerive extends SimpleSwingApplication {
             title = "Undo"
         }
 
-      listenTo(MainTabbedPane.selection)
+      listenTo(MainDocumentTabs.selection)
 
       reactions += {
         case DocumentChanged(_) => updateUndoCommand()
@@ -619,7 +612,7 @@ object QuantoDerive extends SimpleSwingApplication {
             title = "Redo"
         }
 
-      listenTo(MainTabbedPane.selection)
+      listenTo(MainDocumentTabs.selection)
 
       reactions += {
         case DocumentChanged(_) => updateRedoCommand()
@@ -675,13 +668,12 @@ object QuantoDerive extends SimpleSwingApplication {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_D, CommandMask))
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.D }
-      def apply() = (CurrentProject, MainTabbedPane.currentContent) match {
+      def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
           case (Some(project), Some(doc: HasDocument)) =>
             doc.document match {
               case (graphDoc: GraphDocument) =>
                 val page = new DerivationDocumentPage(project)
-                MainTabbedPane += page
-                MainTabbedPane.selection.index = page.index
+                MainDocumentTabs += page
                 page.document.asInstanceOf[DerivationDocument].root = graphDoc.graph
 
               case _ =>
@@ -695,7 +687,7 @@ object QuantoDerive extends SimpleSwingApplication {
 //      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.L }
-      def apply() = (CurrentProject, MainTabbedPane.currentContent) match {
+      def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
         case (Some(project), Some(derivePanel: DerivationPanel)) =>
           derivePanel.controller.layoutDerivation()
         case _ => // no project and/or derivation open, do nothing
@@ -709,9 +701,9 @@ object QuantoDerive extends SimpleSwingApplication {
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.C }
       def apply() {
-        MainTabbedPane.currentContent match {
+        MainDocumentTabs.currentContent match {
           case Some(doc: HasDocument) =>
-            if (doc.document.promptUnsaved()) MainTabbedPane.pages.remove(MainTabbedPane.selection.index)
+            if (doc.document.promptUnsaved()) MainDocumentTabs.remove(MainDocumentTabs.selection.index)
           case _ =>
         }
       }
@@ -757,7 +749,7 @@ object QuantoDerive extends SimpleSwingApplication {
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.E }
       def apply() {
-        MainTabbedPane.currentContent match {
+        MainDocumentTabs.currentContent match {
           case Some(doc: HasDocument) =>
             if (doc.document.unsavedChanges) {
               Dialog.showMessage(title = "Unsaved Changes",
@@ -776,7 +768,7 @@ object QuantoDerive extends SimpleSwingApplication {
 
 
 
-  listenTo(ProjectFileTree, MainTabbedPane.selection)
+  listenTo(ProjectFileTree, MainDocumentTabs.selection)
 
   reactions += {
     case FileContextRequested(file, e) =>
@@ -788,7 +780,7 @@ object QuantoDerive extends SimpleSwingApplication {
     case FileOpened(file) =>
       CurrentProject match {
         case Some(project) =>
-          val existingPage = MainTabbedPane.pages.find { p =>
+          val existingPage = MainDocumentTabs.documents.find { p =>
             p.content match {
               case doc : HasDocument => doc.document.file.exists(_.getPath == file.getPath)
               case _ => false
@@ -797,7 +789,7 @@ object QuantoDerive extends SimpleSwingApplication {
 
           existingPage match {
             case Some(p) =>
-              MainTabbedPane.selection.index = p.index
+              MainDocumentTabs.selection.index = p.index
             case None =>
               val extn = file.getName.lastIndexOf('.') match {
                 case i if i > 0 => file.getName.substring(i+1) ; case _ => ""}
@@ -811,12 +803,11 @@ object QuantoDerive extends SimpleSwingApplication {
                 case _         => None
               }
 
-              pageOpt.map{ page =>
-                MainTabbedPane += page
-                MainTabbedPane.selection.index = page.index
+              pageOpt.foreach{ page =>
+                MainDocumentTabs += page
 
                 if (!page.document.load(file)) {
-                  MainTabbedPane.pages -= page
+                  MainDocumentTabs.remove(page)
                 }
               }
           }
@@ -840,7 +831,7 @@ object QuantoDerive extends SimpleSwingApplication {
       FileMenu.SaveAction.title = "Save"
       FileMenu.SaveAsAction.title = "Save As..."
 
-      MainTabbedPane.currentContent match {
+      MainDocumentTabs.currentContent match {
         case Some(content: HasDocument) =>
           WindowMenu.CloseAction.enabled = true
           FileMenu.SaveAction.enabled = true
