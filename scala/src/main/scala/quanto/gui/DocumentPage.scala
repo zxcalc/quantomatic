@@ -7,7 +7,9 @@ abstract class DocumentPage(component0: Component with HasDocument)
 extends ClosablePage(
   component0.document.titleDescription,
   component0,
-  closeAction = () => { component0.document.promptUnsaved() } )
+  closeAction = () => {
+    component0.document.promptUnsaved()}
+)
 with Reactor
 {
   val document = component0.document
