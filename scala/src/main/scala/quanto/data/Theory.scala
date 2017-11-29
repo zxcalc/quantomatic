@@ -68,6 +68,9 @@ object Theory {
     val Circle = Value("circle")
     val Rectangle = Value("rectangle")
     val Custom = Value("custom")
+
+
+    def fromName(name: String): Option[VertexShape] = this.values.find(v => v.toString == name)
   }
   type VertexShape = VertexShape.Value
 
@@ -75,6 +78,8 @@ object Theory {
     val Center = Value("center")
     val Inside = Value("inside")
     val Below = Value("below")
+
+    def fromName(name: String): Option[VertexLabelPosition] = this.values.find(v => v.toString == name)
   }
   type VertexLabelPosition = VertexLabelPosition.Value
 

@@ -70,6 +70,25 @@ object QuantoDerive extends SimpleSwingApplication {
     ProjectFileTree.root = None
   }
 
+  def updateProjectFile(): Unit = {
+    if (CurrentProject.nonEmpty) {
+      val project = CurrentProject.get
+      val projectFile = new File(project.rootFolder + "/main.qproject")
+      try {
+        if (projectFile.exists) {
+          val parsedInput = Json.parse(projectFile)
+          if (Project.toJson(project).toString != parsedInput.toString) {
+            Project.toJson(project).writeTo(new File(project.rootFolder + "/main.qproject"))
+            UserAlerts.alert(s"Updated project file", UserAlerts.Elevation.DEBUG)
+          }
+        }
+      } catch {
+        case e: Exception =>
+          throw new ProjectLoadException("Error loading project", e)
+      }
+    }
+  }
+
   def loadProject(projectLocation: String) : Option[Project] = {
     UserAlerts.alert(s"Opening project: $projectLocation")
     val projectFile = new File(projectLocation + "/main.qproject")
@@ -78,11 +97,9 @@ object QuantoDerive extends SimpleSwingApplication {
         val parsedInput = Json.parse(projectFile)
         val project = Project.fromJson(parsedInput, projectLocation)
         // Old .qproject files had links rather than embedded theories
-        if (Project.toJson(project).toString != parsedInput.toString) {
-          UserAlerts.alert("Updating out of date .qproject file")
-          Project.toJson(project).writeTo(new File(projectLocation + "/main.qproject"))
-        }
+        // So update when loading in
         CurrentProject = Some(project)
+        updateProjectFile()
         ProjectFileTree.root = Some(projectLocation)
         prefs.put("lastProjectFolder", projectLocation)
         UserAlerts.alert(s"Successfully loaded project: $projectLocation")
@@ -516,6 +533,27 @@ object QuantoDerive extends SimpleSwingApplication {
           ProjectFileTree.root = None
           CurrentProject = None
           updateNewEnabled()
+        }
+      }
+    }
+
+    val EditTheoryAction = new Action("Edit Theory") {
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.T
+      }
+
+      def apply() {
+        CurrentProject.foreach { project =>
+          val page = MainTabbedPane.pages.find(tp => tp.title == "Theory Editor") match {
+            case Some(p) => p
+            case None =>
+              val p = new TheoryPage()
+              listenTo(p.document)
+              p.title = "Theory Editor"
+              MainTabbedPane += p
+              p
+          }
+          MainTabbedPane.selection.index = page.index
         }
       }
     }

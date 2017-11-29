@@ -126,6 +126,8 @@ object UserAlerts {
 
   def alert(message: String): Unit = alert(message, Elevation.NOTICE)
 
+  def debug(message: String): Unit = alert(message, Elevation.DEBUG)
+
   def errorbox(message: String): Unit = {
     alert(message, Elevation.ERROR)
     Dialog.showMessage(
