@@ -265,16 +265,10 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
     for ((e, ed) <- edgeDisplay) {
       if (selectedEdges contains e) {
         g.setColor(Color.BLUE)
-        g.setStroke(new BasicStroke(2))
+        g.setStroke(new BasicStroke(ed.width))
       } else {
-        if (graph.edata(e).isDirected) {
-          g.setColor(Color.GRAY)
-          g.setStroke(new BasicStroke(1))
-        } else {
-          g.setColor(Color.BLACK)
-          g.setStroke(new BasicStroke(2))
-        }
-
+          g.setColor(ed.color)
+          g.setStroke(new BasicStroke(ed.width))
       }
 
       g.draw(ed.path)
