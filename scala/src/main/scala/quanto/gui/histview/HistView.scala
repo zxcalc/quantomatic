@@ -48,6 +48,10 @@ class HistView[A <: HistNode](data: TreeSeq[A]) extends ListView[(Seq[TreeSeq.De
       selectIndices()
   }
 
+  def selectedIndex() : Int = {
+    peer.getSelectedIndex
+  }
+
   def selectedNode: Option[A] =
     if (selection.indices.isEmpty) None
     else Some(treeData.toSeq(selection.indices.head))

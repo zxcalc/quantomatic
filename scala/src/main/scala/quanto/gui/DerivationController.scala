@@ -1,12 +1,15 @@
 package quanto.gui
 
 import quanto.data._
+
 import scala.swing._
-import scala.swing.event.{SelectionChanged, ButtonClicked, Event}
+import scala.swing.event.{ButtonClicked, Event, SelectionChanged}
 import quanto.gui.histview._
 import java.awt.Color
+
 import quanto.gui.graphview.Highlight
 import quanto.layout.DeriveLayout
+import quanto.util.UserAlerts
 
 sealed abstract class DeriveState extends HistNode { def step: Option[DSName] }
 case class StepState(s: DSName) extends DeriveState {
@@ -232,7 +235,9 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
       }
 
     case SelectionChanged(_) =>
-      if (panel.histView.selectedNode != Some(state))
+      if (panel.histView.selectedNode != Some(state)) {
         panel.histView.selectedNode.map { st => state = st }
+        panel.histView.ensureIndexIsVisible(panel.histView.selectedIndex())
+      }
   }
 }
