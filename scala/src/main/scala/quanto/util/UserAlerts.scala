@@ -24,6 +24,12 @@ object UserAlerts {
     alert(name + ": Started")
     val startTime : Long = Calendar.getInstance().getTimeInMillis
 
+
+    override def halt(): Unit = {
+      super.halt()
+      alert(name + ": Halted", Elevation.NOTICE)
+    }
+
     override def fail(): Unit = {
       super.fail()
       alert(name + ": Failed", Elevation.ERROR)
@@ -67,6 +73,11 @@ object UserAlerts {
 
     def finish(): Unit = {
       value = 100
+    }
+
+    def halt(): Unit = {
+      _failed = false
+      value = 0
     }
 
     ongoingProcesses = this :: ongoingProcesses

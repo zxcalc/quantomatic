@@ -25,6 +25,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
   case class RefreshSimprocs() extends Event
   case class ReRunSimproc() extends Event
   case class HaltSimproc() extends Event
+  case class SimprocHalted() extends Exception("Simproc halted")
 
   listenTo(this, panel.SimplifyPane.RefreshButton, panel.SimplifyPane.SimplifyButton, panel.SimplifyPane.StopButton)
 
@@ -51,19 +52,25 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
       QuantoDerive.CurrentProject.flatMap { pr => pr.simprocs.get(simpName) }.foreach { simproc =>
         var parentOpt = panel.controller.state.step
         val processReporting = new SelfAlertingProcess("Simproc: " + simpName)
-
+        val simpIdAtStart = simpId
         val res = Future[Boolean] {
           for ((graph, rule) <- simproc.simp(panel.LhsView.graph)) {
+            // Don't update the derivation if the simpId call has changed
+            if(simpId == simpIdAtStart) {
             val suggest = simpName + "-" + rule.name.replaceFirst("^.*\\/", "") + "-0"
             val step = DStep(
               name = panel.derivation.steps.freshWithSuggestion(DSName(suggest)),
               rule = rule,
               graph = graph.minimise) // layout is already done by simproc now
 
-            panel.document.derivation = panel.document.derivation.addStep(parentOpt, step)
-            parentOpt = Some(step.name)
-
-            Swing.onEDT { panel.controller.state = HeadState(Some(step.name)) }
+              panel.document.derivation = panel.document.derivation.addStep(parentOpt, step)
+              parentOpt = Some(step.name)
+              Swing.onEDT {
+                panel.controller.state = HeadState(Some(step.name))
+              }
+            } else {
+              throw SimprocHalted()
+            }
           }
 
           true
@@ -72,8 +79,9 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
         res.onComplete {
           case Success(b) =>
             processReporting.finish()
+          case Failure(SimprocHalted()) =>
+            processReporting.halt()
           case Failure(e) =>
-            processReporting.fail()
             e.printStackTrace()
         }
       }
