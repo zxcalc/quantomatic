@@ -87,7 +87,12 @@ abstract class Document extends Publisher {
   }
 
   def titleDescription : String = {
-    file.map(f => f.getName).getOrElse("Untitled").replaceAll("\\.[^.]*$", "")
+    val base = file.map(f => f.getName).getOrElse("Untitled").replaceAll("\\.[^.]*$", "")
+    if (unsavedChanges) {
+      base + "*"
+    } else {
+      base
+    }
 //    val name : String = file.map(f => f.getName).getOrElse("Untitled")
 //    // If there is a description then use in instead of the file extension
 //    val nameDescription = if (description.length > 0) name.replaceAll("\\.[^.]*$", "") + " " + description else name
