@@ -13,6 +13,8 @@ import quanto.util._
 import quanto.util.json.{Json, JsonObject}
 import quanto.util.swing.ToolBar
 
+import quanto.util.UserOptions.scaleInt
+
 import scala.swing._
 import scala.swing.event.{ButtonClicked, SelectionChanged}
 
@@ -35,7 +37,6 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     "magenta" -> colourMute(new Color(255, 0, 255)),
     "cyan" -> colourMute(new Color(0, 255, 255))
   )
-  private val buttonDimension = new Dimension(UserOptions.scaleInt(50), UserOptions.scaleInt(20))
 
   def colourMute(c: Color): Color = {
     def m(i: Int): Int = math.floor(i * 1).toInt
@@ -236,6 +237,8 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
       }
     }
 
+    val buttonSize = new Dimension(maxGridSize.width, scaleInt(30))
+
     EditorsCombined.contents.clear
 
     EditorsCombined.contents += Swing.VStrut(separation)
@@ -252,6 +255,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
       EditorsCombined.contents += Swing.VStrut(separation)
     })
     val AddVertexButton = new Button("Add Vertex Type")
+    AddVertexButton.preferredSize = buttonSize
     horizontalWrap(AddVertexButton)
     EditorsCombined.contents += Swing.VStrut(separation)
     EditorsCombined.contents += new Separator()
@@ -263,6 +267,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     }
     )
     val AddEdgeButton = new Button("Add Edge Type")
+    AddEdgeButton.preferredSize = buttonSize
     horizontalWrap(AddEdgeButton)
     EditorsCombined.contents += Swing.VStrut(separation)
 
@@ -563,57 +568,62 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     }
   }
 
-  class NodeEditor(name: String, desc: VertexDesc) extends GridPanel(3, 2) {
-    contents += new Label("Name")
-    contents += new Label(name) // Currently doesn't support renaming nodes (and shouldn't?)
-    contents += new Label("Shape")
-    val EditShapeButton: Button = new Button(desc.style.shape.toString)
-    EditShapeButton.preferredSize = buttonDimension
-    contents += EditShapeButton
-    contents += new Label("Colour")
-    val EditColourButton: Button = new Button(colourToString(desc.style.fillColor))
-    EditColourButton.preferredSize = buttonDimension
-    contents += EditColourButton
-    //contents += new Label("Label placement")
-    //val EditPlacementButton: Button = new Button(desc.style.labelPosition.toString)
-    //contents += EditPlacementButton
-    //contents += new Label("Example")
-    //contents += new Label("Example here")
-    listenTo(EditShapeButton, EditColourButton)
-    reactions += {
-      case ButtonClicked(EditShapeButton) =>
-        chooseNodeShape(name, (desc.style.shape, desc.style.customShape))
-      case ButtonClicked(EditColourButton) =>
-        chooseNodeColour(name, desc.style.fillColor)
-      //case ButtonClicked(EditPlacementButton) =>
-      //  chooseLabelPlacement(name, desc.style.labelPosition)
+  class NodeEditor(nodeName: String, desc: VertexDesc) extends BoxPanel(Orientation.Vertical) {
+    // Note that GridPanel expands to fill parent
+    maximumSize = maxGridSize
+    contents += new GridPanel(3, 2) {
+      contents += new Label("Name")
+      contents += new Label(nodeName) // Currently doesn't support renaming nodes (and shouldn't?)
+      contents += new Label("Shape")
+      val EditShapeButton: Button = new Button(desc.style.shape.toString)
+      contents += EditShapeButton
+      contents += new Label("Colour")
+      val EditColourButton: Button = new Button(colourToString(desc.style.fillColor))
+      contents += EditColourButton
+      //contents += new Label("Label placement")
+      //val EditPlacementButton: Button = new Button(desc.style.labelPosition.toString)
+      //contents += EditPlacementButton
+      //contents += new Label("Example")
+      //contents += new Label("Example here")
+      listenTo(EditShapeButton, EditColourButton)
+      reactions += {
+        case ButtonClicked(EditShapeButton) =>
+          chooseNodeShape(nodeName, (desc.style.shape, desc.style.customShape))
+        case ButtonClicked(EditColourButton) =>
+          chooseNodeColour(nodeName, desc.style.fillColor)
+        //case ButtonClicked(EditPlacementButton) =>
+        //  chooseLabelPlacement(name, desc.style.labelPosition)
+      }
     }
   }
+val maxGridSize = new Dimension(scaleInt(200), scaleInt(100))
 
-  class EdgeEditor(name: String, desc: EdgeDesc) extends GridPanel(3, 2) {
-    contents += new Label("Name")
-    contents += new Label(name) // Currently doesn't support renaming nodes (and shouldn't?)
-    contents += new Label("Width")
-    val EditShapeButton: Button = new Button(desc.style.strokeWidth.toString)
-    EditShapeButton.preferredSize = buttonDimension
-    contents += EditShapeButton
-    contents += new Label("Colour")
-    val EditColourButton: Button = new Button(colourToString(desc.style.strokeColor))
-    EditColourButton.preferredSize = buttonDimension
-    contents += EditColourButton
-    //contents += new Label("Label placement")
-    //val EditPlacementButton: Button = new Button(desc.style.labelPosition.toString)
-    //contents += EditPlacementButton
-    //contents += new Label("Example")
-    //contents += new Label("Example here")
-    listenTo(EditShapeButton, EditColourButton)
-    reactions += {
-      case ButtonClicked(EditShapeButton) =>
-        chooseEdgeWidth(name, desc.style.strokeWidth)
-      case ButtonClicked(EditColourButton) =>
-        chooseEdgeColour(name, desc.style.strokeColor)
-      //case ButtonClicked(EditPlacementButton) =>
-      //  chooseLabelPlacement(name, desc.style.labelPosition)
+  class EdgeEditor(edgeName: String, desc: EdgeDesc) extends BoxPanel(Orientation.Vertical) {
+    // Note that GridPanel expands to fill parent
+    maximumSize = maxGridSize
+    contents += new GridPanel(3, 2) {
+      contents += new Label("Name")
+      contents += new Label(edgeName) // Currently doesn't support renaming nodes (and shouldn't?)
+      contents += new Label("Width")
+      val EditShapeButton: Button = new Button(desc.style.strokeWidth.toString)
+      contents += EditShapeButton
+      contents += new Label("Colour")
+      val EditColourButton: Button = new Button(colourToString(desc.style.strokeColor))
+      contents += EditColourButton
+      //contents += new Label("Label placement")
+      //val EditPlacementButton: Button = new Button(desc.style.labelPosition.toString)
+      //contents += EditPlacementButton
+      //contents += new Label("Example")
+      //contents += new Label("Example here")
+      listenTo(EditShapeButton, EditColourButton)
+      reactions += {
+        case ButtonClicked(EditShapeButton) =>
+          chooseEdgeWidth(edgeName, desc.style.strokeWidth)
+        case ButtonClicked(EditColourButton) =>
+          chooseEdgeColour(edgeName, desc.style.strokeColor)
+        //case ButtonClicked(EditPlacementButton) =>
+        //  chooseLabelPlacement(name, desc.style.labelPosition)
+      }
     }
   }
 
