@@ -101,9 +101,17 @@ class DocumentTabs {
 
   def remove(page: DocumentPage): Unit = {
     val removedIndex = pageIndex(page)
+    val preFocus = currentFocus
     remove(removedIndex)
     pageIndex -= page
     reorderPages()
+    if(preFocus.nonEmpty && preFocus.get != page) {
+      focus(preFocus.get)
+    } else {
+      // Handled by peer
+      //selection.index -=1
+    }
+    ensureFocusIsValid()
   }
 
   private def reorderPages(): Unit ={
@@ -117,14 +125,24 @@ class DocumentTabs {
   }
 
   private def remove(index: Int): Unit = {
-    val preFocus = currentFocus
     pages.remove(index)
     for (page <- pageIndex.keys) {
       if (pageIndex(page) > index) {
         pageIndex += (page -> (pageIndex(page) - 1))
       }
     }
-    if (preFocus.nonEmpty) focus(preFocus.get)
+  }
+
+  private def ensureFocusIsValid() : Unit = {
+    if (pages.length > 0) {
+      // There is something to focus on
+      if(selection.index >= pages.length) {
+        selection.index = pages.length-1
+      }
+      if (selection.index < 0) {
+        selection.index = 0
+      }
+    }
   }
 
   def focus(p: DocumentPage): Unit = {
