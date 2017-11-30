@@ -7,7 +7,9 @@ abstract class DocumentPage(component0: Component with HasDocument)
 extends ClosablePage(
   component0.document.titleDescription,
   component0,
-  closeAction = () => { component0.document.promptUnsaved() } )
+  closeAction = () => {
+    component0.document.promptUnsaved()}
+)
 with Reactor
 {
   val document = component0.document
@@ -48,4 +50,9 @@ class PythonDocumentPage
 class DerivationDocumentPage(val project: Project)
 extends DocumentPage(new DerivationPanel(project)) {
   val documentType = "Derivation"
+}
+
+class TheoryPage
+  extends  DocumentPage(new TheoryEditPanel) {
+  val documentType = "Theory Editor"
 }

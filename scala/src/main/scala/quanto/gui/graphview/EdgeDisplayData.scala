@@ -3,9 +3,18 @@ package quanto.gui.graphview
 import quanto.data._
 import quanto.util.RichCubicCurve._
 import java.awt.geom._
-import math._
 
-case class EDisplay(path: Path2D.Double, lines: List[Line2D.Double], label: Option[LabelDisplayData]) {
+import quanto.data.Theory.EdgeDesc
+import quanto.util.UserOptions
+
+import math._
+import scala.swing.Color
+
+case class EDisplay(path: Path2D.Double,
+                    width: Int,
+                    color: Color,
+                    lines: List[Line2D.Double],
+                    label: Option[LabelDisplayData]) {
   def pointHit(pt: Point2D) = {
     lines exists { l =>
       //println("line starts " + l.getP1 + " ends " + l.getP2 + ", distance to " + pt + " is " + l.ptSegDistSq(pt))
@@ -126,9 +135,10 @@ trait EdgeDisplayData { self: GraphView with VertexDisplayData =>
                   edgeData.typeInfo.style.labelBackgroundColor))
             case _ => None
           }
+          val width = UserOptions.scaleInt(edgeData.typeInfo.style.strokeWidth)
+          val color = edgeData.typeInfo.style.strokeColor
 
-
-          edgeDisplay(e) = EDisplay(p, lines, labelDisplay)
+          edgeDisplay(e) = EDisplay(p, width, color, lines, labelDisplay)
 
           i += 1
         }

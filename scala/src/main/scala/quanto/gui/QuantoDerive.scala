@@ -7,8 +7,11 @@ import scala.io.Source
 import scala.swing._
 import scala.swing.event.{Key, SelectionChanged}
 import javax.swing.{KeyStroke, UIManager}
+
 import java.awt.event.KeyEvent
 import java.awt.Frame
+
+import java.awt.event.{KeyEvent, MouseAdapter, MouseEvent}
 
 import quanto.util.json.{Json, JsonString}
 import quanto.data._
@@ -70,6 +73,25 @@ object QuantoDerive extends SimpleSwingApplication {
     ProjectFileTree.root = None
   }
 
+  def updateProjectFile(): Unit = {
+    if (CurrentProject.nonEmpty) {
+      val project = CurrentProject.get
+      val projectFile = new File(project.rootFolder + "/main.qproject")
+      try {
+        if (projectFile.exists) {
+          val parsedInput = Json.parse(projectFile)
+          if (Project.toJson(project).toString != parsedInput.toString) {
+            Project.toJson(project).writeTo(new File(project.rootFolder + "/main.qproject"))
+            UserAlerts.alert(s"Updated project file", UserAlerts.Elevation.DEBUG)
+          }
+        }
+      } catch {
+        case e: Exception =>
+          throw new ProjectLoadException("Error loading project", e)
+      }
+    }
+  }
+
   def loadProject(projectLocation: String) : Option[Project] = {
     UserAlerts.alert(s"Opening project: $projectLocation")
     val projectFile = new File(projectLocation + "/main.qproject")
@@ -78,11 +100,9 @@ object QuantoDerive extends SimpleSwingApplication {
         val parsedInput = Json.parse(projectFile)
         val project = Project.fromJson(parsedInput, projectLocation)
         // Old .qproject files had links rather than embedded theories
-        if (Project.toJson(project).toString != parsedInput.toString) {
-          UserAlerts.alert("Updating out of date .qproject file")
-          Project.toJson(project).writeTo(new File(projectLocation + "/main.qproject"))
-        }
+        // So update when loading in
         CurrentProject = Some(project)
+        updateProjectFile()
         ProjectFileTree.root = Some(projectLocation)
         prefs.put("lastProjectFolder", projectLocation)
         UserAlerts.alert(s"Successfully loaded project: $projectLocation")
@@ -132,11 +152,25 @@ object QuantoDerive extends SimpleSwingApplication {
     case _ => None
   }
 
+  // Access via even is preferred, as then we can pinpoint where to put the popup
+  def popup(menu: PopupMenu, e: Option[MouseEvent]) : Unit = {
+    if (e.nonEmpty){
+      val componentBounds = e.get.getComponent.getBounds
+      val shift : Int = UserOptions.scaleInt(5)
+      popup(menu, e.get.getX + componentBounds.x + shift, e.get.getY + componentBounds.y+ shift)
+    } else {
+      popup(menu, 0, 0)
+    }
+  }
+
   def popup(menu: PopupMenu, x: Int, y: Int) : Unit = {
     menu.show(Main, x, y)
   }
 
-
+  def addAndFocusPage(d : DocumentPage): Unit = {
+    MainDocumentTabs += d
+    listenTo(d.tabComponent)
+  }
 
   listenTo(quanto.util.UserOptions.OptionsChanged)
   reactions += {
@@ -149,16 +183,12 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
-  val MainTabbedPane = new ClosableTabbedPane
+  val MainDocumentTabs = new DocumentTabs
 
-  def currentDocument: Option[HasDocument] =
-    MainTabbedPane.currentContent match {
-      case Some(doc: HasDocument) => Some(doc)
-      case _ => None
-    }
+  def currentDocument: Option[DocumentPage] = MainDocumentTabs.currentFocus
 
   def currentGraphController: Option[GraphEditController] =
-    MainTabbedPane.currentContent match {
+    MainDocumentTabs.currentContent match {
       case Some(p: GraphEditPanel) => Some(p.graphEditController)
       case Some(p: RuleEditPanel) => Some(p.focusedController)
       case _ => None
@@ -196,11 +226,11 @@ object QuantoDerive extends SimpleSwingApplication {
 
   object Split extends SplitPane {
     orientation = Orientation.Vertical
-    contents_=(LeftSplit, MainTabbedPane)
+    contents_=(LeftSplit, MainDocumentTabs.component)
   }
 
   def hasUnsaved =
-    MainTabbedPane.pages.exists { p => p.content match {
+    MainDocumentTabs.documents.exists { p => p.content match {
       case c : HasDocument => c.document.unsavedChanges
       case _ => false
     }}
@@ -212,8 +242,8 @@ object QuantoDerive extends SimpleSwingApplication {
    * (depends on user choice)
    */
   def trySaveAll() = {
-    MainTabbedPane.pages.forall { p =>
-      MainTabbedPane.selection.index = p.index // focus a pane before saving
+    MainDocumentTabs.documents.forall { p =>
+      MainDocumentTabs.focus(p) // focus a pane before saving
       p.content match {
         case c : HasDocument => c.document.trySave()
         case _ => false
@@ -237,17 +267,17 @@ object QuantoDerive extends SimpleSwingApplication {
       // Result(0) = Save, Result(1) = Discard, Result(2) = Cancel
       if (choice == Dialog.Result(2)) false
       else if (choice == Dialog.Result(1)) {
-        MainTabbedPane.pages.clear()
+        MainDocumentTabs.clear()
         true
       }
       else {
         val b = trySaveAll()
-        if (b) MainTabbedPane.pages.clear()
+        if (b) MainDocumentTabs.clear()
         b
       }
     }
     else {
-      MainTabbedPane.pages.clear()
+      MainDocumentTabs.clear()
       true
     }
   }
@@ -338,8 +368,7 @@ object QuantoDerive extends SimpleSwingApplication {
       def apply() {
         CurrentProject.foreach{ project =>
           val page = new GraphDocumentPage(project.theory)
-          MainTabbedPane += page
-          MainTabbedPane.selection.index = page.index
+          addAndFocusPage(page)
         }
       }
     }
@@ -350,8 +379,7 @@ object QuantoDerive extends SimpleSwingApplication {
       def apply() {
         CurrentProject.foreach{ project =>
           val page = new RuleDocumentPage(project.theory)
-          MainTabbedPane += page
-          MainTabbedPane.selection.index = page.index
+          addAndFocusPage(page)
         }
       }
     }
@@ -374,8 +402,7 @@ object QuantoDerive extends SimpleSwingApplication {
       def apply() {
         CurrentProject.foreach{ project =>
           val page = new PythonDocumentPage
-          MainTabbedPane += page
-          MainTabbedPane.selection.index = page.index
+          addAndFocusPage(page)
         }
       }
     }
@@ -400,7 +427,7 @@ object QuantoDerive extends SimpleSwingApplication {
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.S }
       def apply() {
-        MainTabbedPane.currentContent match {
+        MainDocumentTabs.currentContent match {
           case Some(doc: HasDocument) =>
             doc.document.file match {
               case Some(_) => doc.document.save()
@@ -416,7 +443,7 @@ object QuantoDerive extends SimpleSwingApplication {
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.A }
       def apply() {
-        MainTabbedPane.currentContent match {
+        MainDocumentTabs.currentContent match {
           case Some(doc: HasDocument) =>
             doc.document.showSaveAsDialog(CurrentProject.map(_.rootFolder))
           case _ =>
@@ -429,9 +456,9 @@ object QuantoDerive extends SimpleSwingApplication {
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.V }
       def apply() {
-        val selection = MainTabbedPane.selection.index
+        val selection = MainDocumentTabs.selection.index
         trySaveAll()
-        MainTabbedPane.selection.index = selection
+        MainDocumentTabs.selection.index = selection
       }
     }
 
@@ -518,6 +545,27 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
+    val EditTheoryAction = new Action("Edit Theory") {
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.T
+      }
+
+      def apply() {
+        CurrentProject.foreach { project =>
+          val page = MainDocumentTabs.documents.find(tp => tp.title == "Theory Editor") match {
+            case Some(p) => p
+            case None =>
+              val p = new TheoryPage()
+              listenTo(p.document)
+              p.title = "Theory Editor"
+              addAndFocusPage(p)
+              p
+          }
+          MainDocumentTabs.focus(page)
+        }
+      }
+    }
+
     menu.contents += new Separator()
 
     val QuitAction = new Action("Quit") {
@@ -549,7 +597,7 @@ object QuantoDerive extends SimpleSwingApplication {
             title = "Undo"
         }
 
-      listenTo(MainTabbedPane.selection)
+      listenTo(MainDocumentTabs.selection)
 
       reactions += {
         case DocumentChanged(_) => updateUndoCommand()
@@ -579,7 +627,7 @@ object QuantoDerive extends SimpleSwingApplication {
             title = "Redo"
         }
 
-      listenTo(MainTabbedPane.selection)
+      listenTo(MainDocumentTabs.selection)
 
       reactions += {
         case DocumentChanged(_) => updateRedoCommand()
@@ -630,24 +678,27 @@ object QuantoDerive extends SimpleSwingApplication {
 //    contents += new MenuItem(LayoutAction) { mnemonic = Key.L }
   }
 
-  val DeriveMenu = new Menu("Derive") { menu =>
+  val DeriveMenu = new Menu("Derive") {
+    menu =>
     val StartDerivation = new Action("Start derivation") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_D, CommandMask))
       enabled = false
-      menu.contents += new MenuItem(this) { mnemonic = Key.D }
-      def apply() = (CurrentProject, MainTabbedPane.currentContent) match {
-          case (Some(project), Some(doc: HasDocument)) =>
-            doc.document match {
-              case (graphDoc: GraphDocument) =>
-                val page = new DerivationDocumentPage(project)
-                MainTabbedPane += page
-                MainTabbedPane.selection.index = page.index
-                page.document.asInstanceOf[DerivationDocument].root = graphDoc.graph
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.D
+      }
 
-              case _ =>
-                System.err.println("WARNING: Start derivation called with no graph active")
-            }
-          case _ => // no project and/or document open, do nothing
+      def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
+        case (Some(project), Some(doc: HasDocument)) =>
+          doc.document match {
+            case (graphDoc: GraphDocument) =>
+              val page = new DerivationDocumentPage(project)
+              addAndFocusPage(page)
+              page.document.asInstanceOf[DerivationDocument].root = graphDoc.graph
+
+            case _ =>
+              System.err.println("WARNING: Start derivation called with no graph active")
+          }
+        case _ => // no project and/or document open, do nothing
       }
     }
 
@@ -655,7 +706,7 @@ object QuantoDerive extends SimpleSwingApplication {
 //      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.L }
-      def apply() = (CurrentProject, MainTabbedPane.currentContent) match {
+      def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
         case (Some(project), Some(derivePanel: DerivationPanel)) =>
           derivePanel.controller.layoutDerivation()
         case _ => // no project and/or derivation open, do nothing
@@ -669,9 +720,9 @@ object QuantoDerive extends SimpleSwingApplication {
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.C }
       def apply() {
-        MainTabbedPane.currentContent match {
-          case Some(doc: HasDocument) =>
-            if (doc.document.promptUnsaved()) MainTabbedPane.pages.remove(MainTabbedPane.selection.index)
+        MainDocumentTabs.currentFocus match {
+          case Some(page: DocumentPage) =>
+            if (page.document.promptUnsaved()) MainDocumentTabs.remove(MainDocumentTabs.currentFocus.get)
           case _ =>
         }
       }
@@ -716,7 +767,7 @@ object QuantoDerive extends SimpleSwingApplication {
       enabled = false
       menu.contents += new MenuItem(this) { mnemonic = Key.E }
       def apply() {
-        MainTabbedPane.currentContent match {
+        MainDocumentTabs.currentContent match {
           case Some(doc: HasDocument) =>
             if (doc.document.unsavedChanges) {
               Dialog.showMessage(title = "Unsaved Changes",
@@ -731,66 +782,25 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
-
-  val UserMessage = new Label(UserAlerts.latestMessage.toString)
-  val ConsoleProgress = new ProgressBar
-  val ConsoleProgressLabel = new Label(" ")
-  val StatusBar = new GridPanel(1, 2) {
-    contents += new FlowPanel(FlowPanel.Alignment.Left)(UserMessage)
-    contents += new FlowPanel(FlowPanel.Alignment.Right)(ConsoleProgressLabel, ConsoleProgress)
-  }
-
-  ConsoleProgress.preferredSize = ConsoleProgressSize //Currently doesn't respond to UI scaling
-
-  def ConsoleProgressSize: Dimension = new Dimension(UserOptions.scaleInt(100), UserOptions.scaleInt(15))
+  val StatusBar = new StatusBar()
 
 
-  listenTo(UserAlerts.AlertPublisher)
-  reactions += {
-    case UserAlerts.UserAlertEvent(alert: UserAlerts.Alert) =>
-      UserMessage.text = alert.toString
-      UserMessage.foreground = alert.color
-    case UserAlerts.UserProcessUpdate(_) =>
-      UserAlerts.leastCompleteProcess match {
-        case Some(process) => if (process.determinate) {
-          ConsoleProgress.indeterminate = false
-          ConsoleProgress.value = process.value
-        } else {
-          ConsoleProgress.indeterminate = true
-        }
-        case _ => ConsoleProgress.value = 100
-      }
-      val ongoing = UserAlerts.ongoingProcesses.filter(op => op.value < 100)
-      ongoing.count(_ => true) match {
-        case 0 => ConsoleProgressLabel.text = " " //keep non-empty so the progressbar stays in line with text
-        case 1 => ConsoleProgressLabel.text = ongoing.head.name
-        case n => ConsoleProgressLabel.text = n.toString + " processes ongoing"
-      }
-  }
 
-  val Main = new BorderPanel {
-    add(Split, BorderPanel.Position.Center)
-    add(StatusBar, BorderPanel.Position.South)
-  }
-
-  listenTo(ProjectFileTree, MainTabbedPane.selection)
+  listenTo(ProjectFileTree, MainDocumentTabs.selection)
 
   reactions += {
+    case PageClosed(p : DocumentPage) =>
+      MainDocumentTabs.remove(p)
     case FileContextRequested(file, e) =>
-      val (x,y) = if (e.nonEmpty){
-        (e.get.getX, e.get.getY)
-      } else {
-        (0,0)
-      }
       if(file.isDirectory){
-        popup(FolderContextMenu(file), x, y)
+        popup(FolderContextMenu(file), e)
       } else {
-        popup(FileContextMenu(file), x, y)
+        popup(FileContextMenu(file), e)
       }
     case FileOpened(file) =>
       CurrentProject match {
         case Some(project) =>
-          val existingPage = MainTabbedPane.pages.find { p =>
+          val existingPage = MainDocumentTabs.documents.find { p =>
             p.content match {
               case doc : HasDocument => doc.document.file.exists(_.getPath == file.getPath)
               case _ => false
@@ -799,7 +809,7 @@ object QuantoDerive extends SimpleSwingApplication {
 
           existingPage match {
             case Some(p) =>
-              MainTabbedPane.selection.index = p.index
+              MainDocumentTabs.focus(p)
             case None =>
               val extn = file.getName.lastIndexOf('.') match {
                 case i if i > 0 => file.getName.substring(i+1) ; case _ => ""}
@@ -813,12 +823,11 @@ object QuantoDerive extends SimpleSwingApplication {
                 case _         => None
               }
 
-              pageOpt.map{ page =>
-                MainTabbedPane += page
-                MainTabbedPane.selection.index = page.index
+              pageOpt.foreach{ page =>
+                addAndFocusPage(page)
 
                 if (!page.document.load(file)) {
-                  MainTabbedPane.pages -= page
+                  MainDocumentTabs.remove(page)
                 }
               }
           }
@@ -842,7 +851,7 @@ object QuantoDerive extends SimpleSwingApplication {
       FileMenu.SaveAction.title = "Save"
       FileMenu.SaveAsAction.title = "Save As..."
 
-      MainTabbedPane.currentContent match {
+      MainDocumentTabs.currentContent match {
         case Some(content: HasDocument) =>
           WindowMenu.CloseAction.enabled = true
           FileMenu.SaveAction.enabled = true
@@ -882,6 +891,13 @@ object QuantoDerive extends SimpleSwingApplication {
 //  versionResp.onSuccess { case Success(JsonString(version)) =>
 //    Swing.onEDT { CoreStatus.text = "OK"; CoreStatus.foreground = new Color(0,150,0) }
 //  }
+
+  // The highest level GUI contents
+  val Main = new BorderPanel {
+    add(Split, BorderPanel.Position.Center)
+    add(StatusBar.Status, BorderPanel.Position.South)
+  }
+
 
   val _mainframe = new MainFrame {
     override def title : String = {

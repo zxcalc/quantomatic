@@ -2,8 +2,10 @@ package quanto.gui
 
 import scala.swing._
 import javax.swing.border.EmptyBorder
-import javax.swing.{ImageIcon, Icon}
-import java.awt.{Color, BasicStroke, RenderingHints, Graphics}
+import javax.swing.{Icon, ImageIcon}
+import java.awt.{BasicStroke, Color, Graphics, RenderingHints}
+
+import quanto.util.UserAlerts
 
 class ClosablePage(title0: String, component0: Component, val closeAction: () => Boolean)
 extends TabbedPane.Page(title0, component0) {
@@ -14,6 +16,8 @@ extends TabbedPane.Page(title0, component0) {
     tabComponent.title = t
   }
 }
+
+case class PageClosed(p : ClosablePage) extends DocumentEvent
 
 object ClosablePage {
   def apply(title: String, component: Component)(closeAction: => Boolean) =
@@ -39,8 +43,9 @@ object ClosablePage {
     }
 
     val closeButton = new Button(Action("") {
+      UserAlerts.debug("Clicked close button")
       if (p.closeAction()) {
-        if (p.parent != null) p.parent.pages -= p
+        publish(PageClosed(p))
         printf("got successful close")
       } else {
         printf("tried to close")
@@ -72,15 +77,101 @@ private class CloseIcon(rollover : Boolean) extends Icon {
   }
 }
 
-class ClosableTabbedPane extends TabbedPane { tabbedPane =>
-  def +=(p: ClosablePage) {
-    pages += p
-    peer.setTabComponentAt(pages.length-1, p.tabComponent.peer)
+// Handler for the TabbedPane object, to distance the swing from the Java
+// TabbedPanes hold Java Components, but we want to interact with Documents
+class DocumentTabs {
+  val tabbedPane = new TabbedPane()
+  private var pageIndex: Map[DocumentPage, Int] = Map()
+
+  def component: TabbedPane = tabbedPane
+
+  def +=(p: DocumentPage) {
+    if(!pageIndex.contains(p)) {
+      pages += p
+      tabbedPane.peer.setTabComponentAt(pages.length - 1, p.tabComponent.peer)
+      pageIndex += (p -> (pages.length - 1))
+    }
+    reorderPages()
+    focus(p)
   }
 
-  def currentContent: Option[Component] =
-    if (selection.index == -1) None
+  def focus(index: Int): Unit = {
+    selection.index = index
+  }
+
+  def remove(page: DocumentPage): Unit = {
+    val removedIndex = pageIndex(page)
+    val preFocus = currentFocus
+    remove(removedIndex)
+    pageIndex -= page
+    reorderPages()
+    if(preFocus.nonEmpty && preFocus.get != page) {
+      focus(preFocus.get)
+    } else {
+      // Handled by peer
+      //selection.index -=1
+    }
+    ensureFocusIsValid()
+  }
+
+  private def reorderPages(): Unit ={
+    val indexPages = pageIndex.map(pi => (pi._2, pi._1)).toList.sortBy(_._1)
+    var newPageIndex : Map[DocumentPage, Int] = Map()
+    for (iip <- indexPages.zipWithIndex) {
+      newPageIndex += (iip._1._2 -> iip._2)
+    }
+    pageIndex = newPageIndex
+
+  }
+
+  private def remove(index: Int): Unit = {
+    pages.remove(index)
+    for (page <- pageIndex.keys) {
+      if (pageIndex(page) > index) {
+        pageIndex += (page -> (pageIndex(page) - 1))
+      }
+    }
+  }
+
+  private def ensureFocusIsValid() : Unit = {
+    if (pages.length > 0) {
+      // There is something to focus on
+      if(selection.index >= pages.length) {
+        selection.index = pages.length-1
+      }
+      if (selection.index < 0) {
+        selection.index = 0
+      }
+    }
+  }
+
+  def focus(p: DocumentPage): Unit = {
+    try {
+      selection.index = pageIndex(p)
+    } catch {
+      case e: Exception => selection.index = -1
+    }
+  }
+
+  def currentFocus: Option[DocumentPage] = {
+    pageIndex.find(kv => kv._2 == selection.index).map(_._1)
+  }
+
+  def currentContent: Option[Component] = {
+    if (selection.index == -1 || selection.page == null || selection.page.content == null) None
     else Some(selection.page.content)
+  }
+
+  def selection = tabbedPane.selection
+
+  def documents: Iterable[DocumentPage] = pageIndex.keys
+
+  def clear(): Unit = {
+    pages.clear()
+  }
+
+
+  private def pages = tabbedPane.pages
 }
 
 
