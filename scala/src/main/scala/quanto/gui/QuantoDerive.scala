@@ -8,6 +8,7 @@ import scala.swing._
 import scala.swing.event.{Key, SelectionChanged}
 import javax.swing.{KeyStroke, UIManager}
 import java.awt.event.KeyEvent
+import java.awt.Frame
 
 import quanto.util.json.{Json, JsonString}
 import quanto.data._
@@ -54,7 +55,6 @@ object QuantoDerive extends SimpleSwingApplication {
 
   def error(msg: String) = Dialog.showMessage(
     title = "Error", message = msg, messageType = Dialog.Message.Error)
-
 
   val prefs = Preferences.userRoot().node(this.getClass.getName)
 
@@ -252,13 +252,22 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
-  def quitQuanto() = {
+  def quitQuanto(): Boolean = {
     if (closeAllDocuments()) {
       try {
         //core ! StopCore
         //core ! PoisonPill
       } catch {
         case e : Exception => e.printStackTrace()
+      }
+      val rect = _mainframe.peer.getBounds()
+      val isFullScreen : Boolean = _mainframe.peer.getExtendedState() == Frame.MAXIMIZED_BOTH
+      prefs.putBoolean("fullscreen", isFullScreen)
+      if (!isFullScreen) {
+        prefs.putInt("locationx",rect.x)
+        prefs.putInt("locationy",rect.y)
+        prefs.putInt("screenwidth",rect.width)
+        prefs.putInt("screenheight",rect.height)
       }
       true
     } else {
@@ -699,7 +708,6 @@ object QuantoDerive extends SimpleSwingApplication {
         WebHelper.openWebpage("https://quantomatic.github.io/SimprocAPI.html")
       }
     }
-
   }
 
   val ExportMenu = new Menu("Export") { menu =>
@@ -875,7 +883,7 @@ object QuantoDerive extends SimpleSwingApplication {
 //    Swing.onEDT { CoreStatus.text = "OK"; CoreStatus.foreground = new Color(0,150,0) }
 //  }
 
-  def top = new MainFrame {
+  val _mainframe = new MainFrame {
     override def title : String = {
       if (CurrentProject.isEmpty) {"Quantomatic"} else {
         CurrentProject.get.name match {
@@ -886,7 +894,15 @@ object QuantoDerive extends SimpleSwingApplication {
     }
     contents = Main
 
-    size = new Dimension(1280,720)
+    if (prefs.getBoolean("fullscreen",false)) {
+      peer.setExtendedState(peer.getExtendedState() | Frame.MAXIMIZED_BOTH)
+    }
+    else {
+      size = new Dimension(prefs.getInt("screenwidth",1280),prefs.getInt("screenheight",720))
+      peer.setLocation(prefs.getInt("locationx",300),prefs.getInt("locationy",300))
+    }
+    peer.setVisible(true)
+
 
     menuBar = new MenuBar {
       contents += (FileMenu, EditMenu, DeriveMenu, WindowMenu, ExportMenu, HelpMenu)
@@ -899,4 +915,6 @@ object QuantoDerive extends SimpleSwingApplication {
       if (quitQuanto()) scala.sys.exit(0)
     }
   }
+
+  def top = _mainframe
 }
