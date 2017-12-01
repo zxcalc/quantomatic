@@ -19,7 +19,6 @@ with HasDocument
 
   val lhsController = new GraphEditController(lhsView, document.undoStack, readOnly)
   lhsController.controlsOpt = Some(controls)
-
   val rhsController = new GraphEditController(rhsView, document.undoStack, readOnly)
   rhsController.controlsOpt = Some(controls)
 
@@ -50,7 +49,12 @@ with HasDocument
     case UIElementResized(RhsScrollPane) =>
       rhsView.resizeViewToFit()
       rhsView.repaint()
+
+    case MouseStateChanged(RelaxToolDown()) => focusedController.startRelaxGraph(true)
+    case MouseStateChanged(RelaxToolUp()) => focusedController.endRelaxGraph()
     case MouseStateChanged(m) =>
+      lhsController.endRelaxGraph()
+      rhsController.endRelaxGraph()
       lhsController.mouseState = m
       rhsController.mouseState = m
   }

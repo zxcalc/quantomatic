@@ -2,9 +2,11 @@ package quanto.gui
 
 import graphview.GraphView
 import quanto.data._
+
 import swing._
 import swing.event._
 import javax.swing.ImageIcon
+
 import quanto.util.swing.ToolBar
 
 case class MouseStateChanged(m : MouseState) extends Event
@@ -60,6 +62,12 @@ class GraphEditControls(theory: Theory) extends Publisher {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-bbox.png"), "Add Bang Box")
     tool = AddBangBoxTool()
     tooltip = "Add Bang Box (B)"
+  }
+
+  val RelaxButton = new ToggleButton() with ToolButton {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("expand.png"), "Relax graph")
+    tool = RelaxToolDown()
+    tooltip = "Relax graph (R/shift-R)"
   }
 
   val GraphToolGroup = new ButtonGroup(SelectButton,
@@ -123,9 +131,23 @@ class GraphEditControls(theory: Theory) extends Publisher {
       setMouseState(t.tool)
   }
 
+  listenTo(RelaxButton.mouse.clicks)
+
+  reactions += {
+    case MousePressed(RelaxButton,_,_,_,_) =>
+      RelaxButton.selected = false
+      publish(MouseStateChanged(RelaxToolDown()))
+    case MouseReleased(RelaxButton,_,_,_,_) =>
+      RelaxButton.selected= false
+      publish(MouseStateChanged(RelaxToolUp()))
+  }
+
   val MainToolBar = new ToolBar {
     contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton)
   }
+  MainToolBar.peer.addSeparator()
+  MainToolBar.contents += RelaxButton
+
 }
 
 
@@ -168,7 +190,10 @@ with HasDocument
     case UIElementResized(GraphViewScrollPane) =>
       graphView.resizeViewToFit()
       graphView.repaint()
+    case MouseStateChanged(RelaxToolDown()) => graphEditController.startRelaxGraph(true)
+    case MouseStateChanged(RelaxToolUp()) => graphEditController.endRelaxGraph()
     case MouseStateChanged(m) =>
+      if (graphEditController.rDown) graphEditController.endRelaxGraph()
       graphEditController.mouseState = m
-  }
+    }
 }

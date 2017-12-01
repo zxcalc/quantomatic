@@ -746,7 +746,7 @@ object QuantoDerive extends SimpleSwingApplication {
   }
 
   val HelpMenu = new Menu("Help") { menu =>
-    val CloseAction = new Action("Quantomatic website") {
+    val WebsiteAction = new Action("Quantomatic website") {
       menu.contents += new MenuItem(this) { mnemonic = Key.Q }
       def apply() {
         WebHelper.openWebpage("https://quantomatic.github.io/")

@@ -67,6 +67,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   val layoutTimer = new javax.swing.Timer(5, new ActionListener {
     def actionPerformed(e: ActionEvent) {
       if (qLayout.graph != null) {
+        view.requestFocusInWindow()
         qLayout.step()
         qLayout.updateGraph()
         graph = qLayout.graph
@@ -80,6 +81,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   val layoutTimer1 = new javax.swing.Timer(5, new ActionListener {
     def actionPerformed(e: ActionEvent) {
       if (q1Layout.graph != null) {
+        view.requestFocusInWindow()
         q1Layout.step()
         q1Layout.updateGraph()
         graph = q1Layout.graph
@@ -384,6 +386,36 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     replaceGraph(newGraph, "Layout Graph")
   }
 
+  var rDown = false
+
+  def startRelaxGraph(expandNodes : Boolean) {
+    view.requestFocusInWindow()
+    val layout = if (!expandNodes) q1Layout else qLayout
+    if (!rDown) {
+      rDown = true
+      layout.initialize(graph, randomCoords = false)
+      layout.clearLockedVertices()
+      if (!selectedVerts.isEmpty) {
+        graph.verts.foreach { v => if (!selectedVerts.contains(v)) layout.lockVertex(v) }
+      }
+
+      undoStack.start("Relax layout")
+      replaceGraph(graph, "")
+      if (!expandNodes) layoutTimer1.start() else layoutTimer.start()
+    }
+  }
+
+  def endRelaxGraph() {
+    if (rDown) {
+      rDown = false
+      layoutTimer.stop()
+      layoutTimer1.stop()
+
+      replaceGraph(graph, "")
+      undoStack.commit()
+    }
+  }
+
   view.listenTo(view.mouse.clicks, view.mouse.moves)
   view.reactions += {
     case MousePressed(_, pt, modifiers, clicks, _) =>
@@ -510,6 +542,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
                         else None
           view.bboxOverlay = Some(BBoxOverlay(pt, startBB, vertexHit, bboxHit))
           view.repaint()
+        case state => throw new InvalidMouseStateException("MouseReleased", state)
       }
 
     case MouseReleased(_, pt, modifiers, _, _) =>
@@ -657,7 +690,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   
   view.listenTo(view.keys)
   view.listenTo(view.mouse.wheel)
-  var rDown = false
+
 
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
@@ -672,26 +705,9 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         view.repaint()
       }
     case KeyPressed(_, Key.R, m, _) =>
-      if (!rDown) {
-        val layout = if ((m & Modifier.Shift) == Modifier.Shift) q1Layout else qLayout
-        rDown = true
-        layout.initialize(graph, randomCoords = false)
-        layout.clearLockedVertices()
-        if (!selectedVerts.isEmpty) {
-          graph.verts.foreach { v => if (!selectedVerts.contains(v)) layout.lockVertex(v) }
-        }
-
-        undoStack.start("Relax layout")
-        replaceGraph(graph, "")
-        if ((m & Modifier.Shift) == Modifier.Shift) layoutTimer1.start() else layoutTimer.start()
-      }
+      startRelaxGraph((m & Modifier.Shift) != Modifier.Shift)
     case KeyReleased(_, Key.R, _, _) =>
-      rDown = false
-      layoutTimer.stop()
-      layoutTimer1.stop()
-
-      replaceGraph(graph, "")
-      undoStack.commit()
+      endRelaxGraph()
     case KeyReleased(_, Key.G, _, _) =>
       snapToGrid()
       //replaceGraph(graph, "")
