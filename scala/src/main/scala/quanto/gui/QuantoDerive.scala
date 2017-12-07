@@ -759,6 +759,16 @@ object QuantoDerive extends SimpleSwingApplication {
         WebHelper.openWebpage("https://quantomatic.github.io/SimprocAPI.html")
       }
     }
+
+    //private val project = getClass.getPackage
+    // val version = project.getImplementationVersion()
+    // TODO: Implement versioning
+    val UpdateAction = new Action(s"Get latest version") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.V }
+      def apply() {
+        WebHelper.openWebpage("https://bintray.com/quantomatic/quantomatic/quantomatic/bleeding-edge")
+      }
+    }
   }
 
   val ExportMenu = new Menu("Export") { menu =>
