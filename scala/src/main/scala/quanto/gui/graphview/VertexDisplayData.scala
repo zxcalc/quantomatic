@@ -1,11 +1,13 @@
 package quanto.gui.graphview
 
-import java.awt.geom.{Rectangle2D, Ellipse2D, Point2D}
-import java.awt.{FontMetrics, Color, Shape}
+import java.awt.geom.{Ellipse2D, Point2D, Rectangle2D}
+import java.awt.{Color, FontMetrics, Shape}
+
 import math._
 import quanto.data._
 import quanto.gui._
 import quanto.core.data.TexConstants
+import quanto.util.UserOptions
 
 case class VDisplay(shape: Shape, color: Color, label: Option[LabelDisplayData]) {
   def pointHit(pt: Point2D) = {
@@ -52,6 +54,7 @@ trait VertexDisplayData { self: GraphView =>
   protected def computeVertexDisplay() {
     val trWireWidth = 0.707 * (trans scaleToScreen GraphView.WireRadius)
 
+    // Go through every vertex in the graph
     for ((v,data) <- graph.vdata if !vertexDisplay.contains(v)) {
       val (x,y) = trans toScreen data.coord
 
@@ -66,19 +69,27 @@ trait VertexDisplayData { self: GraphView =>
             case _ => ""
           }*/
 
+          // Build the label
           val fm = peer.getGraphics.getFontMetrics(GraphView.VertexLabelFont)
           val labelDisplay = LabelDisplayData(
-            text, (x,y), fm,
+            text, (x, y), fm,
             vertexData.typeInfo.style.labelForegroundColor,
             vertexData.typeInfo.style.labelBackgroundColor)
 
-
+          // Build the shape around the label
           val shape = style.shape match {
             case Theory.VertexShape.Rectangle =>
+              val buffer = trans.scaleToScreen(GraphView.NodeTextPadding)
+              val height = labelDisplay.bounds.getHeight + buffer
+              val widthFromLabel = labelDisplay.bounds.getWidth + buffer
+              // Default to square if no data, and stretch horizontally if needed
+              val width = max(widthFromLabel, height)
+
 
               new Rectangle2D.Double(
-                labelDisplay.bounds.getMinX - 5.0, labelDisplay.bounds.getMinY - 3.0,
-                labelDisplay.bounds.getWidth + 10.0, labelDisplay.bounds.getHeight + 6.0)
+                labelDisplay.bounds.getMinX - (width - labelDisplay.bounds.getWidth) / 2.0,
+                labelDisplay.bounds.getMinY - (height - labelDisplay.bounds.getHeight) / 2.0,
+                width, height)
             case Theory.VertexShape.Circle =>
               // radius should fit to label if required
               val r = max(
@@ -88,7 +99,7 @@ trait VertexDisplayData { self: GraphView =>
 
               new Ellipse2D.Double(
                 labelDisplay.bounds.getCenterX - r,
-                labelDisplay.bounds.getCenterY -r,
+                labelDisplay.bounds.getCenterY - r,
                 2.0 * r, 2.0 * r)
             case _ => throw new Exception("Shape not supported yet")
           }

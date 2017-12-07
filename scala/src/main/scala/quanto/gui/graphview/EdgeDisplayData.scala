@@ -32,6 +32,7 @@ trait EdgeDisplayData { self: GraphView with VertexDisplayData =>
     for ((v1,sd) <- graph.vdata; (v2,td) <- graph.vdata if v1 <= v2) {
       val edges = graph.source.codf(v1) intersect graph.target.codf(v2)
       val rEdges = if (v1 == v2) Set[EName]() else graph.target.codf(v1) intersect graph.source.codf(v2)
+      // Count total edges v1 -> v2, and reverse edges (v2 -> v1)
       val numEdges = edges.size + rEdges.size
 
       if (numEdges != 0) {
