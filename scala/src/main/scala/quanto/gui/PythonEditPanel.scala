@@ -11,7 +11,7 @@ import java.awt.event.{KeyAdapter, KeyEvent}
 import javax.swing.ImageIcon
 
 import quanto.util.swing.ToolBar
-import quanto.util.UserAlerts.{alert, Elevation, SelfAlertingProcess}
+import quanto.util.UserAlerts.{Elevation, SelfAlertingProcess, alert}
 
 import scala.swing.event.ButtonClicked
 import quanto.util._
@@ -90,7 +90,11 @@ class PythonEditPanel extends BorderPanel with HasDocument {
   reactions += {
     case ButtonClicked(RunButton) =>
       if (execThread == null) {
-        val processReporting = new SelfAlertingProcess("Python from source")
+        val documentName : String = document.file.map(
+          // Assume the user has a project loaded, otherwise shouldn't be able to access GUI
+          f => QuantoDerive.CurrentProject.get.relativePath(f)
+        ).getOrElse("Unsaved File")
+        val processReporting = new SelfAlertingProcess(s"Python $documentName")
 
         execThread = new Thread(new Runnable {
           def run() {
@@ -99,8 +103,26 @@ class PythonEditPanel extends BorderPanel with HasDocument {
               QuantoDerive.CurrentProject.foreach(pr => python.getSystemState.path.add(pr.rootFolder))
               python.set("output", output)
 
-              //python.set("output", output)
-              python.exec(code.getBuffer.getText)
+
+              // Inject python to expose some relevant variables
+              val pythonHeader =
+                s"""
+                  |from quanto.util.Scripting import *
+                  |script_file_name = "$documentName"
+                  |def register(name, simproc):
+                  |  register_simproc(name, simproc, script_file_name)
+                """.stripMargin
+
+              // Now run the python along with the header
+              val codeWithHeader = pythonHeader + "\n" + code.getBuffer.getText
+              python.exec(codeWithHeader)
+
+              // Tell the user which simprocs are linked to this file
+              alert(s"Simprocs registered to $documentName: " +
+                QuantoDerive.CurrentProject.map(
+                  p => p.simprocSource.filter(kv => kv._2 == documentName)
+                ).getOrElse(Map()).keys.mkString(", ")
+              )
               processReporting.finish()
             } catch {
               case e : Throwable =>
