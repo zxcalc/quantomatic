@@ -11,7 +11,7 @@ class DerivationDocument(panel: DerivationPanel) extends Document {
   val fileExtension = "qderive"
 
   protected def parent = panel
-  private var storedDerivation: Derivation = Derivation(panel.theory, Graph(panel.theory))
+  private var storedDerivation: Derivation = Derivation(Graph())
   private var _derivation: Derivation = storedDerivation
   def derivation = _derivation
   def derivation_=(d: Derivation) = {
@@ -50,7 +50,7 @@ class DerivationDocument(panel: DerivationPanel) extends Document {
   }
 
   protected def clearDocument() = {
-    _derivation = Derivation(panel.theory, root = Graph(panel.theory))
+    _derivation = Derivation(root = Graph(panel.theory))
   }
 
   def root_=(g: Graph) {

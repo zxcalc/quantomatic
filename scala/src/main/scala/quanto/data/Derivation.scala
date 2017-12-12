@@ -104,8 +104,7 @@ object DStep {
   }
 }
 
-case class Derivation(theory: Theory,
-                      root: Graph,
+case class Derivation(root: Graph,
                       steps: Map[DSName, DStep] = Map(),
                       heads: SortedSet[DSName] = SortedSet(),
                       parentMap: PFun[DSName, DSName] = PFun())
@@ -129,11 +128,11 @@ case class Derivation(theory: Theory,
     copy(steps = steps + (s -> s1))
   }
 
-  def copy(theory: Theory = theory,
+  def copy(
            root: Graph = root,
            steps: Map[DSName, DStep] = steps,
            heads: SortedSet[DSName] = heads,
-           parent: PFun[DSName, DSName] = parentMap) = Derivation(theory, root, steps, heads, parent)
+           parent: PFun[DSName, DSName] = parentMap) = Derivation(root, steps, heads, parent)
 
   def allChildren(s: DSName): Set[DSName] =
     children(s).foldLeft(Set[DSName]()) { case (set, c) => set union allChildren(c) } + s
@@ -237,7 +236,6 @@ object Derivation {
     val heads = (json ? "heads").asArray.foldLeft(SortedSet[DSName]()) { case (set, h) => set + DSName(h.stringValue) }
 
     Derivation(
-      theory = thy,
       root = Graph.fromJson(json / "root", thy),
       steps = steps,
       heads = heads,

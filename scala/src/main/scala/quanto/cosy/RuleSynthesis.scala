@@ -50,23 +50,23 @@ object RuleSynthesis {
     }
   }
 
-  def discardDirectlyReducibleRules(rules: List[Rule], theory: Theory, seed: Random = new Random()): List[Rule] = {
+  def discardDirectlyReducibleRules(rules: List[Rule], seed: Random = new Random()): List[Rule] = {
     rules.filter(rule =>
-      AutoReduce.genericReduce(graphToDerivation(rule.lhs, theory), rules.filter(r => r != rule), seed) >= rule.lhs
+      AutoReduce.genericReduce(graphToDerivation(rule.lhs), rules.filter(r => r != rule), seed) >= rule.lhs
     )
   }
 
-  def graphToDerivation(graph: Graph, theory: Theory): DerivationWithHead = {
-    (new Derivation(theory, graph), None)
+  def graphToDerivation(graph: Graph): DerivationWithHead = {
+    (new Derivation(graph), None)
   }
 
   def minimiseRuleset(rules: List[Rule], theory: Theory, seed: Random = new Random()): List[Rule] = {
-    rules.map(rule => minimiseRuleInPresenceOf(rule, rules.filter(otherRule => otherRule != rule), theory))
+    rules.map(rule => minimiseRuleInPresenceOf(rule, rules.filter(otherRule => otherRule != rule)))
   }
 
-  def minimiseRuleInPresenceOf(rule: Rule, otherRules: List[Rule], theory: Theory, seed: Random = new Random()): Rule = {
-    val minLhs: Graph = AutoReduce.genericReduce(graphToDerivation(rule.lhs, theory), otherRules, seed)
-    val minRhs: Graph = AutoReduce.genericReduce(graphToDerivation(rule.rhs, theory), otherRules, seed)
+  def minimiseRuleInPresenceOf(rule: Rule, otherRules: List[Rule], seed: Random = new Random()): Rule = {
+    val minLhs: Graph = AutoReduce.genericReduce(graphToDerivation(rule.lhs), otherRules, seed)
+    val minRhs: Graph = AutoReduce.genericReduce(graphToDerivation(rule.rhs), otherRules, seed)
     val wasItReduced = (minLhs < rule.lhs) || (minRhs < rule.rhs)
     new Rule(minLhs, minRhs, description = RuleDesc(
       rule.name + (if (wasItReduced) " reduced" else "")))

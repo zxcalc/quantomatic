@@ -95,7 +95,7 @@ object Scripting {
   }
 
   class derivation(start : Graph) {
-    var d = Derivation(theory, start)
+    var d = Derivation(start)
 
     def rewrite(r: (String, Rule)) = {
       false

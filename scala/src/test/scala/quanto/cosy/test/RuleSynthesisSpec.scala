@@ -81,7 +81,7 @@ class RuleSynthesisSpec extends FlatSpec {
     )
     var r1 = ruleList.head
     var m = Matcher.findMatches(r1.lhs, r1.lhs)
-    var shrunkRules = RuleSynthesis.discardDirectlyReducibleRules(rules = ruleList, rg, seed = new Random(1))
+    var shrunkRules = RuleSynthesis.discardDirectlyReducibleRules(rules = ruleList, seed = new Random(1))
     println(shrunkRules)
     assert(ruleList.length > shrunkRules.length)
   }
@@ -130,7 +130,7 @@ class RuleSynthesisSpec extends FlatSpec {
     // Pick out S1, S2 and REDUCIBLE
     var smallRules = ctRules.filter(_.name.matches(raw"S\d|RED.*"))
     var reducibleGraph = smallRules.filter(_.name.matches(raw"RED.*")).head.lhs
-    var resultingDerivation = greedyReduce(RuleSynthesis.graphToDerivation(reducibleGraph, rg), smallRules)
+    var resultingDerivation = greedyReduce(RuleSynthesis.graphToDerivation(reducibleGraph), smallRules)
     // println(resultingDerivation.stepsTo(resultingDerivation.firstHead))
     assert(Derivation.derivationHeadPairToGraph(resultingDerivation).verts.size < reducibleGraph.verts.size)
   }
@@ -149,7 +149,7 @@ class RuleSynthesisSpec extends FlatSpec {
     var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
     var remaining = ctRules.filterNot(_.name.matches(raw"RED.*"))
     var annealed = annealingReduce(
-      RuleSynthesis.graphToDerivation(target, rg),
+      RuleSynthesis.graphToDerivation(target),
       remaining ::: remaining.map(_.inverse),
       100,
       3,
@@ -161,7 +161,7 @@ class RuleSynthesisSpec extends FlatSpec {
     var ctRules = ZXRules
     var target = ctRules.filter(_.name.matches(raw"RED.*")).head.lhs
     var remaining = ctRules.filter(_.name.matches(raw"S\d+.*"))
-    val reducedDerivation = randomApply((new Derivation(rg, target), None),
+    val reducedDerivation = randomApply((new Derivation(target), None),
       remaining, 100, alwaysTrue, new Random(1))
     assert(reducedDerivation._1.steps(reducedDerivation._2.get).graph < target)
   }
