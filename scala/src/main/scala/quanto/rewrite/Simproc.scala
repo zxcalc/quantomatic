@@ -7,6 +7,9 @@ import quanto.layout.ForceLayout
 abstract class Simproc {
   def simp(g: Graph): Iterator[(Graph, Rule)]
 
+  var sourceFile: String = ""
+  var sourceCode: String = ""
+
   // chain two simprocs together
   def >>(t: Simproc) = {
     val s = this

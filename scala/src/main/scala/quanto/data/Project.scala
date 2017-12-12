@@ -9,7 +9,6 @@ class ProjectLoadException(message: String, cause: Throwable) extends Exception(
 case class Project(theory: Theory, rootFolder: String, name : String) {
   def rules: Vector[String] = rulesInPath(rootFolder)
   var simprocs: Map[String, Simproc] = Map()
-  var simprocSource: Map[String, String] = Map() // name -> file
 
   def relativePath(f: File) : String = {
     new File(rootFolder).toURI.relativize(f.toURI).getPath

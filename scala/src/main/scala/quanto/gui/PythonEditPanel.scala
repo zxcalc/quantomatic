@@ -17,6 +17,8 @@ import scala.swing.event.ButtonClicked
 import quanto.util._
 import java.io.{File, PrintStream}
 
+import quanto.rewrite.Simproc
+
 class PythonEditPanel extends BorderPanel with HasDocument {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
@@ -27,9 +29,19 @@ class PythonEditPanel extends BorderPanel with HasDocument {
   //  else getClass.getResource("python.xml").getPath
   pyMode.setProperty("file", QuantoDerive.pythonModeFile)
   //println(sml.getProperty("file"))
-  val code = StandaloneTextArea.createTextArea()
+
+  val code: StandaloneTextArea = StandaloneTextArea.createTextArea()
+
+  // Inject python to expose some relevant variables
+  def documentName: String = document.file.map(
+    // Assume the user has a project loaded, otherwise shouldn't be able to access GUI
+    f => QuantoDerive.CurrentProject.get.relativePath(f)
+  ).getOrElse("Unsaved File")
+
+  // Now run the python along with the header
+  def codeWithHeader : String = PythonManipulation.addHeader(code.getBuffer.getText, documentName)
+
   code.setFont(UserOptions.font)
-  //mlCode.setFont(new Font("Menlo", Font.PLAIN, 14))
 
   val buf = new JEditBuffer1
   buf.setMode(pyMode)
@@ -87,42 +99,38 @@ class PythonEditPanel extends BorderPanel with HasDocument {
 
   listenTo(RunButton, InterruptButton)
 
+  def allSimprocs : Map[String, Simproc] = QuantoDerive.CurrentProject.map(p => p.simprocs).getOrElse(Map())
+
   reactions += {
     case ButtonClicked(RunButton) =>
       if (execThread == null) {
-        val documentName : String = document.file.map(
-          // Assume the user has a project loaded, otherwise shouldn't be able to access GUI
-          f => QuantoDerive.CurrentProject.get.relativePath(f)
-        ).getOrElse("Unsaved File")
         val processReporting = new SelfAlertingProcess(s"Python $documentName")
 
         execThread = new Thread(new Runnable {
           def run() {
             try {
               val python = new PythonInterpreter
+
+
+              def simprocsFromThisFile = allSimprocs.filter(kv => kv._2.sourceFile == documentName).keys
+              // unregister any simprocs previously linked to this file
+              simprocsFromThisFile.foreach(simprocName => QuantoDerive.CurrentProject.foreach(
+                p => p.simprocs -= simprocName
+              ))
+
               QuantoDerive.CurrentProject.foreach(pr => python.getSystemState.path.add(pr.rootFolder))
               python.set("output", output)
-
-
-              // Inject python to expose some relevant variables
-              val pythonHeader =
-                s"""
-                  |from quanto.util.Scripting import *
-                  |script_file_name = "$documentName"
-                  |def register(name, simproc):
-                  |  register_simproc(name, simproc, script_file_name)
-                """.stripMargin
-
-              // Now run the python along with the header
-              val codeWithHeader = pythonHeader + "\n" + code.getBuffer.getText
               python.exec(codeWithHeader)
 
               // Tell the user which simprocs are linked to this file
               alert(s"Simprocs registered to $documentName: " +
-                QuantoDerive.CurrentProject.map(
-                  p => p.simprocSource.filter(kv => kv._2 == documentName)
-                ).getOrElse(Map()).keys.mkString(", ")
+                simprocsFromThisFile.mkString(", ")
               )
+              // Link this python to those simprocs
+              simprocsFromThisFile.foreach(simprocName => QuantoDerive.CurrentProject.foreach(
+                p => p.simprocs(simprocName).sourceCode = codeWithHeader
+              ))
+
               processReporting.finish()
             } catch {
               case e : Throwable =>
