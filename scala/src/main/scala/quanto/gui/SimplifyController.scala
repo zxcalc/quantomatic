@@ -27,7 +27,11 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
   case class HaltSimproc() extends Event
   case class SimprocHalted() extends Exception("Simproc halted")
 
-  listenTo(this, panel.SimplifyPane.RefreshButton, panel.SimplifyPane.SimplifyButton, panel.SimplifyPane.StopButton)
+  listenTo(this,
+    panel.SimplifyPane.RefreshButton,
+    panel.SimplifyPane.SimplifyButton,
+    panel.SimplifyPane.StopButton,
+    PythonEditPanel)
 
   def theory = panel.theory
 
@@ -100,6 +104,8 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
       }
     case ButtonClicked(panel.SimplifyPane.StopButton) =>
       publish(HaltSimproc())
+    case SimprocsUpdated() =>
+      refreshSimprocs()
   }
 
 }

@@ -16,16 +16,19 @@ class FilteredList(val options: List[String],
   val listItems: List[String] = options.sorted
   val ListComponent: ListView[String] = new ListView[String](listItems)
   private val ScrollContainer = new ScrollPane(ListComponent)
-  ScrollContainer.preferredSize = new Dimension(scaleInt(baseWidth), scaleInt(baseHeight))
+  ScrollContainer.maximumSize = new Dimension(scaleInt(baseWidth), scaleInt(baseHeight))
 
   private def VSpace: Component = Swing.VStrut(scaleInt(10))
 
   private def HSpace: Component = Swing.HStrut(scaleInt(10))
 
   contents += VSpace
-  contents += new BoxPanel(Orientation.Horizontal) {
+  val FilterPanel : Component = new BoxPanel(Orientation.Horizontal) {
     contents += (HSpace, new Label("Filter:"), HSpace, Regex, HSpace)
+    maximumSize = new Dimension(scaleInt(baseWidth), scaleInt(20))
   }
+
+  contents += FilterPanel
   contents += VSpace
   contents += new BoxPanel(Orientation.Horizontal) {
     contents += (HSpace, ScrollContainer, HSpace)

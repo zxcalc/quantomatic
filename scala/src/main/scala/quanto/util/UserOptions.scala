@@ -105,4 +105,17 @@ object UserOptions {
       }
   }
 
+
+  private var _preferredDateTimeFormat : SimpleDateFormat = new SimpleDateFormat("yy-MM-dd.HH:mm:ss")
+  def preferredDateTimeFormat : SimpleDateFormat = _preferredDateTimeFormat
+  def preferredDateTimeFormat_=(format: String): Unit = {
+    try {
+      _preferredDateTimeFormat = new SimpleDateFormat(format)
+    }
+    catch {
+      case e: Exception =>
+        e.printStackTrace()
+    }
+  }
+
 }

@@ -25,6 +25,7 @@ object FileHelper {
   }
 
   def printJson(fileName : String, json: Json) : Unit = {
+    new File(fileName).getParentFile.mkdirs()
     json.writeTo(new File(fileName))
   }
 

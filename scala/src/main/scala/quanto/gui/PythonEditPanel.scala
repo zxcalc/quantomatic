@@ -13,11 +13,13 @@ import javax.swing.ImageIcon
 import quanto.util.swing.ToolBar
 import quanto.util.UserAlerts.{Elevation, SelfAlertingProcess, alert}
 
-import scala.swing.event.ButtonClicked
+import scala.swing.event.{ButtonClicked, Event}
 import quanto.util._
 import java.io.{File, PrintStream}
 
 import quanto.rewrite.Simproc
+
+case class SimprocsUpdated() extends Event
 
 class PythonEditPanel extends BorderPanel with HasDocument {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
@@ -130,7 +132,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
               simprocsFromThisFile.foreach(simprocName => QuantoDerive.CurrentProject.foreach(
                 p => p.simprocs(simprocName).sourceCode = codeWithHeader
               ))
-
+              PythonEditPanel.publishUpdate()
               processReporting.finish()
             } catch {
               case e : Throwable =>
@@ -152,5 +154,11 @@ class PythonEditPanel extends BorderPanel with HasDocument {
         execThread.interrupt()
         execThread = null
       }
+  }
+}
+
+object PythonEditPanel extends Publisher {
+  def publishUpdate() : Unit = {
+    publish(SimprocsUpdated())
   }
 }

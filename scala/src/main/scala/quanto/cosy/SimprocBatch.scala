@@ -5,6 +5,7 @@ import java.util.Calendar
 import quanto.data._
 import quanto.data.Names._
 import quanto.gui.QuantoDerive
+import quanto.gui.BatchDerivationCreatorPanel
 import quanto.rewrite.Simproc
 import quanto.util.{FileHelper, UserOptions}
 import quanto.util.json.{JsonArray, JsonObject}
@@ -100,7 +101,7 @@ object SimprocBatch extends Publisher {
   def runSimprocGetTimings(simprocName: String, graph: Graph): (Derivation, List[(String, Double)]) = {
     val simproc = simprocFromName(simprocName)
     val startTime: Long = now
-
+    val jobIDAtStart = BatchDerivationCreatorPanel.jobID
     def timeElapsed = now - startTime
 
     var timings: List[(String, Double)] = List()
@@ -108,7 +109,8 @@ object SimprocBatch extends Publisher {
     var parentOpt: Option[DSName] = None
     for ((graph, rule) <- simproc.simp(graph)) {
       // Stop if taking too long
-      if (timeElapsed < timeout) {
+      // Stop if the user has incremented the jobID (indicating they want the job to halt)
+      if (timeElapsed < timeout || BatchDerivationCreatorPanel.jobID > jobIDAtStart) {
         val suggest = rule.name.replaceFirst("^.*\\/", "") + "-0"
         val step = DStep(
           name = derivation.steps.freshWithSuggestion(DSName(suggest)),
@@ -127,8 +129,9 @@ object SimprocBatch extends Publisher {
   listenTo(this)
   reactions += {
     case SimprocBatchRunComplete(result) =>
-      val fileName = UserOptions.preferredTimeFormat.format(Calendar.getInstance().getTime) + ".qsbr"
-      FileHelper.printJson("batch_results/" + fileName, result.toJson)
+      val fileName = UserOptions.preferredDateTimeFormat.format(Calendar.getInstance().getTime) + ".qsbr"
+      val projectRoot = QuantoDerive.CurrentProject.map(p => p.rootFolder + "/").getOrElse("")
+      FileHelper.printJson(projectRoot + "batch_results/" + fileName, result.toJson)
   }
 
   implicit def simprocFromName(name: String): Simproc = {

@@ -39,7 +39,7 @@ class AddRuleDialog(project: Project) extends Dialog {
 
 
   val MainPanel = new BoxPanel(Orientation.Vertical) {
-    val FList = new FilteredList(project.rules.toList)
+    val FList = new FilteredList(project.filesEndingIn(".qrule"))
     contents += FList
     def selection : List[String] = FList.ListComponent.selection.items.toList
     val radIncludeForwards = new RadioButton("Forwards")

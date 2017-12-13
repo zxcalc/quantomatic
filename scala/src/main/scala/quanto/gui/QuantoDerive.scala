@@ -712,6 +712,28 @@ object QuantoDerive extends SimpleSwingApplication {
         case _ => // no project and/or derivation open, do nothing
       }
     }
+
+
+    val BatchDerivationAction = new Action("Batch Derivation") {
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.B
+      }
+
+      def apply() {
+        CurrentProject.foreach { project =>
+          val page = MainDocumentTabs.documents.find(tp => tp.title == "Batch Derivation") match {
+            case Some(p) => p
+            case None =>
+              val p = new BatchDerivationPage()
+              listenTo(p.document)
+              p.title = "Batch Derivation"
+              addAndFocusPage(p)
+              p
+          }
+          MainDocumentTabs.focus(page)
+        }
+      }
+    }
   }
 
   val WindowMenu = new Menu("Window") { menu =>
@@ -848,12 +870,14 @@ object QuantoDerive extends SimpleSwingApplication {
       FileMenu.SaveAction.enabled = false
       FileMenu.SaveAsAction.enabled = false
       FileMenu.SaveAllAction.enabled = false
+      FileMenu.EditTheoryAction.enabled = CurrentProject.nonEmpty
       EditMenu.CutAction.enabled = false
       EditMenu.CopyAction.enabled = false
       EditMenu.PasteAction.enabled = false
       EditMenu.SnapToGridAction.enabled = false
       DeriveMenu.StartDerivation.enabled = false
       DeriveMenu.LayoutDerivation.enabled = false
+      DeriveMenu.BatchDerivationAction.enabled = CurrentProject.nonEmpty
       WindowMenu.CloseAction.enabled = false
       ExportMenu.ExportAction.enabled = false
 

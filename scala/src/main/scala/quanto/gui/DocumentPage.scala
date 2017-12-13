@@ -56,3 +56,8 @@ class TheoryPage
   extends  DocumentPage(new TheoryEditPanel) {
   val documentType = "Theory Editor"
 }
+
+class BatchDerivationPage
+  extends DocumentPage(new BatchDerivationCreatorPanel) {
+  val documentType = "Batch Derivation"
+}

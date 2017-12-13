@@ -7,21 +7,21 @@ import java.io.File
 class ProjectLoadException(message: String, cause: Throwable) extends Exception(message, cause)
 
 case class Project(theory: Theory, rootFolder: String, name : String) {
-  def rules: Vector[String] = rulesInPath(rootFolder)
   var simprocs: Map[String, Simproc] = Map()
 
   def relativePath(f: File) : String = {
     new File(rootFolder).toURI.relativize(f.toURI).getPath
   }
 
-  private def rulesInPath(p: String): Vector[String] = {
-    val f = new File(p)
-    if (f.isDirectory) f.listFiles().toVector.flatMap(f => rulesInPath(f.getPath))
-    else if (f.getPath.endsWith(".qrule")) {
-      val fname = f.getPath
-      Vector(fname.substring(rootFolder.length + 1, fname.length - 6))
+  //Scans the given folder for filenames that end in the given extension
+  def filesEndingIn(ext: String, path: String = rootFolder): List[String] = {
+    val f = new File(path)
+    if (f.isDirectory) f.listFiles().toList.flatMap(f => filesEndingIn(ext, f.getPath))
+    else if (f.getPath.endsWith(ext)) {
+      val fileName = relativePath(f)
+      List(fileName.substring(0, fileName.length - ext.length))
     }
-    else Vector()
+    else List()
   }
 }
 
