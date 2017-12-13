@@ -2,7 +2,7 @@ package quanto.util
 
 import java.io.File
 
-import quanto.util.json.Json
+import quanto.util.json.{Json, JsonObject}
 
 import scala.util.matching.Regex
 
@@ -22,6 +22,10 @@ object FileHelper {
     } finally {
       p.close()
     }
+  }
+
+  def printJson(fileName : String, json: Json) : Unit = {
+    json.writeTo(new File(fileName))
   }
 
   def readFile[T](file: File, conversion: Json => T): T = conversion(Json.parse(file))

@@ -209,3 +209,35 @@ STEP ::=
 }
 
 
+
+========================
+Simproc Batch Run
+========================
+
+File extension: .qsbr
+
+A simproc batch run takes a collection of simprocs and applies them to a list of graphs. The resulting derivations are then recorded and timestamped.
+
+SIMPROC_BATCH_RUN ::=
+{
+  "python": {SIMPROC_NAME: PYTHON_STRING (, SIMPROC_NAME: PYTHON_STRING)*},
+  "results": {DERIVATION_WITH_TIMINGS (, DERIVATION_WITH_TIMINGS)*}
+}
+
+DERIVATION_WITH_TIMINGS ::=
+{
+  "simproc" : STRING,
+  "derivation": DERIVATION,
+  "timings": {STEP_TIME(, STEP_TIME)*}
+}
+
+STEP_TIME ::=
+{
+  "step": STEP_NAME,
+  "time": TIMESTAMP
+}
+
+TIMESTAMP : NUMBER = time in seconds since process began
+
+
+
