@@ -169,4 +169,18 @@ class BlockEnumerationSpec extends FlatSpec {
     tp.foreach(x => println("---- \n " + x.toString + "\n" + x.tensor))
     assert(tp.length == 4)
   }
+
+  behavior of "ZX Clifford"
+
+  it should "Find CZ gate" in {
+    var BSRow = BlockRowMaker(2, BlockRowMaker.ZXClifford, Option(2))
+    var BSStacks = BlockStackMaker(3, BSRow)
+    var tp = BSStacks.
+      filter(x=> x.tensor.isSameShapeAs(Tensor.idWires(2))).
+      filter(x => x.tensor.isRoughlyUpToScalar(
+        Tensor(Array(Array(1, 0, 0, 0), Array(0, 1, 0, 0), Array(0, 0, 1, 0), Array(0, 0, 0, -1))))
+      )
+    tp.foreach(x => println("---- \n " + x.toString + "\n" + x.tensor))
+    assert(tp.nonEmpty)
+  }
 }

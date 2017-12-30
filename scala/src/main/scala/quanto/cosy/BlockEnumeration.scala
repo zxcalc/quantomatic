@@ -97,6 +97,15 @@ object BlockRowMaker {
     }
   }
 
+  val ZXClifford: List[Block] = List(
+    Block(1, 1, " 1 ", Tensor.idWires(1)),
+    Block(2, 2, " s ", Tensor.swap(List(1, 0))),
+    Block(1, 1, " H ", Hadamard(2)),
+    //Block(1, 1, "gp2", Tensor(Array(Array[Complex](1, 0), Array[Complex](0, Complex(0, 1))))),
+    Block(2, 2, "CNT", Tensor(Array(Array(1, 0, 0, 0), Array(0, 1, 0, 0), Array(0, 0, 0, 1), Array(0, 0, 1, 0)))) //,
+    //Block(2, 2, "GRN", Tensor(Array(Array(1, 0, 0, 0), Array(0, 0, 0, 0), Array(0, 0, 0, 0), Array(0, 0, 0, 1))))
+  )
+
   val BellTeleportation: List[Block] = List(
     Block(List(0), List(0), " A ", Tensor.id(2)),
     Block(List(-1), List(-1), " B ", Tensor.id(2)),
