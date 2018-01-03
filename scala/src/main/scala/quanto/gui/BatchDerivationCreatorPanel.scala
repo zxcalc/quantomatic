@@ -1,9 +1,13 @@
 package quanto.gui
 
+import java.awt.BorderLayout
+import java.awt.event.{KeyAdapter, KeyEvent}
 import java.io.File
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
+import org.gjt.sp.jedit.{Mode, Registers}
+import org.gjt.sp.jedit.textarea.StandaloneTextArea
 import quanto.rewrite.Simproc
 import quanto.util.UserOptions.scaleInt
 import quanto.util.swing.ToolBar
@@ -11,9 +15,9 @@ import quanto.data.Graph
 
 import scala.swing.event.{ButtonClicked, Event, SelectionChanged}
 import quanto.cosy.SimprocBatch
-import quanto.util.FileHelper
+import quanto.util.{FileHelper, UserOptions}
 
-import scala.swing.{BorderPanel, BoxPanel, Button, Component, Dimension, GridPanel, Label, Orientation, Publisher, ScrollPane, Swing}
+import scala.swing.{BorderPanel, BoxPanel, Button, Component, Dimension, GridPanel, Label, Orientation, Publisher, ScrollPane, Swing, TextArea}
 
 case class HaltBatchProcessesEvent() extends Event
 
@@ -23,28 +27,18 @@ class BatchDerivationCreatorPanel extends BorderPanel with HasDocument with Publ
   val Toolbar = new ToolBar {
     //contents
   }
-  var SimprocList = new FilteredList(simprocs.keys.toList)
-  val SimprocChooser: BoxPanel = new BoxPanel(Orientation.Vertical) {
-    contents += header("Simprocs to include:")
-    contents += VSpace
-    contents += SimprocList
-  }
-
   val GraphList = new FilteredList(graphs)
-  val GraphChooser: Component = new BoxPanel(Orientation.Vertical) {
-
-    contents += header("Graphs to include:")
-    contents += VSpace
-    contents += GraphList
-  }
-
-
   val LabelNumSimprocs = new Label()
   val LabelNumGraphs = new Label()
   val LabelNumPairs = new Label()
   val LabelTimeLimit = new Label()
+  val NotesTextBox: TextEditor = new TextEditor(TextEditor.Modes.blank)
 
+
+  val StartButton = new Button("Start")
+  val HaltButton = new Button("Halt ongoing")
   val BatchDetails: BoxPanel = new BoxPanel(Orientation.Vertical) {
+    contents += VSpace
     contents += new GridPanel(4, 2) {
 
       contents += new Label("Simprocs:")
@@ -59,18 +53,53 @@ class BatchDerivationCreatorPanel extends BorderPanel with HasDocument with Publ
       maximumSize = new Dimension(scaleInt(200), scaleInt(400))
     }
   }
-  val StartButton = new Button("Start")
-  val HaltButton = new Button("Halt ongoing")
+  val GraphChooser: Component = new BoxPanel(Orientation.Vertical) {
+
+    contents += VSpace
+    contents += header("Graphs to include:")
+    contents += VSpace
+    contents += GraphList
+  }
   val IgnitionButtons: BoxPanel = new BoxPanel(Orientation.Horizontal) {
     contents += (HSpace, StartButton, HSpace, HaltButton, HSpace)
   }
-  val MainPanel: BoxPanel = new BoxPanel(Orientation.Vertical) {
+  val NotesHolder : BoxPanel = new BoxPanel(Orientation.Vertical) {
+    contents += VSpace
+    contents += new Label("Notes:")
+    contents += VSpace
+    contents += NotesTextBox.Component
+    NotesTextBox.Component.maximumSize = new Dimension(scaleInt(600), scaleInt(300))
+  }
+  def MainPanel: BoxPanel = new BoxPanel(Orientation.Vertical) {
     contents += SimprocChooser
     contents += GraphChooser
+    contents += NotesHolder
     contents += BatchDetails
+
+    contents += VSpace
     contents += IgnitionButtons
+    contents += VSpace
   }
-  val TopScrollablePane = new ScrollPane(MainPanel)
+  //SimprocList is a var not a val, because it can then be destroyed and recreated when the simprocs in memory change
+  var SimprocList = new FilteredList(simprocs.keys.toList)
+
+  def SimprocChooser: BoxPanel = new BoxPanel(Orientation.Vertical) {
+    // Made def not val because it references the var SimprocList
+    contents += VSpace
+    contents += header("Simprocs to include:")
+    contents += VSpace
+    contents += SimprocList
+  }
+
+  def header(title: String): BoxPanel = new BoxPanel(Orientation.Horizontal) {
+    contents += (HSpace, new Label(title), HSpace)
+  }
+
+  private def HSpace: Component = Swing.HStrut(scaleInt(10))
+
+  private def VSpace: Component = Swing.VStrut(scaleInt(10))
+
+  def TopScrollablePane = new ScrollPane(MainPanel)
 
   def simprocs: Map[String, Simproc] = QuantoDerive.CurrentProject.map(p => p.simprocs).getOrElse(Map())
 
@@ -82,15 +111,20 @@ class BatchDerivationCreatorPanel extends BorderPanel with HasDocument with Publ
     FileHelper.readFile[Graph](new File(root + "/" + name + ".qgraph"), json => Graph.fromJson(json, theory))
   }
 
-  def header(title: String): BoxPanel = new BoxPanel(Orientation.Horizontal) {
-    contents += (HSpace, new Label(title), HSpace)
+  def refreshDataDisplay() {
+    def numSimprocs: Int = simprocSelection.size
+
+    def numGraphs: Int = graphSelection.size
+
+    LabelNumSimprocs.text = numSimprocs.toString
+    LabelNumGraphs.text = numGraphs.toString
+    LabelNumPairs.text = (numGraphs * numSimprocs).toString
+    val totalMilliseconds = numSimprocs * numGraphs * SimprocBatch.timeout
+    LabelTimeLimit.text = s"${TimeUnit.MILLISECONDS.toHours(totalMilliseconds)} hrs ${
+      TimeUnit.MILLISECONDS.toMinutes(totalMilliseconds) -
+        TimeUnit.MINUTES.toMinutes(TimeUnit.MILLISECONDS.toHours(totalMilliseconds))
+    } mins"
   }
-
-  private def HSpace: Component = Swing.HStrut(scaleInt(10))
-
-  def simprocSelection: List[String] = SimprocList.ListComponent.selection.items.toList
-
-  def graphSelection: List[String] = GraphList.ListComponent.selection.items.toList
 
   listenTo(this,
     StartButton,
@@ -108,29 +142,21 @@ class BatchDerivationCreatorPanel extends BorderPanel with HasDocument with Publ
     case ButtonClicked(HaltButton) =>
       BatchDerivationCreatorPanel.jobID += 1
     case ButtonClicked(StartButton) =>
-      val batch = SimprocBatch(simprocSelection, graphSelection.map(name => loadGraph(name)))
+      val batch = SimprocBatch(simprocSelection, graphSelection.map(name => loadGraph(name)), NotesTextBox.getText)
       batch.run()
     case SelectionChanged(_) =>
-      def numSimprocs: Int = simprocSelection.count(_ => true)
-
-      def numGraphs: Int = graphSelection.count(_ => true)
-
-      LabelNumSimprocs.text = numSimprocs.toString
-      LabelNumGraphs.text = numGraphs.toString
-      LabelNumPairs.text = (numGraphs * numSimprocs).toString
-      val totalMilliseconds = numSimprocs * numGraphs * SimprocBatch.timeout
-      LabelTimeLimit.text = s"${TimeUnit.MILLISECONDS.toHours(totalMilliseconds)} hrs ${
-        TimeUnit.MILLISECONDS.toMinutes(totalMilliseconds) -
-          TimeUnit.MINUTES.toMinutes(TimeUnit.MILLISECONDS.toHours(totalMilliseconds))
-      } mins"
-
+      refreshDataDisplay()
   }
 
-  private def VSpace: Component = Swing.VStrut(scaleInt(10))
+  def simprocSelection: List[String] = SimprocList.ListComponent.selection.items.toList
+
+  def graphSelection: List[String] = GraphList.ListComponent.selection.items.toList
 
   add(TopScrollablePane, BorderPanel.Position.Center)
 
   add(Toolbar, BorderPanel.Position.North)
+
+  refreshDataDisplay()
 
 }
 
