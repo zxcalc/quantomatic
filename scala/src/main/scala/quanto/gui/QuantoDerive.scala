@@ -117,7 +117,7 @@ object QuantoDerive extends SimpleSwingApplication {
   val ProjectFileTree = new FileTree
   ProjectFileTree.preferredSize = new Dimension(250,360)
   ProjectFileTree.filenameFilter = Some(new FilenameFilter {
-    val extns = Set("qgraph", "qrule", "qderive", "ML", "py")
+    val extns = Set("qgraph", "qrule", "qderive", "ML", "py", "qsbr")
     def accept(parent: File, name: String) = {
       val extn = name.lastIndexOf('.') match {
         case i if i > 0 => name.substring(i+1) ; case _ => ""}
@@ -842,6 +842,7 @@ object QuantoDerive extends SimpleSwingApplication {
                 case "qderive" => Some(new DerivationDocumentPage(project))
                 case "py"      => Some(new PythonDocumentPage)
                 case "ML"      => Some(new MLDocumentPage)
+                case "qsbr"      => Some(new BatchDerivationResultsPage)
                 case _         => None
               }
 

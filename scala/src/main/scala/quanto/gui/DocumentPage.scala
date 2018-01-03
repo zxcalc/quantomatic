@@ -61,3 +61,8 @@ class BatchDerivationPage
   extends DocumentPage(new BatchDerivationCreatorPanel) {
   val documentType = "Batch Derivation"
 }
+
+class BatchDerivationResultsPage
+  extends DocumentPage(new BatchDerivationResultsPanel) {
+  val documentType = "Batch Derivation Results"
+}

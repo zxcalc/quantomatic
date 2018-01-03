@@ -83,7 +83,7 @@ class BatchDerivationCreatorPanel extends BorderPanel with HasDocument with Publ
   //SimprocList is a var not a val, because it can then be destroyed and recreated when the simprocs in memory change
   var SimprocList = new FilteredList(simprocs.keys.toList)
 
-  def SimprocChooser: BoxPanel = new BoxPanel(Orientation.Vertical) {
+  val SimprocChooser: BoxPanel = new BoxPanel(Orientation.Vertical) {
     // Made def not val because it references the var SimprocList
     contents += VSpace
     contents += header("Simprocs to include:")
@@ -139,6 +139,8 @@ class BatchDerivationCreatorPanel extends BorderPanel with HasDocument with Publ
       SimprocChooser.contents -= SimprocList
       SimprocList = new FilteredList(simprocs.keys.toList)
       SimprocChooser.contents += SimprocList
+      refreshDataDisplay()
+      listenTo(SimprocList.ListComponent.selection)
     case ButtonClicked(HaltButton) =>
       BatchDerivationCreatorPanel.jobID += 1
     case ButtonClicked(StartButton) =>
