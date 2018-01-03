@@ -24,15 +24,7 @@ case class SimprocsUpdated() extends Event
 class PythonEditPanel extends BorderPanel with HasDocument {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
-  val pyMode = new Mode("Python")
-
-  //val modeXml =
-  //  if (Globals.isBundle) new File("python.xml").getAbsolutePath
-  //  else getClass.getResource("python.xml").getPath
-  pyMode.setProperty("file", QuantoDerive.pythonModeFile)
-  //println(sml.getProperty("file"))
-
-  val code: StandaloneTextArea = StandaloneTextArea.createTextArea()
+  val CodeArea : TextEditor = new TextEditor(TextEditor.Modes.python)
 
   // Inject python to expose some relevant variables
   def documentName: String = document.file.map(
@@ -41,34 +33,13 @@ class PythonEditPanel extends BorderPanel with HasDocument {
   ).getOrElse("Unsaved File")
 
   // Now run the python along with the header
-  def codeWithHeader : String = PythonManipulation.addHeader(code.getBuffer.getText, documentName)
+  def codeWithHeader : String = PythonManipulation.addHeader(CodeArea.getText, documentName)
 
-  code.setFont(UserOptions.font)
+  val document = new CodeDocument("Python Script", "py", this, CodeArea.TextArea)
 
-  val buf = new JEditBuffer1
-  buf.setMode(pyMode)
 
   var execThread : Thread = null
-
-  code.setBuffer(buf)
-
-  code.addKeyListener(new KeyAdapter {
-    override def keyPressed(e: KeyEvent) {
-      if (e.getModifiers == CommandMask) e.getKeyChar match {
-        case 'x' => Registers.cut(code, '$')
-        case 'c' => Registers.copy(code, '$')
-        case 'v' => Registers.paste(code, '$')
-        case _ =>
-      }
-    }
-  })
-
-  val document = new CodeDocument("Python Script", "py", this, code)
-
-
-  val textPanel = new BorderPanel {
-    peer.add(code, BorderLayout.CENTER)
-  }
+  val textPanel = CodeArea.Component
 
   val RunButton = new Button() {
     icon = new ImageIcon(GraphEditor.getClass.getResource("start.png"), "Run scala code")

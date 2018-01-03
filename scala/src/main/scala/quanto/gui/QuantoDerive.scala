@@ -41,16 +41,6 @@ object QuantoDerive extends SimpleSwingApplication {
   //val core = actorSystem.actorOf(Props { new Core }, "core")
   implicit val timeout = Timeout(1.day)
 
-  // copy python mode xml into a temp file, as jEdit component can't handle JAR resources
-  lazy val pythonModeFile = {
-    val f = File.createTempFile("python", "xml")
-    f.deleteOnExit()
-    val pr = new PrintWriter(f)
-    Source.fromInputStream(getClass.getResourceAsStream("python.xml")).foreach(pr.print)
-    pr.close()
-    f.getCanonicalPath
-  }
-
   // pre-initialise jython, so its zippy when the user clicks "run" in a script
   new Thread(new Runnable { def run() { new PythonInterpreter() }}).start()
 
