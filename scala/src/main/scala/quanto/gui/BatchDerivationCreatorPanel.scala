@@ -21,6 +21,10 @@ import scala.swing.{BorderPanel, BoxPanel, Button, Component, Dimension, GridPan
 
 case class HaltBatchProcessesEvent() extends Event
 
+//
+// This panel will create batch jobs
+// The corresponding document for HasDocument is essentially empty
+
 class BatchDerivationCreatorPanel extends BorderPanel with HasDocument with Publisher {
   val document = new BatchDerivationCreationDocument(this)
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask

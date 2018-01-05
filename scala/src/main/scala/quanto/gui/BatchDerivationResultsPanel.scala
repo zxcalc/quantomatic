@@ -15,6 +15,10 @@ import quanto.util.FileHelper
 
 import scala.swing.{BorderPanel, BoxPanel, Button, Component, Dimension, GridPanel, Label, Orientation, Publisher, ScrollPane, Swing}
 
+// The document this panel displays has two ways to access the file:
+// A lazy read, used on first pass, that just loads metadata
+// A full read that loads everything into memory
+
 class BatchDerivationResultsPanel()
   extends BorderPanel with HasDocument with Publisher {
 

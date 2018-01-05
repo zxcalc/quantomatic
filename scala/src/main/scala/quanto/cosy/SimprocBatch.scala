@@ -19,6 +19,7 @@ import scala.swing.event.Event
 
 
 // Each simproc, graph pair generates a SimprocSingleRun result
+// The result holds the name of the simproc, the generated derivation, and the timings for each step
 case class SimprocSingleRun(simprocName: String, derivation: Derivation, derivationTimings: List[(String, Double)])
 
 object SimprocSingleRun {
@@ -71,6 +72,8 @@ case class SimprocBatchResult(selectedSimprocs: List[String],
   }
 }
 
+// This class contains just the metadata for the run
+// It is used when loading the results file when you don't want everything to be pulled from the json
 case class SimprocLazyBatchResult(notes: String, selectedSimprocs: List[String], resultCount: Int)
 
 object SimprocBatchResult {
@@ -80,7 +83,7 @@ object SimprocBatchResult {
       mapValues(_.map { case SimprocSingleRun(a, b, c) => (b, c) })
   }
 
-
+  // Import everything into memory
   def fromJson(json: Json): SimprocBatchResult = {
     val notes: String = (json / "notes").stringValue
     val selectedSimprocs: List[String] = (json / "selected_simprocs").asArray.map(a => a.stringValue).toList
@@ -89,6 +92,7 @@ object SimprocBatchResult {
     SimprocBatchResult(selectedSimprocs, allSimprocs, results, notes)
   }
 
+  // Just import the metadata into memory
   def lazyFromJson(json: Json): SimprocLazyBatchResult = {
     val notes: String = (json / "notes").stringValue
     val selectedSimprocs: List[String] = (json / "selected_simprocs").asArray.map(a => a.stringValue).toList
@@ -99,6 +103,8 @@ object SimprocBatchResult {
 
 
 // Set up the run as a SimprocBatch
+// This contains all the user supplied information
+// Then pulls loaded simprocs etc. from the project
 case class SimprocBatch(selectedSimprocs: List[String], selectedGraphs: List[Graph], notes: String) {
   def run(): Unit = {
 

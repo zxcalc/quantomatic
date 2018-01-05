@@ -8,7 +8,9 @@ import quanto.util.json.Json
 
 import scala.swing.{Component, Publisher}
 
-// this is necessarily boring - used to interface correctly with the tabbed GUI
+//
+// This file is intentionally bare because this panel will spawn jobs, rather than display files
+//
 class BatchDerivationCreationDocument(val parent: Component) extends Document with Publisher {
   val description = "Batch Derivation"
   val fileExtension = ""
