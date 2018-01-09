@@ -36,6 +36,7 @@ import quanto.util.{Globals, UserAlerts, UserOptions, WebHelper}
 
 
 object QuantoDerive extends SimpleSwingApplication {
+  System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
   val actorSystem = ActorSystem("QuantoDerive")
   //val core = actorSystem.actorOf(Props { new Core }, "core")
@@ -273,7 +274,8 @@ object QuantoDerive extends SimpleSwingApplication {
   }
 
   def quitQuanto(): Boolean = {
-    if (closeAllDocuments()) {
+    val close = closeAllDocuments()
+    if (close) {
       try {
         //core ! StopCore
         //core ! PoisonPill
