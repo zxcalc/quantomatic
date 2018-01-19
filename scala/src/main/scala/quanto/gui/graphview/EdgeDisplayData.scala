@@ -125,7 +125,7 @@ trait EdgeDisplayData { self: GraphView with VertexDisplayData =>
           }
 
           val labelDisplay = edgeData.typeInfo.value.typ match {
-            case Theory.ValueType.String =>
+            case Vector(Theory.ValueType.String) =>
               val fm = peer.getGraphics.getFontMetrics(GraphView.EdgeLabelFont)
               val text = edgeData.label
               if (text == "") None

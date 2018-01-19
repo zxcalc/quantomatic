@@ -68,7 +68,7 @@ class EQCAnalysisSpec extends FlatSpec {
     assert(!adjacencyMatrix._2(bIndex)(vIndex))
 
 
-    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectErrors)(targetGraph, adjacencyMatrix)
+    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectPiNodes)(targetGraph, adjacencyMatrix)
     assert(ghostedErrors._2(bIndex)(eIndex))
     assert(ghostedErrors._2(bIndex)(vIndex))
   }

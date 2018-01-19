@@ -9,13 +9,13 @@ class TheorySpec extends FlatSpec {
   behavior of "A theory"
 
   val rgValueDesc = Theory.ValueDesc(
-    typ = Theory.ValueType.String,
+    typ = Vector(Theory.ValueType.String),
     latexConstants = true,
     validateWithCore = true
   )
 
   val hValueDesc = Theory.ValueDesc(
-    typ = Theory.ValueType.Empty,
+    typ = Vector(Theory.ValueType.Empty),
     latexConstants = false,
     validateWithCore = false
   )
@@ -164,6 +164,9 @@ class TheorySpec extends FlatSpec {
   }
 
   it should "load from JSON" in {
-    assert(Theory.fromJson(thyJson) === thy)
+    var loaded : Theory = Theory.fromJson(thyJson)
+    assert(loaded.vertexTypes === thy.vertexTypes)
+    print(loaded.vertexTypes)
+    assert(loaded === thy)
   }
 }

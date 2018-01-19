@@ -40,7 +40,7 @@ class GraphAnalysisSpec extends FlatSpec {
     assert(!adjacencyMatrix._2(bIndex)(vIndex))
 
 
-    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectErrors)(targetGraph, adjacencyMatrix)
+    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectPiNodes)(targetGraph, adjacencyMatrix)
     assert(ghostedErrors._2(bIndex)(eIndex))
     assert(ghostedErrors._2(bIndex)(vIndex))
   }
@@ -92,7 +92,7 @@ class GraphAnalysisSpec extends FlatSpec {
       Graph.fromJson(_, rg)
     )
     val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(targetGraph)
-    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectErrors)(targetGraph, adjacencyMatrix)
+    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectPiNodes)(targetGraph, adjacencyMatrix)
 
     val errorName = VName("v2")
     val leftBoundary = VName("b2")

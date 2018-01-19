@@ -1,21 +1,22 @@
 package quanto.rewrite
+import quanto.data.Theory.ValueType
 import quanto.data._
 
 import scala.annotation.tailrec
 
 case class MatchState(
-                       m: Match,                                        // the match being built
-                       tVerts: Set[VName],                              // restriction of the range of the match
-                       angleMatcher: AngleExpressionMatcher,            // state of matched angle data
-                       pNodes: Set[VName] = Set(),                      // nodes with partially-mapped neighbourhood
-                       psNodes: Set[VName] = Set(),                     // same, but scheduled for completion
-                       sBBox: Option[BBName] = None,                    // a bbox scheduled for matching
-                       candidateNodes: Option[Set[VName]] = None,       // nodes to try matching in the target
-                       candidateEdges: Option[Set[EName]] = None,       // edges to try matching in the target
+                       m: Match, // the match being built
+                       tVerts: Set[VName], // restriction of the range of the match
+                       expressionMatcher: CompositeExpressionMatcher, // state of matched angle data
+                       pNodes: Set[VName] = Set(), // nodes with partially-mapped neighbourhood
+                       psNodes: Set[VName] = Set(), // same, but scheduled for completion
+                       sBBox: Option[BBName] = None, // a bbox scheduled for matching
+                       candidateNodes: Option[Set[VName]] = None, // nodes to try matching in the target
+                       candidateEdges: Option[Set[EName]] = None, // edges to try matching in the target
                        candidateWires: Option[Set[(VName,Int)]] = None, // wire-vertices to try matching bare wires on
-                       candidateBBoxes: Option[Set[BBName]] = None,     // bboxes to try matching in the target
-                       bboxOrbits: PFun[VName, VName] = PFun(),         // for smashing redundant matches
-                       nextState: Option[MatchState] = None             // next state to try after search terminates
+                       candidateBBoxes: Option[Set[BBName]] = None, // bboxes to try matching in the target
+                       bboxOrbits: PFun[VName, VName] = PFun(), // for smashing redundant matches
+                       nextState: Option[MatchState] = None // next state to try after search terminates
                      ) {
 
   val uVerts: Set[VName]          = m.pattern.verts.filter(v => bboxesMatched(v) && !m.map.v.domSet.contains(v))
@@ -236,7 +237,7 @@ case class MatchState(
     } else {
       if (pNodes.isEmpty && m.isTotal) {
         if (MatchState.countMatches) MatchState.matchCounter += 1
-        val ms = copy(m = m.copy(subst = angleMatcher.toMap))
+        val ms = copy(m = m.copy(subst = expressionMatcher.toMap))
         Some((ms.m, nextState))
       } else {
         nextState match {
@@ -301,15 +302,16 @@ case class MatchState(
       (m.pattern.vdata(np), m.target.vdata(nt)) match {
         case (pd: NodeV, td: NodeV) =>
           if (pd.typ == td.typ) {
-            if (pd.hasAngle)
-              angleMatcher.addMatch(pd.angle, td.angle).map { angleMatcher1 =>
-                copy(
-                  m = m.addVertex(np -> nt),
-                  pNodes = pNodes + np,
-                  psNodes = psNodes + np,
-                  tVerts = tVerts - nt,
-                  angleMatcher = angleMatcher1
-                )
+            if (pd.hasValue)
+              expressionMatcher.addMatch(pd.phaseData, td.phaseData).map {
+                angleMatcher1 =>
+                  copy(
+                    m = m.addVertex(np -> nt),
+                    pNodes = pNodes + np,
+                    psNodes = psNodes + np,
+                    tVerts = tVerts - nt,
+                    expressionMatcher = angleMatcher1
+                  )
               }
             else if (pd.value == td.value)
               Some(copy(

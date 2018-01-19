@@ -3,12 +3,15 @@ package quanto.data.test
 import org.scalatest._
 import quanto.data._
 import quanto.data.Names._
+import quanto.data.Theory.ValueType
 import quanto.util.json._
+
 import scala.collection.immutable.TreeSet
 
 
 class GraphSpec extends FlatSpec with GivenWhenThen {
-  val rg = Theory.fromFile("red_green")
+  val rg : Theory = Theory.fromFile("red_green")
+  val composite_thy : Theory = Theory.fromFile("composite")
   behavior of "A graph"
   
   var g : Graph = _
@@ -70,6 +73,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 
   it should "be equal to its copy" in {
     val g1 = g.copy()
+    assert(g1 != null)
     assert(g1 === g)
   }
 
@@ -314,7 +318,49 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
         |}
       """.stripMargin), thy = rg)
 
-    assert(g.freeVars === Set("x", "y", "z"))
+    assert(g.freeVars === Set(
+      (ValueType.AngleExpr, "x"),
+      (ValueType.AngleExpr, "y"),
+      (ValueType.AngleExpr, "z")))
+  }
+
+  behavior of "A graph with composite values"
+
+  it should "accept a composite-valued graph" in {
+    val g = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z", "value": "x + y, true"}},
+        |    "v1": {"data": {"type": "X", "value": "z + pi, false"}}
+        |  }
+        |}
+      """.stripMargin), thy = composite_thy)
+    var pi_commute = Graph.fromJson(Json.parse(
+      """
+        |{"wire_vertices":{
+        | "b1":{"annotation":{"boundary":true,"coord":[-0.75,2.0]}},
+        | "b0":{"annotation":{"boundary":true,"coord":[-11.5,1.5]}}
+        | },
+        |"node_vertices":{
+        |   "v1":{"data":{"type":"Z","value":"\\pi/4,false"},"annotation":{"coord":[-3.0,0.5]}},
+        |   "v0":{"data":{"type":"Z","value":"\\pi/2,false"},"annotation":{"coord":[-8.5,1.75]}},
+        |   "v2":{"data":{"type":"X","value":"\\pi, \\true"},"annotation":{"coord":[-5.5,2.5]}}},
+        |  "undir_edges":{
+        |   "e0":{"src":"b0","tgt":"v0"},
+        |   "e1":{"src":"v0","tgt":"v2"},
+        |   "e2":{"src":"v2","tgt":"v1"},
+        |   "e3":{"src":"v1","tgt":"b1"}
+        | }
+        |}""".stripMargin
+    ), thy = composite_thy)
+
+  assert(pi_commute.freeVars === Set())
+    assert(pi_commute.vdata("v2").asInstanceOf[NodeV].phaseData ===
+      new CompositeExpression(
+        Vector(ValueType.AngleExpr, ValueType.Boolean),
+        Vector(PhaseExpression(1, Map(), ValueType.AngleExpr), PhaseExpression(1, Map(), ValueType.Boolean)))
+    )
   }
 
 //  it should "support Graph.Flavor clipboard flavor" in {

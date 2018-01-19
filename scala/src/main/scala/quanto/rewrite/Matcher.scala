@@ -1,20 +1,15 @@
 package quanto.rewrite
+
+import quanto.data.Theory.ValueType
 import quanto.data._
 
 import scala.annotation.tailrec
 
 object Matcher {
-  private def matchMain(ms: MatchState): Stream[Match] =
-    ms.nextMatch() match {
-      case Some((m1,Some(next))) => m1 #:: matchMain(next)
-      case Some((m1,None)) => Stream(m1)
-      case None => Stream()
-    }
-
   def initialise(pat: Graph, tgt: Graph, restrictTo: Set[VName]): MatchState = {
     // TODO: new free vars should be fresh w.r.t. vars in target
-    val patVars = pat.freeVars.toVector
-    val tgtVars = tgt.freeVars.toVector
+    val patVars: Vector[(ValueType, String)] = pat.freeVars.toVector
+    val tgtVars: Vector[(ValueType, String)] = tgt.freeVars.toVector
     val patN = pat.normalise
     val tgtN = tgt.normalise
     val restrict0 = restrictTo intersect tgtN.verts
@@ -27,7 +22,7 @@ object Matcher {
     MatchState(
       m = Match(pattern0 = patN, pattern = patN, target = tgtN),
       tVerts = restrict1,
-      angleMatcher = AngleExpressionMatcher(patVars,tgtVars))
+      expressionMatcher = CompositeExpressionMatcher()) // Create the matcher empty, it will fill itself in in time
   }
 
   def findMatches(pat: Graph, tgt: Graph, restrictTo: Set[VName]): Stream[Match] = {
@@ -36,5 +31,12 @@ object Matcher {
 
   def findMatches(pat: Graph, tgt: Graph): Stream[Match] =
     findMatches(pat, tgt, tgt.verts)
+
+  private def matchMain(ms: MatchState): Stream[Match] =
+    ms.nextMatch() match {
+      case Some((m1, Some(next))) => m1 #:: matchMain(next)
+      case Some((m1, None)) => Stream(m1)
+      case None => Stream()
+    }
 
 }

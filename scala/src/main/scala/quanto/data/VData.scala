@@ -74,16 +74,22 @@ case class NodeV(
   }
 
 
-  // if the theory says this node should have an angle, try to parse it from value,
-  // and store it in "angle". If it should have an angle, but parsing fails, set
-  // angle to "0".
-  val (angle: AngleExpression, hasAngle: Boolean) =
-    if (theory.vertexTypes(typ).value.typ == ValueType.AngleExpr)
-     try { (AngleExpression.parse(value), true) }
-     catch { case _: AngleParseException => (AngleExpression(), true) }
-    else (AngleExpression(), false)
+  // if the theory says this node should have a value, try to parse it,
+  // and store it in "phaseData". If it should have a value, but parsing fails, set
+  // it to empty.
+  val (phaseData: CompositeExpression, hasValue: Boolean) =
+  try {
+    val phaseTypes = theory.vertexTypes(typ).value.typ
+    val phaseValues = CompositeExpression.parseKnowingTypes( value, phaseTypes)
+    (CompositeExpression(phaseTypes, phaseValues), true)
+  }
+  catch {
+    // YOU WILL END UP HERE IF THE PARSER WAS HANDED AN UNFAMILIAR VALUETYPE
+    // See uses of PhaseParseException to pinpoint where
+    case _: PhaseParseException => (CompositeExpression(Vector(), Vector()), false)
+  }
 
-    def withCoord(c: (Double,Double)) =
+  def withCoord(c: (Double,Double)) =
       copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
 
     /** Create a copy of the current vertex with the new value */

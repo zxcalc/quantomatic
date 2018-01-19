@@ -1,31 +1,42 @@
 package quanto.data.test
 
 import org.scalatest._
-import quanto.data.BooleanExpression._
-import quanto.data._
+import quanto.data.Theory.ValueType
+import quanto.data.{PhaseParseException, PhaseExpression}
 import quanto.util.Rational
 
 class BooleanExpressionSpec extends FlatSpec {
   behavior of "A boolean expression"
 
-  def testReparse(e : BooleanExpression) {
+  def BooleanExpression(constant: Rational) = PhaseExpression(constant, Map(), ValueType.Boolean)
+
+  def BooleanExpression(constant: Int, coefficients: Map[String, Rational]) =
+    PhaseExpression(constant, coefficients, ValueType.Boolean)
+
+  def BOOL_FALSE = PhaseExpression.zero(ValueType.Boolean)
+
+  def BOOL_TRUE = PhaseExpression.one(ValueType.Boolean)
+
+  def testReparse(e: PhaseExpression) {
     assert(e === parse(e.toString))
   }
-  
-  implicit def singleton(s: String) : Set[String] = Set(s)
+
+  def parse(s: String): PhaseExpression = PhaseExpression.parse(s, ValueType.Boolean)
+
+
+  val a = BooleanExpression(0,Map("a"-> 1))
+  val b = BooleanExpression(0,Map("b"-> 1))
 
   it should "output to string" in {
     assert(BOOL_FALSE.toString == "\\False")
     assert(BOOL_TRUE.toString == "\\True")
-    assert(BooleanExpression(0,"a").toString == "a")
-    assert(BooleanExpression(1,"a").toString == "\\True + a")
-    assert(BooleanExpression(1,Set("a","b")).toString == "\\True + a + b")
-    assert(BooleanExpression(0,Set("a","b")).toString == "a + b")
+    assert(BooleanExpression(0,Map("a"-> 1)).toString == "a")
+    assert(BooleanExpression(1,Map("a"-> 1)).toString == "\\True + a")
+    assert(BooleanExpression(1,Map("a"-> 1, "b"-> 1)).toString == "\\True + a + b")
+    assert(BooleanExpression(0,Map("a"-> 1, "b"-> 1)).toString == "a + b")
   }
 
   it should "compare expressions" in {
-    val a = BooleanExpression(0, "a")
-    val b = BooleanExpression(0, "b")
     assert(BOOL_FALSE === BooleanExpression(0))
     assert(BOOL_TRUE === BooleanExpression(1))
     assert(a + b === b + a)
@@ -35,6 +46,7 @@ class BooleanExpressionSpec extends FlatSpec {
   }
 
   it should "parse '0'" in {
+    assert(BOOL_FALSE.toString == "\\False")
     testReparse(BOOL_FALSE)
     assert(parse("") === BOOL_FALSE)
     assert(parse("0") === BOOL_FALSE)
@@ -53,7 +65,6 @@ class BooleanExpressionSpec extends FlatSpec {
   }
 
   it should "parse 'a'" in {
-    val a = BooleanExpression(0, "a")
     testReparse(a)
     assert(parse("a") === a)
     assert(parse("1*a") === a)
@@ -68,7 +79,7 @@ class BooleanExpressionSpec extends FlatSpec {
   }
 
   it should "parse '-a'" in {
-    val minusA =  BooleanExpression(0, "a") * -1
+    val minusA =  a * -1
     testReparse(minusA)
     assert(parse("-a") === minusA)
     assert(parse("-1*a") === minusA)
@@ -83,8 +94,6 @@ class BooleanExpressionSpec extends FlatSpec {
   }
 
   it should "parse addition and subtraction correctly" in {
-    val a = BooleanExpression(0, "a")
-    val b = BooleanExpression(0, "b")
     testReparse(a + b)
     testReparse(a - b)
     testReparse((a * -1) - b)
@@ -97,8 +106,8 @@ class BooleanExpressionSpec extends FlatSpec {
   }
 
   it should "throw an exception on failed parse" in {
-    intercept[BooleanParseException] { parse("x + ") }
-    intercept[BooleanParseException] { parse("%") }
+    intercept[PhaseParseException] { parse("x + ") }
+    intercept[PhaseParseException] { parse("%") }
   }
 
   it should "do substitutions correctly" in {
@@ -111,5 +120,7 @@ class BooleanExpressionSpec extends FlatSpec {
   it should "evaluate a sum" in {
     val e1 = parse("x + 1")
     assert(e1.evaluate(Map("x" -> 1)) == 0)
+    val e2 = parse("x + y + z")
+    assert(e2.evaluate(Map("x" -> 1, "y" ->1, "z" ->0)) == 0)
   }
 }

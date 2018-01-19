@@ -58,6 +58,9 @@ object Theory {
   object ValueType extends Enumeration with JsonEnumConversions {
     val String = Value("string")
     val AngleExpr = Value("angle_expr")
+    val Boolean = Value("boolean")
+    val Rational = Value("rational")
+    val Integer = Value("integer")
     val LongString = Value("long_string")
     val Enum = Value("enum")
     val Empty = Value("empty")
@@ -90,7 +93,7 @@ object Theory {
   type EdgeLabelPosition = EdgeLabelPosition.Value
 
   case class ValueDesc(
-    typ: ValueType = ValueType.Empty,
+    typ: Vector[ValueType] = Vector(ValueType.Empty),
     enumOptions: Vector[String] = Vector[String](),
     latexConstants: Boolean = false,
     validateWithCore: Boolean = false
@@ -98,7 +101,7 @@ object Theory {
   object ValueDesc {
     implicit def fromJson(json: Json): ValueDesc =
       ValueDesc(
-        typ  = json / "type",
+        typ  = CompositeExpression.parseTypes(json / "type"),
         enumOptions = (json ? "enum_options").vectorValue.map(_.stringValue),
         latexConstants = json.getOrElse("latex_constants", false),
         validateWithCore = json.getOrElse("validate_with_core", false)
@@ -106,7 +109,7 @@ object Theory {
 
     implicit def toJson(v: ValueDesc): JsonObject =
       JsonObject(
-        "type" -> v.typ,
+        "type" -> v.typ.mkString(","),
         "enum_options" -> v.enumOptions,
         "latex_constants" -> v.latexConstants,
         "validate_with_core" -> v.validateWithCore
@@ -267,7 +270,7 @@ object Theory {
   ).noEmpty
 
   val PlainEdgeDesc = EdgeDesc(
-    value = ValueDesc(typ = ValueType.Empty),
+    value = ValueDesc(typ = Vector(ValueType.Empty)),
     style = EdgeStyleDesc(),
     defaultData = JsonObject("type" -> "plain")
   )
@@ -278,7 +281,7 @@ object Theory {
     vertexTypes = Map(
       "string" -> VertexDesc(
         value = ValueDesc(
-          typ = ValueType.String
+          typ = Vector(ValueType.String)
         ),
         style = VertexStyleDesc(
           shape = VertexShape.Rectangle,

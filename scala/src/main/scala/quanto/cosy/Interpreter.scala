@@ -1,5 +1,6 @@
 package quanto.cosy
 
+import quanto.data.Theory.ValueType
 import quanto.data._
 
 /**
@@ -16,6 +17,11 @@ object Interpreter {
     // generates the n-fold tensor products of Hadamard maps
     case 0 => Tensor.id(1)
     case _ => Tensor.hadamard x makeHadamards(n - 1, current)
+  }
+
+  // ASSUME EVERYTHING HAS ANGLE DATA
+  implicit def pullOutAngleData(composite: CompositeExpression) : PhaseExpression = {
+    composite.firstOrError(ValueType.AngleExpr)
   }
 
   def interpretZXSpider(green: Boolean, angle: Double, inputs: Int, outputs: Int): Tensor = {
@@ -128,10 +134,10 @@ object Interpreter {
           try {
             nv.value.toDouble
           } catch {
-            case e: Error => nv.angle.evaluate(Map("pi" -> math.Pi)) * math.Pi
+            case e: Error => nv.phaseData.evaluate(Map("pi" -> math.Pi)) * math.Pi
           }
         } else {
-          nv.angle.evaluate(Map("pi" -> math.Pi)) * math.Pi
+          nv.phaseData.evaluate(Map("pi" -> math.Pi)) * math.Pi
         }
 
         val (colour, nodeType) = adj.vertexColoursAndTypes(v)

@@ -1,4 +1,5 @@
 package quanto.rewrite
+import quanto.data.Theory.ValueType
 import quanto.data._
 
 class MatchException(msg: String) extends Exception(msg)
@@ -9,7 +10,8 @@ case class Match(pattern0: Graph, // the pattern without bbox operations
                  map: GraphMap = GraphMap(),
                  bareWireMap: Map[VName, Vector[VName]] = Map(),
                  bbops: List[BBOp] = List(),
-                 subst: Map[String,AngleExpression] = Map()) {
+                 subst: Map[ValueType, Map[String,PhaseExpression]] = Map() // matching individual phases inside composite phases
+                ) {
 
   def addVertex(vPair: (VName, VName)): Match = {
     copy(map = map addVertex vPair)

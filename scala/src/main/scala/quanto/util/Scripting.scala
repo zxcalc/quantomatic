@@ -134,7 +134,7 @@ object Scripting {
   }
 
   def vertex_angle_is(g: Graph, v: VName, a: String) = g.vdata(v) match {
-    case nv: NodeV => nv.angle == AngleExpression.parse(a)
+    case nv: NodeV => nv.phaseData.values == CompositeExpression.parseKnowingTypes(a, nv.phaseData.valueTypes)
     case _ => false
   }
 

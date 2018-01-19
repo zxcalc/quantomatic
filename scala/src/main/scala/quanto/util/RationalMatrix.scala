@@ -14,7 +14,7 @@ package quanto.util
   * @param constModulo Modulus to apply to the constant or -1 for no modulus.
   */
 
-class RationalMatrix(val mat: Vector[Vector[Rational]], val line : Int, val constModulo : Int = 2) {
+class RationalMatrix(val mat: Vector[Vector[Rational]], val line : Int, val constModulo : Option[Int] = Some(2)) {
   import RationalMatrix._
   def numRows : Int = mat.length
   def numCols : Int = if (mat.isEmpty) 0 else mat(0).length
@@ -107,7 +107,7 @@ class RationalMatrix(val mat: Vector[Vector[Rational]], val line : Int, val cons
   private def normaliseRow(row : Vector[Rational], p : Int) = {
     val r = row(p).inv
     Vector.tabulate(row.length) { i =>
-      if (constModulo != -1 && i == row.length) (row(i) * r) mod constModulo
+      if (constModulo.nonEmpty && i == row.length) (row(i) * r) mod constModulo.get
       else row(i) * r
     }
   }
@@ -119,7 +119,7 @@ class RationalMatrix(val mat: Vector[Vector[Rational]], val line : Int, val cons
     if (!n.isZero) {
       Vector.tabulate(row1.length) { i =>
         val n1 = row1(i) - (n * row2(i))
-        if (constModulo != -1 && i == row1.length) n1 mod constModulo
+        if (constModulo.nonEmpty && i == row1.length) n1 mod constModulo.get
         else n1
       }
     } else {

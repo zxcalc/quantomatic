@@ -1,5 +1,6 @@
 package quanto.cosy
 
+import quanto.data.Theory.ValueType
 import quanto.data._
 import quanto.util.Rational
 
@@ -20,12 +21,12 @@ object GraphAnalysis {
     def namesToIndex(name: VName) = vertexList.indexOf(name)
 
     val targets = ends.map(namesToIndex).toSet
-    val errorNames = detectErrors(graph)
+    val errorNames = detectPiNodes(graph)
 
 
     val errors = errorNames.map(namesToIndex)
     val rawAdjacencyMatrix = adjacencyMatrix(graph)
-    val bypassedAdjacencyMatrix = bypassSpecial(detectErrors)(graph, rawAdjacencyMatrix)
+    val bypassedAdjacencyMatrix = bypassSpecial(detectPiNodes)(graph, rawAdjacencyMatrix)
     pathDistanceSet(bypassedAdjacencyMatrix, errors, targets) match {
       case None => None
       case Some(d) => Some(d-1) //account for errors being over-counted in standard distance
@@ -41,11 +42,11 @@ object GraphAnalysis {
     def namesToIndex(name: VName) = vertexList.indexOf(name)
 
     val targets = ends.map(namesToIndex).toSet
-    val errorNames = detectErrors(graph)
+    val errorNames = detectPiNodes(graph)
 
 
     val errors = errorNames.map(namesToIndex)
-    val bypassedAdjacencyMatrix = bypassSpecial(detectErrors)(graph, adjacencyMatrix)
+    val bypassedAdjacencyMatrix = bypassSpecial(detectPiNodes)(graph, adjacencyMatrix)
     implicit def nameToInt(name: VName): Int = {
       adjacencyMatrix._1.indexOf(name)
     }
@@ -81,10 +82,12 @@ object GraphAnalysis {
     (matrixWithNames._1, bypassedMatrix)
   }
 
-  def detectErrors(graph: Graph): Set[VName] = {
+  def detectPiNodes(graph: Graph): Set[VName] = {
     graph.verts.
       filterNot(name => graph.vdata(name).isBoundary || graph.vdata(name).isWireVertex).
-      filter(name => graph.vdata(name).asInstanceOf[NodeV].angle.equals(AngleExpression(Rational(1))))
+      filter(name => graph.vdata(name).asInstanceOf[NodeV].phaseData.
+        firstOrError(ValueType.AngleExpr).
+        equals(PhaseExpression(Rational(1), ValueType.AngleExpr))) // Pull out those angle expressions with value \pi
   }
 
   def distanceSpecialFromEnds(specials: List[VName])(ends: List[VName])(graph: Graph): Option[Double] = {

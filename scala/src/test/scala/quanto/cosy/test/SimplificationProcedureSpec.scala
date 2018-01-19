@@ -213,7 +213,7 @@ class SimplificationProcedureSpec extends FlatSpec {
         case Success(d) =>
           println("Success")
           println(data.Derivation.derivationHeadPairToGraph(d).vdata)
-          assert(errorsDistance(targets.toSet)(d, GraphAnalysis.detectErrors(d)).get < 1)
+          assert(errorsDistance(targets.toSet)(d, GraphAnalysis.detectPiNodes(d)).get < 1)
         case Failure(_) =>
           assert(false)
       }

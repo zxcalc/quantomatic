@@ -3,6 +3,7 @@ package quanto.rewrite.test
 import quanto.rewrite._
 import quanto.data._
 import org.scalatest._
+import quanto.data.Theory.ValueType
 import quanto.util.json.Json
 
 class MatcherSpec extends FlatSpec {
@@ -189,7 +190,8 @@ class MatcherSpec extends FlatSpec {
       """.stripMargin), thy = rg)
     val matches = Matcher.findMatches(g1, g2)
     assert(matches.size === 1)
-    assert(matches.head.subst === Map("x" -> AngleExpression.parse("(1/2) \\pi")))
+    assert(matches.head.subst(ValueType.AngleExpr).mapValues(_.as(ValueType.AngleExpr)) ===
+      Map("x" -> PhaseExpression.parse("(1/2) \\pi", ValueType.AngleExpr)))
   }
 
   it should "match a graph with one wire on itself" in {

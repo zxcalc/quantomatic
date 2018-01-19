@@ -3,11 +3,15 @@ package quanto.data
 import Names._
 import quanto.cosy.AdjMat
 import quanto.util.json._
+
 import math.sqrt
 import JsonValues._
+
 import collection.mutable.ArrayBuffer
 import quanto.util._
 import java.awt.datatransfer.{DataFlavor, Transferable}
+
+import quanto.data.Theory.ValueType
 
 import scala.annotation.tailrec
 
@@ -127,7 +131,7 @@ case class Graph(
 
   def vars: Set[String] = vdata.values.foldLeft(Set.empty[String]) {
     case (vs, d: NodeV) =>
-      vs ++ d.angle.vars
+      vs ++ d.phaseData.vars
     case (vs,_) => vs
   }
 
@@ -919,8 +923,8 @@ case class Graph(
     case BBKill(bb) => killBBox(bb)._1
   }
 
-  def freeVars: Set[String] = vdata.foldRight(Set[String]()) {
-    case ((_,d: NodeV), s) => s union d.angle.vars
+  def freeVars: Set[(ValueType, String)] = vdata.foldRight(Set[(ValueType, String)]()) {
+    case ((_,d: NodeV), s) => s union d.phaseData.varsWithType
     case (_, s) => s
   }
 
