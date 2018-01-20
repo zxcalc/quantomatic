@@ -48,6 +48,8 @@ public class TexConstants {
 		c.put("Phi", "\u03a6");
 		c.put("Psi", "\u03a8");
 		c.put("Omega", "\u03a9");
+		c.put("True", "\u22A4");
+		c.put("False", "\u22A5");
 
 		constants = c;
 	}
