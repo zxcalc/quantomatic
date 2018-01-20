@@ -50,9 +50,19 @@ case class CompositeExpression(valueTypes: Vector[ValueType], values: Vector[Pha
   // Combine strings of each subvalue
   override def toString: String = {
 
-    val stringValues = values.map(_.toString)
-
-    stringValues.mkString(",")
+    if(values.forall(e => e == PhaseExpression.zero(e.description))) {
+      ""
+    } else {
+      val stringValues = values.zipWithIndex.map(pi => (pi._1.description, pi._2) match {
+        case (ValueType.String, _) =>
+          pi._1.toString // Always render strings directly
+        case (_, 0) => // Always render the first entry directly
+          pi._1.toString
+        case (_, _) => // Put a space before anything else to aid legibiliy
+          " " + pi._1.toString
+      })
+      stringValues.mkString(",")
+    }
   }
 
   def *(r: Rational): CompositeExpression = {

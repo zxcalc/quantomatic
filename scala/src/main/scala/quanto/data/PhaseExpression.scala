@@ -229,6 +229,7 @@ object PhaseExpression {
         }
       }
     }
+    if(phaseExpression == PhaseExpression.zero(ValueType.AngleExpr)) s = "0"
 
     s
   }
