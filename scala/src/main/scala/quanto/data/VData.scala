@@ -154,6 +154,9 @@ case class WireV(
   def isBoundary = annotation.get("boundary") match { case Some(JsonBool(b)) => b; case _ => false }
   def withCoord(c: (Double,Double)) =
     copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
+
+  def makeBoundary(b: Boolean) : WireV =
+    copy(annotation = annotation + ("boundary" -> JsonBool(b)))
 }
 
 /**

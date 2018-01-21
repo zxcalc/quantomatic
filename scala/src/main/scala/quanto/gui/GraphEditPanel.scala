@@ -7,6 +7,7 @@ import swing._
 import swing.event._
 import javax.swing.ImageIcon
 
+import quanto.util.UserAlerts
 import quanto.util.swing.ToolBar
 
 case class MouseStateChanged(m : MouseState) extends Event
@@ -53,7 +54,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
   }
 
   val AddEdgeButton = new ToggleButton() with ToolButton {
-    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Add Edge")
+    icon = new ImageIcon(GraphEditor.getClass.getResource("add-edge.png"), "Add Edge")
     tool = AddEdgeTool()
     tooltip = "Add Edge (E)"
   }
@@ -70,16 +71,39 @@ class GraphEditControls(theory: Theory) extends Publisher {
     tooltip = "Relax graph (R/shift-R)"
   }
 
+
+  val FreehandButton = new ToggleButton() with ToolButton {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Freehand drawing")
+    tool = FreehandTool(None, None)
+    tooltip = "Freehand draw (F)"
+  }
+
+
+
+  val NormaliseButton = new ToggleButton() with ToolButton {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("normalise.png"), "Normalise")
+    tooltip = "Normalise and straighten edges (N)"
+    tool = RequestNormaliseGraph()
+  }
+
   val GraphToolGroup = new ButtonGroup(SelectButton,
     AddVertexButton,
     AddBoundaryButton,
     AddEdgeButton,
-    AddBangBoxButton)
+    AddBangBoxButton,
+    FreehandButton)
 
   def setMouseState(m : MouseState) {
-    val previousTool = GraphToolGroup.selected
+    val previousToolButton = GraphToolGroup.selected
     publish(MouseStateChanged(m))
     m match {
+      case FreehandTool(_,_) =>
+        VertexTypeLabel.enabled = false
+        VertexTypeSelect.enabled = false
+        EdgeTypeLabel.enabled = false
+        EdgeTypeSelect.enabled = false
+        EdgeDirected.enabled = false
+        GraphToolGroup.select(FreehandButton)
       case SelectTool() =>
         VertexTypeLabel.enabled = false
         VertexTypeSelect.enabled = false
@@ -88,7 +112,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
         EdgeDirected.enabled = false
         GraphToolGroup.select(SelectButton)
       case AddVertexTool() =>
-        if(previousTool.nonEmpty && previousTool.get == AddVertexButton){
+        if(previousToolButton.nonEmpty && previousToolButton.get == AddVertexButton){
           //VertexTypeSelect.selection.index = (VertexTypeSelect.selection.index + 1) % vertexOptions.size
         }
         VertexTypeLabel.enabled = true
@@ -98,7 +122,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
         EdgeDirected.enabled = false
         GraphToolGroup.select(AddVertexButton)
       case AddEdgeTool() =>
-        if(previousTool.nonEmpty && previousTool.get == AddEdgeButton){
+        if(previousToolButton.nonEmpty && previousToolButton.get == AddEdgeButton){
           //EdgeTypeSelect.selection.index = (EdgeTypeSelect.selection.index + 1) % edgeOptions.size
         }
         VertexTypeLabel.enabled = false
@@ -131,7 +155,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
       setMouseState(t.tool)
   }
 
-  listenTo(RelaxButton.mouse.clicks)
+  listenTo(RelaxButton.mouse.clicks, NormaliseButton)
 
   reactions += {
     case MousePressed(RelaxButton,_,_,_,_) =>
@@ -140,13 +164,16 @@ class GraphEditControls(theory: Theory) extends Publisher {
     case MouseReleased(RelaxButton,_,_,_,_) =>
       RelaxButton.selected= false
       publish(MouseStateChanged(RelaxToolUp()))
+    case ButtonClicked(NormaliseButton) =>
+      NormaliseButton.selected = false
+      //publish(MouseStateChanged(RequestNormaliseGraph()))
   }
 
   val MainToolBar = new ToolBar {
-    contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton)
+    contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton, FreehandButton)
   }
   MainToolBar.peer.addSeparator()
-  MainToolBar.contents += RelaxButton
+  MainToolBar.contents += (RelaxButton, NormaliseButton)
 
 }
 
@@ -192,6 +219,7 @@ with HasDocument
       graphView.repaint()
     case MouseStateChanged(RelaxToolDown()) => graphEditController.startRelaxGraph(true)
     case MouseStateChanged(RelaxToolUp()) => graphEditController.endRelaxGraph()
+    case MouseStateChanged(RequestNormaliseGraph()) => graphEditController.normaliseGraph()
     case MouseStateChanged(m) =>
       if (graphEditController.rDown) graphEditController.endRelaxGraph()
       graphEditController.mouseState = m

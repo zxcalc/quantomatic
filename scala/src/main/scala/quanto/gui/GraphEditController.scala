@@ -1,6 +1,7 @@
 package quanto.gui
 
 import graphview._
+
 import swing._
 import swing.event._
 import Key.Modifier
@@ -12,8 +13,10 @@ import quanto.layout.constraint._
 import java.awt.event.{ActionEvent, ActionListener}
 import java.awt.datatransfer._
 import java.awt.Toolkit
-import quanto.gui.graphview.{EdgeOverlay,BBoxOverlay}
-import quanto.util.Globals
+import java.util.Calendar
+
+import quanto.gui.graphview.{BBoxOverlay, EdgeOverlay}
+import quanto.util.{Globals, UserAlerts, UserOptions}
 
 case class VertexSelectionChanged(graph: Graph, selectedVerts: Set[VName]) extends GraphEvent
 
@@ -416,6 +419,65 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     }
   }
 
+  def cycleVertexType(vertex: VName, shift: Int = 1, includeWire: Boolean = false): Unit = {
+
+      view.invalidateVertex(vertex)
+      graph.adjacentEdges(vertex).foreach {
+        view.invalidateEdge
+      }
+      val currentData = graph.vdata(vertex)
+      val options = if (includeWire) {
+        theory.vertexTypes.keys.toSeq :+ "<wire>"
+      } else {
+        theory.vertexTypes.keys.toSeq
+      }
+      val current = options.indexOf(currentData.typ)
+
+      val newTyp = options((current + shift + options.length) % options.length)
+      val coords = (currentData.coord._1, currentData.coord._2)
+      graph = graph.updateVData(vertex)(d => {
+        newTyp match {
+          case "<wire>" =>
+            WireV.apply(coords)
+          case _ =>
+            NodeV(theory.vertexTypes(newTyp).defaultData,
+              annotation = d.annotation,
+              theory = theory).withCoord(coords)
+        }
+      }
+      )
+      coerceWiresAndBoundaries()
+      view.repaint()
+  }
+
+  def coerceWiresAndBoundaries(): Unit = {
+    graph = graph.verts.foldLeft(graph) { (g, v) =>
+      view.invalidateVertex(v)
+      graph.adjacentEdges(v).foreach {
+        view.invalidateEdge
+      }
+
+      g.updateVData(v) { d =>
+        if (d.isWireVertex) {
+          d.asInstanceOf[WireV].makeBoundary(
+            graph.adjacentEdges(Set(v)).size == 1
+          )
+        } else d
+      }
+    }
+  }
+
+  def normaliseGraph(): Unit = {
+    view.invalidateGraph(true)
+    graph = graph.normalise
+    view.repaint()
+  }
+
+  def vertexAt(point: Point) : Option[VName] = view.vertexDisplay find {
+    _._2.pointHit(point)
+  } map {
+    _._1
+  }
   view.listenTo(view.mouse.clicks, view.mouse.moves)
   view.reactions += {
     case MousePressed(_, pt, modifiers, clicks, _) =>
@@ -507,7 +569,31 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
               mouseState = box
               view.selectionBox = Some(box.rect)
           }
+        case FreehandTool(pathOption, lastTimeOption) =>
+          def now() : Long = Calendar.getInstance().getTimeInMillis
 
+          val path = pathOption.getOrElse(List[Point]())
+          var newPath = pathOption
+          var newTime = lastTimeOption
+
+          undoStack.start("Freehand draw a path")
+          newPath = Some(List(pt))
+          newTime = Some(now())
+          var vname = graph.verts.freshWithSuggestion(VName("v0"))
+          vertexAt(pt) match {
+            case Some(vertex) => // Already a vertex here, start a path
+              vname = vertex
+            case None => // No vertex here! Create a wire node if enough time and distance have passed
+              val coord = view.trans fromScreen(pt.getX, pt.getY)
+              controlsOpt.foreach { c =>
+                val vertexData = WireV(theory = theory)
+                addVertex(vname, vertexData.withCoord(coord))
+              }
+          }
+          mouseState = FreehandTool(newPath, newTime)
+          view.edgeOverlay = Some(EdgeOverlay(pt, src = vname, tgt = Some(vname)))
+          view.repaint()
+        case RequestNormaliseGraph() =>
         case state => throw new InvalidMouseStateException("MousePressed", state)
       }
 
@@ -518,6 +604,50 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         case AddBoundaryTool() =>   // do nothing
         case AddEdgeTool() =>     // do nothing
         case AddBangBoxTool() =>  // do nothing
+        case FreehandTool(pathOption, lastTimeOption) =>
+          def now() : Long = Calendar.getInstance().getTimeInMillis
+          val path = pathOption.getOrElse(List[Point]())
+          var newPath = pathOption
+          var newTime = lastTimeOption
+          vertexAt(pt) match {
+            case Some(vertex) => // Already a vertex here, do nothing
+
+              val previousVertex = vertexAt(path.head).get
+              view.edgeOverlay = Some(EdgeOverlay(pt, src = previousVertex, tgt = Some(vertex)))
+              view.repaint()
+            case None => // No vertex here! Create a wire node if enough time and distance have passed
+              val timeElapsed : Long = now() - lastTimeOption.getOrElse(now())
+              if(path.nonEmpty) {
+                val previousVertex = vertexAt(path.head).get
+                if(path.head.distance(pt) > UserOptions.scaleInt(80) && timeElapsed > 100) {
+                  newPath = Some(pt :: path)
+                  newTime = Some(now())
+                  mouseState = FreehandTool(newPath, newTime)
+                  controlsOpt.foreach { c =>
+
+                    val coord = view.trans fromScreen(pt.getX, pt.getY)
+                    val vertexData = WireV(theory = theory)
+                    view.computeDisplayData()
+                    val vname = graph.verts.freshWithSuggestion(VName("v0"))
+
+                    addVertex(vname, vertexData.withCoord(coord))
+                    view.computeDisplayData()
+                    val defaultData = if (c.EdgeDirected.selected) DirEdge.fromJson(theory.defaultEdgeData, theory)
+                    else UndirEdge.fromJson(theory.defaultEdgeData, theory)
+                    addEdge(graph.edges.fresh, defaultData, (previousVertex, vname))
+                  }
+                }
+
+                view.edgeOverlay = Some(EdgeOverlay(pt, src = previousVertex, tgt = None))
+                view.repaint()
+
+              } else {
+                // Path is empty
+                // Shouldn't be able to reach here
+                // mouseState = FreehandTool(newPath, newTime)
+              }
+          }
+        case RequestNormaliseGraph() =>
         case SelectionBox(start,_) =>
           val box = SelectionBox(start, pt)
           mouseState = box
@@ -527,7 +657,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
           val box = BangSelectionBox(start, pt)
           mouseState = box
           view.selectionBox = Some(box.rect)
-          view.repaint() 
+          view.repaint()
         case DragVertex(start, prev) =>
           shiftVertsNoRegister(selectedVerts, start, prev, pt)
           view.repaint()
@@ -547,9 +677,76 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
     case MouseReleased(_, pt, modifiers, _, _) =>
       mouseState match {
-        case SelectTool()  =>     // do nothing
-        case AddEdgeTool() =>     // do nothing
-        case AddBangBoxTool () => // do nothing
+        case SelectTool() => // do nothing
+        case AddEdgeTool() => // do nothing
+        case AddBangBoxTool() => // do nothing
+        case FreehandTool(pathOption, lastTimeOption) =>
+          var newPath = List[Point]()
+          var cycleInstead : Option[VName] = None
+          pathOption match {
+            case None => // Haven't started drawing a path
+              vertexAt(pt) match {
+                case Some(vertex) => // No path, but there is a vertex here, so cycle it
+                  cycleInstead = Some(vertex)
+                case None => // No path, and no vertex here, so create one
+
+                  newPath = pt :: newPath
+              }
+            case Some(path) => //started a path already
+              val previousVertex = vertexAt(path.head).get
+              // Only need to add the last edge and create a node if needed
+              vertexAt(pt) match {
+                case Some(vertex) => // There's already a node at the last point
+                  if(vertex != previousVertex) {
+                    controlsOpt.foreach { c =>
+                      val defaultData = if (c.EdgeDirected.selected) DirEdge.fromJson(theory.defaultEdgeData, theory)
+                      else UndirEdge.fromJson(theory.defaultEdgeData, theory)
+                      addEdge(graph.edges.fresh, defaultData, (vertexAt(path.head).get, vertex))
+                    }
+                  } else {
+                    if (path.length == 1) {
+                      cycleInstead = Some(vertex)
+                    }
+                  }
+                case None => // Move the last node, or make a new one
+                  if(path.length > 1) {
+                    shiftVerts(List(previousVertex), path.head, pt)
+                  } else {
+                    controlsOpt.foreach { c =>
+                      val vertexData = WireV(theory = theory)
+                      newPath = pt :: path
+                      val coord = view.trans fromScreen(pt.getX, pt.getY)
+                      val vertex = graph.verts.freshWithSuggestion(VName("v0"))
+                      addVertex(vertex, vertexData.withCoord(coord))
+
+                      val defaultData = if (c.EdgeDirected.selected) DirEdge.fromJson(theory.defaultEdgeData, theory)
+                      else UndirEdge.fromJson(theory.defaultEdgeData, theory)
+                      addEdge(graph.edges.fresh, defaultData, (previousVertex, vertex)
+                      )
+
+                    }
+                  }
+              }
+          }
+          coerceWiresAndBoundaries()
+          if (cycleInstead.isEmpty) {
+            undoStack.commit()
+          } else {
+            undoStack.cancel()
+            cycleVertexType(cycleInstead.get,
+              if ((modifiers & Modifier.Shift) != Modifier.Shift) 1 else -1,
+              includeWire = true)
+          }
+          // Select any wire vertices we made along the way
+          selectedVerts = newPath.
+            map(vertexAt).
+            filter(_.nonEmpty).
+            map(_.get).
+            filter(v => graph.vdata(v).isWireVertex).
+            toSet
+          view.edgeOverlay = None
+          mouseState = FreehandTool(None, None)
+          view.repaint()
         case SelectionBox(start,_) =>
           val oldSelectedVerts = selectedVerts
 
@@ -680,6 +877,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
           view.bboxOverlay = None
           view.repaint()
 
+        case RequestNormaliseGraph() =>
         case state => throw new InvalidMouseStateException("MouseReleased", state)
       }
 
@@ -754,11 +952,20 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
       if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) {
         snapToGrid()
       }
-    case KeyPressed(_, Key.F, _, _) =>
-      undoStack.start("Flip edge direction")
-      selectedEdges.foreach { flipEdge }
-      undoStack.commit()
-      view.repaint()
+    case KeyPressed(_, Key.N, _, _)  =>
+      normaliseGraph()
+    case KeyPressed(_, Key.F, modifiers, _) =>
+      if ((modifiers & Modifier.Shift) != Modifier.Shift) {
+        mouseState = FreehandTool(None, None)
+        controlsOpt.foreach { c => c.setMouseState(mouseState) }
+      } else {
+        undoStack.start("Flip edge direction")
+        selectedEdges.foreach {
+          flipEdge
+        }
+        undoStack.commit()
+        view.repaint()
+      }
     case KeyPressed(_, Key.D, _, _) =>
       undoStack.start("Toggle edge directed")
       selectedEdges.foreach { toggleDirected }

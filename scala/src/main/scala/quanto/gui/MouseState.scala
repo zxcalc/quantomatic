@@ -66,3 +66,8 @@ case class DragBangBoxNesting(startBBox: BBName) extends MouseState
 /** The relax tool is pressed down or released again */
 case class RelaxToolDown() extends MouseState
 case class RelaxToolUp() extends MouseState
+
+// The freehand tool is being used
+case class FreehandTool(state: Option[List[Point]], lastTime: Option[Long]) extends MouseState
+
+case class RequestNormaliseGraph() extends MouseState
