@@ -173,7 +173,8 @@ class GraphEditControls(theory: Theory) extends Publisher {
     contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton, FreehandButton)
   }
   MainToolBar.peer.addSeparator()
-  MainToolBar.contents += (RelaxButton, NormaliseButton)
+  MainToolBar.contents += RelaxButton
+  //MainToolBar.contents += NormaliseButton
 
 }
 

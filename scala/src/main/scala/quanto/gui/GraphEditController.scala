@@ -468,9 +468,12 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   }
 
   def normaliseGraph(): Unit = {
-    view.invalidateGraph(true)
-    graph = graph.normalise
-    view.repaint()
+    /*
+    // TODO: Normalise should act as expected, currently it removes certain boundaries
+     */
+//    view.invalidateGraph(true)
+//    graph = graph.normalise
+//    view.repaint()
   }
 
   def vertexAt(point: Point) : Option[VName] = view.vertexDisplay find {
