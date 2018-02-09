@@ -451,6 +451,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   }
 
   def coerceWiresAndBoundaries(): Unit = {
+    /*
     graph = graph.verts.foldLeft(graph) { (g, v) =>
       view.invalidateVertex(v)
       graph.adjacentEdges(v).foreach {
@@ -465,15 +466,13 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         } else d
       }
     }
+    */
   }
 
   def normaliseGraph(): Unit = {
-    /*
-    // TODO: Normalise should act as expected, currently it removes certain boundaries
-     */
-//    view.invalidateGraph(true)
-//    graph = graph.normalise
-//    view.repaint()
+    view.invalidateGraph(true)
+    graph = graph.normalise
+    view.repaint()
   }
 
   def vertexAt(point: Point) : Option[VName] = view.vertexDisplay find {

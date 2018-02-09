@@ -174,7 +174,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
   }
   MainToolBar.peer.addSeparator()
   MainToolBar.contents += RelaxButton
-  //MainToolBar.contents += NormaliseButton
+  MainToolBar.contents += NormaliseButton
 
 }
 
