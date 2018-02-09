@@ -842,4 +842,43 @@ class BBoxMatcherSpec extends FlatSpec {
     // should match once as empty graph (killing both bboxes), and once using two copies of each bbox
     assert(matches.size === 2)
   }
+
+  it should "match spider-law with multiple connecting edges (and no external ones)" in {
+    val g1 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w1"],
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z"}},
+        |    "v1": {"data": {"type": "Z"}}
+        |  },
+        |  "undir_edges": {
+        |    "e3": {"src": "v0", "tgt": "w1"},
+        |    "e4": {"src": "v1", "tgt": "w1"}
+        |  },
+        |  "bang_boxes": {
+        |    "bb2": {"contents": ["w1"]}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+
+
+    val g2 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z"}},
+        |    "v1": {"data": {"type": "Z"}}
+        |  },
+        |  "undir_edges": {
+        |    "e0": {"src": "v0", "tgt": "v1"},
+        |    "e1": {"src": "v0", "tgt": "v1"}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+
+    val matches = Matcher.findMatches(g1, g1)
+
+    assert(matches.size === 2)
+  }
 }

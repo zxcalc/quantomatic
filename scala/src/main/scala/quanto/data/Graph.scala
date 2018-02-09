@@ -821,7 +821,7 @@ case class Graph(
             /**
               * Collapse if between two internal wires, unless going in or out of a bbox
               */
-            if (!isBoundary(s) && !isBoundary(t) && bboxesContaining(s) == bboxesContaining(t)) {
+            if (!isBoundary(s) && !isBoundary(t)) {
               g = g.collapseWire(e)
               ch = true
             }
