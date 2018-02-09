@@ -82,7 +82,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
 
   val NormaliseButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("normalise.png"), "Normalise")
-    tooltip = "Normalise and straighten edges (N)"
+    tooltip = "Straighten edges, and convert leaves to boundaries (N)"
     tool = RequestNormaliseGraph()
   }
 

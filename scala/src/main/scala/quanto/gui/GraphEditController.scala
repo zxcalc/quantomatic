@@ -446,32 +446,14 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         }
       }
       )
-      coerceWiresAndBoundaries()
+      graph = graph.coerceWiresAndBoundaries
       view.repaint()
   }
 
-  def coerceWiresAndBoundaries(): Unit = {
-    /*
-    graph = graph.verts.foldLeft(graph) { (g, v) =>
-      view.invalidateVertex(v)
-      graph.adjacentEdges(v).foreach {
-        view.invalidateEdge
-      }
-
-      g.updateVData(v) { d =>
-        if (d.isWireVertex) {
-          d.asInstanceOf[WireV].makeBoundary(
-            graph.adjacentEdges(Set(v)).size == 1
-          )
-        } else d
-      }
-    }
-    */
-  }
 
   def normaliseGraph(): Unit = {
     view.invalidateGraph(true)
-    graph = graph.normalise
+    graph = graph.normalise.coerceWiresAndBoundaries
     view.repaint()
   }
 
@@ -730,7 +712,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
                   }
               }
           }
-          coerceWiresAndBoundaries()
+          graph = graph.coerceWiresAndBoundaries
           if (cycleInstead.isEmpty) {
             undoStack.commit()
           } else {

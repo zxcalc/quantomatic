@@ -164,6 +164,96 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     assert(jsonGraphShouldBe === Graph.fromJson(Graph.toJson(jsonGraphShouldBe)))
   }
 
+  behavior of "Normalisation"
+
+  it should "Normalise a single wire vertex to a single wire vertex" in {
+    val g1 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w0"],
+        |  "undir_edges": {
+        |  }
+        |}
+      """.stripMargin))
+    assert(g1.normalise === g1)
+  }
+
+
+  it should "Normalise K2 to itself" in {
+    val g1 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w0", "w1"],
+        |  "undir_edges": {
+        |    "e0": {"src": "w0", "tgt": "w1"}
+        |  }
+        |}
+      """.stripMargin))
+    assert(g1.normalise === g1)
+  }
+
+  it should "Normalise P3 to itself" in {
+    val g1 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w0", "w1", "w2"],
+        |  "undir_edges": {
+        |    "e0": {"src": "w0", "tgt": "w1"},
+        |    "e1": {"src": "w1", "tgt": "w2"}
+        |  }
+        |}
+      """.stripMargin))
+    assert(g1.normalise === g1)
+  }
+
+
+  it should "Normalise P4 to P3" in {
+    val g1 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w0", "w1", "w2","w3"],
+        |  "undir_edges": {
+        |    "e0": {"src": "w0", "tgt": "w1"},
+        |    "e1": {"src": "w1", "tgt": "w2"},
+        |    "e2": {"src": "w2", "tgt": "w3"}
+        |  }
+        |}
+      """.stripMargin))
+    val g2 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w0", "w1", "w3"],
+        |  "undir_edges": {
+        |    "e0": {"src": "w0", "tgt": "w1"},
+        |    "e2": {"src": "w1", "tgt": "w3"}
+        |  }
+        |}
+      """.stripMargin))
+    assert(g1.normalise === g2)
+  }
+
+
+  it should "Not normalise self loop" in {
+    val g1 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w0"],
+        |  "undir_edges": {
+        |    "e0": {"src": "w0", "tgt": "w0"}
+        |  }
+        |}
+      """.stripMargin))
+    val g2 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w0"],
+        |  "undir_edges": {
+        |  }
+        |}
+      """.stripMargin))
+    assert(g1.normalise !== g2)
+  }
+
   behavior of "Some more graphs"
 
   it should "normalise" in {

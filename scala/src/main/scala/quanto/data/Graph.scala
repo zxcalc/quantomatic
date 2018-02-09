@@ -783,27 +783,50 @@ case class Graph(
     } else this
   }
 
+
   /**
-    * Put graph in normal form, where each (non-bare) wire has exactly 1 wire vertex
-    * @return
+    * Change all wires to boundaries or boundaries to wires depending on how many edges coincide with it
+    * @return Graph
+    */
+  def coerceWiresAndBoundaries: Graph = {
+    var graph = this
+    graph.verts.foldLeft(graph) { (g, v) =>
+      g.updateVData(v) { d =>
+        if (d.isWireVertex) {
+          d.asInstanceOf[WireV].makeBoundary(
+            graph.isBoundary(v)
+          )
+        } else d
+      }
+    }
+  }
+
+  /**
+    * Put graph in normal form, where each wire has exactly 1 wire vertex
+    * @return Graph
     */
   def normalise: Graph = {
     var ch = false
     var g = this
 
     for (e <- edges) {
-      val s = source(e)
-      val t = target(e)
-      (vdata(s), vdata(t)) match {
-        case (_: NodeV, _: NodeV) =>
-          g = g.edgeToWire(e)
-          ch = true
-        case (_: WireV, _: WireV) if s != t =>
-          if (!isBoundary(s) || !isBoundary(t)) {
-            g = g.collapseWire(e)
+      if(!ch) {
+        val s = source(e)
+        val t = target(e)
+        (vdata(s), vdata(t)) match {
+          case (_: NodeV, _: NodeV) =>
+            g = g.edgeToWire(e)
             ch = true
-          }
-        case _ => // do nothing
+          case (_: WireV, _: WireV) if s != t =>
+            /**
+              * Collapse if between two internal wires, unless going in or out of a bbox
+              */
+            if (!isBoundary(s) && !isBoundary(t) && bboxesContaining(s) == bboxesContaining(t)) {
+              g = g.collapseWire(e)
+              ch = true
+            }
+          case _ => // do nothing
+        }
       }
     }
 
@@ -816,10 +839,8 @@ case class Graph(
       }
     }
 
-    g
-
-//    if (ch) g.normalise
-//    else g
+    if (ch) g.normalise
+    else g
   }
 
   def minimise: Graph = {
