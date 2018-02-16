@@ -23,6 +23,8 @@ case class Rule(private val _lhs: Graph,
 
   val name: String = description.name + (if (description.inverse) " inverted" else "")
 
+  def hasBBoxes : Boolean = lhs.bboxes.nonEmpty || rhs.bboxes.nonEmpty
+
   override def toString: String = name + " := "+ _lhs.toString +
     (if (description.inverse) {
       "<--"
