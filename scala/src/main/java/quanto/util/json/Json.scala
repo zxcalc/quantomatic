@@ -277,7 +277,7 @@ object Json {
 
     def this(out: java.io.OutputStream) = this(factory.createJsonGenerator(out, JsonEncoding.UTF8))
     def this(out: java.io.Writer) =       this(factory.createJsonGenerator(out))
-    def this(f: java.io.File) =           this(factory.createJsonGenerator(f, JsonEncoding.UTF8))
+    def this(f: java.io.File) =           this(factory.createJsonGenerator(new java.io.FileOutputStream(f), JsonEncoding.UTF8))
 
     private var _pp = false
     def prettyPrint_=(b: Boolean) {

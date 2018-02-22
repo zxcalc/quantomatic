@@ -1,0 +1,534 @@
+###
+### jEdit global properties
+### :tabSize=4:indentSize=4:noTabs=false:
+### :folding=explicit:collapseFolds=1:
+### :encoding=UTF-8:
+###
+### Copyright (C) 1998, 2003 Slava Pestov
+###
+
+#{{{ Global settings
+
+# Swing look and feel
+#lookAndFeel=javax.swing.plaf.metal.MetalLookAndFeel
+
+#{{{ Metal control and menu font
+metal.primary.font=Dialog
+metal.primary.fontsize=12
+metal.primary.fontstyle=0
+#}}}
+
+#{{{ Metal system and user text font
+metal.secondary.font=Dialog
+metal.secondary.fontsize=12
+metal.secondary.fontstyle=0
+#}}}
+
+#{{{ HelpViewer and Tip of the Day font
+helpviewer.font=Dialog
+helpviewer.fontsize=12
+helpviewer.fontstyle=0
+#}}}
+
+
+# Decorate frames and dialogs using Swing L&F?
+decorate.frames=false
+decorate.dialogs=false
+
+# Draw multi-key shortcuts on screen menu bar? (OS X only)
+menu.multiShortcut=false
+
+# If true, welcome screen will be displayed.
+# Set to false after initial startup.
+firstTime=true
+
+# Autosave interval in seconds, 0=off
+autosave=30
+
+# Autosave untitled buffers
+autosaveUntitled=true
+
+
+# Maximum number of elements in a history list
+history=20
+
+# Maximum size (in characters) of a history list
+historyMaxSize=5000000
+
+# Number of recent files
+recentFiles=40
+
+# Restore open files on startup?
+restore=true
+
+# Restore even if file names specified on command line?
+restore.cli=true
+
+# Persistent markers
+persistentMarkers=true
+
+# Two-stage save (save to #filename#save# first, then filename)
+twoStageSave=true
+
+# Strip trailing EOL
+stripTrailingEOL=false
+
+# Complete words from all open buffers
+completeFromAllBuffers=false
+
+# Insert a word completion when the corresponding digit is pressed
+insertCompletionWithDigit=true
+
+# Need this so that new files have a trailing EOL
+buffer.trailingEOL=true
+
+# Caret saving toggle
+saveCaret=true
+
+# Backup on every save
+backupEverySave=false
+
+# Number of backups to make, 0=no backups
+backups=1
+
+# Backup directory
+backup.directory=
+
+# Backup filename prefix and suffix
+backup.prefix=
+backup.suffix=~
+
+# Min time between backups (0 = always backup)
+backup.minTime=0
+
+# Sort buffer list
+sortBuffers=true
+sortByName=true
+
+# Sort recent file list
+sortRecent=false
+
+# Default firewall properties
+firewall.enabled=false
+
+# Keep dialog on by default
+search.keepDialog.toggle=true
+
+# When this limit is reached a dialog appears to cancel the search
+hypersearch.maxWarningResults=1000
+
+# If the hypersearch query is longer than this value it will be truncated
+# on display in the results
+hypersearch.displayQueryLength=100
+
+# Style for highlighting matches in hypersearch results
+hypersearch.results.highlight=bgColor:#ccccff
+
+# Confirm dialogs
+confirmSaveAll=true
+
+# Check modification status on focus?
+
+# if false and autoReload == false, do nothing
+# if false and autoReload == true, autoreload silently
+# If true and autoReload == false, prompt for reloading
+# if true and autoReload == true, reload and notify user (message box)
+autoReloadDialog=true
+
+# If this is true, auto reload; if false, use 'reload' button in dialog
+autoReload=true
+
+# When to check file status on disk: 1=view focus. See GeneralOptionPane class for meanings of values.
+checkFileStatus=1
+
+# Encoding detectors
+encodingDetectors=BOM XML-PI html python buffer-local-property
+
+#}}}
+
+# The critical size, over it a buffer will prompt when setting the edit mode
+largeBufferSize=4000000
+longLineLimit=4000
+largefilemode=ask
+
+#{{{ Buffer settings
+# These can also be specified as buffer-local properties
+
+# Line separator
+# The OS default will be used if this is not specified
+# Unix=\n
+# Windows=\r\n
+# MacOS=\r
+#buffer.lineSeparator=\n
+
+# Encoding
+# The OS default will be used if this is not specified
+#buffer.encoding=ISO8859_1
+
+# Auto-detect GZIP, UTF16, UTF8 and XML encodings?
+buffer.encodingAutodetect=true
+
+# Tab width
+buffer.tabSize=4
+
+# Indent width
+buffer.indentSize=4
+
+# Automatic indentation
+buffer.autoIndent=full
+
+# Soft tabs
+buffer.noTabs=false
+
+#elastic tabstops
+buffer.elasticTabstops=false
+
+# Default edit mode
+buffer.defaultMode=text
+
+# Undo queue size
+buffer.undoCount=100
+
+# Wrap mode (none, soft, hard)
+buffer.wrap=none
+
+# Wrap column
+buffer.maxLineLen=80
+
+# Word break characters
+buffer.wordBreakChars=
+
+# Non-alphanumeric word characters
+buffer.noWordSep=_
+
+# Whether to separate "CamelCased" words
+buffer.camelCasedWords=false
+
+# Fold mode (explicit, indent, or none)
+buffer.folding=none
+
+# Folds with a level equal to or higher than this will be collapsed
+buffer.collapseFolds=0
+#}}}
+
+#{{{ View settings
+
+# Apply jEdit colors to Swing text fields, text areas, lists, tables and trees?
+textColors=false
+
+# Show toolbar?
+view.showToolbar=true
+
+# Show searchbar?
+view.showSearchbar=false
+
+# Show buffer switcher?
+view.showBufferSwitcher=true
+
+# Show full path in title bar?
+view.showFullPath=false
+
+# Font
+view.font=Monospaced
+view.fontsize=12
+# 0=plain, 1=bold, 2=italic, 3=boldItalic
+view.fontstyle=0
+
+# Font Substitution
+view.enableFontSubst=false
+view.enableFontSubstSystemFonts=true
+
+# Background and foreground colors (for the text area)
+view.bgColor=#ffffff
+view.fgColor=#000000
+
+# Line highlighting
+view.lineHighlight=true
+view.lineHighlightColor=#ffffe0
+
+# Bracket highlighting
+view.structureHighlight=true
+view.structureHighlightColor=#000000
+
+# EOL markers
+view.eolMarkers=false
+view.eolMarkerColor=#ff6633
+view.eolMarkerChar=↩
+
+# Wrap guide
+view.wrapGuide=true
+view.wrapGuideColor=#8080ff
+
+# page breaks
+view.pageBreaks=false
+view.pageBreaksColor=#8080ff
+
+# Caret color
+view.caretColor=#ff0000
+
+# Selection color
+view.selectionColor=#ccccff
+view.multipleSelectionColor=#ccffcc
+
+# Caret blinking
+view.caretBlink=true
+
+# Block caret
+view.blockCaret=false
+
+# Electric borders
+view.electricBorders=3
+
+# Drag and drop of text
+view.dragAndDrop=true
+
+# Abbreviate paths using environment variables
+view.abbreviatePaths=true
+
+# Treat consecutive non-alphanumeric characters as one word
+view.joinNonWordChars=true
+
+# Middle mouse button pastes % register
+view.middleMousePaste=false
+
+# Pressing Ctrl while mouse actions makes them
+# as if selection mode were rectangular mode
+view.ctrlForRectangularSelection=true
+
+# Minimal view size that is considered "valid" when loading perspective
+view.minStartupWidth=200
+view.minStartupHeight=200
+
+Combined\ Options.width=1024
+Combined\ Options.height=768
+
+# The default bufferSet scope
+editpane.bufferset.default=view
+
+#{{{ Gutter
+
+# Gutter background color
+view.gutter.bgColor=#dbdbdb
+
+# Gutter foreground color
+view.gutter.fgColor=#000000
+
+# Gutter highlight color
+view.gutter.highlightColor=#990066
+
+# Gutter current line highlight color
+view.gutter.currentLineColor=#ff0033
+
+# Gutter bracket highlighting
+view.gutter.structureHighlight=true
+view.gutter.structureHighlightColor=#666699
+
+# Gutter marker highlight color
+view.gutter.markerColor=#ccffcc
+
+# Gutter border colors
+view.gutter.focusBorderColor=#990099
+view.gutter.noFocusBorderColor=#ffffff
+
+# Fold triangle color
+view.gutter.foldColor=#838383
+
+# Gutter font name
+view.gutter.font=Monospaced
+
+# Gutter font style
+# 0=plain, 1=bold, 2=italic, 3=boldItalic
+view.gutter.fontstyle=0
+
+# Gutter font size
+view.gutter.fontsize=10
+
+# Gutter border width
+view.gutter.borderWidth=2
+
+# Gutter displays line numbers
+view.gutter.lineNumbers=true
+
+# Line numbers are drawn with this alignment (left, center, right)
+view.gutter.numberAlignment=right
+
+# Gutter line numbers are highlighted at this interval
+view.gutter.highlightInterval=5
+
+# Gutter current line highlighting
+view.gutter.highlightCurrentLine=true
+
+# Marker highlight
+view.gutter.markerHighlight=true
+
+# Click behavior
+view.gutter.foldClick=toggle-fold
+view.gutter.SfoldClick=toggle-fold-fully
+view.gutter.CfoldClick=select-fold
+view.gutter.AfoldClick=narrow-fold
+view.gutter.structClick=match-struct
+view.gutter.CstructClick=select-struct
+view.gutter.AstructClick=narrow-struct
+
+# Show gutter?
+view.gutter.enabled=true
+
+# Gutter minimal number of digits to reserve for line numbers
+view.gutter.minDigitCount=2
+
+# Show selection area in gutter?
+view.gutter.selectionAreaEnabled=true
+# Gutter selection area background color
+# - leave out so by default it is the same as the gutter's
+#view.gutter.selectionAreaBgColor=#dbdbdb
+#}}}
+
+# Expand abbrevs when space bar pressed
+view.expandOnInput=false
+
+#{{{ Syntax styles
+view.style.comment1=color:#cc0000
+view.style.comment2=color:#ff8400
+view.style.comment3=color:#6600cc
+view.style.comment4=color:#cc6600
+view.style.digit=color:#ff0000
+view.style.foldLine.0=color:#000000 bgColor:#dafeda style:b
+view.style.foldLine.1=color:#000000 bgColor:#fff0cc style:b
+view.style.foldLine.2=color:#000000 bgColor:#e7e7ff style:b
+view.style.foldLine.3=color:#000000 bgColor:#ffe0f0 style:b
+view.style.function=color:#9966ff
+view.style.invalid=color:#ff0066 bgColor:#ffffcc
+view.style.keyword1=color:#006699 style:b
+view.style.keyword2=color:#009966 style:b
+view.style.keyword3=color:#0099ff style:b
+view.style.keyword4=color:#66ccff style:b
+view.style.label=color:#02b902
+view.style.literal1=color:#ff00cc
+view.style.literal2=color:#cc00cc
+view.style.literal3=color:#9900cc
+view.style.literal4=color:#6600cc
+view.style.markup=color:#0000ff
+view.style.operator=color:#000000 style:b
+#}}}
+
+# Docking and tool bar positioning
+view.docking.alternateLayout=false
+# "alternate" is actually closer to standard location IMHO...
+view.toolbar.alternateLayout=true
+
+#{{{ Status bar
+view.status.foreground=black
+view.status.background=white
+view.status.visible=true
+view.status.plainview.visible=false
+view.status.show-caret-status=true
+view.status.memory.foreground=#cccccc
+view.status.memory.background=#666699a
+#}}}
+
+#}}}
+
+#{{{ Printing settings
+
+# Font
+print.font=Monospaced
+print.fontsize=9
+print.fontstyle=0
+
+# Print header?
+print.header=true
+
+# Print footer?
+print.footer=true
+
+# Print line numbers?
+print.lineNumbers=true
+
+# Print in color, or black and white?
+print.color=false
+
+# Print tab size
+print.tabSize=2
+
+# Use old (JDK 1.3) printing API
+print.force13=false
+
+# Force use of glyph vectors to work around spacing problems
+print.glyphVector=false
+#}}}
+
+#{{{ File system browser settings
+vfs.browser.showMenubar=true
+vfs.browser.showToolbar=true
+vfs.browser.showIcons=true
+vfs.browser.showHiddenFiles=false
+vfs.browser.sortMixFilesAndDirs=false
+vfs.browser.sortIgnoreCase=true
+vfs.browser.doubleClickClose=false
+vfs.browser.currentBufferFilter=false
+vfs.browser.useDefaultIcons=true
+
+# Can be one of: buffer, home, favorites, last
+vfs.browser.defaultPath=buffer
+
+# File list coloring
+vfs.browser.colorize=true
+
+vfs.browser.colors.0.glob={CVS,#*,*~,\\.*}
+vfs.browser.colors.0.color=#a0a0a0
+vfs.browser.colors.1.glob=*.class
+vfs.browser.colors.1.color=#660066
+vfs.browser.colors.2.glob={build.xml,makefile*,*.hxml}
+vfs.browser.colors.2.color=#666600
+vfs.browser.colors.3.glob=*.{gif,jpg,jpeg,png,bmp,xpm,svg}
+vfs.browser.colors.3.color=#009933
+vfs.browser.colors.4.glob=*.{gz,jar,zip,tgz,z,war,ear}
+vfs.browser.colors.4.color=#990000
+vfs.browser.colors.5.glob=tags
+vfs.browser.colors.5.color=#003366
+vfs.browser.colors.6.glob=*.{sh,bat,cmd}
+vfs.browser.colors.6.color=#006666
+vfs.browser.colors.7.glob={CHANGELOG,CHANGES,INSTALL,LICENSE,NEWS,README,TODO}{,.txt}
+vfs.browser.colors.7.color=#330066
+vfs.browser.colors.8.glob=*.{props,properties}
+vfs.browser.colors.8.color=#666666
+
+browser.custom.context=
+#}}}
+
+#{{{ Plugin manager settings
+plugin-manager.downloadSource=false
+plugin-manager.installUser=true
+plugin-manager.showAll=true
+plugin-manager.mirror.id=NONE
+plugin-manager.deleteDownloads=true
+plugin-manager.hide-libraries.toggle=true
+plugin-blacklist.MacOS.jar=true
+#}}}
+
+#{{{ Hidden settings
+menu.spillover=20
+bufferSwitcher.maxRowCount=10
+showTooltips=true
+ioThreadCount=4
+server.brokenToFront=false
+search.dontSyncFilter=false
+#}}}
+
+#{{{ Miscellaneous settings
+# restore remote VFS files by default (new option)
+options.general.restore.remote=true
+optional.title-template={0} {1}
+mime2mode.text/html=html
+debug.beepOnOutput=false
+#}}}
+
+#{{{ Keymaps
+# the current keymap name
+keymap.current=jEdit
+# the default keymap name
+keymap.default=jEdit
+#}}}
+
+# if lang.usedefaultlocale is true, the lang.current is not used
+lang.usedefaultlocale=true

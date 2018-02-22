@@ -20,7 +20,7 @@ class CoSyRun(
                startingRules: List[Rule],
                duration: Duration,
                outputDir: String,
-               notes: String,
+               notes: String
              ) {
 
   var rules: List[Rule] = List()
@@ -37,7 +37,7 @@ class CoSyRun(
       // TODO: Check if it matches rules?
       for(rule <- rules){
         for(m <- Matcher.findMatches(rule.lhs, graph)){
-          if (graphLeftBiggerRight(Rewriter.rewrite(m, rule.rhs), graph)){
+          if (graphLeftBiggerRight(Rewriter.rewrite(m, rule.rhs)._1, graph)){
             matchesReductionRule = true
           }
         }

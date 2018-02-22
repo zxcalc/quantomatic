@@ -94,7 +94,7 @@ object JsonConsole extends SimpleSwingApplication {
         border = new LineBorder(Color.WHITE, 1)
       }
 
-      def componentFor(list: ListView[_], isSelected: Boolean,
+      def componentFor(list: ListView[_  <: CoreOutputItem], isSelected: Boolean,
                        focused: Boolean, a: CoreOutputItem, index: Int): Component =
       {
 

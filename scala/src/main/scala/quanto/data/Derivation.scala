@@ -1,7 +1,6 @@
 package quanto.data
 
 import quanto.util.json._
-import javax.management.remote.rmi._RMIConnectionImpl_Tie
 import scala.collection.SortedSet
 import quanto.gui.{StepState, HeadState, DeriveState}
 import quanto.util.TreeSeq

@@ -7,7 +7,6 @@ import java.io.{File, PrintWriter}
 import org.gjt.sp.jedit.buffer.JEditBuffer
 import org.gjt.sp.jedit.textarea.StandaloneTextArea
 import org.gjt.sp.jedit.{Mode, Registers}
-import quanto.gui.QuantoDerive.getClass
 import quanto.util.UserOptions
 
 import scala.io.Source
@@ -17,7 +16,24 @@ class TextEditor(val mode: Mode) extends BorderPanel {
   lazy val Component: BorderPanel = new BorderPanel {
     peer.add(TextArea, BorderLayout.CENTER)
   }
-  val TextArea: StandaloneTextArea = StandaloneTextArea.createTextArea()
+
+  import org.gjt.sp.jedit.IPropertyManager
+  import org.gjt.sp.jedit.textarea.StandaloneTextArea
+
+  val props = new java.util.Properties()
+  val propFile = this.getClass.getResourceAsStream("jedit.props")
+  props.load(propFile)
+  //props.setProperty("view.font", "Arial")
+  //props.setProperty("view.fontsize", "12")
+  //props.setProperty("view.fontstyle", "0")
+  //props.putAll(loadProperties("/keymaps/jEdit_keys.props"))
+  //props.putAll(loadProperties("/org/gjt/sp/jedit/jedit.props"))
+  val TextArea = new StandaloneTextArea(new IPropertyManager() {
+    override def getProperty(name: String): String = props.getProperty(name)
+  })
+  //textArea.getBuffer.setProperty("folding", "explicit")
+  //val TextArea: StandaloneTextArea = StandaloneTextArea.createTextArea()
+
   private val buf = new JEditBuffer1
   private val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
