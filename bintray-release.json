@@ -9,7 +9,7 @@
       "released": "2017-11-23"
     },
     "files": [{
-      "includePattern": "scala/target/scala-2.11/Quantomatic.jar",
+      "includePattern": "scala/target/scala-2.12/Quantomatic.jar",
       "uploadPattern": "release-0.6.1/Quantomatic.jar",
       "matrixParams": {"override": 1}
     }],

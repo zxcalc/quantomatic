@@ -8,7 +8,7 @@
       "name": "bleeding-edge"
     },
     "files": [{
-      "includePattern": "scala/target/scala-2.11/Quantomatic.jar",
+      "includePattern": "scala/target/scala-2.12/Quantomatic.jar",
       "uploadPattern": "bleeding-edge/Quantomatic.jar",
       "matrixParams": {"override": 1}
     }],
