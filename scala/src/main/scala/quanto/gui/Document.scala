@@ -1,12 +1,15 @@
 package quanto.gui
 
-import scala.swing.{Component, FileChooser, Dialog, Publisher}
-import java.io.{FileNotFoundException, IOException, File}
+import scala.swing.{Component, Dialog, FileChooser, Publisher}
+import java.io.{File, FileNotFoundException, IOException}
+
 import scala.swing.event.Event
 import quanto.data._
 import quanto.util.json.JsonParseException
 import javax.swing.filechooser.FileNameExtensionFilter
 import java.util.prefs.Preferences
+
+import javax.swing.JOptionPane
 
 abstract class DocumentEvent extends Event
 case class DocumentChanged(sender: Document) extends DocumentEvent
@@ -126,36 +129,52 @@ abstract class Document extends Publisher {
    * @return true if the document can be closed, false otherwise
    * (as per user decission)
    */
-  def promptUnsaved() = {
+  def promptUnsaved(): Boolean = {
     if (unsavedChanges) {
-      val choice = Dialog.showOptions(
-        title = "Unsaved changes",
-        message = "Do you want to save your changes or discard them?",
-        entries = "Save" :: "Discard" :: "Cancel" :: Nil,
-        initial = 0
-      )
+//      val choice = Dialog.showOptions(
+//        title = "Unsaved changes",
+//        message = "Do you want to save your changes or discard them?",
+//        entries = "Save" :: "Discard" :: "Cancel" :: Nil,
+//        initial = 0
+//      )
+
+      val choice = JOptionPane.showOptionDialog(null,
+        "Do you want to save your changes or discard them?",
+        "Unsaved changes",
+        JOptionPane.DEFAULT_OPTION,
+        JOptionPane.WARNING_MESSAGE, null,
+        List("Save", "Discard", "Cancel").toArray,
+        "Save")
 
       // scala swing dialogs implementation is dumb, here's what I found :
       // Result(0) = Save, Result(1) = Discard, Result(2) = Cancel
 
-      if (choice == Dialog.Result(0)) trySave()
-      else choice == Dialog.Result(1)
+      if (choice == 0) trySave()
+      else choice == 1
     } else true
   }
 
-  def promptExists(f: File) = {
+  def promptExists(f: File): Boolean = {
     if (f.exists()) {
-      Dialog.showConfirmation(
-        title = "File exists",
-        message = "File exists, do you wish to overwrite?") == Dialog.Result.Yes
+      JOptionPane.showConfirmDialog(null,
+        "File exists, do you wish to overwrite?",
+        "File exists",
+        JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION
+//      Dialog.showConfirmation(
+//        title = "File exists",
+//        message = "File exists, do you wish to overwrite?") == Dialog.Result.Yes
     } else true
   }
 
   def errorDialog(action: String, reason: String) {
-    Dialog.showMessage(
-      title = "Error",
-      message = "Cannot " + action + " file (" + reason + ")",
-      messageType = Dialog.Message.Error)
+//    Dialog.showMessage(
+//      title = "Error",
+//      message = "Cannot " + action + " file (" + reason + ")",
+//      messageType = Dialog.Message.Error)
+    JOptionPane.showMessageDialog(null,
+      "Cannot " + action + " file (" + reason + ")",
+      "Error",
+      JOptionPane.ERROR_MESSAGE)
   }
 
   def previousDir_=(f: File) {

@@ -20,9 +20,12 @@ class TextEditor(val mode: Mode) extends BorderPanel {
   import org.gjt.sp.jedit.IPropertyManager
   import org.gjt.sp.jedit.textarea.StandaloneTextArea
 
+  // TODO: check font availability and/or allow user to select one
   val props = new java.util.Properties()
   val propFile = this.getClass.getResourceAsStream("jedit.props")
+  val keyFile = this.getClass.getResourceAsStream("jEdit_keys.props")
   props.load(propFile)
+  props.load(keyFile)
   //props.setProperty("view.font", "Arial")
   //props.setProperty("view.fontsize", "12")
   //props.setProperty("view.fontstyle", "0")

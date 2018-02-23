@@ -6,16 +6,15 @@ import org.python.util.PythonInterpreter
 import scala.io.Source
 import scala.swing._
 import scala.swing.event.{Key, SelectionChanged}
-import javax.swing.{KeyStroke, UIManager}
-
+import javax.swing.{JOptionPane, KeyStroke, SwingUtilities, UIManager}
 import java.awt.event.KeyEvent
 import java.awt.Frame
-
 import java.awt.event.{KeyEvent, MouseAdapter, MouseEvent}
 
 import quanto.util.json.{Json, JsonString}
 import quanto.data._
 import java.io.{File, FilenameFilter, IOException, PrintWriter}
+
 import javax.swing.plaf.metal.MetalLookAndFeel
 import java.util.prefs.Preferences
 
@@ -30,7 +29,6 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
 import java.awt.{Color, Desktop, Window}
-import javax.swing.SwingUtilities
 
 import quanto.util.{Globals, UserAlerts, UserOptions, WebHelper}
 
@@ -47,8 +45,12 @@ object QuantoDerive extends SimpleSwingApplication {
 
   println(new File(".").getAbsolutePath)
 
-  def error(msg: String) = Dialog.showMessage(
-    title = "Error", message = msg, messageType = Dialog.Message.Error)
+  // Dialogs in in scala.swing seem to be broken since updated scala to 2.12, so
+  // we're using the javax.swing versions instead
+  def error(msg: String) =
+    JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE)
+
+  //Dialog.showMessage(title = "Error", message = msg, messageType = Dialog.Message.Error)
 
   val prefs = Preferences.userRoot().node(this.getClass.getName)
 
@@ -248,16 +250,25 @@ object QuantoDerive extends SimpleSwingApplication {
    */
   def closeAllDocuments() = {
     if (hasUnsaved) {
-      val choice = Dialog.showOptions(
-        title = "Confirm quit",
-        message = "Some documents have unsaved changes.\nDo you want to save your changes or discard them?",
-        entries = "Save" :: "Discard" :: "Cancel" :: Nil,
-        initial = 0
-      )
+//      val choice = Dialog.showOptions(
+//        title = "Confirm quit",
+//        message = "Some documents have unsaved changes.\nDo you want to save your changes or discard them?",
+//        entries = "Save" :: "Discard" :: "Cancel" :: Nil,
+//        initial = 0
+//      )
+
+      val choice = JOptionPane.showOptionDialog(null,
+        "Do you want to save your changes or discard them?",
+        "Unsaved changes",
+        JOptionPane.DEFAULT_OPTION,
+        JOptionPane.WARNING_MESSAGE, null,
+        List("Save", "Discard", "Cancel").toArray,
+        "Save")
+
       // scala swing dialogs implementation is dumb, here's what I found :
       // Result(0) = Save, Result(1) = Discard, Result(2) = Cancel
-      if (choice == Dialog.Result(2)) false
-      else if (choice == Dialog.Result(1)) {
+      if (choice == 2) false
+      else if (choice == 1) {
         MainDocumentTabs.clear()
         true
       }

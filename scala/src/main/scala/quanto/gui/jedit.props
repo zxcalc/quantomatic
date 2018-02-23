@@ -12,6 +12,8 @@
 # Swing look and feel
 #lookAndFeel=javax.swing.plaf.metal.MetalLookAndFeel
 
+view.antiAlias=subpixel
+
 #{{{ Metal control and menu font
 metal.primary.font=Dialog
 metal.primary.fontsize=12
@@ -40,7 +42,7 @@ menu.multiShortcut=false
 
 # If true, welcome screen will be displayed.
 # Set to false after initial startup.
-firstTime=true
+firstTime=false
 
 # Autosave interval in seconds, 0=off
 autosave=30
@@ -229,8 +231,8 @@ view.showBufferSwitcher=true
 view.showFullPath=false
 
 # Font
-view.font=Monospaced
-view.fontsize=12
+view.font=Lucida Sans Typewriter
+view.fontsize=11
 # 0=plain, 1=bold, 2=italic, 3=boldItalic
 view.fontstyle=0
 
