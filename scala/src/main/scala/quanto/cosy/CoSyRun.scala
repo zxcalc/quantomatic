@@ -34,11 +34,13 @@ abstract class CoSyRun[S, T](
 
   def graphLeftBiggerRight(left: Graph, right: Graph): Boolean
 
+  def compareTensor(a: T, b: T): Boolean
+
+  var equivClasses: Map[T, Graph] = Map()
+
   def begin(): Unit = {
     def now(): Long = Calendar.getInstance().getTimeInMillis
-
     val timeStart = now()
-    var equivClasses: Map[T, Graph] = Map()
     while (Duration(now() - timeStart, "millis") < duration && Generator.hasNext) {
       // Get a graph
       val next: S = Generator.next()
@@ -52,12 +54,17 @@ abstract class CoSyRun[S, T](
 
       if (!matchesReductionRule) {
         val interpretation = makeTensor(next)
-        if (equivClasses.contains(interpretation)) {
-          // Something with that tensor exists
-          val existing = equivClasses(interpretation)
-          createRule(graph, existing)
-          if(graphLeftBiggerRight(existing, graph))
-            equivClasses = equivClasses + (interpretation -> graph) // update with smaller graph
+        // Need to check rough equivalence
+        val similarTensors = equivClasses.keys.filter(t => compareTensor(t, interpretation))
+
+        if (similarTensors.nonEmpty) {
+          for(similar <- similarTensors) {
+            // Something with that tensor exists
+            val existing = equivClasses(similar)
+            createRule(graph, existing)
+            if (graphLeftBiggerRight(existing, graph))
+              equivClasses = equivClasses + (interpretation -> graph) // update with smaller graph
+          }
         } else {
           equivClasses = equivClasses + (interpretation -> graph)
         }
@@ -122,6 +129,7 @@ object CoSyRuns {
       NodeV(data = JsonObject("type" -> "X", "value" -> angleMap(i).toString), theory = theory)
     }).toVector
 
+    override def compareTensor(a: Tensor, b: Tensor): Boolean = a.isRoughlyUpToScalar(b)
 
     private implicit def stringToPhase(s : String) : PhaseExpression = {
       PhaseExpression.parse(s, ValueType.AngleExpr)

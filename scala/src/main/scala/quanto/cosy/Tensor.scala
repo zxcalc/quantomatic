@@ -189,7 +189,7 @@ class Tensor(c: Array[Array[Complex]]) {
         }
       }
     } else {
-      -1
+      1
     }
   }
 
@@ -253,7 +253,11 @@ class Tensor(c: Array[Array[Complex]]) {
 
   def isRoughly(that: Tensor, maxDistance: Double = 1e-14): Boolean =
   // Compare two tensors up to a given distance
+  if(this.isSameShapeAs(that)) {
     this.distance(that) < maxDistance
+  }else{
+    false
+  }
 
   /** Returns max abs distance */
   def distance(that: Tensor): Double = {
