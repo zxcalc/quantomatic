@@ -25,7 +25,9 @@ object FileHelper {
   }
 
   def printJson(fileName : String, json: Json) : Unit = {
-    new File(fileName).getParentFile.mkdirs()
+    val targetFile = new File(fileName)
+    val parent = targetFile.getParentFile
+    if (!parent.exists && !parent.mkdirs) throw new IllegalStateException("Couldn't create dir: " + parent)
     json.writeTo(new File(fileName))
   }
 
