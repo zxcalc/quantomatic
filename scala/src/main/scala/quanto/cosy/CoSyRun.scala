@@ -54,7 +54,10 @@ abstract class CoSyRun[S, T](
         val interpretation = makeTensor(next)
         if (equivClasses.contains(interpretation)) {
           // Something with that tensor exists
-          createRule(graph, equivClasses(interpretation))
+          val existing = equivClasses(interpretation)
+          createRule(graph, existing)
+          if(graphLeftBiggerRight(existing, graph))
+            equivClasses = equivClasses + (interpretation -> graph) // update with smaller graph
         } else {
           equivClasses = equivClasses + (interpretation -> graph)
         }
@@ -65,16 +68,17 @@ abstract class CoSyRun[S, T](
   }
 
 
-  def createRule(a: Graph, b: Graph): Unit = {
-    val (lhs, rhs) = if (graphLeftBiggerRight(a, b)) {
-      (a, b)
+  def createRule(suggested: Graph, existing: Graph): Rule = {
+    val (lhs, rhs) = if (graphLeftBiggerRight(suggested, existing)) {
+      (suggested, existing)
     } else {
-      (b, a)
+      (existing, suggested)
     }
     val r = new Rule(lhs, rhs)
-    val name = s"${a.hashCode}_${b.hashCode}.qrule"
+    val name = s"${suggested.hashCode}_${existing.hashCode}.qrule"
     printJson(outputDir.toURI.resolve("./" + name).getPath, Rule.toJson(r))
     loadRule(r)
+    r
   }
 
   def loadRule(rule: Rule): Unit = {
@@ -109,6 +113,7 @@ object CoSyRuns {
 
 
     override val Generator: Iterator[AdjMat] =
+      ColbournReadEnum.enumerate(1,1,numBoundaries, 0, false).iterator ++
       ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries, numVertices).iterator
     private val gdata = (for (i <- 0 until numAngles) yield {
       NodeV(data = JsonObject("type" -> "Z", "value" -> angleMap(i).toString), theory = theory)
