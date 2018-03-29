@@ -13,7 +13,7 @@ class CoSyRunSpec extends FlatSpec {
 
   behavior of "ZX"
 
-  it should "do a small run" in {
+  ignore should "do a small run" in {
     val run: CoSyZX = new CoSyRuns.CoSyZX(List(), Duration.Inf, "~/cosytest", 4, 2, 2)
 
     run.begin()
