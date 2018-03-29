@@ -98,6 +98,21 @@ class ForceLayout extends GraphLayout with Constraints {
 
     val oldCoords = coords
 
+    // shake overlapping elements slightly
+    val vertList: List[VName] = graph.verts.toList
+    for (i <- vertList; j <- vertList if i != j) {
+      val p1 = coord(i)
+      val p2 = coord(j)
+      val shake = 0.2
+      if (p1 == p2) {
+        setCoord(i, (
+          p1._1 + shake * Math.random(),
+          p1._2 + shake * Math.random()
+        ))
+      }
+    }
+
+
     // apply spring forces
     for (e <- graph.edges) {
       val sp = coord(graph.source(e))

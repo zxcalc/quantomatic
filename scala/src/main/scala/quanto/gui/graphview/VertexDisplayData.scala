@@ -56,11 +56,7 @@ trait VertexDisplayData { self: GraphView =>
 
     // Go through every vertex in the graph
     for ((v,data) <- graph.vdata if !vertexDisplay.contains(v)) {
-      val coord = if(data.coord == (0.0,0.0)){
-        val s = 5
-        (s*(Math.random()-0.5), s*(Math.random()-0.5))
-      } else data.coord
-      val (x,y) = trans toScreen coord
+      val (x,y) = trans toScreen data.coord
 
       vertexDisplay(v) = data match {
         case vertexData : NodeV =>
