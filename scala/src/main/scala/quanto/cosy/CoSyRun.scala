@@ -1,5 +1,6 @@
 package quanto.cosy
 
+import java.io.File
 import java.nio.file.Path
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -9,7 +10,7 @@ import quanto.data.Theory.ValueType
 import quanto.util.FileHelper._
 import quanto.data._
 import quanto.rewrite.{Matcher, Rewriter}
-import quanto.util.Rational
+import quanto.util.{FileHelper, Rational}
 import quanto.util.json.JsonObject
 
 import scala.concurrent.duration.Duration
@@ -18,9 +19,10 @@ import scala.concurrent.duration.Duration
   * This class performs the actual batch conjecture synthesis
   */
 abstract class CoSyRun[S, T](
-                              startingRules: List[Rule],
+                              rulesDir: File,
+                              theory : Theory,
                               duration: Duration,
-                              outputDir: String
+                              outputDir: File
                             ) {
 
   val Generator: Iterator[S]
@@ -70,8 +72,8 @@ abstract class CoSyRun[S, T](
       (b, a)
     }
     val r = new Rule(lhs, rhs)
-    val name = s"${a.hashCode}-${b.hashCode}.qrule"
-    printJson(outputDir + "/" + name, Rule.toJson(r))
+    val name = s"${a.hashCode}_${b.hashCode}.qrule"
+    printJson(outputDir.toURI.resolve("./" + name).getPath, Rule.toJson(r))
     loadRule(r)
   }
 
@@ -91,23 +93,23 @@ abstract class CoSyRun[S, T](
     }
   }
 
-  startingRules.foreach(loadRule)
+  FileHelper.readAllOfType(rulesDir.getAbsolutePath, ".*qrule", Rule.fromJson(_, theory)).foreach(loadRule)
 }
 
 object CoSyRuns {
 
-  class CoSyZX(startingRules: List[Rule],
+  class CoSyZX(rulesDir: File,
+               theory: Theory,
                duration: Duration,
-               outputDir: String,
+               outputDir: File,
                numAngles: Int,
                numBoundaries: Int,
                numVertices: Int
-              ) extends CoSyRun[AdjMat, Tensor](startingRules, duration, outputDir) {
+              ) extends CoSyRun[AdjMat, Tensor](rulesDir, theory, duration, outputDir) {
 
 
     override val Generator: Iterator[AdjMat] =
       ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries, numVertices).iterator
-    private val theory = Theory.fromFile("red_green")
     private val gdata = (for (i <- 0 until numAngles) yield {
       NodeV(data = JsonObject("type" -> "Z", "value" -> angleMap(i).toString), theory = theory)
     }).toVector
