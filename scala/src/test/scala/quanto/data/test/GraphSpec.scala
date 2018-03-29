@@ -456,4 +456,66 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 //  it should "support Graph.Flavor clipboard flavor" in {
 //    assert(Graph().isDataFlavorSupported(Graph.Flavor))
 //  }
+
+  behavior of "vertex cutting"
+  // Create a graph with left, middle and right vertices
+  // Join middle and right,
+  // Experiment with cutting out the left vertex
+  // Note that we are normalising the graphs, which can cause unintuitive behaviour
+  var cut_g = new Graph()
+  cut_g = cut_g.addVertex("v0", NodeV()).
+    addVertex("v1", NodeV()).
+    addVertex("v2", NodeV()).
+    addEdge("e", DirEdge(), "v1" -> "v2")
+
+  it should "count arities" in {
+    val g0 = cut_g.normalise
+    assert(g0.arity("v0") == 0)
+    assert(g0.arity("v1") == 1)
+    assert(g0.arity("v2") == 1)
+  }
+
+
+  it should "find end-points of wires" in {
+    val g0 = cut_g.normalise
+    assert(g0.edgeEndPoints("e0")._1 == Set("v1", "v2").map(VName))
+  }
+
+  it should "find no end-points in a loop" in {
+    val g0 = new Graph().
+      addVertex("v0", WireV()).
+      addVertex("v1", WireV()).
+      addEdge("e0", DirEdge(), "v0"->"v1").
+      addEdge("e1", DirEdge(), "v1"->"v0")
+    assert(g0.edgeEndPoints("e0") == (Set(), Set("e0","e1").map(EName), Set("v0","v1").map(VName)))
+  }
+
+  it should "cut out a lone vertex" in {
+    val (g0,b) = cut_g.
+      normalise.cutVertex("v0")
+    assert(b.isEmpty)
+    assert(g0.nodesThatAreNotWires.size == 2)
+    assert(g0.edges.size == 2) //double expected because normalisation
+  }
+
+  it should "cut out a vertex attached to another vertex" in {
+    val (g0,b) = cut_g.
+      normalise.addEdge("ee0", DirEdge(), "v0" -> "v1").cutVertex("v0")
+    assert(b.size == 1)
+    assert(g0.nodesThatAreNotWires.size == 2)
+    assert(g0.edges.size == 3) // One going left to boundary, two between v1 and v2
+  }
+
+
+  it should "cut out a vertex attached to another vertex and a boundary" in {
+    val (g0,b) = cut_g.
+      normalise.
+      addEdge("ee0", DirEdge(), "v0" -> "v1").
+      addVertex("b0", WireV()).
+      addEdge("ee1", DirEdge(), "b0" -> "v0").
+      cutVertex("v0")
+    assert(b.size == 1)
+    assert(g0.nodesThatAreNotWires.size == 2)
+    assert(g0.edges.size == 3) // One going left to boundary, two between v1 and v2
+  }
 }

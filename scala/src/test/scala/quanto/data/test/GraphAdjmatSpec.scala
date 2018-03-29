@@ -65,8 +65,8 @@ class GraphAdjMatSpec extends FlatSpec {
         |}
       """.stripMargin), rg)
 
-    assert(g.isBoundary("v0"))
-    assert(g.isBoundary("v1"))
+    assert(g.isTerminalWire("v0"))
+    assert(g.isTerminalWire("v1"))
     assert(g === g1)
 
     // LAYOUT A GRAPH LIKE THIS:

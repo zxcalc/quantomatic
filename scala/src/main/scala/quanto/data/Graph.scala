@@ -45,16 +45,18 @@ case class Graph(
                    inBBox: BinRel[VName,BBName]    = BinRel[VName,BBName](),
                    bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]()) extends Ordered[Graph]
 {
-  def isInput (v: VName): Boolean = vdata(v).isWireVertex && inEdges(v).isEmpty && outEdges(v).size == 1
-  def isOutput(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).isEmpty && inEdges(v).size == 1
-  def isInternal(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).size == 1 && inEdges(v).size == 1
-  def isBoundary(vn: VName): Boolean =
+  def isInputWire(v: VName): Boolean = vdata(v).isWireVertex && inEdges(v).isEmpty && outEdges(v).size == 1
+  def isOutputWire(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).isEmpty && inEdges(v).size == 1
+  def isInternalWire(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).size == 1 && inEdges(v).size == 1
+  def isTerminalWire(vn: VName): Boolean =
     vdata(vn).isWireVertex && (inEdges(vn).size + outEdges(vn).size) <= 1
+  lazy val boundaryNodes : Set[VName] = verts.filter(vdata(_).isBoundary)
+  lazy val nodesThatAreNotWires : Set[VName] = verts.filterNot(vdata(_).isWireVertex)
   def isCircle(vn: VName): Boolean =
     vdata(vn).isWireVertex && inEdges(vn).size == 1 && inEdges(vn) == outEdges(vn)
 
   def typeOf(v: VName): String = vdata(v).typ
-  def isAdjacentToBoundary(v: VName): Boolean = adjacentVerts(v).exists(isBoundary)
+  def isAdjacentToBoundary(v: VName): Boolean = adjacentVerts(v).exists(isTerminalWire)
   def isAdjacentToType(v: VName, t: String): Boolean = adjacentVerts(v).exists(typeOf(_) == t)
   def isWireVertex(v: VName) = vdata(v).isWireVertex
 
@@ -65,10 +67,10 @@ case class Graph(
     })
 
   def representsBareWire(vn: VName) =
-    isInput(vn) &&
+    isInputWire(vn) &&
       (succVerts(vn).headOption match {
         case None => false
-        case Some(vn1) => isOutput(vn1)
+        case Some(vn1) => isOutputWire(vn1)
       })
 
   def arity(v: VName) = adjacentEdges(v).size
@@ -77,9 +79,9 @@ case class Graph(
   def edges: Set[EName] = edata.keySet
   def bboxes: Set[BBName] = bbdata.keySet
 
-  def inputs: Set[VName] = verts.filter(isInput)
-  def outputs: Set[VName] = verts.filter(isOutput)
-  def boundary: Set[VName] = verts.filter(isBoundary)
+  def inputs: Set[VName] = verts.filter(isInputWire)
+  def outputs: Set[VName] = verts.filter(isOutputWire)
+  def boundary: Set[VName] = verts.filter(isTerminalWire)
 
   override def hashCode: Int = {
     var h = data.hashCode
@@ -137,6 +139,9 @@ case class Graph(
 
   /** Returns a set of vertex names adjacent to vn */
   def adjacentVerts(vn: VName): Set[VName] = predVerts(vn) union succVerts(vn)
+
+  // The set of nodes and wire-boundaires at ends of wires attached to vn
+  def adjacentNodesAndBoundaries(vn: VName) : Set[VName] = adjacentEdges(vn).flatMap(e => edgeEndPoints(e)._1) - vn
 
   /** Returns a set of vertex names adjacent to, and including, vset */
   def extendToAdjacentVerts(vset: Set[VName]): Set[VName] =
@@ -391,6 +396,87 @@ case class Graph(
   }
 
   def deleteVertices(vs: Set[VName]): Graph = vs.foldRight(this) { (v, g) => g.deleteVertex(v) }
+
+  /**
+    * Traverse the wire nodes to find the non-wire endpoints of an edge
+    * @param edge
+    * @return endPoints, edgesBetweenThem, wireNodesBetweenThem
+    */
+  def edgeEndPoints(edge: EName): (Set[VName], Set[EName], Set[VName]) ={
+    // Given an edge find its two end points,
+    // where wire nodes of arity 2 do not count as endpoints
+    // If given a loop then returns an empty set
+
+    var edgesVisited : Set[EName] = Set()
+    var nodesVisited : Set[VName] = Set()
+
+    var endPointsFound : Set[VName] = Set()
+
+    // slightly different to arity, since arity counts self-loops as one edge not two
+    def inPlusOut(vertex: VName) : Int = {
+      source.codf(vertex).size + target.codf(vertex).size
+    }
+    def considerNode(v2: VName){
+      if(!nodesVisited.contains(v2)) {
+        if(!vdata(v2).isWireVertex || inPlusOut(v2) != 2){
+          endPointsFound += v2
+        } else {
+          nodesVisited += v2
+          adjacentEdges(v2).foreach(considerEdge)
+        }
+      }
+    }
+
+    def considerEdge(e2: EName){
+      if(!edgesVisited.contains(e2)) {
+        edgesVisited += e2
+        considerNode(source(e2))
+        considerNode(target(e2))
+      }
+    }
+
+    considerEdge(edge)
+    (endPointsFound, edgesVisited, nodesVisited)
+  }
+
+  /**
+    * Delete a vertex, but leave edges dangling if they were attached to another non-boundary node,
+    * removes boundaries adjacent to the cut vertex,
+    * dangling edges have a newly created boundary at one end.
+    * @param vertexName Vertex Name
+    * @return (Cut graph, new boundaries)
+    */
+  def cutVertex(vertexName: VName) : (Graph, Set[VName]) = {
+    var g = this
+
+    var newBoundaries : Set[VName] = Set()
+
+    def breakEdge(g: Graph, e: EName) : Graph = {
+      var g2 = g
+      val (ends, edges, wireNodes) = edgeEndPoints(e)
+      if(ends.size == 2) {
+        val joinNode = (ends - vertexName).head
+        if (g2.isTerminalWire(joinNode)) {
+          g2 = g2.deleteVertex(joinNode)
+        } else {
+          val bName = g.verts.freshWithSuggestion(VName("c-" + vertexName.s+ "-b"))
+          newBoundaries += bName
+          g2 = g2.addVertex(bName, WireV()).
+            addEdge(g.edges.freshWithSuggestion(e), DirEdge(), bName -> joinNode)
+        }
+        g2 = g2.deleteEdges(edges)
+        g2 = g2.deleteVertices(wireNodes)
+      } else {
+        // the edge given was part of a loop
+        // should never end up here.
+      }
+      g2
+    }
+    g = source.codf(vertexName).foldLeft(g){ (g, e) => breakEdge(g,e)}
+    g = target.codf(vertexName).foldLeft(g){ (g, e) => breakEdge(g,e)}
+    g = g.deleteVertex(vertexName)
+    (g, newBoundaries)
+  }
 
   // data updaters
   def updateData(f: GData => GData): Graph = copy(data = f(data))
@@ -794,7 +880,7 @@ case class Graph(
       g.updateVData(v) { d =>
         if (d.isWireVertex) {
           d.asInstanceOf[WireV].makeBoundary(
-            graph.isBoundary(v)
+            graph.isTerminalWire(v)
           )
         } else d
       }
@@ -821,7 +907,7 @@ case class Graph(
             /**
               * Collapse if between two internal wires, unless going in or out of a bbox
               */
-            if (!isBoundary(s) && !isBoundary(t)) {
+            if (!isTerminalWire(s) && !isTerminalWire(t)) {
               g = g.collapseWire(e)
               ch = true
             }
@@ -935,10 +1021,10 @@ case class Graph(
     */
   def applyBBOp(bbop: BBOp, avoidV: Set[VName] = Set()): Graph = bbop match {
     case BBExpand(bb, mp) =>
-      val mp1 = GraphMap(v = mp.v.filterKeys(v => verts.contains(v) && isBoundary(v)), bb = mp.bb)
+      val mp1 = GraphMap(v = mp.v.filterKeys(v => verts.contains(v) && isTerminalWire(v)), bb = mp.bb)
       expandBBox(bb, avoidV, mp1)._1
     case BBCopy(bb, mp) =>
-      val mp1 = GraphMap(v = mp.v.filterKeys(v => verts.contains(v) && isBoundary(v)), bb = mp.bb)
+      val mp1 = GraphMap(v = mp.v.filterKeys(v => verts.contains(v) && isTerminalWire(v)), bb = mp.bb)
       copyBBox(bb, avoidV, mp1)._1
     case BBDrop(bb) => dropBBox(bb)._1
     case BBKill(bb) => killBBox(bb)._1
@@ -1130,12 +1216,15 @@ object Graph {
 
     var i = amat.numBoundaries
 
-    for (t <- 0 until amat.numRedTypes; v <- 0 until amat.red(t)) {
+    def red(i: Int) : Int = if(amat.red.size > i){amat.red(i)}else{0}
+    def green(i: Int) : Int = if(amat.green.size > i){amat.green(i)}else{0}
+
+    for (t <- 0 until amat.numRedTypes; v <- 0 until red(t)) {
       g = g.addVertex(VName("v" + i), rdata(t))
       i += 1
     }
 
-    for (t <- 0 until amat.numGreenTypes; v <- 0 until amat.green(t)) {
+    for (t <- 0 until amat.numGreenTypes; v <- 0 until green(t)) {
       g = g.addVertex(VName("v" + i), gdata(t))
       i += 1
     }

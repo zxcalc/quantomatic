@@ -1,9 +1,9 @@
 package quanto.cosy.test
 
 import org.scalatest.FlatSpec
-import quanto.cosy.Interpreter.AngleMap
-import quanto.cosy.{AdjMat, Complex, Interpreter, Tensor}
-import quanto.data.{NodeV, Theory}
+import quanto.cosy.Interpreter.{AngleMap, ZXAngleData}
+import quanto.cosy._
+import quanto.data.{Graph, NodeV, Theory}
 import quanto.util.json.JsonObject
 
 /**
@@ -27,6 +27,11 @@ class InterpreterSpec extends FlatSpec {
     NodeV(data = JsonObject("type" -> "Z", "value" -> (-0.5 * pi).toString), theory = rg)
   )
   var one = Complex.one
+  implicit def quickGraph(amat: AdjMat) : Graph = Graph.fromAdjMat(amat, rdata, gdata)
+  def amatToZXTensor(adjMat: AdjMat) = Interpreter.interpretZXAdjMat(adjMat, rdata, gdata)
+  def amatToGraphToZXTensor(adjMat: AdjMat) = Interpreter.interpretZXGraph(adjMat)
+  def zxSpider(isGreen: Boolean, angle: Double, inputs: Int, outputs: Int) : Tensor =
+    Interpreter.interpretZXSpider(ZXAngleData(isGreen, angle), inputs, outputs)
 
   it should "make hadamards" in {
     // Via "new"
@@ -40,11 +45,11 @@ class InterpreterSpec extends FlatSpec {
   }
 
   it should "make Green Spiders" in {
-    def gs(angle: Double, in: Int, out: Int) = Interpreter.interpretZXSpider(true, angle, in, out)
+    def gs(angle: Double, in: Int, out: Int) = zxSpider(true, angle, in, out)
 
-    var g12a0 = Interpreter.interpretZXSpider(true, 0, 1, 2)
-    var g21aPi = Interpreter.interpretZXSpider(true, math.Pi, 2, 1)
-    var g11aPi2 = Interpreter.interpretZXSpider(true, math.Pi / 2.0, 1, 1)
+    var g12a0 = zxSpider(true, 0, 1, 2)
+    var g21aPi = zxSpider(true, math.Pi, 2, 1)
+    var g11aPi2 = zxSpider(true, math.Pi / 2.0, 1, 1)
     var t = gs(math.Pi / 4, 1, 1)
     var g2 = gs(math.Pi / 2, 1, 1)
     assert((t o t).isRoughly(g2))
@@ -52,27 +57,27 @@ class InterpreterSpec extends FlatSpec {
   }
 
   it should "make red spiders" in {
-    def rs(angle: Double, in: Int, out: Int) = Interpreter.interpretZXSpider(false, angle, in, out)
+    def rs(angle: Double, in: Int, out: Int) = zxSpider(false, angle, in, out)
 
     assert(rs(math.Pi, 1, 1).isRoughly(Tensor(Array(Array(0, 1), Array(1, 0)))))
     var rp2 = rs(math.Pi / 2, 1, 1)
     assert((rp2 o rp2).isRoughly(rs(math.Pi, 1, 1)))
     assert((rp2 o rp2 o rp2 o rp2).isRoughly(Tensor.id(2)))
-    assert(Interpreter.cached.contains("ZX:false:3.141592653589793:1:1"))
+    assert(Interpreter.cached.contains("ZX:red:3.141592653589793:1:1"))
   }
 
   it should "respect spider law" in {
-    var g1 = Interpreter.interpretZXSpider(true, math.Pi / 8, 1, 2)
-    var g2 = Interpreter.interpretZXSpider(true, math.Pi / 8, 1, 1)
-    var g3 = Interpreter.interpretZXSpider(true, math.Pi / 4, 1, 2)
+    var g1 = zxSpider(true, math.Pi / 8, 1, 2)
+    var g2 = zxSpider(true, math.Pi / 8, 1, 1)
+    var g3 = zxSpider(true, math.Pi / 4, 1, 2)
     assert(((Tensor.id(2) x g2) o g1).isRoughly(g3))
   }
 
   it should "apply Hadamards" in {
     var h1 = Tensor.hadamard
     var h2 = h1 x h1
-    var g = Interpreter.interpretZXSpider(true, math.Pi / 4, 1, 2)
-    var r = Interpreter.interpretZXSpider(false, math.Pi / 4, 1, 2)
+    var g = zxSpider(true, math.Pi / 4, 1, 2)
+    var r = zxSpider(false, math.Pi / 4, 1, 2)
     assert((h2 o r o h1).isRoughly(g))
   }
 
@@ -83,7 +88,9 @@ class InterpreterSpec extends FlatSpec {
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(true, true))
     println(amat)
-    val i1 = Interpreter.interpretZXAdjMat(amat, redAM = rdata, greenAM = gdata)
+    val i1 = amatToZXTensor(amat)
+    val i2 = amatToGraphToZXTensor(amat)
+    assert(i1.isRoughly(i2))
     assert(i1.isRoughly(Tensor(Array(Array(1, 0, 0, 1)))))
   }
 
@@ -97,9 +104,15 @@ class InterpreterSpec extends FlatSpec {
     amat = amat.nextType.get
     // Red pi
     amat = amat.addVertex(Vector(true, true))
+    amat = amat.nextType.get
+    // Green 0
+    amat = amat.nextType.get
+    // Green pi
     println(amat)
-    val i1 = Interpreter.interpretZXAdjMat(amat, redAM = rdata, greenAM = gdata)
-    assert(i1.isRoughly(Interpreter.interpretZXSpider(green = false, math.Pi, 2, 0)))
+    val i1 = amatToZXTensor(amat)
+    val i2 = amatToGraphToZXTensor(amat)
+    assert(i1.isRoughly(i2))
+    assert(i1.isRoughly(zxSpider(false, math.Pi, 2, 0)))
   }
   var zero = Complex.zero
   it should "process red spider law" in {
@@ -117,8 +130,11 @@ class InterpreterSpec extends FlatSpec {
     amat = amat.addVertex(Vector(false, true, true))
     amat = amat.nextType.get
     //red -pi/2
-    val i1 = Interpreter.interpretZXAdjMat(amat, redAM = rdata, greenAM = gdata)
-    assert(i1.isRoughly(Interpreter.interpretZXSpider(false, -pi / 2, 2, 0)))
+    amat = amat.nextType.get
+    val i1 = amatToZXTensor(amat)
+    val i2 = amatToGraphToZXTensor(amat)
+    assert(i1.isRoughly(i2))
+    assert(i1.isRoughly(zxSpider(false, -pi / 2, 2, 0)))
   }
   it should "satisfy the Euler identity" in {
     // Euler identity
@@ -137,12 +153,15 @@ class InterpreterSpec extends FlatSpec {
     amat = amat.nextType.get
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(false, false, true, true))
+    amat = amat.nextType.get
     println(amat)
-    val i2 = Interpreter.interpretZXAdjMat(amat, redAM = rdata, greenAM = gdata)
-    val i3 = Interpreter.interpretZXSpider(true, 0, 2, 0) o (Tensor.id(2) x Tensor.hadamard)
-    println(i3.scaled(i2.contents(0)(0) / i3.contents(0)(0)))
-    assert(i2.isRoughly(i3.scaled(i2.contents(0)(0) / i3.contents(0)(0))))
-    assert(i2.isRoughlyUpToScalar(Tensor(Array(Array(1, 1, 1, -1)))))
+    val i1 = Interpreter.interpretZXAdjMat(amat, redAM = rdata, greenAM = gdata)
+    val i2 = amatToGraphToZXTensor(amat)
+    assert(i2.isRoughly(i2))
+    val i3 = zxSpider(true, 0, 2, 0) o (Tensor.id(2) x Tensor.hadamard)
+    println(i3.scaled(i1.contents(0)(0) / i3.contents(0)(0)))
+    assert(i1.isRoughly(i3.scaled(i1.contents(0)(0) / i3.contents(0)(0))))
+    assert(i1.isRoughlyUpToScalar(Tensor(Array(Array(1, 1, 1, -1)))))
   }
 
   behavior of "ZW"
@@ -233,4 +252,19 @@ class InterpreterSpec extends FlatSpec {
     var t1 = Interpreter.interpretZWAdjMat(amat)
     assert(t1 == Tensor.id(1))
   }
+
+  behavior of "different types of tensor interpreter"
+
+  //Change the last number for larger tests
+  //Don't include boundaries as the methods can give permutations of each other's answers
+  val smallAdjMats : Stream[AdjMat] = ColbournReadEnum.enumerate(2,2,0,2)
+
+  it should "agree on small adjmats" in {
+    var errors : List[AdjMat] = smallAdjMats.filterNot(adj =>
+      amatToZXTensor(adj).isRoughly(amatToGraphToZXTensor(adj))).toList
+    assert(errors.isEmpty)
+  }
+
+
+
 }

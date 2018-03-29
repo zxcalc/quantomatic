@@ -30,7 +30,7 @@ trait VerticalBoundary extends Constraints {
 
     g.edges.foreach { e =>
       val (s,t) = (g.source(e), g.target(e))
-      if (g.isInput(s) || g.isOutput(t)) {
+      if (g.isInputWire(s) || g.isOutputWire(t)) {
         if (g.isBBoxed(s) || g.isBBoxed(t)){
           constraints += { (distance from s to t along (1.0,0.0)) ~== 0.0 }
         }

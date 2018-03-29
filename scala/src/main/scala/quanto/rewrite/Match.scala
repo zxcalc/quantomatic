@@ -47,7 +47,7 @@ case class Match(pattern0: Graph, // the pattern without bbox operations
 
         var vmap1 = map.v
         for (pw1 <- map.v.codf(tw)) {
-          if (pattern.isInput(pw1)) vmap1 = vmap1 + (pw1 -> newW2)
+          if (pattern.isInputWire(pw1)) vmap1 = vmap1 + (pw1 -> newW2)
         }
         vmap1 = vmap1 + (pw -> newW1) + (pattern.succVerts(pw).head -> newW2)
 
