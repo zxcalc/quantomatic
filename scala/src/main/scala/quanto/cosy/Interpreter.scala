@@ -2,6 +2,7 @@ package quanto.cosy
 
 import quanto.data.Theory.ValueType
 import quanto.data._
+import quanto.util.Rational
 
 /**
   * An interpreter is given a diagram (as an adjMat and variable assignment) and returns a tensor
@@ -9,8 +10,7 @@ import quanto.data._
 
 object Interpreter {
   // Converts a given graph or spider into tensor form
-  type cachedSpiders = collection.mutable.Map[String, Tensor]
-  type AngleMap = Int => Double
+  private type cachedSpiders = collection.mutable.Map[String, Tensor]
   val cached: cachedSpiders = collection.mutable.Map.empty[String, Tensor]
 
   def makeHadamards(n: Int, current: Tensor = Tensor.id(1)): Tensor = n match {
@@ -19,7 +19,12 @@ object Interpreter {
     case _ => Tensor.hadamard x makeHadamards(n - 1, current)
   }
 
-  case class ZXAngleData(isGreen: Boolean, angle: Double)
+  case class ZXAngleData(isGreen: Boolean, angle: PhaseExpression)
+
+
+  implicit def stringToPhase(s : String) : PhaseExpression = {
+    PhaseExpression.parse(s, ValueType.AngleExpr)
+  }
 
   // ASSUME EVERYTHING HAS ANGLE DATA
   implicit def pullOutAngleData(composite: CompositeExpression): PhaseExpression = {
@@ -30,7 +35,7 @@ object Interpreter {
     // Converts spider to tensor. If green==false then it is a red spider
 
     val colour = if(zxAngleData.isGreen){"green"}else{"red"}
-    val angle = zxAngleData.angle
+    val angle = zxAngleData.angle.constant
     val toString = s"ZX:$colour:$angle:$inputs:$outputs"
 
 
@@ -39,7 +44,7 @@ object Interpreter {
         Complex.zero +
           (if (i == 0 && j == 0) Complex.one else Complex.zero) +
           (if (i == math.pow(2, outputs) - 1 && j == math.pow(2, inputs) - 1)
-            Complex(math.cos(angle), math.sin(angle)) else Complex.zero)
+            Complex(math.cos(angle * math.Pi), math.sin(angle * math.Pi)) else Complex.zero)
       }
 
       val mid = Tensor(math.pow(2, outputs).toInt, math.pow(2, inputs).toInt, gen)
@@ -95,7 +100,7 @@ object Interpreter {
 
       val zxData: ZXAngleData = {
         val isGreen = vdata.typ == "Z"
-        val angle =  vdata.value.toDouble
+        val angle =  PhaseExpression.parse(vdata.value, ValueType.AngleExpr)
         ZXAngleData(isGreen, angle)
       }
 
@@ -105,7 +110,9 @@ object Interpreter {
 
     minGraph.vdata.count(nd => !nd._2.isWireVertex) match {
       case 0 =>
-        stringGraph(minGraph, interpretZXSpider(ZXAngleData(isGreen = true,0), 2, 0))
+        stringGraph(minGraph, interpretZXSpider(
+          ZXAngleData(isGreen = true,PhaseExpression.zero(ValueType.AngleExpr)), 2, 0)
+        )
       case _ =>
         pullOutVertexGraph(minGraph, interpretZXGraph, spiderInterpreter)
     }
@@ -270,14 +277,10 @@ object Interpreter {
     } else {
       // Tensor representation of a spider
       def vertexToSpider(v: Int): Tensor = {
-        def pullOutAngle(nv: NodeV) = if (!nv.value.isEmpty) {
-          try {
-            nv.value.toDouble
-          } catch {
-            case _: Error => nv.phaseData.evaluate(Map("pi" -> 1)) * math.Pi
-          }
+        def pullOutAngle(nv: NodeV) : PhaseExpression = if (!nv.value.isEmpty) {
+            nv.value
         } else {
-          nv.phaseData.evaluate(Map("pi" -> 1)) * math.Pi
+          "0"
         }
 
         val (colour, nodeType) = adj.vertexColoursAndTypes(v)
@@ -292,7 +295,7 @@ object Interpreter {
 
       }
 
-      val cap = interpretZXSpider(ZXAngleData(isGreen = true,0), 2, 0)
+      val cap = interpretZXSpider(ZXAngleData(isGreen = true,"0"), 2, 0)
 
       interpretAdjMat(adj, cap, vertexToSpider)
     }

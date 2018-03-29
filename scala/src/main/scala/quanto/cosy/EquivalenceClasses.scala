@@ -2,6 +2,7 @@ package quanto.cosy
 
 import quanto.cosy.Interpreter._
 import quanto.data._
+import quanto.util.Rational
 import quanto.util.json.{Json, JsonAccessException, JsonArray, JsonObject}
 
 import scala.concurrent.{Await, Future}
@@ -365,7 +366,7 @@ object EquivClassRunAdjMat {
             tolerance: Double,
             theory: Theory,
             rulesList: List[Rule]): EquivClassRunAdjMat = {
-    def angleMap = (x: Int) => x * math.Pi * 2.0 / numAngles
+    def angleMap (x: Int) : Rational = {new Rational(x, numAngles)}
 
     val gdata = (for (i <- 0 until numAngles) yield {
       NodeV(data = JsonObject("type" -> "Z", "value" -> angleMap(i).toString), theory = theory)

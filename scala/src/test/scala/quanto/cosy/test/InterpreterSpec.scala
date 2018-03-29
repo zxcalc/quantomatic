@@ -3,7 +3,8 @@ package quanto.cosy.test
 import org.scalatest.FlatSpec
 import quanto.cosy.Interpreter.{AngleMap, ZXAngleData}
 import quanto.cosy._
-import quanto.data.{Graph, NodeV, Theory}
+import quanto.data.Theory.ValueType
+import quanto.data.{Graph, NodeV, PhaseExpression, Theory}
 import quanto.util.json.JsonObject
 
 /**
@@ -16,22 +17,29 @@ class InterpreterSpec extends FlatSpec {
   val pi = math.Pi
   val rdata = Vector(
     NodeV(data = JsonObject("type" -> "X", "value" -> "0"), theory = rg),
-    NodeV(data = JsonObject("type" -> "X", "value" -> pi.toString), theory = rg),
-    NodeV(data = JsonObject("type" -> "X", "value" -> (0.5 * pi).toString), theory = rg),
-    NodeV(data = JsonObject("type" -> "X", "value" -> (-0.5 * pi).toString), theory = rg)
+    NodeV(data = JsonObject("type" -> "X", "value" -> "1"), theory = rg),
+    NodeV(data = JsonObject("type" -> "X", "value" -> "1/2"), theory = rg),
+    NodeV(data = JsonObject("type" -> "X", "value" -> "-1/2"), theory = rg)
   )
   val gdata = Vector(
     NodeV(data = JsonObject("type" -> "Z", "value" -> "0"), theory = rg),
-    NodeV(data = JsonObject("type" -> "Z", "value" -> pi.toString), theory = rg),
-    NodeV(data = JsonObject("type" -> "Z", "value" -> (0.5 * pi).toString), theory = rg),
-    NodeV(data = JsonObject("type" -> "Z", "value" -> (-0.5 * pi).toString), theory = rg)
+    NodeV(data = JsonObject("type" -> "Z", "value" -> "1"), theory = rg),
+    NodeV(data = JsonObject("type" -> "Z", "value" -> "1/2"), theory = rg),
+    NodeV(data = JsonObject("type" -> "Z", "value" -> "-1/2"), theory = rg)
   )
+  //Change the last number for larger tests
+  //Don't include boundaries as the methods can give permutations of each other's answers
+  val smallAdjMats: Stream[AdjMat] = ColbournReadEnum.enumerate(2, 2, 0, 2)
+
+  implicit def quickGraph(amat: AdjMat): Graph = Graph.fromAdjMat(amat, rdata, gdata)
+
+  implicit def stringToPhase(s: String): PhaseExpression = {
+    PhaseExpression.parse(s, ValueType.AngleExpr)
+  }
   var one = Complex.one
-  implicit def quickGraph(amat: AdjMat) : Graph = Graph.fromAdjMat(amat, rdata, gdata)
+  var zero = Complex.zero
+
   def amatToZXTensor(adjMat: AdjMat) = Interpreter.interpretZXAdjMat(adjMat, rdata, gdata)
-  def amatToGraphToZXTensor(adjMat: AdjMat) = Interpreter.interpretZXGraph(adjMat)
-  def zxSpider(isGreen: Boolean, angle: Double, inputs: Int, outputs: Int) : Tensor =
-    Interpreter.interpretZXSpider(ZXAngleData(isGreen, angle), inputs, outputs)
 
   it should "make hadamards" in {
     // Via "new"
@@ -45,39 +53,39 @@ class InterpreterSpec extends FlatSpec {
   }
 
   it should "make Green Spiders" in {
-    def gs(angle: Double, in: Int, out: Int) = zxSpider(true, angle, in, out)
+    def gs(angle: String, in: Int, out: Int) = zxSpider(true, angle, in, out)
 
-    var g12a0 = zxSpider(true, 0, 1, 2)
-    var g21aPi = zxSpider(true, math.Pi, 2, 1)
-    var g11aPi2 = zxSpider(true, math.Pi / 2.0, 1, 1)
-    var t = gs(math.Pi / 4, 1, 1)
-    var g2 = gs(math.Pi / 2, 1, 1)
+    var g12a0 = zxSpider(true, "0", 1, 2)
+    var g21aPi = zxSpider(true, "pi", 2, 1)
+    var g11aPi2 = zxSpider(true, "pi/2", 1, 1)
+    var t = gs("pi/4", 1, 1)
+    var g2 = gs("pi/2", 1, 1)
     assert((t o t).isRoughly(g2))
-    assert((g2 o g2).isRoughly(gs(math.Pi, 1, 1)))
+    assert((g2 o g2).isRoughly(gs("pi", 1, 1)))
   }
 
   it should "make red spiders" in {
-    def rs(angle: Double, in: Int, out: Int) = zxSpider(false, angle, in, out)
+    def rs(angle: String, in: Int, out: Int) = zxSpider(false, angle, in, out)
 
-    assert(rs(math.Pi, 1, 1).isRoughly(Tensor(Array(Array(0, 1), Array(1, 0)))))
-    var rp2 = rs(math.Pi / 2, 1, 1)
-    assert((rp2 o rp2).isRoughly(rs(math.Pi, 1, 1)))
+    assert(rs("pi", 1, 1).isRoughlyUpToScalar(Tensor(Array(Array(0, 1), Array(1, 0)))))
+    var rp2 = rs("pi/2", 1, 1)
+    assert((rp2 o rp2).isRoughly(rs("pi", 1, 1)))
     assert((rp2 o rp2 o rp2 o rp2).isRoughly(Tensor.id(2)))
-    assert(Interpreter.cached.contains("ZX:red:3.141592653589793:1:1"))
+    assert(Interpreter.cached.contains("ZX:red:1:1:1"))
   }
 
   it should "respect spider law" in {
-    var g1 = zxSpider(true, math.Pi / 8, 1, 2)
-    var g2 = zxSpider(true, math.Pi / 8, 1, 1)
-    var g3 = zxSpider(true, math.Pi / 4, 1, 2)
+    var g1 = zxSpider(true, "pi/8", 1, 2)
+    var g2 = zxSpider(true, "pi/8", 1, 1)
+    var g3 = zxSpider(true, "pi/4", 1, 2)
     assert(((Tensor.id(2) x g2) o g1).isRoughly(g3))
   }
 
   it should "apply Hadamards" in {
     var h1 = Tensor.hadamard
     var h2 = h1 x h1
-    var g = zxSpider(true, math.Pi / 4, 1, 2)
-    var r = zxSpider(false, math.Pi / 4, 1, 2)
+    var g = zxSpider(true, "pi/4", 1, 2)
+    var r = zxSpider(false, "pi/4", 1, 2)
     assert((h2 o r o h1).isRoughly(g))
   }
 
@@ -112,9 +120,10 @@ class InterpreterSpec extends FlatSpec {
     val i1 = amatToZXTensor(amat)
     val i2 = amatToGraphToZXTensor(amat)
     assert(i1.isRoughly(i2))
-    assert(i1.isRoughly(zxSpider(false, math.Pi, 2, 0)))
+    assert(i1.isRoughly(zxSpider(false, "pi", 2, 0)))
   }
-  var zero = Complex.zero
+
+  def amatToGraphToZXTensor(adjMat: AdjMat) = Interpreter.interpretZXGraph(adjMat)
   it should "process red spider law" in {
     // Simple red and green identities
     var amat = new AdjMat(numRedTypes = 4, numGreenTypes = 4)
@@ -134,8 +143,9 @@ class InterpreterSpec extends FlatSpec {
     val i1 = amatToZXTensor(amat)
     val i2 = amatToGraphToZXTensor(amat)
     assert(i1.isRoughly(i2))
-    assert(i1.isRoughly(zxSpider(false, -pi / 2, 2, 0)))
+    assert(i1.isRoughly(zxSpider(false, "-pi / 2", 2, 0)))
   }
+
   it should "satisfy the Euler identity" in {
     // Euler identity
     var amat = new AdjMat(numRedTypes = 4, numGreenTypes = 4)
@@ -158,7 +168,7 @@ class InterpreterSpec extends FlatSpec {
     val i1 = Interpreter.interpretZXAdjMat(amat, redAM = rdata, greenAM = gdata)
     val i2 = amatToGraphToZXTensor(amat)
     assert(i2.isRoughly(i2))
-    val i3 = zxSpider(true, 0, 2, 0) o (Tensor.id(2) x Tensor.hadamard)
+    val i3 = zxSpider(true, "0", 2, 0) o (Tensor.id(2) x Tensor.hadamard)
     println(i3.scaled(i1.contents(0)(0) / i3.contents(0)(0)))
     assert(i1.isRoughly(i3.scaled(i1.contents(0)(0) / i3.contents(0)(0))))
     assert(i1.isRoughlyUpToScalar(Tensor(Array(Array(1, 1, 1, -1)))))
@@ -255,16 +265,14 @@ class InterpreterSpec extends FlatSpec {
 
   behavior of "different types of tensor interpreter"
 
-  //Change the last number for larger tests
-  //Don't include boundaries as the methods can give permutations of each other's answers
-  val smallAdjMats : Stream[AdjMat] = ColbournReadEnum.enumerate(2,2,0,2)
+  def zxSpider(isGreen: Boolean, angle: String, inputs: Int, outputs: Int): Tensor =
+    Interpreter.interpretZXSpider(ZXAngleData(isGreen, angle), inputs, outputs)
 
   it should "agree on small adjmats" in {
-    var errors : List[AdjMat] = smallAdjMats.filterNot(adj =>
+    var errors: List[AdjMat] = smallAdjMats.filterNot(adj =>
       amatToZXTensor(adj).isRoughly(amatToGraphToZXTensor(adj))).toList
     assert(errors.isEmpty)
   }
-
 
 
 }

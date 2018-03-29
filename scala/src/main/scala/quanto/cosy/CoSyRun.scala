@@ -4,10 +4,12 @@ import java.nio.file.Path
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
+import quanto.cosy.Interpreter.ZXAngleData
 import quanto.data.Theory.ValueType
 import quanto.util.FileHelper._
 import quanto.data._
 import quanto.rewrite.{Matcher, Rewriter}
+import quanto.util.Rational
 import quanto.util.json.JsonObject
 
 import scala.concurrent.duration.Duration
@@ -35,7 +37,7 @@ abstract class CoSyRun[S, T](
 
     val timeStart = now()
     var equivClasses: Map[T, Graph] = Map()
-    while (Duration(now() - timeStart, "millis") < duration) {
+    while (Duration(now() - timeStart, "millis") < duration && Generator.hasNext) {
       // Get a graph
       val next: S = Generator.next()
       val graph = makeGraph(next)
@@ -113,6 +115,12 @@ object CoSyRuns {
       NodeV(data = JsonObject("type" -> "X", "value" -> angleMap(i).toString), theory = theory)
     }).toVector
 
+
+    private implicit def stringToPhase(s : String) : PhaseExpression = {
+      PhaseExpression.parse(s, ValueType.AngleExpr)
+    }
+
+
     override def makeTensor(gen: AdjMat): Tensor = Interpreter.interpretZXGraph(makeGraph(gen))
 
     override def makeGraph(gen: AdjMat): Graph = Graph.fromAdjMat(gen, rdata, gdata)
@@ -141,7 +149,7 @@ object CoSyRuns {
       }
 
       // Number of "Z" nodes
-      def countZ(graph: Graph): Int = graph.vdata.count(nd => (nd._2.data / "type").stringValue == "Z")
+      def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.typ == "Z")
 
       val zDiff = countZ(left) - countZ(right)
       if (zDiff > 0) {
@@ -152,29 +160,31 @@ object CoSyRuns {
       }
 
       // Sum of Z angles
-      def toAngle(s: String): PhaseExpression = quanto.data.PhaseExpression.parse(s, ValueType.AngleExpr)
+      def toAngle(nv: NodeV): ZXAngleData = ZXAngleData(nv.typ == "Z", nv.value)
+
+      val Pi = math.Pi
 
       def sumAngles(graph: Graph, filterType: String): PhaseExpression = graph.vdata.
-        filter(nd => (nd._2.data / "type").stringValue == filterType).
+        filter(nd => nd._2.typ == filterType).
         foldLeft(PhaseExpression.zero(ValueType.AngleExpr)) {
-          (angle, nd) => angle + toAngle((nd._2.data / "value").stringValue)
+          (angle, nd) => angle + nd._2.asInstanceOf[NodeV].value
         }
 
-      val ZAngles: PhaseExpression = sumAngles(left, "Z") - sumAngles(right, "Z")
-      if (ZAngles.constant > 0) {
+      val ZAngles: Rational = sumAngles(left, "Z").constant - sumAngles(right, "Z").constant
+      if (ZAngles > 0) {
         return true
       }
-      if (ZAngles.constant < 0) {
+      if (ZAngles < 0) {
         return false
       }
 
       // Sum of X angles
 
-      val XAngles: PhaseExpression = sumAngles(left, "X") - sumAngles(right, "X")
-      if (XAngles.constant > 0) {
+      val XAngles: Rational = sumAngles(left, "X").constant - sumAngles(right, "X").constant
+      if (XAngles % (2*Pi) > Pi) {
         return true
       }
-      if (XAngles.constant < 0) {
+      if (XAngles % (2*Pi) < Pi) {
         return false
       }
 
@@ -182,7 +192,7 @@ object CoSyRuns {
       false
     }
 
-    private def angleMap = (x: Int) => x * math.Pi * 2.0 / numAngles
+    private def angleMap = (x: Int) => PhaseExpression(new Rational(x,numAngles), ValueType.AngleExpr)
 
 
   }
