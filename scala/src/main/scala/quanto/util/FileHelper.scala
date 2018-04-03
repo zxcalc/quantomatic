@@ -5,6 +5,8 @@ import java.net.URI
 
 import quanto.util.json.Json
 
+import scala.io.Source
+
 
 object FileHelper {
 
@@ -60,6 +62,14 @@ object FileHelper {
   }
 
   def readFile[T](file: File, conversion: Json => T): T = conversion(Json.parse(file))
+
+  def readFile(file: File): List[String] = {
+    val bufferedSource = Source.fromFile(file)
+    val lines = bufferedSource.getLines().toList
+    bufferedSource.close
+    lines
+  }
+
 
   def readAllOfType[T](directory: String, regexFilter: String, conversion: Json => T): List[T] = {
     readJSONFromDirectory(directory, regexFilter).map(conversion)
