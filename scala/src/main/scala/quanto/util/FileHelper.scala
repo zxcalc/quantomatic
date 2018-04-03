@@ -1,12 +1,27 @@
 package quanto.util
 
 import java.io.File
+import java.net.URI
 
 import quanto.util.json.{Json, JsonObject}
 
 import scala.util.matching.Regex
 
 object FileHelper {
+
+  implicit def uriToFile(uri: URI) : File = new File(uri)
+  implicit def pathToFile(path: String) : File = new File(path)
+
+  def ensureParentFolderExists(file: File): File = {
+    ensureFolderExists(file.getParentFile)
+    file
+  }
+
+  def ensureFolderExists(file: File) : File = {
+    if (!file.exists && !file.mkdirs) throw new IllegalStateException("Couldn't create dir: " + file)
+    file
+  }
+
   /**
     * Helper method to print to a file.
     *
@@ -16,11 +31,18 @@ object FileHelper {
     */
   def printToFile(file_name: File, append: Boolean = true)
                  (op: java.io.PrintWriter => Unit) {
-    val p = new java.io.PrintWriter(new java.io.FileWriter(file_name, append))
+    val p = new java.io.PrintWriter(new java.io.FileWriter(ensureParentFolderExists(file_name), append))
     try {
       op(p)
     } finally {
       p.close()
+    }
+  }
+
+  def printToFile(file_name: File, string: String, append: Boolean) {
+    printToFile(file_name, append){p => {
+      p.println(string)
+    }
     }
   }
 
