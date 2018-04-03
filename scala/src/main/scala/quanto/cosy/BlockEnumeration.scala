@@ -30,7 +30,7 @@ object Block {
   }
 }
 
-class BlockRow(val blocks: List[Block], suggestTensor: Option[Tensor] = None) {
+case class BlockRow(blocks: List[Block], suggestTensor: Option[Tensor] = None) {
   implicit def optionTensor(t: Tensor): Option[Tensor] = {
     Option(t)
   }
@@ -58,7 +58,7 @@ object BlockRow {
   }
 }
 
-class BlockStack(val rows: List[BlockRow]) extends Ordered[BlockStack] {
+case class BlockStack(rows: List[BlockRow]) extends Ordered[BlockStack] {
   lazy val tensor: Tensor = if (rows.isEmpty) {
     Tensor.id(1)
   } else {
@@ -186,7 +186,7 @@ object BlockRowMaker {
       Block(1, 1, " H'", H.dagger),
       Block(2, 1, "2g1", greenFork),
       Block(1, 2, "1g2", greenFork.dagger),
-      Block(0, 1, "gu ", Tensor(dimension, 1, (i, j) => Complex.one).scaled(1.0 / math.sqrt(dimension))),
+      Block(0, 1, "gu ", Tensor(dimension, 1, (_, _) => Complex.one).scaled(1.0 / math.sqrt(dimension))),
       Block(1, 2, "1r2", (H.dagger o greenFork o (H x H)).dagger),
       Block(2, 1, "2r1", H.dagger o greenFork o (H x H)),
       Block(0, 1, "ru ", Tensor(dimension, 1, (i, j) => if (i == 0 && j == 0) Complex.one else Complex.zero))
@@ -194,6 +194,9 @@ object BlockRowMaker {
       Block(1, 1, "r" + b.name.tail, H.dagger o b.tensor o H)
     )
   }
+
+  def Hadamard(dimension: Int): Tensor =
+    Tensor(dimension, dimension, (i, j) => ei(2 * math.Pi * i * j / dimension)).scaled(1 / math.sqrt(dimension))
 
   // Traditionally the number of angles is 3 (Clifford) or 9 (Clifford+T)
   def ZXQutrit(numAngles: Int = 9): List[Block] = {
@@ -237,11 +240,6 @@ object BlockRowMaker {
       }).flatten.toList
   }
 
-  def Hadamard(dimension: Int): Tensor =
-    Tensor(dimension, dimension, (i, j) => ei(2 * math.Pi * i * j / dimension)).scaled(1 / math.sqrt(dimension))
-
-  private def ei(angle: Double) = Complex(math.cos(angle), math.sin(angle))
-
   def ZX(numAngles: Int = 8): List[Block] = List(
     Block(1, 1, " 1 ", Tensor.idWires(1)),
     Block(2, 2, " s ", Tensor.swap(List(1, 0))),
@@ -275,6 +273,8 @@ object BlockRowMaker {
     Block(1, 1, " H ", Tensor(Array(Array(1, 1), Array(1, -1))).scaled(1.0 / math.sqrt(2))),
     Block(1, 1, " S ", Tensor.diagonal(Array(Complex.one, ei(math.Pi / 2))))
   )
+
+  private def ei(angle: Double) = Complex(math.cos(angle), math.sin(angle))
 
   def stackToGraph(stack: BlockStack, blockToGraph: Block => Graph): Graph = {
     var g = (for ((row, index) <- stack.rows.zipWithIndex) yield {

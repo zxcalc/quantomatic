@@ -3,23 +3,20 @@ package quanto.util
 import java.io.File
 import java.net.URI
 
-import quanto.util.json.{Json, JsonObject}
+import quanto.util.json.Json
 
-import scala.util.matching.Regex
 
 object FileHelper {
 
-  implicit def uriToFile(uri: URI) : File = new File(uri)
-  implicit def pathToFile(path: String) : File = new File(path)
+  implicit def uriToFile(uri: URI): File = new File(uri)
 
-  def ensureParentFolderExists(file: File): File = {
-    ensureFolderExists(file.getParentFile)
-    file
-  }
+  implicit def pathToFile(path: String): File = new File(path)
 
-  def ensureFolderExists(file: File) : File = {
-    if (!file.exists && !file.mkdirs) throw new IllegalStateException("Couldn't create dir: " + file)
-    file
+  def printToFile(file_name: File, string: String, append: Boolean) {
+    printToFile(file_name, append) { p => {
+      p.println(string)
+    }
+    }
   }
 
   /**
@@ -39,14 +36,17 @@ object FileHelper {
     }
   }
 
-  def printToFile(file_name: File, string: String, append: Boolean) {
-    printToFile(file_name, append){p => {
-      p.println(string)
-    }
-    }
+  def ensureParentFolderExists(file: File): File = {
+    ensureFolderExists(file.getParentFile)
+    file
   }
 
-  def printJson(fileName : String, json: Json) : Unit = {
+  def ensureFolderExists(file: File): File = {
+    if (!file.exists && !file.mkdirs) throw new IllegalStateException("Couldn't create dir: " + file)
+    file
+  }
+
+  def printJson(fileName: String, json: Json): Unit = {
     val targetFile = new File(fileName)
     val parent = targetFile.getParentFile
     if (!parent.exists && !parent.mkdirs) throw new IllegalStateException("Couldn't create dir: " + parent)
