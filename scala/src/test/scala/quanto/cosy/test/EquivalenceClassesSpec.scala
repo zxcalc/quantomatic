@@ -6,6 +6,7 @@ import java.nio.file.Paths
 import org.scalatest._
 import quanto.cosy._
 import quanto.data._
+import quanto.util.FileHelper
 import quanto.util.json.{JsonArray, JsonObject}
 
 import scala.util.parsing.json.JSON
@@ -123,18 +124,6 @@ class EquivalenceClassesSpec extends FlatSpec {
 
   behavior of "IO"
 
-  it should "save run results to file" in {
-    var results = EquivClassRunAdjMat(numAngles = 4,
-      tolerance = EquivClassRunAdjMat.defaultTolerance,
-      rulesList = emptyRuleList,
-      theory = rg)
-    var testFile = new File("test_run_output.qrun")
-    quanto.util.FileHelper.printToFile(testFile, append = false)(
-      p => p.println(results.toJSON.toString())
-    )
-    assert(testFile.delete())
-  }
-
   it should "output to and input from JSON" in {
     var results = EquivClassRunAdjMat(numAngles = 4,
       tolerance = EquivClassRunAdjMat.defaultTolerance,
@@ -160,26 +149,6 @@ class EquivalenceClassesSpec extends FlatSpec {
   }
 
   behavior of "batch runner"
-
-  it should "create an output qrun file" in {
-    EquivClassBatchRunner(4, 2, 2, "test.qrun")
-    var testFile = new File(EquivClassBatchRunner.outputPath + "/" + "test.qrun")
-    assert(testFile.exists())
-    assert(testFile.delete())
-  }
-
-  it should "allow outputs to home directory" in {
-    EquivClassBatchRunner.outputPath = Paths.get(System.getProperty("user.home"), "cosy_synth").toString
-    println(EquivClassBatchRunner.outputPath)
-    EquivClassBatchRunner.outputPath = "cosy_synth" // reset to avoid problems in later tests
-  }
-
-  it should "create an output qtensor file" in {
-    TensorBatchRunner(1, 2, 2)
-    var testFile = new File(TensorBatchRunner.outputPath + "/" + "tensors-1-2-2.qtensor")
-    assert(testFile.exists())
-    assert(testFile.delete())
-  }
 
   it should "be writing legible JSON" in {
     var results = EquivClassRunAdjMat(numAngles = 4,

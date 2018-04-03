@@ -12,6 +12,12 @@ object FileHelper {
 
   implicit def pathToFile(path: String): File = new File(path)
 
+  val Home: URI = {
+    val uri = System.getProperty("user.home").toURI
+    if (!uri.exists) throw new IllegalStateException("Couldn't access dir: " + uri)
+    uri
+  }
+
   def printToFile(file_name: File, string: String, append: Boolean) {
     printToFile(file_name, append) { p => {
       p.println(string)

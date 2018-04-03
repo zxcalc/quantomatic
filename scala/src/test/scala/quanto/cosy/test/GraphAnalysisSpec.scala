@@ -25,13 +25,15 @@ class GraphAnalysisSpec extends FlatSpec {
 
   behavior of "Graph Analysis"
 
+
+  private val errorGates = quanto.util.FileHelper.readFile[Graph](
+    new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
+    Graph.fromJson(_, rg)
+  )
+
   it should "compute adjacency matrices" in {
 
-    val targetGraph = quanto.util.FileHelper.readFile[Graph](
-      new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
-      Graph.fromJson(_, rg)
-    )
-    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(targetGraph)
+    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(errorGates)
     // boundary b2, error v2, next gate vertex v3
     val bIndex = adjacencyMatrix._1.indexOf(VName("b2"))
     val eIndex = adjacencyMatrix._1.indexOf(VName("v2"))
@@ -40,18 +42,14 @@ class GraphAnalysisSpec extends FlatSpec {
     assert(!adjacencyMatrix._2(bIndex)(vIndex))
 
 
-    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectPiNodes)(targetGraph, adjacencyMatrix)
+    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectPiNodes)(errorGates, adjacencyMatrix)
     assert(ghostedErrors._2(bIndex)(eIndex))
     assert(ghostedErrors._2(bIndex)(vIndex))
   }
 
   it should "calculate distance from ends" in {
 
-    val targetGraph = quanto.util.FileHelper.readFile[Graph](
-      new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
-      Graph.fromJson(_, rg)
-    )
-    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(targetGraph)
+    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(errorGates)
 
     val errorName = VName("v2")
     val leftBoundary = VName("b2")
@@ -73,11 +71,7 @@ class GraphAnalysisSpec extends FlatSpec {
 
   it should "find neighbours" in {
 
-    val targetGraph = quanto.util.FileHelper.readFile[Graph](
-      new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
-      Graph.fromJson(_, rg)
-    )
-    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(targetGraph)
+    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(errorGates)
 
     val errorName = VName("v2")
 
@@ -87,12 +81,8 @@ class GraphAnalysisSpec extends FlatSpec {
 
   it should "calculate distance of a given, ignored set from ends" in {
 
-    val targetGraph = quanto.util.FileHelper.readFile[Graph](
-      new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
-      Graph.fromJson(_, rg)
-    )
-    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(targetGraph)
-    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectPiNodes)(targetGraph, adjacencyMatrix)
+    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(errorGates)
+    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectPiNodes)(errorGates, adjacencyMatrix)
 
     val errorName = VName("v2")
     val leftBoundary = VName("b2")
@@ -119,7 +109,7 @@ class GraphAnalysisSpec extends FlatSpec {
 
     // Now check with the simproc methods
 
-    val eDistances = SimplificationProcedure.PullErrors.errorsDistance(rightBoundaries)(targetGraph, Set(errorName))
+    val eDistances = SimplificationProcedure.PullErrors.errorsDistance(rightBoundaries)(errorGates, Set(errorName))
 
     assert(eDistances.get == 2.0)
   }
