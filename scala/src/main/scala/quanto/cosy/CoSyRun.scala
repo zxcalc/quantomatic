@@ -22,7 +22,8 @@ abstract class CoSyRun[S, T](
                               rulesDir: File,
                               theory : Theory,
                               duration: Duration,
-                              outputDir: File
+                              outputDir: File,
+                              makeValuesFile: Boolean
                             ) {
 
   val Generator: Iterator[S]
@@ -35,6 +36,8 @@ abstract class CoSyRun[S, T](
   def graphLeftBiggerRight(left: Graph, right: Graph): Boolean
 
   def compareTensor(a: T, b: T): Boolean
+
+  def makeString(a: S, b: T) : String
 
   var equivClasses: Map[T, Graph] = Map()
 
@@ -67,6 +70,12 @@ abstract class CoSyRun[S, T](
           }
         } else {
           equivClasses = equivClasses + (interpretation -> graph)
+          if(makeValuesFile) {
+            FileHelper.printToFile(
+              outputDir.toURI.resolve("./values.txt"),
+              makeString(next, interpretation),
+              append = true)
+          }
         }
       } else {
         // Nothing to do, since it can be reduced
@@ -115,8 +124,9 @@ object CoSyRuns {
                outputDir: File,
                numAngles: Int,
                numBoundaries: Int,
-               numVertices: Int
-              ) extends CoSyRun[AdjMat, Tensor](rulesDir, theory, duration, outputDir) {
+               numVertices: Int,
+               scalars: Boolean
+              ) extends CoSyRun[AdjMat, Tensor](rulesDir, theory, duration, outputDir, makeValuesFile =  true) {
 
 
     override val Generator: Iterator[AdjMat] =
@@ -129,7 +139,11 @@ object CoSyRuns {
       NodeV(data = JsonObject("type" -> "X", "value" -> angleMap(i).toString), theory = theory)
     }).toVector
 
-    override def compareTensor(a: Tensor, b: Tensor): Boolean = a.isRoughlyUpToScalar(b)
+    override def compareTensor(a: Tensor, b: Tensor): Boolean = if(!scalars){
+      a.isRoughlyUpToScalar(b)
+    } else {
+      a.isRoughly(b)
+    }
 
     private implicit def stringToPhase(s : String) : PhaseExpression = {
       PhaseExpression.parse(s, ValueType.AngleExpr)
@@ -139,6 +153,10 @@ object CoSyRuns {
     override def makeTensor(gen: AdjMat): Tensor = Interpreter.interpretZXGraph(makeGraph(gen))
 
     override def makeGraph(gen: AdjMat): Graph = Graph.fromAdjMat(gen, rdata, gdata)
+
+    override def makeString(a: AdjMat, b: Tensor): String = {
+      s"adj${a.hash}: ${b.toJson},"
+    }
 
     override def graphLeftBiggerRight(left: Graph, right: Graph): Boolean = {
       // First count number of nodes
