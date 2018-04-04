@@ -80,7 +80,7 @@ class TensorSpec extends FlatSpec {
     assert((p2 o l1.t) == l2.t)
   }
 
-  it should "construct swap matrices" in {
+  it should "construct 2-wire swap matrices" in {
     var s1 = Tensor.swap(2, x => 1 - x)
     assert(s1.toString == "1 0 0 0\n0 0 1 0\n0 1 0 0\n0 0 0 1")
     var s2 = Tensor.swap(List(0, 2, 1))
@@ -119,8 +119,8 @@ class TensorSpec extends FlatSpec {
   }
 
   it should "create direct sums" in {
-    var t1 = Tensor.diagonal(Array[Complex](1,2))
-    var t2 = Tensor(Array(Array(3,4)))
+    var t1 = Tensor.diagonal(Array[Complex](1, 2))
+    var t2 = Tensor(Array(Array(3, 4)))
     assert((t1 sum t2) == Tensor(Array(Array(1, 0, 0, 0), Array(0, 2, 0, 0), Array(0, 0, 3, 4))))
     assert((t1 sum t2.transpose) == Tensor(Array(Array(1, 0, 0), Array(0, 2, 0), Array(0, 0, 3), Array(0, 0, 4))))
   }
