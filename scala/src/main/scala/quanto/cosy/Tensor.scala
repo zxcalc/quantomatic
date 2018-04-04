@@ -386,7 +386,7 @@ object Tensor {
       def padLeft(s: String, n: Int): String = if (s.length < n) padLeft("0" + s, n) else s
 
       def permGen(i: Int): Int = {
-        val binaryStringIn = padLeft((i: RichInt).toBinaryString, size)
+        val binaryStringIn = padLeft(i.toBinaryString, size)
         val permedString = (for (j <- 0 until size) yield binaryStringIn(gen(j))).mkString("")
         permedString match {
           case "" => 0

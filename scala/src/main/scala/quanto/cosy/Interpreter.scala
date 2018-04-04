@@ -19,22 +19,14 @@ object Interpreter {
     case _ => Tensor.hadamard x makeHadamards(n - 1, current)
   }
 
-  case class ZXAngleData(isGreen: Boolean, angle: PhaseExpression)
-
-
-  implicit def stringToPhase(s : String) : PhaseExpression = {
-    PhaseExpression.parse(s, ValueType.AngleExpr)
-  }
-
-  // ASSUME EVERYTHING HAS ANGLE DATA
-  implicit def pullOutAngleData(composite: CompositeExpression): PhaseExpression = {
-    composite.firstOrError(ValueType.AngleExpr)
-  }
-
   def interpretZXSpider(zxAngleData: ZXAngleData, inputs: Int, outputs: Int): Tensor = {
     // Converts spider to tensor. If green==false then it is a red spider
 
-    val colour = if(zxAngleData.isGreen){"green"}else{"red"}
+    val colour = if (zxAngleData.isGreen) {
+      "green"
+    } else {
+      "red"
+    }
     val angle = zxAngleData.angle.constant
     val toString = s"ZX:$colour:$angle:$inputs:$outputs"
 
@@ -52,6 +44,16 @@ object Interpreter {
       cached += (toString -> spider)
       spider
     }
+  }
+
+
+  implicit def stringToPhase(s: String): PhaseExpression = {
+    PhaseExpression.parse(s, ValueType.AngleExpr)
+  }
+
+  // ASSUME EVERYTHING HAS ANGLE DATA
+  implicit def pullOutAngleData(composite: CompositeExpression): PhaseExpression = {
+    composite.firstOrError(ValueType.AngleExpr)
   }
 
   def interpretZWSpider(black: Boolean, outputs: Int): Tensor = {
@@ -100,7 +102,7 @@ object Interpreter {
 
       val zxData: ZXAngleData = {
         val isGreen = vdata.typ == "Z"
-        val angle =  PhaseExpression.parse(vdata.value, ValueType.AngleExpr)
+        val angle = PhaseExpression.parse(vdata.value, ValueType.AngleExpr)
         ZXAngleData(isGreen, angle)
       }
 
@@ -111,7 +113,7 @@ object Interpreter {
     minGraph.vdata.count(nd => !nd._2.isWireVertex) match {
       case 0 =>
         stringGraph(minGraph, interpretZXSpider(
-          ZXAngleData(isGreen = true,PhaseExpression.zero(ValueType.AngleExpr)), 2, 0)
+          ZXAngleData(isGreen = true, PhaseExpression.zero(ValueType.AngleExpr)), 2, 0)
         )
       case _ =>
         pullOutVertexGraph(minGraph, interpretZXGraph, spiderInterpreter)
@@ -125,28 +127,33 @@ object Interpreter {
     * @param graph : Graph
     * @return
     */
-  private def stringGraph(graph: Graph, cap: Tensor): Tensor = {
+  def stringGraph(graph: Graph, cap: Tensor): Tensor = {
     if (graph.verts.size % 2 != 0) {
       throw new Error("String graph should have an even number of boundaries")
     }
     val numVerts = graph.verts.size
     val caps = cap.power(numVerts / 2)
-    val nameVector = graph.verts.toVector.sorted
+    val nameVector: Vector[VName] = graph.verts.toVector.sorted
+
+    var claimed: List[VName] = List()
 
     def toNeighbour(place: Int): Int = {
-      val name = nameVector(place)
-      val neighbour = graph.adjacentVerts(name).head
-      if (name < neighbour) {
-        2 * place
+      val name: VName = nameVector(place)
+      val neighbour: VName = graph.adjacentVerts(name).head
+      val index = claimed.indexOf(name)
+      if (index < 0) {
+        claimed = claimed :+ name
+        claimed = claimed :+ neighbour
+        toNeighbour(place)
       } else {
-        2 * nameVector.indexOf(neighbour) + 1
+        index
       }
     }
 
     val sigma = if (numVerts > 0) {
       Tensor.swap(numVerts, toNeighbour)
     } else {
-      Tensor(Array(Array(Complex(1,0))))
+      Tensor(Array(Array(Complex(1, 0))))
     }
 
     caps o sigma
@@ -161,7 +168,7 @@ object Interpreter {
       (1 + numBoundary).toDouble / (1 + startingGraph.adjacentVerts(name).size - numBoundary)
     }
 
-    def boundaries(g: Graph) : Set[VName] = g.verts.filter(g.isTerminalWire)
+    def boundaries(g: Graph): Set[VName] = g.verts.filter(g.isTerminalWire)
 
     // Pick a vertex to shift from graph to tensor
     val cutVertex = startingGraph.verts.filterNot(vn => startingGraph.vdata(vn).isWireVertex).maxBy(ratioDanglingWires)
@@ -182,17 +189,17 @@ object Interpreter {
     val allInputsVector: Vector[VName] = startingGraphBoundaries.toVector.sorted
 
     val bottomSigma: Tensor = {
-      val swapList :List[Int] = {
+      val swapList: List[Int] = {
         var leftCount = 0
         var rightCount = (reducedGraphBoundaries -- cutSpiderOutputJoins).size
         allInputsVector.indices.map(i =>
           if (reducedGraphBoundaries.contains(allInputsVector(i))) {
-              leftCount += 1
-              leftCount - 1
-            } else {
-              rightCount += 1
-              rightCount - 1
-            }
+            leftCount += 1
+            leftCount - 1
+          } else {
+            rightCount += 1
+            rightCount - 1
+          }
         ).toList
       }
       Tensor.swap(allInputsVector.size, swapList)
@@ -277,8 +284,8 @@ object Interpreter {
     } else {
       // Tensor representation of a spider
       def vertexToSpider(v: Int): Tensor = {
-        def pullOutAngle(nv: NodeV) : PhaseExpression = if (!nv.value.isEmpty) {
-            nv.value
+        def pullOutAngle(nv: NodeV): PhaseExpression = if (!nv.value.isEmpty) {
+          nv.value
         } else {
           "0"
         }
@@ -295,7 +302,7 @@ object Interpreter {
 
       }
 
-      val cap = interpretZXSpider(ZXAngleData(isGreen = true,"0"), 2, 0)
+      val cap = interpretZXSpider(ZXAngleData(isGreen = true, "0"), 2, 0)
 
       interpretAdjMat(adj, cap, vertexToSpider)
     }
@@ -318,4 +325,6 @@ object Interpreter {
 
     interpretAdjMat(adj, cup, vertexToSpider)
   }
+
+  case class ZXAngleData(isGreen: Boolean, angle: PhaseExpression)
 }

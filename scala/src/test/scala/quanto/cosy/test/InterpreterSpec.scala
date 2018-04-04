@@ -1,16 +1,57 @@
 package quanto.cosy.test
 
 import org.scalatest.FlatSpec
-import quanto.cosy.Interpreter.{AngleMap, ZXAngleData}
+import quanto.cosy.Interpreter._
 import quanto.cosy._
 import quanto.data.Theory.ValueType
-import quanto.data.{Graph, NodeV, PhaseExpression, Theory}
+import quanto.data._
 import quanto.util.json.JsonObject
 
 /**
   * Created by hector on 24/05/17.
   */
 class InterpreterSpec extends FlatSpec {
+
+  behavior of "Connecting graphs"
+
+
+  implicit def vname(str: String): VName = VName(str)
+  implicit def vname2(strs: (String, String)): (VName, VName) = (vname(strs._1), vname(strs._2))
+  implicit def ename(str: String): EName = EName(str)
+  it should "make string graph 1" in {
+    var g = new Graph().
+      addVertex(vname("v0"),WireV()).
+      addVertex(vname("v1"), WireV()).
+      addVertex(vname("v2"), WireV()).
+      addVertex(vname("v3"), WireV()).
+      addEdge("e0", UndirEdge(), "v0" -> "v1").
+      addEdge("e1", UndirEdge(), "v2" -> "v3")
+  stringGraph(g, new Tensor(Array(Array[Complex](1,0,0,1))))
+  }
+
+  it should "make string graph 2" in {
+    var g = new Graph().
+      addVertex(vname("v0"),WireV()).
+      addVertex(vname("v1"), WireV()).
+      addVertex(vname("v2"), WireV()).
+      addVertex(vname("v3"), WireV()).
+      addEdge("e0", UndirEdge(), "v0" -> "v2").
+      addEdge("e1", UndirEdge(), "v1" -> "v3")
+    stringGraph(g, new Tensor(Array(Array[Complex](1,0,0,1))))
+  }
+
+
+  it should "make string graph 3" in {
+    var g = new Graph().
+      addVertex(vname("v0"),WireV()).
+      addVertex(vname("v1"), WireV()).
+      addVertex(vname("v2"), WireV()).
+      addVertex(vname("v3"), WireV()).
+      addEdge("e0", UndirEdge(), "v0" -> "v3").
+      addEdge("e1", UndirEdge(), "v1" -> "v2")
+    stringGraph(g, new Tensor(Array(Array[Complex](1,0,0,1))))
+  }
+
   behavior of "ZX"
   val rg = Theory.fromFile("red_green")
 
