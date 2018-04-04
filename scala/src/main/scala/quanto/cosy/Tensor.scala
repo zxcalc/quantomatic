@@ -373,21 +373,32 @@ object Tensor {
     swap(asList.length, gen)
   }
 
+  private var swapCache : Map[List[Int], Tensor] = Map()
+
   def swap(size: Int, gen: Int => Int): Tensor = {
     // Produce the matrix that sends WIRE i to WIRE gen(i)
-    def padLeft(s: String, n: Int): String = if (s.length < n) padLeft("0" + s, n) else s
+    val genAsList : List[Int] = (0 until size).map(gen).toList
 
-    def permGen(i: Int): Int = {
-      val binaryStringIn = padLeft((i: RichInt).toBinaryString, size)
-      val permedString = (for (j <- 0 until size) yield binaryStringIn(gen(j))).mkString("")
-      permedString match {
-        case "" => 0
-        case s => Integer.parseInt(s, 2)
+    if(swapCache.contains(genAsList)){
+      swapCache(genAsList)
+    }else{
+
+      def padLeft(s: String, n: Int): String = if (s.length < n) padLeft("0" + s, n) else s
+
+      def permGen(i: Int): Int = {
+        val binaryStringIn = padLeft((i: RichInt).toBinaryString, size)
+        val permedString = (for (j <- 0 until size) yield binaryStringIn(gen(j))).mkString("")
+        permedString match {
+          case "" => 0
+          case s => Integer.parseInt(s, 2)
+        }
+
       }
-
+      val answer = permutation(math.pow(2, size).toInt, permGen)
+      swapCache += genAsList -> answer
+      answer
     }
 
-    permutation(math.pow(2, size).toInt, permGen)
   }
 
   def permutation(size: Int, gen: Int => Int): Tensor = {
