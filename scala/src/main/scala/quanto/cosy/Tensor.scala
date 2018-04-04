@@ -345,12 +345,20 @@ object Tensor {
     new Tensor(permutationMatrix(asList.length, gen))
   }
 
+  private var permutationCache : Map[List[Int], Matrix] = Map()
+
   def permutationMatrix(size: Int, gen: Int => Int): Matrix = {
-    val base = emptyMatrix(size, size)
-    for (i <- 0 until size) {
-      base(gen(i))(i) = Complex.one
+    val genAsList : List[Int] = (0 until size).map(gen(_)).toList
+    if(permutationCache.contains(genAsList)){
+      permutationCache(genAsList)
+    }else{
+      val base = emptyMatrix(size, size)
+      for (i <- 0 until size) {
+        base(genAsList(i))(i) = Complex.one
+      }
+      permutationCache += genAsList -> base
+      base
     }
-    base
   }
 
   def permutation(asArray: Array[Int]): Tensor = {
