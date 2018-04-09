@@ -259,9 +259,10 @@ object QuantoDerive extends SimpleSwingApplication {
 
   /**
    * Show a dialog (when necessary) asking the user if the program should quit
+    *@param specific : Specify a list to close, or None to close all
    * @return true if the program should quit, false otherwise
    */
-  def closeAllDocuments() = {
+  def closeAllOrListOfDocuments(specific: Option[List[DocumentPage]] = None) : Boolean = {
     if (hasUnsaved) {
 //      val choice = Dialog.showOptions(
 //        title = "Confirm quit",
@@ -282,23 +283,39 @@ object QuantoDerive extends SimpleSwingApplication {
       // Result(0) = Save, Result(1) = Discard, Result(2) = Cancel
       if (choice == 2) false
       else if (choice == 1) {
-        MainDocumentTabs.clear()
+        if(specific.nonEmpty){
+          for(page <- specific.get) {MainDocumentTabs.remove(page)}
+        } else {
+          MainDocumentTabs.clear()
+        }
         true
       }
       else {
         val b = trySaveAll()
-        if (b) MainDocumentTabs.clear()
+        if (b) {
+          if (specific.nonEmpty) {
+            for (page <- specific.get) {
+              MainDocumentTabs.remove(page)
+            }
+          } else {
+            MainDocumentTabs.clear()
+          }
+        }
         b
       }
     }
     else {
-      MainDocumentTabs.clear()
+      if(specific.nonEmpty){
+        for(page <- specific.get) {MainDocumentTabs.remove(page)}
+      } else {
+        MainDocumentTabs.clear()
+      }
       true
     }
   }
 
   def quitQuanto(): Boolean = {
-    val close = closeAllDocuments()
+    val close = closeAllOrListOfDocuments()
     if (close) {
       try {
         //core ! StopCore
@@ -484,7 +501,7 @@ object QuantoDerive extends SimpleSwingApplication {
       menu.contents += new MenuItem(this) { mnemonic = Key.N }
 
       def apply() {
-        if (closeAllDocuments()) {
+        if (closeAllOrListOfDocuments()) {
           val d = new NewProjectDialog()
           d.centerOnScreen()
           d.open()
@@ -522,7 +539,7 @@ object QuantoDerive extends SimpleSwingApplication {
     val OpenProjectAction = new Action("Open Project...") {
       menu.contents += new MenuItem(this) { mnemonic = Key.O }
       def apply() {
-        if (closeAllDocuments()) {
+        if (closeAllOrListOfDocuments()) {
           val chooser = new FileChooser()
           chooser.fileFilter = new FileNameExtensionFilter("Quantomatic Project File (*.qproject)", "qproject")
           chooser.fileSelectionMode = FileChooser.SelectionMode.FilesOnly
@@ -554,7 +571,7 @@ object QuantoDerive extends SimpleSwingApplication {
     val CloseProjectAction = new Action("Close Project") {
       menu.contents += new MenuItem(this) { mnemonic = Key.C }
       def apply() {
-        if (closeAllDocuments()) {
+        if (closeAllOrListOfDocuments()) {
           ProjectFileTree.root = None
           CurrentProject = None
           updateNewEnabled()
