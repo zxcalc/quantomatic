@@ -15,6 +15,8 @@ class UserOptions {
 
 object UserOptions {
 
+  val prefs : Preferences = Preferences.userRoot().node(this.getClass.getName)
+
 
   case class UIRedrawRequest() extends Event
 
@@ -38,12 +40,11 @@ object UserOptions {
 
   // A scaling of 1 corresponds to a font size of 14
   // changing the font size will also change the rest of the scaling
-  private var _uiScale : Double = 1
+  private var _uiScale : Double = prefs.getDouble("uiScale", 1)
   def uiScale : Double = _uiScale
   def uiScale_=(d: Double){
     _uiScale = math.max(d, 0.5) // Limit scaling to equivalent of 7pt font
     setUIFont(new FontUIResource(_fontFamily, _fontDecoration, fontSize))
-    val prefs = Preferences.userRoot().node(this.getClass.getName)
     prefs.putDouble("uiScale", _uiScale)
     requestUIRefresh()
   }

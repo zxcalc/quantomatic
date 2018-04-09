@@ -58,10 +58,10 @@ object QuantoDerive extends SimpleSwingApplication {
 
   try {
     UIManager.setLookAndFeel(new MetalLookAndFeel) // tabs in OSX PLAF look bad
-    UserOptions.uiScale = prefs.getDouble("uiScale", 1.0)
+    UserOptions.uiScale = UserOptions.uiScale // Initiliases all the UI options
   } catch {
     case e: Exception => {
-      UserAlerts.alert("Could no load UI preferences on startup.")
+      UserAlerts.alert("Could not load UI preferences on startup.")
       e.printStackTrace()
     }
   }
