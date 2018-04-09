@@ -23,7 +23,6 @@ class SimplifyBuiltInController(panel: DerivationPanel) extends Publisher {
   implicit val timeout = QuantoDerive.timeout
   private var simpId = 0 // incrementing the simpId will (lazily) cancel any pending simplification jobs
 
-  listenTo(panel.SimplifyBuiltInPane.SimplifyButton)
 
   def refreshSimprocs() {
     simpId += 1
@@ -329,7 +328,6 @@ import quanto.cosy.SimplificationProcedure.Annealing._
     "Anneal" -> annealSimproc,
     "Evaluate" -> evaluateSimproc
   )
-  Swing.onEDT { panel.SimplifyBuiltInPane.Simprocs.listData = availableProcedures.keys.toSeq }
 
   implicit def ruleFromDesc(ruleDesc: RuleDesc): Rule = {
     Rule.fromJson(Json.parse(new File(panel.project.rootFolder + "/" + ruleDesc.name + ".qrule")),
@@ -355,14 +353,5 @@ import quanto.cosy.SimplificationProcedure.Annealing._
     }
   }
 
-
-  reactions += {
-    case ButtonClicked(panel.SimplifyBuiltInPane.SimplifyButton) =>
-        if (panel.SimplifyBuiltInPane.Simprocs.selection.indices.nonEmpty) {
-          val procedureName: String = panel.SimplifyBuiltInPane.Simprocs.selection.items(0)
-          val procedure = availableProcedures(procedureName)
-          procedure.apply()
-        }
-  }
 
 }
