@@ -29,21 +29,19 @@ class StatusBar extends BorderPanel {
       UserAlerts.alerts.slice(0,5).reverse.foreach(showAlert)
     }
 
-    val ShowLogAction: Action = new Action("Open log file") {
+
+    def whichLoggingTitle : String = {
+      if (UserOptions.logging) {"Disable logging"} else {"Enable logging"}
+    }
+
+    val ShowLogAction: Action = new Action(whichLoggingTitle) {
+
       menu.contents += new MenuItem(this) {
         mnemonic = Key.L
       }
 
       def apply() {
-        if(UserAlerts.logFile.nonEmpty){
-          Desktop.getDesktop.browse(UserAlerts.logFile.get.toURI)
-        } else {
-          if (CurrentProject.isEmpty) {
-            UserAlerts.alert("Open a project before trying to access its log")
-          } else if (!UserOptions.logging){
-            UserAlerts.alert("Please enable persistent logging in the options menu")
-          }
-        }
+        UserOptions.logging = !UserOptions.logging
       }
     }
 

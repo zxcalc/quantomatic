@@ -158,20 +158,20 @@ object UserAlerts {
   def logFile: Option[File] = {
     // It's possible to get here before the GUI instantiates
     val project = quanto.gui.QuantoDerive.CurrentProject
-    if (project != null && project.nonEmpty && UserOptions.logging) {
-      Some(new File(quanto.gui.QuantoDerive.CurrentProject.get.rootFolder + "/log.txt"))
+    if (project != null && project.nonEmpty) {
+      Some(new File(quanto.gui.QuantoDerive.CurrentProject.get.rootFolder + s"/${project.get.name}_log.txt"))
     }
     else {
       None
     }
   }
 
-  def writeToLogFile(alert: Alert): Unit = {
+  def writeToLogFile(alert: Alert, force : Boolean = false): Unit = {
     val elevation = alert.elevationText match {
       case "" => ""
       case e => s"[$e]"
     }
-    if (logFile.nonEmpty) {
+    if (logFile.nonEmpty && (UserOptions.logging || force)) {
       FileHelper.printToFile(logFile.get)(
         p => p.println(UserOptions.preferredTimeFormat.format(alert.time) + ": " + elevation + alert.message)
       )

@@ -82,9 +82,10 @@ object UserOptions {
     uiScale = n / 14.0 //changing uiScale triggers redraw and font size changes
   }
 
-  private var _logging : Boolean = false
+  private var _logging : Boolean = prefs.getBoolean("logging", false)
   def logging : Boolean = _logging
   def logging_=(b: Boolean) : Unit = {
+    prefs.putBoolean("logging", b)
     _logging = b
   }
 
