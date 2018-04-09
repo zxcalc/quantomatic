@@ -50,6 +50,9 @@ object QuantoDerive extends SimpleSwingApplication {
   def error(msg: String) =
     UserAlerts.errorbox(msg)
 
+  def alert(msg: String) =
+    UserAlerts.alert(msg)
+
   def uiScale(i : Int) : Int = UserOptions.scaleInt(i)
 
   //Dialog.showMessage(title = "Error", message = msg, messageType = Dialog.Message.Error)
@@ -90,7 +93,7 @@ object QuantoDerive extends SimpleSwingApplication {
   }
 
   def loadProject(projectFileLocation: String) : Option[Project] = {
-    UserAlerts.alert(s"Opening project: $projectFileLocation")
+    alert(s"Opening project: $projectFileLocation")
 
     val projectFile = if(new File(projectFileLocation).isDirectory){
       new File(projectFileLocation + "/main.qproject")
@@ -107,7 +110,7 @@ object QuantoDerive extends SimpleSwingApplication {
         updateProjectFile(projectFile)
         ProjectFileTree.root = Some(project.rootFolder)
         prefs.put("lastProjectFile", projectFileLocation)
-        UserAlerts.alert(s"Successfully loaded project: $projectFileLocation")
+        alert(s"Successfully loaded project: $projectFileLocation")
         Some(project)
       } else {
         UserAlerts.alert("Selected project file does not exist", UserAlerts.Elevation.ERROR)
@@ -222,6 +225,7 @@ object QuantoDerive extends SimpleSwingApplication {
   def histView = _histView
 
   object LeftSplit extends SplitPane {
+    resizeWeight = 0.5
     orientation = Orientation.Horizontal
     contents_=(ProjectFileTree, HistViewSlot)
   }
@@ -489,11 +493,11 @@ object QuantoDerive extends SimpleSwingApplication {
               println("got: " + (theoryFile, name, path))
               val folder = new File(path + "/" + name)
               if (name.isEmpty) {
-                UserAlerts.errorbox("Please enter a name for your project.")
+                error("Please enter a name for your project.")
               } else if (folder.exists()) {
-                UserAlerts.errorbox("That folder is already in use.")
+                error("That folder is already in use.")
               } else if (theoryFile.isEmpty) {
-                UserAlerts.errorbox("Please enter a theory file.")
+                error("Please enter a theory file.")
               } else {
                 folder.mkdirs()
                 new File(folder.getPath + "/graphs").mkdir()
