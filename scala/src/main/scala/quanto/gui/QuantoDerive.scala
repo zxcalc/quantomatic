@@ -14,7 +14,6 @@ import java.awt.event.{KeyEvent, MouseAdapter, MouseEvent}
 import quanto.util.json.{Json, JsonString}
 import quanto.data._
 import java.io.{File, FilenameFilter, IOException, PrintWriter}
-
 import javax.swing.plaf.metal.MetalLookAndFeel
 import java.util.prefs.Preferences
 
@@ -29,6 +28,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
 import java.awt.{Color, Desktop, Window}
+import javax.swing.filechooser.FileNameExtensionFilter
 
 import quanto.util.{Globals, UserAlerts, UserOptions, WebHelper}
 
@@ -43,12 +43,14 @@ object QuantoDerive extends SimpleSwingApplication {
   // pre-initialise jython, so its zippy when the user clicks "run" in a script
   new Thread(new Runnable { def run() { new PythonInterpreter() }}).start()
 
-  println(new File(".").getAbsolutePath)
+  UserAlerts.alert("Working directory: " + new File(".").getAbsolutePath)
 
   // Dialogs in in scala.swing seem to be broken since updated scala to 2.12, so
   // we're using the javax.swing versions instead
   def error(msg: String) =
-    JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE)
+    UserAlerts.errorbox(msg)
+
+  def uiScale(i : Int) : Int = UserOptions.scaleInt(i)
 
   //Dialog.showMessage(title = "Error", message = msg, messageType = Dialog.Message.Error)
 
@@ -58,7 +60,10 @@ object QuantoDerive extends SimpleSwingApplication {
     UIManager.setLookAndFeel(new MetalLookAndFeel) // tabs in OSX PLAF look bad
     UserOptions.uiScale = prefs.getDouble("uiScale", 1.0)
   } catch {
-    case e: Exception => e.printStackTrace()
+    case e: Exception => {
+      UserAlerts.alert("Could no load UI preferences on startup.")
+      e.printStackTrace()
+    }
   }
 
   def unloadProject() {
@@ -66,15 +71,14 @@ object QuantoDerive extends SimpleSwingApplication {
     ProjectFileTree.root = None
   }
 
-  def updateProjectFile(): Unit = {
+  def updateProjectFile(projectFile: File): Unit = {
     if (CurrentProject.nonEmpty) {
       val project = CurrentProject.get
-      val projectFile = new File(project.rootFolder + "/main.qproject")
       try {
         if (projectFile.exists) {
           val parsedInput = Json.parse(projectFile)
           if (Project.toJson(project).toString != parsedInput.toString) {
-            Project.toJson(project).writeTo(new File(project.rootFolder + "/main.qproject"))
+            Project.toJson(project).writeTo(project.projectFile)
             UserAlerts.alert(s"Updated project file", UserAlerts.Elevation.DEBUG)
           }
         }
@@ -85,20 +89,25 @@ object QuantoDerive extends SimpleSwingApplication {
     }
   }
 
-  def loadProject(projectLocation: String) : Option[Project] = {
-    UserAlerts.alert(s"Opening project: $projectLocation")
-    val projectFile = new File(projectLocation + "/main.qproject")
+  def loadProject(projectFileLocation: String) : Option[Project] = {
+    UserAlerts.alert(s"Opening project: $projectFileLocation")
+
+    val projectFile = if(new File(projectFileLocation).isDirectory){
+      new File(projectFileLocation + "/main.qproject")
+    } else {
+      new File(projectFileLocation)
+    }
     try {
       if (projectFile.exists) {
         val parsedInput = Json.parse(projectFile)
-        val project = Project.fromJson(parsedInput, projectLocation)
+        val project = Project.fromJson(parsedInput, new File(projectFileLocation))
         // Old .qproject files had links rather than embedded theories
         // So update when loading in
         CurrentProject = Some(project)
-        updateProjectFile()
-        ProjectFileTree.root = Some(projectLocation)
-        prefs.put("lastProjectFolder", projectLocation)
-        UserAlerts.alert(s"Successfully loaded project: $projectLocation")
+        updateProjectFile(projectFile)
+        ProjectFileTree.root = Some(project.rootFolder)
+        prefs.put("lastProjectFile", projectFileLocation)
+        UserAlerts.alert(s"Successfully loaded project: $projectFileLocation")
         Some(project)
       } else {
         UserAlerts.alert("Selected project file does not exist", UserAlerts.Elevation.ERROR)
@@ -118,7 +127,7 @@ object QuantoDerive extends SimpleSwingApplication {
   //CurrentProject.map { pr => core ! SetMLWorkingDir(pr.rootFolder) }
 
   val ProjectFileTree = new FileTree
-  ProjectFileTree.preferredSize = new Dimension(250,360)
+  ProjectFileTree.preferredSize = new Dimension(uiScale(250), uiScale(360))
   ProjectFileTree.filenameFilter = Some(new FilenameFilter {
     val extns = Set("qgraph", "qrule", "qderive", "ML", "py", "qsbr")
     def accept(parent: File, name: String) = {
@@ -133,7 +142,7 @@ object QuantoDerive extends SimpleSwingApplication {
   })
 
 
-  var CurrentProject : Option[Project] = prefs.get("lastProjectFolder", null) match {
+  var CurrentProject : Option[Project] = prefs.get("lastProjectFile", null) match {
     case path : String =>
       try {
         loadProject(path)
@@ -492,10 +501,11 @@ object QuantoDerive extends SimpleSwingApplication {
                 new File(folder.getPath + "/theorems").mkdir()
                 new File(folder.getPath + "/derivations").mkdir()
                 new File(folder.getPath + "/simprocs").mkdir()
+                val projectFile = new File(folder.getPath + "/" + name + ".qproject")
                 val rootFolder = folder.getAbsolutePath
-                val proj = Project.fromTheoryOrProjectFile(theoryFile, rootFolder, name)
-                Project.toJson(proj).writeTo(new File(folder.getPath + "/main.qproject"))
-                loadProject(folder.getPath)
+                val proj = Project.fromTheoryOrProjectFile(new File(theoryFile), new File(rootFolder), name)
+                Project.toJson(proj).writeTo(projectFile)
+                loadProject(projectFile.getAbsolutePath)
                 //core ! SetMLWorkingDir(rootFolder)
                 updateNewEnabled()
               }
@@ -510,14 +520,14 @@ object QuantoDerive extends SimpleSwingApplication {
       def apply() {
         if (closeAllDocuments()) {
           val chooser = new FileChooser()
-          chooser.fileSelectionMode = FileChooser.SelectionMode.DirectoriesOnly
+          chooser.fileFilter = new FileNameExtensionFilter("Quantomatic Project File (*.qproject)", "qproject")
+          chooser.fileSelectionMode = FileChooser.SelectionMode.FilesOnly
           chooser.showOpenDialog(Split) match {
             case FileChooser.Result.Approve =>
-              val rootFolder = chooser.selectedFile.toString
-              val projectFile = new File(rootFolder + "/main.qproject")
+              val projectFile = new File(chooser.selectedFile.toString)
               if (projectFile.exists) {
                 try {
-                  loadProject(rootFolder)
+                  loadProject(chooser.selectedFile.toString)
                   //core ! SetMLWorkingDir(rootFolder)
                 } catch {
                   case _: ProjectLoadException =>
@@ -529,7 +539,7 @@ object QuantoDerive extends SimpleSwingApplication {
                   updateNewEnabled()
                 }
               } else {
-                error("Folder does not contain a Quantomatic project")
+                error(s"Folder does not contain a Quantomatic project: $projectFile")
               }
             case _ =>
           }

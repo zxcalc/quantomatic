@@ -65,8 +65,8 @@ class TheoryDocument(val parent: Component) extends Document with Publisher {
       UserAlerts.alert("Please open a project before altering theory files", UserAlerts.Elevation.WARNING)
     } else {
       val project = QuantoDerive.CurrentProject.get
-      QuantoDerive.CurrentProject = Some(new Project(th, project.rootFolder, project.name))
-      QuantoDerive.updateProjectFile()
+      QuantoDerive.CurrentProject = Some(new Project(th, project.projectFile, project.name))
+      QuantoDerive.updateProjectFile(project.projectFile)
     }
     _theory = getTheory()
     publish(TheoryChanged())
