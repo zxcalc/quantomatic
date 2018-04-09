@@ -55,6 +55,14 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
       _lastRunSimproc = simpName
       QuantoDerive.CurrentProject.flatMap { pr => pr.simprocs.get(simpName) }.foreach { simproc =>
         var parentOpt = panel.controller.state.step
+        val sourceMessage = s"Running simproc '$simpName'".concat(
+        if (simproc.sourceFile != "") {
+          s" from ${simproc.sourceFile}"
+        } else {
+          ""
+        }
+        )
+        UserAlerts.alert(sourceMessage)
         val processReporting = new SelfAlertingProcess("Simproc: " + simpName)
         val simpIdAtStart = simpId
         val res = Future[Boolean] {
