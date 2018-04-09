@@ -27,7 +27,7 @@ class TextEditor(val mode: Mode) extends BorderPanel {
   props.load(propFile)
   props.load(keyFile)
   //props.setProperty("view.font", "Arial")
-  //props.setProperty("view.fontsize", "12")
+  props.setProperty("view.fontsize", UserOptions.fontSize.toString)
   //props.setProperty("view.fontstyle", "0")
   //props.putAll(loadProperties("/keymaps/jEdit_keys.props"))
   //props.putAll(loadProperties("/org/gjt/sp/jedit/jedit.props"))
