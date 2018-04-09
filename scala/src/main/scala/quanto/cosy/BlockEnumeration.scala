@@ -2,6 +2,7 @@ package quanto.cosy
 
 import quanto.util.json._
 import quanto.data._
+import quanto.data.VName
 
 /**
   * Enumerates diagrams by composing simple building blocks in a 2D fashion
@@ -265,6 +266,21 @@ object BlockRowMaker {
       Block(0, 1, "ru ", Tensor(Array(Array(1, 0))).transpose)
     )
 
+  def StandardCircuit(numAngles: Int = 8): List[Block] = List(
+    Block(1, 1, " 1 ", Tensor.idWires(1)),
+    Block(2, 2, " s ", Tensor.swap(List(1, 0))),
+    Block(1, 1, " H ", Tensor(Array(Array(1, 1), Array(1, -1))).scaled(1.0 / math.sqrt(2)))) :::
+    (for (i <- 0 until numAngles) yield {
+      Block(1, 1, "gT" + i.toString, Tensor(Array(
+        Array(Complex.one, Complex.zero),
+        Array(Complex.zero, ei(2 * i * math.Pi / numAngles)))))
+    }).toList :::
+    (for (i <- 0 until numAngles) yield {
+      Block(1, 1, "rT" + i.toString, new Tensor(Array(
+        Array(1 + ei(2 * i * math.Pi / numAngles), 1 - ei(2 * i * math.Pi / numAngles)),
+        Array(1 - ei(2 * i * math.Pi / numAngles), 1 + ei(2 * i * math.Pi / numAngles)))))
+    }).toList
+
   def Bian2Qubit: List[Block] = List(
     // Block(0, 0, " w ", Tensor.id(1).scaled(ei(math.Pi / 4))), Ignored for now.
     Block(1, 1, " 1 ", Tensor.id(2)),
@@ -337,7 +353,7 @@ object BlockRowMaker {
     }
 
     def addVertex(name: String, data: VData): Unit = {
-      g = g.addVertex(name, data)
+      g = g.addVertex(vname(name), data)
     }
 
     for (i <- block.inputs.indices) {

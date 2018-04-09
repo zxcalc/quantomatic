@@ -20,7 +20,7 @@ import scala.concurrent.duration.Duration
   */
 abstract class CoSyRun[S, T](
                               rulesDir: File,
-                              theory : Theory,
+                              theory: Theory,
                               duration: Duration,
                               outputDir: File,
                               makeValuesFile: Boolean
@@ -28,6 +28,7 @@ abstract class CoSyRun[S, T](
 
   val Generator: Iterator[S]
   var reductionRules: List[Rule] = List()
+  var equivClasses: Map[T, Graph] = Map()
 
   def makeGraph(gen: S): Graph
 
@@ -37,12 +38,11 @@ abstract class CoSyRun[S, T](
 
   def compareTensor(a: T, b: T): Boolean
 
-  def makeString(a: S, b: T) : String
-
-  var equivClasses: Map[T, Graph] = Map()
+  def makeString(a: S, b: T): String
 
   def begin(): Unit = {
     def now(): Long = Calendar.getInstance().getTimeInMillis
+
     val timeStart = now()
     while (Duration(now() - timeStart, "millis") < duration && Generator.hasNext) {
       // Get a graph
@@ -61,7 +61,7 @@ abstract class CoSyRun[S, T](
         val similarTensors = equivClasses.keys.filter(t => compareTensor(t, interpretation))
 
         if (similarTensors.nonEmpty) {
-          for(similar <- similarTensors) {
+          for (similar <- similarTensors) {
             // Something with that tensor exists
             val existing = equivClasses(similar)
             createRule(graph, existing)
@@ -70,7 +70,7 @@ abstract class CoSyRun[S, T](
           }
         } else {
           equivClasses = equivClasses + (interpretation -> graph)
-          if(makeValuesFile) {
+          if (makeValuesFile) {
             FileHelper.printToFile(
               outputDir.toURI.resolve("./values.txt"),
               makeString(next, interpretation),
@@ -118,6 +118,116 @@ abstract class CoSyRun[S, T](
 
 object CoSyRuns {
 
+  private val Angle = ValueType.AngleExpr
+
+  class CoSyCircuit(rulesDir: File,
+                    theory: Theory,
+                    duration: Duration,
+                    outputDir: File,
+                    numBoundaries: Int
+                   ) extends CoSyRun[BlockStack, Tensor](rulesDir, theory, duration, outputDir, makeValuesFile = true) {
+
+    override val Generator: Iterator[BlockStack] = new Iterator[BlockStack] {
+
+      override def hasNext: Boolean = true
+
+      override def next(): BlockStack = {
+        if (!unnusedRows.hasNext) {
+          if (!unnusedStacks.hasNext) {
+            unnusedStacks = nextRoundOfStacks.toIterator
+            nextRoundOfStacks = List()
+          }
+          unnusedRows = rows.toIterator
+          currentStack = unnusedStacks.next()
+        }
+        BlockStack(unnusedRows.next() :: currentStack.rows)
+      }
+    }
+    val blocks: List[Block] = BlockRowMaker.StandardCircuit()
+    val rows: List[BlockRow] = BlockRowMaker.makeRowsOfSize(numBoundaries, blocks, Some(numBoundaries))
+    var unnusedRows: Iterator[BlockRow] = rows.toIterator
+    var unnusedStacks: Iterator[BlockStack] = rows.map(r => BlockStack(List(r))).toIterator
+    var nextRoundOfStacks: List[BlockStack] = List()
+    var currentStack: BlockStack = unnusedStacks.next()
+
+    override def compareTensor(a: Tensor, b: Tensor): Boolean = a.isRoughlyUpToScalar(b)
+
+    override def graphLeftBiggerRight(left: Graph, right: Graph): Boolean = {
+
+      def phase(vdata: VData): PhaseExpression =
+        vdata.asInstanceOf[NodeV].phaseData.firstOrError(ValueType.AngleExpr)
+
+      // Number of T-gates
+      def countT(graph: Graph): Int = graph.vdata.count(nd => phase(nd._2).constant == Rational(1, 4))
+
+      val tDiff = countT(left) - countT(right)
+      if (tDiff > 0) {
+        return true
+      }
+      if (tDiff < 0) {
+        return false
+      }
+
+      // Number of ndoes
+      def nodes(graph: Graph): Int = graph.vdata.size
+
+      val nodeDiff = nodes(left) - nodes(right)
+      if (nodeDiff > 0) {
+        return true
+      }
+      if (nodeDiff < 0) {
+        return false
+      }
+
+      // Number of edges
+      def edges(graph: Graph): Int = graph.edata.size
+
+      val edgeDiff = edges(left) - edges(right)
+      if (edgeDiff > 0) {
+        return true
+      }
+      if (edgeDiff < 0) {
+        return false
+      }
+
+      // Number of "Z" nodes
+      // We favour these!
+      // Purely for aesthetic reasons
+      def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.typ == "Z")
+
+      val zDiff = countZ(left) - countZ(right)
+      if (zDiff < 0) {
+        return true
+      }
+      if (zDiff > 0) {
+        return false
+      }
+
+      // sum of the phases
+      def phaseSum(graph: Graph): PhaseExpression = graph.vdata.map(nd => phase(nd._2)).
+        foldLeft(PhaseExpression.zero(Angle)) { (s, a) => s + a }
+
+      val phaseDiff = (phaseSum(left) - phaseSum(right)).constant
+      if (phaseDiff > 0) {
+        return true
+      }
+      if (phaseDiff < 0) {
+        return false
+      }
+
+      false
+    }
+
+    override def makeTensor(gen: BlockStack): Tensor = gen.tensor
+
+    override def makeString(a: BlockStack, b: Tensor): String = s"$a: ${b.toJson},"
+
+    override def makeGraph(gen: BlockStack): Graph = {
+      new Graph()
+    }
+
+  }
+
   class CoSyZX(rulesDir: File,
                theory: Theory,
                duration: Duration,
@@ -126,12 +236,12 @@ object CoSyRuns {
                numBoundaries: Int,
                numVertices: Int,
                scalars: Boolean
-              ) extends CoSyRun[AdjMat, Tensor](rulesDir, theory, duration, outputDir, makeValuesFile =  true) {
+              ) extends CoSyRun[AdjMat, Tensor](rulesDir, theory, duration, outputDir, makeValuesFile = true) {
 
 
     override val Generator: Iterator[AdjMat] =
-      ColbournReadEnum.enumerate(1,1,numBoundaries, 0, false).iterator ++
-      ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries, numVertices).iterator
+      ColbournReadEnum.enumerate(1, 1, numBoundaries, 0).iterator ++
+        ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries, numVertices).iterator
     private val gdata = (for (i <- 0 until numAngles) yield {
       NodeV(data = JsonObject("type" -> "Z", "value" -> angleMap(i).toString), theory = theory)
     }).toVector
@@ -139,13 +249,13 @@ object CoSyRuns {
       NodeV(data = JsonObject("type" -> "X", "value" -> angleMap(i).toString), theory = theory)
     }).toVector
 
-    override def compareTensor(a: Tensor, b: Tensor): Boolean = if(!scalars){
+    override def compareTensor(a: Tensor, b: Tensor): Boolean = if (!scalars) {
       a.isRoughlyUpToScalar(b)
     } else {
       a.isRoughly(b)
     }
 
-    private implicit def stringToPhase(s : String) : PhaseExpression = {
+    private implicit def stringToPhase(s: String): PhaseExpression = {
       PhaseExpression.parse(s, ValueType.AngleExpr)
     }
 
@@ -193,8 +303,6 @@ object CoSyRuns {
       }
 
       // Sum of Z angles
-      def toAngle(nv: NodeV): ZXAngleData = ZXAngleData(nv.typ == "Z", nv.value)
-
       val Pi = math.Pi
 
       def sumAngles(graph: Graph, filterType: String): PhaseExpression = graph.vdata.
@@ -214,10 +322,10 @@ object CoSyRuns {
       // Sum of X angles
 
       val XAngles: Rational = sumAngles(left, "X").constant - sumAngles(right, "X").constant
-      if (XAngles % (2*Pi) > Pi) {
+      if (XAngles % (2 * Pi) > Pi) {
         return true
       }
-      if (XAngles % (2*Pi) < Pi) {
+      if (XAngles % (2 * Pi) < Pi) {
         return false
       }
 
@@ -225,7 +333,7 @@ object CoSyRuns {
       false
     }
 
-    private def angleMap = (x: Int) => PhaseExpression(new Rational(x,numAngles), ValueType.AngleExpr)
+    private def angleMap = (x: Int) => PhaseExpression(new Rational(x, numAngles), ValueType.AngleExpr)
 
 
   }
