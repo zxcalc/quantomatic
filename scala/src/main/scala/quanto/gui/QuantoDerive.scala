@@ -881,6 +881,7 @@ object QuantoDerive extends SimpleSwingApplication {
                 }
               }
           }
+          MainDocumentTabs.publishChanged()
         case None => error("No project open.")
       }
 

@@ -7,6 +7,8 @@ import java.awt.{BasicStroke, Color, Graphics, RenderingHints}
 
 import quanto.util.UserAlerts
 
+import scala.swing.event.SelectionChanged
+
 class ClosablePage(title0: String, component0: Component, val closeAction: () => Boolean)
 extends TabbedPane.Page(title0, component0) {
   lazy val tabComponent : ClosablePage.TabComponent = { new ClosablePage.TabComponent(this) }
@@ -163,6 +165,8 @@ class DocumentTabs {
   }
 
   def selection = tabbedPane.selection
+
+  def publishChanged() : Unit = {tabbedPane.selection.publish(SelectionChanged(tabbedPane))}
 
   def documents: Iterable[DocumentPage] = pageIndex.keys
 
