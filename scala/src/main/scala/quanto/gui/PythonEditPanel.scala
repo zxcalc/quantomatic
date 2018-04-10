@@ -33,7 +33,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
   ).getOrElse("Unsaved File")
 
   // Now run the python along with the header
-  def codeWithHeader : String = PythonManipulation.addHeader(CodeArea.getText, documentName)
+  def code : String = CodeArea.getText
 
   val document = new CodeDocument("Python Script", "py", this, CodeArea.TextArea)
 
@@ -93,7 +93,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
 
               QuantoDerive.CurrentProject.foreach(pr => python.getSystemState.path.add(pr.rootFolder))
               python.set("output", output)
-              python.exec(codeWithHeader)
+              python.exec(code)
 
               // Tell the user which simprocs are linked to this file
               alert(s"Simprocs registered to $documentName: " +
@@ -101,7 +101,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
               )
               // Link this python to those simprocs
               simprocsFromThisFile.foreach(simprocName => QuantoDerive.CurrentProject.foreach(
-                p => p.simprocs(simprocName).sourceCode = codeWithHeader
+                p => p.simprocs(simprocName).sourceCode = code
               ))
               PythonEditPanel.publishUpdate()
               processReporting.finish()
