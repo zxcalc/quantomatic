@@ -15,7 +15,9 @@ case class Project(theory: Theory, projectFile: File, name: String) {
 
   val rootFolder: String = projectFile.getParent
   private val rootFolderFile = projectFile.getParentFile
+
   var simprocs: Map[String, Simproc] = Map()
+  var lastRunPythonFilePath : Option[String] = None
 
   def relativePath(f: File): String = {
     rootFolderFile.toURI.relativize(f.toURI).getPath

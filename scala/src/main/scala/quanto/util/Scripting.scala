@@ -187,18 +187,13 @@ object Scripting {
   def REDUCE_METRIC(o: Object, metric: PyFunction) = REPEAT(REWRITE_METRIC(o, metric))
   def REDUCE_WEAK_METRIC(o: Object, metric: PyFunction) = REPEAT(REWRITE_WEAK_METRIC(o, metric))
 
-  def register_simproc(simprocName: String, simproc: Simproc, sourceFile: String): Unit = {
+  private def register_simproc(simprocName: String, simproc: Simproc, sourceFile: String): Unit = {
     simproc.sourceFile = sourceFile
     project.simprocs += simprocName -> simproc
   }
 
-  // Ideally use the overloaded method with a source,
-  // Or use the injected "register" python function
   def register_simproc(s: String, sp: Simproc): Unit = {
-    alert("'register_simproc' is obsolete, please use the 'register' function instead.", Elevation.WARNING)
-    register_simproc(s, sp, "")
+    register_simproc(s, sp, project.lastRunPythonFilePath.getOrElse(""))
   }
 
-  // THERE ARE ALSO FUNCTIONS AND VARIABLES INJECTED DIRECTLY INTO PYTHON CODE
-  // PLEASE SEE quanto/gui/PythonEditPanel.scala
 }

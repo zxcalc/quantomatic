@@ -84,7 +84,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
             try {
               val python = new PythonInterpreter
 
-
+              QuantoDerive.CurrentProject.foreach(project => project.lastRunPythonFilePath = Some(documentName))
               def simprocsFromThisFile = allSimprocs.filter(kv => kv._2.sourceFile == documentName).keys
               // unregister any simprocs previously linked to this file
               simprocsFromThisFile.foreach(simprocName => QuantoDerive.CurrentProject.foreach(
