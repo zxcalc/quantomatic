@@ -32,13 +32,13 @@ trait BBoxDisplayData { self: VertexDisplayData =>
     var offset = Math.max(boundsForVertexSet(graph.verts).getMaxX, trans.origin._1)
 
     // used to compute relative padding sizes
-    val em = trans.scaleToScreen(0.1)
+    val em = trans.scaleToScreen(0.25)
 
     graph.bboxesChildrenFirst.foreach { bbox =>
       val vset = graph.contents(bbox)
 
       val rect = if (vset.isEmpty) {
-        offset += 8*em
+        offset += 4.0*em
         new Rectangle2D.Double(offset, trans.origin._2 - 2*em, 4*em, 4*em)
       } else {
 
@@ -53,18 +53,18 @@ trait BBoxDisplayData { self: VertexDisplayData =>
           val rect = bbd.rect
 
           if(bounds.contains(rect)) {
-            val ulx = min(rect.getMinX - 5.0*em, bounds.getMinX)
-            val uly = min(rect.getMinY - 5.0*em, bounds.getMinY)
-            val lrx = max(rect.getMaxX + 5.0*em, bounds.getMaxX)
-            val lry = max(rect.getMaxY + 5.0*em, bounds.getMaxY)
+            val ulx = min(rect.getMinX - em, bounds.getMinX)
+            val uly = min(rect.getMinY - em, bounds.getMinY)
+            val lrx = max(rect.getMaxX + em, bounds.getMaxX)
+            val lry = max(rect.getMaxY + em, bounds.getMaxY)
 
             bounds = new Rectangle2D.Double(ulx, uly, lrx - ulx, lry - uly)
           }
           else if(rect.contains(bounds)) {
-            val ulx = min(rect.getMinX, bounds.getMinX - 5.0*em)
-            val uly = min(rect.getMinY, bounds.getMinY - 5.0*em)
-            val lrx = max(rect.getMaxX, bounds.getMaxX + 5.0*em)
-            val lry = max(rect.getMaxY, bounds.getMaxY + 5.0*em)
+            val ulx = min(rect.getMinX, bounds.getMinX - em)
+            val uly = min(rect.getMinY, bounds.getMinY - em)
+            val lrx = max(rect.getMaxX, bounds.getMaxX + em)
+            val lry = max(rect.getMaxY, bounds.getMaxY + em)
 
             val new_bounds = new Rectangle2D.Double(ulx, uly, lrx - ulx, lry - uly)
             bboxDisplay += bb -> BBDisplay(new_bounds)

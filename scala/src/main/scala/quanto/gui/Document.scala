@@ -166,6 +166,7 @@ abstract class Document extends Publisher {
     } else true
   }
 
+
   def errorDialog(action: String, reason: String) {
 //    Dialog.showMessage(
 //      title = "Error",

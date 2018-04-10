@@ -115,12 +115,20 @@ trait VertexDisplayData { self: GraphView =>
     }
   }
 
-  protected def boundsForVertexSet(vset: Set[VName]) = {
+  protected def boundsForVertexSet(vset: Set[VName]): Rectangle2D.Double = {
     var init = false
     var ulx,uly,lrx,lry = 0.0
 
+    val em = trans.scaleToScreen(0.25)
+
     vset.foreach { v =>
-      val rect = vertexDisplay(v).shape.getBounds
+      // grow the bounding box until it snaps to the grid
+      val bds = vertexDisplay(v).shape.getBounds
+      val rx = Math.ceil(bds.width / (2.0 * em)) * em
+      val ry = Math.ceil(bds.height / (2.0 * em)) * em
+      val p = trans toScreen graph.vdata(v).coord
+      val rect = new Rectangle2D.Double(p._1 - rx, p._2 - ry, 2.0 * rx, 2.0 * ry)
+
       if (init) {
         ulx = min(ulx, rect.getX)
         uly = min(uly, rect.getY)
@@ -136,9 +144,8 @@ trait VertexDisplayData { self: GraphView =>
     }
     
     val bounds = new Rectangle2D.Double(ulx, uly, lrx - ulx, lry - uly)
-    val em = trans.scaleToScreen(0.1)
-    val p = (bounds.getX - 3*em, bounds.getY - 3*em)
-    val q = (bounds.getWidth + 6*em, bounds.getHeight + 6*em)
+    val p = (bounds.getX - em, bounds.getY - em)
+    val q = (bounds.getWidth + 2*em, bounds.getHeight + 2*em)
 
     new Rectangle2D.Double(p._1, p._2, q._1, q._2)
   }

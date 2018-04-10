@@ -193,7 +193,7 @@ case class Graph(
    * Partition of all edges into sets, s.t. they connect the same two vertices
    * regardless of edge direction
    */
-  def edgePartition() : List[Set[EName]] = {
+  def edgePartition : List[Set[EName]] = {
     var res : List[Set[EName]] = List()
     for ((v1,_) <- vdata; (v2,_) <- vdata if v1 <= v2) {
       val edgeSet = edgesBetween(v1,v2)
