@@ -72,6 +72,14 @@ class GraphEditControls(theory: Theory) extends Publisher {
   }
 
 
+  val FocusGraphButton = new ToggleButton() with ToolButton {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("focus.png"), "Resize Viewport")
+    tool = RequestFocusOnGraph()
+    tooltip = "Focus the viewport on the whole graph"
+  }
+
+
+
   val FreehandButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Freehand drawing")
     tool = FreehandTool(None, None)
@@ -155,7 +163,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
       setMouseState(t.tool)
   }
 
-  listenTo(RelaxButton.mouse.clicks, NormaliseButton)
+  listenTo(RelaxButton.mouse.clicks, NormaliseButton, FocusGraphButton)
 
   reactions += {
     case MousePressed(RelaxButton,_,_,_,_) =>
@@ -166,13 +174,15 @@ class GraphEditControls(theory: Theory) extends Publisher {
       publish(MouseStateChanged(RelaxToolUp()))
     case ButtonClicked(NormaliseButton) =>
       NormaliseButton.selected = false
-      //publish(MouseStateChanged(RequestNormaliseGraph()))
+    case ButtonClicked(FocusGraphButton) =>
+      FocusGraphButton.selected = false
   }
 
   val MainToolBar = new ToolBar {
     contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton, FreehandButton)
   }
   MainToolBar.peer.addSeparator()
+  MainToolBar.contents += FocusGraphButton
   MainToolBar.contents += RelaxButton
   MainToolBar.contents += NormaliseButton
 
@@ -221,6 +231,7 @@ with HasDocument
     case MouseStateChanged(RelaxToolDown()) => graphEditController.startRelaxGraph(true)
     case MouseStateChanged(RelaxToolUp()) => graphEditController.endRelaxGraph()
     case MouseStateChanged(RequestNormaliseGraph()) => graphEditController.normaliseGraph()
+    case MouseStateChanged(RequestFocusOnGraph()) => graphEditController.focusOnGraph()
     case MouseStateChanged(m) =>
       if (graphEditController.rDown) graphEditController.endRelaxGraph()
       graphEditController.mouseState = m

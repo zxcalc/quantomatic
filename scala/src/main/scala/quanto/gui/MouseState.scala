@@ -71,3 +71,4 @@ case class RelaxToolUp() extends MouseState
 case class FreehandTool(state: Option[List[Point]], lastTime: Option[Long]) extends MouseState
 
 case class RequestNormaliseGraph() extends MouseState
+case class RequestFocusOnGraph() extends MouseState

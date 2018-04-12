@@ -457,6 +457,10 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     view.repaint()
   }
 
+  def focusOnGraph(): Unit = {
+    view.focusOnGraph()
+  }
+
   def vertexAt(point: Point) : Option[VName] = view.vertexDisplay find {
     _._2.pointHit(point)
   } map {

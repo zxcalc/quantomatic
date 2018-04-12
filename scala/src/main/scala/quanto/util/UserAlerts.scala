@@ -135,7 +135,7 @@ object UserAlerts {
     }
   }
 
-  def alert(message: String): Unit = alert(message, Elevation.NOTICE)
+  def alert(message: Any): Unit = alert(message.toString, Elevation.NOTICE)
 
   def debug(message: String): Unit = alert(message, Elevation.DEBUG)
 

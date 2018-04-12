@@ -29,7 +29,7 @@ trait BBoxDisplayData { self: VertexDisplayData =>
 
   protected def computeBBoxDisplay() {
     bboxDisplay.clear()
-    var offset = Math.max(boundsForVertexSet(graph.verts).getMaxX, trans.origin._1)
+    var offset = Math.max(boundsForVertexSet(graph.verts).getMaxX, trans.screenDrawOrigin._1)
 
     // used to compute relative padding sizes
     val em = trans.scaleToScreen(0.25)
@@ -39,7 +39,7 @@ trait BBoxDisplayData { self: VertexDisplayData =>
 
       val rect = if (vset.isEmpty) {
         offset += 4.0*em
-        new Rectangle2D.Double(offset, trans.origin._2 - 2*em, 4*em, 4*em)
+        new Rectangle2D.Double(offset, trans.screenDrawOrigin._2 - 2*em, 4*em, 4*em)
       } else {
 
         /* bounds determined by vertices of bbox */

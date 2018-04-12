@@ -15,7 +15,8 @@ import java.awt.font.TextLayout
 import java.io.File
 
 import quanto.util.FileHelper.printToFile
-import quanto.util.UserOptions
+import quanto.util.UserAlerts.alert
+import quanto.util.{UserAlerts, UserOptions}
 import quanto.util.json.JsonString
 
 
@@ -60,6 +61,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
   // gets called when the component is first painted
   lazy val init = {
+    focusOnGraph()
     resizeViewToFit()
   }
 
@@ -92,11 +94,39 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   private var _zoom = 1.0
   def zoom = _zoom
   def zoom_=(d: Double) {
+    // log where the middle of the screen currently is
     _zoom = d
     trans.scale = _zoom * 50.0
-    trans.origin = (_zoom * 250.0, _zoom * 250.0)
-    invalidateGraph(clearSelection = false)
     resizeViewToFit()
+    invalidateGraph(false)
+    repaint()
+  }
+
+private  def viewportOffset (): (Double, Double) = {
+  val viewRect = peer.getVisibleRect
+  (viewRect.width / 2, viewRect.height / 2)
+}
+
+  def graphFocus : (Double, Double) = {
+    val viewShift = viewportOffset()
+    trans.fromScreen(viewShift)
+  }
+
+  private def renderOriginAt(x : Double, y: Double): Unit ={
+    trans.screenDrawOrigin = (x, y)
+  }
+
+  def graphFocus_=(pointOnGraph : (Double, Double)) : Unit = {
+
+    val screenFocus = (trans scaleToScreen pointOnGraph._1, trans scaleToScreen pointOnGraph._2)
+
+    val viewShift = viewportOffset()
+
+    renderOriginAt(0-screenFocus._1 + viewShift._1, 0-screenFocus._2 + viewShift._2)
+
+    resizeViewToFit()
+    invalidateGraph(false)
+    revalidate()
     repaint()
   }
 
@@ -142,6 +172,8 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   }
 
   def resizeViewToFit() {
+
+    val bufferFocus = graphFocus
     // top left and bottom right of bounds, in screen coordinates
     val graphTopLeft = graph.vdata.foldLeft(0.0,0.0) { (c,v) =>
       (min(c._1, v._2.coord._1), max(c._2, v._2.coord._2))
@@ -152,14 +184,14 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
     } match {case (x,y) => trans toScreen (x + 1.0, y - 1.0)}
 
     // default bounds, based on the current position of the origin and the size of the visible region
-    val vRect = peer.getVisibleRect
-    val defaultTopLeft = (trans.origin._1 - (vRect.getWidth/2.0), trans.origin._2 - (vRect.getHeight/2.0))
-    val defaultBottomRight = (trans.origin._1 + (vRect.getWidth/2.0), trans.origin._2 + (vRect.getHeight/2.0))
+    val offset = viewportOffset()
+    val screenTopLeft = (trans.screenDrawOrigin._1 - offset._1, trans.screenDrawOrigin._2 - offset._2)
+    val screenBottomRight = (trans.screenDrawOrigin._1 + offset._1, trans.screenDrawOrigin._2 + offset._2)
 
-    val topLeft =     (min(graphTopLeft._1, defaultTopLeft._1),
-                       min(graphTopLeft._2, defaultTopLeft._2))
-    val bottomRight = (max(graphBottomRight._1, defaultBottomRight._1),
-                       max(graphBottomRight._2, defaultBottomRight._2))
+    val topLeft =     (min(graphTopLeft._1, screenTopLeft._1),
+                       min(graphTopLeft._2, screenTopLeft._2))
+    val bottomRight = (max(graphBottomRight._1, screenBottomRight._1),
+                       max(graphBottomRight._2, screenBottomRight._2))
 
     val (w,h) = (bottomRight._1 - topLeft._1,
                  bottomRight._2 - topLeft._2)
@@ -168,10 +200,13 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
                   (preferredSize.width != w) || (preferredSize.height != h)
 
     if (changed) {
-      trans.origin = (trans.origin._1 - topLeft._1, trans.origin._2 - topLeft._2)
+      trans.screenDrawOrigin = (trans.screenDrawOrigin._1 - topLeft._1, trans.screenDrawOrigin._2 - topLeft._2)
+      //graphFocus = bufferFocus
+      alert(s"Setting size to $w by $h")
       preferredSize = new Dimension(w.toInt, h.toInt)
       invalidateGraph(clearSelection = false)
       revalidate()
+      repaint()
     }
   }
 
@@ -188,6 +223,52 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   override def repaint() {
     //if (dynamicResize) resizeViewToFit()
     super.repaint()
+  }
+
+  def focusOnGraph(): Unit = {
+    // top left and bottom right of bounds, in screen coordinates
+    val graphTopLeft = graph.vdata.foldLeft(0.0, 0.0) { (c, v) =>
+      (min(c._1, v._2.coord._1), max(c._2, v._2.coord._2))
+    }
+
+
+    val graphBottomRight = graph.vdata.foldLeft((0.0, 0.0)) { (c, v) =>
+      (max(c._1, v._2.coord._1), min(c._2, v._2.coord._2))
+    }
+
+
+    val defaultTopLeft = (-5,5)
+    val defaultBottomRight = (5,-5)
+
+    val topLeft = (min(graphTopLeft._1, defaultTopLeft._1),
+      max(graphTopLeft._2, defaultTopLeft._2))
+    val bottomRight = (max(graphBottomRight._1, defaultBottomRight._1),
+      min(graphBottomRight._2, defaultBottomRight._2))
+
+    def d(x: Double, y: Double) = sqrt(x * x + y * y)
+
+    val graphSizeSquared = d(topLeft._1 - bottomRight._1, topLeft._2 - bottomRight._2)
+
+    val (w, h) = (bottomRight._1 - topLeft._1,
+      topLeft._2 - bottomRight._2)
+
+    val graphCentre = ((topLeft._1 + bottomRight._1) / 2, (topLeft._2 + bottomRight._2) / 2)
+
+    // default bounds, based on the current position of the origin and the size of the visible region
+    val vRect = peer.getVisibleRect
+
+    val widthOnScreen = trans scaleToScreen w
+    val heightOnScreen = trans scaleToScreen h
+
+    val widthChange = widthOnScreen / vRect.width
+    val heightChange = heightOnScreen / vRect.height
+    val zoomChangeNeeded = max(widthChange, heightChange)
+
+    zoom = 0.9*zoom / zoomChangeNeeded
+
+    //trans.scale = trans.scale * zoomChangeNeeded
+
+    graphFocus = graphCentre
   }
 
   override def paintComponent(g: Graphics2D) {
