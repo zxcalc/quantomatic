@@ -582,6 +582,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
           view.edgeOverlay = Some(EdgeOverlay(pt, src = vname, tgt = Some(vname)))
           view.repaint()
         case RequestNormaliseGraph() =>
+        case RequestFocusOnGraph() =>
         case state => throw new InvalidMouseStateException("MousePressed", state)
       }
 
@@ -636,6 +637,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
               }
           }
         case RequestNormaliseGraph() =>
+        case RequestFocusOnGraph() =>
         case SelectionBox(start,_) =>
           val box = SelectionBox(start, pt)
           mouseState = box
@@ -866,6 +868,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
           view.repaint()
 
         case RequestNormaliseGraph() =>
+        case RequestFocusOnGraph() =>
         case state => throw new InvalidMouseStateException("MouseReleased", state)
       }
 

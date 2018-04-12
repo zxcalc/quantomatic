@@ -202,7 +202,6 @@ private  def viewportOffset (): (Double, Double) = {
     if (changed) {
       trans.screenDrawOrigin = (trans.screenDrawOrigin._1 - topLeft._1, trans.screenDrawOrigin._2 - topLeft._2)
       //graphFocus = bufferFocus
-      alert(s"Setting size to $w by $h")
       preferredSize = new Dimension(w.toInt, h.toInt)
       invalidateGraph(clearSelection = false)
       revalidate()
