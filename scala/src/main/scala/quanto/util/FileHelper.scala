@@ -63,6 +63,8 @@ object FileHelper {
 
   def readFile[T](file: File, conversion: Json => T): T = conversion(Json.parse(file))
 
+  def readJson(file: File) : Json = Json.parse(file)
+
   def readFile(file: File): List[String] = {
     val bufferedSource = Source.fromFile(file)
     val lines = bufferedSource.getLines().toList

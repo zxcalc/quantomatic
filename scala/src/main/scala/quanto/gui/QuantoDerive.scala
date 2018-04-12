@@ -175,6 +175,7 @@ object QuantoDerive extends SimpleSwingApplication {
   def addAndFocusPage(d : DocumentPage): Unit = {
     MainDocumentTabs += d
     listenTo(d.tabComponent)
+    d.document.publish(DocumentChanged(d.document))
   }
 
   listenTo(quanto.util.UserOptions.OptionsChanged)

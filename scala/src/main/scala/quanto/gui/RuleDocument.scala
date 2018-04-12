@@ -1,10 +1,13 @@
 package quanto.gui
 
 import java.io.File
+
 import quanto.data._
 import quanto.util.json.Json
+
 import scala.swing.Component
 import quanto.util.FileHelper.printToFile
+import quanto.util.UserAlerts
 
 class RuleDocument(val parent: Component, theory: Theory) extends Document {
   val description = "Rule"
@@ -20,10 +23,10 @@ class RuleDocument(val parent: Component, theory: Theory) extends Document {
   }
 
   def rule = Rule(lhsRef.graph, rhsRef.graph, derivation)
-  def rule_=(r: Rule) {
-    lhsRef.graph = r.lhs
-    rhsRef.graph = r.rhs
-    derivation = r.derivation
+  def rule_=(newRule: Rule) {
+    lhsRef.graph = newRule.lhs
+    rhsRef.graph = newRule.rhs
+    derivation = newRule.derivation
     lhsRef.publish(GraphReplaced(lhsRef, clearSelection = true))
     rhsRef.publish(GraphReplaced(rhsRef, clearSelection = true))
   }

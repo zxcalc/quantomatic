@@ -79,6 +79,7 @@ object Simproc {
     }
   }
 
+  // Applies rewrite rules, but only if the rule affects the targeted vertex
   def REWRITE_TARGETED(rule: Rule, vp: VName, targ: Graph => Option[VName]) = new Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = {
       targ(g).flatMap { vt =>

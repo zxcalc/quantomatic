@@ -214,24 +214,23 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
       }
 
     case ButtonClicked(panel.ExportTheoremButton) =>
-      panel.document.file match {
-        case Some(f) =>
-          val rf = panel.project.rootFolder
-          var dname = f.getAbsolutePath
-          dname = if (dname.startsWith(rf) && dname.length > rf.length) dname.substring(rf.length + 1, dname.length) else dname
-          dname = if (dname.endsWith(".qderive")) dname.substring(0, dname.length - 8) else dname
+      if(!panel.document.unsavedChanges && panel.document.file.nonEmpty) {
+        val f = panel.document.file.get
+        val rf = panel.project.rootFolder
+        var dname = panel.project.relativePath(f)
+        dname = if (dname.endsWith(".qderive")) dname.substring(0, dname.length - 8) else dname
 
-          state.step.map { s =>
-            val ruleDoc = new RuleDocument(panel, panel.theory)
-            ruleDoc.rule = new Rule(panel.document.root, derivation.steps(s).graph, Some(dname))
-            ruleDoc.showSaveAsDialog(Some(panel.project.rootFolder))
-          }
+        state.step.foreach { s =>
+          val ruleDoc = new RuleDocument(panel, panel.theory)
+          val newRule = new Rule(panel.document.root, derivation.steps(s).graph, Some(dname))
+          val page = new RuleDocumentPage(panel.theory)
+          page.document.asInstanceOf[RuleDocument].rule = newRule
+          QuantoDerive.addAndFocusPage(page)
+          UserAlerts.alert("Rule set to: " + ruleDoc.rule)
+        }
 
-        case None =>
-          Dialog.showMessage(
-            title = "Error",
-            message = "You must first save this derivation before exporting a theorem",
-            messageType = Dialog.Message.Error)
+      } else {
+          UserAlerts.errorbox("You must first save this derivation before exporting a theorem")
       }
 
     case SelectionChanged(_) =>
