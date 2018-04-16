@@ -226,7 +226,6 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
           val page = new RuleDocumentPage(panel.theory)
           page.document.asInstanceOf[RuleDocument].rule = newRule
           QuantoDerive.addAndFocusPage(page)
-          UserAlerts.alert("Rule set to: " + ruleDoc.rule)
         }
 
       } else {

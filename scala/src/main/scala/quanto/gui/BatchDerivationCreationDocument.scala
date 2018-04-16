@@ -25,6 +25,8 @@ class BatchDerivationCreationDocument(val parent: Component) extends Document wi
   override def loadDocument(f: File) {
   }
 
+  override def titleDescription: String = "Batch Derivation"
+
   override def unsavedChanges: Boolean = false
 
   override protected def exportDocument(f: File) {
