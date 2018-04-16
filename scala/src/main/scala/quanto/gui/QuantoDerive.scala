@@ -447,14 +447,10 @@ object QuantoDerive extends SimpleSwingApplication {
           NewGraphAction.enabled = true
           NewAxiomAction.enabled = true
           //NewMLAction.enabled = true
-          ProjectMenu.enabled = true
-          FileMenu.CloseProjectAction.enabled = true
         case None =>
           NewGraphAction.enabled = false
           NewAxiomAction.enabled = false
           //NewMLAction.enabled = false
-          ProjectMenu.enabled = false
-          FileMenu.CloseProjectAction.enabled = false
       }
     }
 
@@ -769,6 +765,8 @@ object QuantoDerive extends SimpleSwingApplication {
     }
 
     visible = true
+    enabled = CurrentProject.nonEmpty
+
   }
 
   val GraphMenu = new Menu("Graph") {
