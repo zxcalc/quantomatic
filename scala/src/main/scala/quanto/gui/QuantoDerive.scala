@@ -814,6 +814,35 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
+
+    val ExtractGraph = new Action("Extract selection to new graph") {
+      enabled = true
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.E
+      }
+
+      def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
+        case (Some(project), Some(gep: GraphEditPanel)) =>
+          gep.document match {
+            case (graphDoc: GraphDocument) =>
+              val page = new GraphDocumentPage(project.theory)
+              val vertSelection = gep.graphEditController.selectedVerts
+              if(vertSelection.nonEmpty) {
+                val inverseSelection = gep.graphEditController.graph.verts -- vertSelection
+                val snippedGraph = inverseSelection.foldLeft(graphDoc.graph) {
+                  (g, v) => g.cutVertex(v)._1
+                }
+                page.document.asInstanceOf[GraphDocument].graph = snippedGraph
+                addAndFocusPage(page)
+              }
+            case _ =>
+              System.err.println("WARNING: Extract selection with no graph active")
+          }
+        case _ => // no project and/or document open, do nothing
+      }
+    }
+
+
     val SnapToGrid = new Action("Snap to grid") {
       enabled = false
       menu.contents += new MenuItem(this) {}
@@ -842,6 +871,29 @@ object QuantoDerive extends SimpleSwingApplication {
         case _ => // no project and/or derivation open, do nothing
       }
     }
+
+
+    val ViewGraph = new Action("Extract this graph") {
+      enabled = true
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.E
+      }
+
+      def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
+        case (Some(project), Some(dp: DerivationPanel)) =>
+          dp.document match {
+            case (derivationDoc: DerivationDocument) =>
+              val page = new GraphDocumentPage(project.theory)
+              val graph = dp.lhsController.graph
+              page.document.asInstanceOf[GraphDocument].graph = graph
+              addAndFocusPage(page)
+          }
+        case _ =>
+          System.err.println("WARNING: Extract selection with no graph active")
+      }
+    }
+
+
     visible = false
   }
 
@@ -995,8 +1047,10 @@ object QuantoDerive extends SimpleSwingApplication {
       GraphMenu.StartDerivation.enabled = false
       GraphMenu.SnapToGrid.enabled = false
       GraphMenu.StartRule.enabled = false
+      GraphMenu.ExtractGraph.enabled = false
       DeriveMenu.visible = false
       DeriveMenu.LayoutDerivation.enabled = false
+      DeriveMenu.ViewGraph.enabled = false
       WindowMenu.CloseAction.enabled = false
       ExportMenu.ExportAction.enabled = false
 
@@ -1025,6 +1079,7 @@ object QuantoDerive extends SimpleSwingApplication {
               GraphMenu.StartDerivation.enabled = true
               GraphMenu.StartRule.enabled = true
               GraphMenu.SnapToGrid.enabled = true
+              GraphMenu.ExtractGraph.enabled = true
               ExportMenu.ExportAction.enabled = true
             case panel: RuleEditPanel =>
               EditMenu.CutAction.enabled = true
@@ -1041,6 +1096,7 @@ object QuantoDerive extends SimpleSwingApplication {
               histView = Some(panel.histView)
               DeriveMenu.visible = true
               DeriveMenu.LayoutDerivation.enabled = true
+              DeriveMenu.ViewGraph.enabled = true
             case _ => // nothing else enabled for ML
           }
 
