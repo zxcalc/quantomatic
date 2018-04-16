@@ -29,6 +29,7 @@ class RuleDocument(val parent: Component, theory: Theory) extends Document {
     derivation = newRule.derivation
     lhsRef.publish(GraphReplaced(lhsRef, clearSelection = true))
     rhsRef.publish(GraphReplaced(rhsRef, clearSelection = true))
+    publish(DocumentChanged(this))
   }
 
   private var storedRule: Rule = Rule(Graph(theory), Graph(theory))

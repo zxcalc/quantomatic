@@ -111,7 +111,6 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
           name = DSName("s"),
           ruleName = rd.name,
           rule = rule1,
-          variant = if (rd.inverse) RuleInverse else RuleNormal,
           graph = graph1.minimise).layout
 
         resultLock.acquire()

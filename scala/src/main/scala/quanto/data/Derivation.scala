@@ -12,20 +12,9 @@ case class DerivationLoadException(message: String, cause: Throwable = null)
   extends Exception(message, cause)
     with DerivationException
 
-sealed abstract class RuleVariant
-
-case object RuleNormal extends RuleVariant {
-  override def toString = "normal"
-}
-
-case object RuleInverse extends RuleVariant {
-  override def toString = "inverse"
-}
-
 case class DStep(name: DSName,
                  ruleName: String,
                  rule: Rule,
-                 variant: RuleVariant,
                  graph: Graph) {
   def layout: DStep = {
     val layoutProc = new ForceLayout
@@ -51,19 +40,15 @@ case class DStep(name: DSName,
   def copy(name: DSName = name,
            ruleName: String = ruleName,
            rule: Rule = rule,
-           variant: RuleVariant = variant,
            graph: Graph = graph)
-  = DStep(name, ruleName, rule, variant, graph)
+  = DStep(name, ruleName, rule, graph)
 }
 
 object DStep {
 
-  implicit def booleanToVariant(isInverted : Boolean) : RuleVariant = {
-    if (isInverted) RuleNormal else RuleInverse
-  }
 
   def apply(name: DSName, rule: Rule, graph: Graph) : DStep =
-    DStep(name, rule.name, rule, rule.description.inverse, graph)
+    DStep(name, rule.name, rule, graph)
 
   def toJson(dstep: DStep, parent: Option[DSName], thy: Theory = Theory.DefaultTheory): Json = {
     JsonObject(
@@ -71,23 +56,24 @@ object DStep {
       "parent" -> parent.map(_.toString),
       "rule_name" -> dstep.ruleName,
       "rule" -> Rule.toJson(dstep.rule, thy),
-      "rule_variant" -> (dstep.variant match {
-        case RuleNormal => JsonNull;
-        case v => v.toString
+      "rule_variant" -> (dstep.rule.description.inverse match {
+        case true => "inverse"
+        case false => "forwards"
       }),
       "graph" -> Graph.toJson(dstep.graph, thy)
-    ).noEmpty
+    )
   }
 
   def fromJson(name: DSName, json: Json, thy: Theory = Theory.DefaultTheory): DStep = try {
+    val baseRule = Rule.fromJson(json / "rule", thy)
+    val rule : Rule = json ? "rule_variant" match {
+      case JsonString("inverse") => baseRule.inverse
+      case _ => baseRule
+    }
     DStep(
       name = name,
       ruleName = (json / "rule_name").stringValue,
-      rule = Rule.fromJson(json / "rule", thy),
-      variant = json ? "rule_variant" match {
-        case JsonString("inverse") => RuleInverse;
-        case _ => RuleNormal
-      },
+      rule = rule,
       graph = Graph.fromJson(json / "graph", thy)
     )
   } catch {

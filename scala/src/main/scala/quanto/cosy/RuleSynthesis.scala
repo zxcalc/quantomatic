@@ -82,8 +82,6 @@ object AutoReduce {
     * Automatically reduce, with no handler or multithreading
     */
 
-  implicit def inverseToRuleVariant(inverse: Boolean): RuleVariant = if (inverse) RuleInverse else RuleNormal
-
   def smallestStepNameBelow(derivationHeadPair: (Derivation, Option[DSName])): Option[DSName] = {
     derivationHeadPair._2 match {
       case Some(head) =>

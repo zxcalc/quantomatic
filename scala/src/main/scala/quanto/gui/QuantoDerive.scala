@@ -447,10 +447,14 @@ object QuantoDerive extends SimpleSwingApplication {
           NewGraphAction.enabled = true
           NewAxiomAction.enabled = true
           //NewMLAction.enabled = true
+          ProjectMenu.enabled = true
+          FileMenu.CloseProjectAction.enabled = true
         case None =>
           NewGraphAction.enabled = false
           NewAxiomAction.enabled = false
           //NewMLAction.enabled = false
+          ProjectMenu.enabled = false
+          FileMenu.CloseProjectAction.enabled = false
       }
     }
 
@@ -580,26 +584,6 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
-    val EditTheoryAction = new Action("Edit Theory") {
-      menu.contents += new MenuItem(this) {
-        mnemonic = Key.T
-      }
-
-      def apply() {
-        CurrentProject.foreach { project =>
-          val page = MainDocumentTabs.documents.find(tp => tp.title == "Theory Editor") match {
-            case Some(p) => p
-            case None =>
-              val p = new TheoryPage()
-              listenTo(p.document)
-              p.title = "Theory Editor"
-              addAndFocusPage(p)
-              p
-          }
-          MainDocumentTabs.focus(page)
-        }
-      }
-    }
 
     menu.contents += new Separator()
 
@@ -713,38 +697,52 @@ object QuantoDerive extends SimpleSwingApplication {
 //    contents += new MenuItem(LayoutAction) { mnemonic = Key.L }
   }
 
-  val DeriveMenu = new Menu("Derive") {
+  val RuleMenu = new Menu("Rule") {
     menu =>
-    val StartDerivation = new Action("Start derivation") {
-      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_D, CommandMask))
-      enabled = false
+    val InvertRule = new Action("Invert Rule") {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_I, CommandMask))
+      enabled = true
       menu.contents += new MenuItem(this) {
-        mnemonic = Key.D
+        mnemonic = Key.I
       }
 
       def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
         case (Some(project), Some(doc: HasDocument)) =>
           doc.document match {
-            case (graphDoc: GraphDocument) =>
-              val page = new DerivationDocumentPage(project)
-              addAndFocusPage(page)
-              page.document.asInstanceOf[DerivationDocument].root = graphDoc.graph
+            case (ruleDoc: RuleDocument) =>
+              ruleDoc.rule = ruleDoc.rule.inverse
 
             case _ =>
-              System.err.println("WARNING: Start derivation called with no graph active")
+              System.err.println("WARNING: Invert rule called with no rule active")
           }
         case _ => // no project and/or document open, do nothing
       }
     }
+    visible = false
+  }
 
-    val LayoutDerivation = new Action("Layout derivation") {
-//      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
-      enabled = false
-      menu.contents += new MenuItem(this) { mnemonic = Key.L }
-      def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
-        case (Some(project), Some(derivePanel: DerivationPanel)) =>
-          derivePanel.controller.layoutDerivation()
-        case _ => // no project and/or derivation open, do nothing
+  val ProjectMenu = new Menu("Project") {
+    menu =>
+
+
+    val EditTheoryAction = new Action("Edit Theory") {
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.T
+      }
+
+      def apply() {
+        CurrentProject.foreach { project =>
+          val page = MainDocumentTabs.documents.find(tp => tp.title == "Theory Editor") match {
+            case Some(p) => p
+            case None =>
+              val p = new TheoryPage()
+              listenTo(p.document)
+              p.title = "Theory Editor"
+              addAndFocusPage(p)
+              p
+          }
+          MainDocumentTabs.focus(page)
+        }
       }
     }
 
@@ -769,7 +767,86 @@ object QuantoDerive extends SimpleSwingApplication {
         }
       }
     }
+
+    visible = true
   }
+
+  val GraphMenu = new Menu("Graph") {
+    menu =>
+    val StartDerivation = new Action("Start derivation") {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_D, CommandMask))
+      enabled = false
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.D
+      }
+
+      def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
+        case (Some(project), Some(doc: HasDocument)) =>
+          doc.document match {
+            case (graphDoc: GraphDocument) =>
+              val page = new DerivationDocumentPage(project)
+              addAndFocusPage(page)
+              page.document.asInstanceOf[DerivationDocument].root = graphDoc.graph
+
+            case _ =>
+              System.err.println("WARNING: Start derivation called with no graph active")
+          }
+        case _ => // no project and/or document open, do nothing
+      }
+    }
+
+    val StartRule = new Action("Make into axiom") {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_R, CommandMask))
+      enabled = false
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.R
+      }
+
+      def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
+        case (Some(project), Some(doc: HasDocument)) =>
+          doc.document match {
+            case (graphDoc: GraphDocument) =>
+              val page = new RuleDocumentPage(project.theory)
+              page.document.asInstanceOf[RuleDocument].lhsRef.graph = graphDoc.graph
+              addAndFocusPage(page)
+            case _ =>
+              System.err.println("WARNING: Start rule called with no graph active")
+          }
+        case _ => // no project and/or document open, do nothing
+      }
+    }
+
+    val SnapToGrid = new Action("Snap to grid") {
+      enabled = false
+      menu.contents += new MenuItem(this) {}
+
+      def apply() = {
+        currentGraphController.foreach(gc => gc.graph = gc.graph.snapToGrid())
+      }
+
+    }
+    visible = false
+  }
+
+
+  val DeriveMenu = new Menu("Derivation") {
+    menu =>
+    val LayoutDerivation = new Action("Layout derivation") {
+      //      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
+      enabled = false
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.L
+      }
+
+      def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
+        case (Some(project), Some(derivePanel: DerivationPanel)) =>
+          derivePanel.controller.layoutDerivation()
+        case _ => // no project and/or derivation open, do nothing
+      }
+    }
+    visible = false
+  }
+
 
   val WindowMenu = new Menu("Window") { menu =>
     val CloseAction = new Action("Close tab") {
@@ -907,14 +984,21 @@ object QuantoDerive extends SimpleSwingApplication {
       FileMenu.SaveAction.enabled = false
       FileMenu.SaveAsAction.enabled = false
       FileMenu.SaveAllAction.enabled = false
-      FileMenu.EditTheoryAction.enabled = CurrentProject.nonEmpty
+      ProjectMenu.visible = true
+      ProjectMenu.EditTheoryAction.enabled = CurrentProject.nonEmpty
+      ProjectMenu.BatchDerivationAction.enabled = CurrentProject.nonEmpty
       EditMenu.CutAction.enabled = false
       EditMenu.CopyAction.enabled = false
       EditMenu.PasteAction.enabled = false
+      RuleMenu.visible = false
+      RuleMenu.InvertRule.enabled = false
       EditMenu.SnapToGridAction.enabled = false
-      DeriveMenu.StartDerivation.enabled = false
+      GraphMenu.visible = false
+      GraphMenu.StartDerivation.enabled = false
+      GraphMenu.SnapToGrid.enabled = false
+      GraphMenu.StartRule.enabled = false
+      DeriveMenu.visible = false
       DeriveMenu.LayoutDerivation.enabled = false
-      DeriveMenu.BatchDerivationAction.enabled = CurrentProject.nonEmpty
       WindowMenu.CloseAction.enabled = false
       ExportMenu.ExportAction.enabled = false
 
@@ -939,7 +1023,10 @@ object QuantoDerive extends SimpleSwingApplication {
               EditMenu.CopyAction.enabled = true
               EditMenu.PasteAction.enabled = true
               EditMenu.SnapToGridAction.enabled = true
-              DeriveMenu.StartDerivation.enabled = true
+              GraphMenu.visible = true
+              GraphMenu.StartDerivation.enabled = true
+              GraphMenu.StartRule.enabled = true
+              GraphMenu.SnapToGrid.enabled = true
               ExportMenu.ExportAction.enabled = true
             case panel: RuleEditPanel =>
               EditMenu.CutAction.enabled = true
@@ -947,10 +1034,15 @@ object QuantoDerive extends SimpleSwingApplication {
               EditMenu.PasteAction.enabled = true
               EditMenu.SnapToGridAction.enabled = true
               ExportMenu.ExportAction.enabled = true
+              RuleMenu.visible = true
+              RuleMenu.InvertRule.enabled = true
+              GraphMenu.visible = true
+              GraphMenu.SnapToGrid.enabled = true
             case panel: DerivationPanel =>
-              DeriveMenu.LayoutDerivation.enabled = true
               ExportMenu.ExportAction.enabled = true
               histView = Some(panel.histView)
+              DeriveMenu.visible = true
+              DeriveMenu.LayoutDerivation.enabled = true
             case _ => // nothing else enabled for ML
           }
 
@@ -992,7 +1084,7 @@ object QuantoDerive extends SimpleSwingApplication {
 
 
     menuBar = new MenuBar {
-      contents += (FileMenu, EditMenu, DeriveMenu, WindowMenu, ExportMenu, HelpMenu)
+      contents += (FileMenu, ProjectMenu, EditMenu, DeriveMenu, RuleMenu, GraphMenu, WindowMenu, ExportMenu, HelpMenu)
     }
 
     import javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE
