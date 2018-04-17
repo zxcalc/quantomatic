@@ -1,8 +1,11 @@
 package quanto.rewrite
 import quanto.data.Theory.ValueType
 import quanto.data._
+import quanto.util.UserAlerts
 
-class MatchException(msg: String) extends Exception(msg)
+class MatchException(msg: String) extends Exception(msg) {
+  UserAlerts.alert(s"Match Exception: $msg", UserAlerts.Elevation.WARNING)
+}
 
 case class Match(pattern0: Graph, // the pattern without bbox operations
                  pattern: Graph,
