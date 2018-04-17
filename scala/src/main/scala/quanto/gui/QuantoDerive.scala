@@ -30,7 +30,7 @@ import ExecutionContext.Implicits.global
 import java.awt.{Color, Desktop, Window}
 import javax.swing.filechooser.FileNameExtensionFilter
 
-import quanto.util.{Globals, UserAlerts, UserOptions, WebHelper}
+import quanto.util._
 
 
 object QuantoDerive extends SimpleSwingApplication {
@@ -392,6 +392,26 @@ object QuantoDerive extends SimpleSwingApplication {
       def apply() {
         file.delete()
       }
+    }
+
+    (FileHelper.extension(file), MainDocumentTabs.currentContent) match {
+      case ("qrule", Some(dp: DerivationPanel)) =>
+        val AddToRewrites : Action = new Action("Add to current derivation") {
+          menu.contents += new MenuItem(this) {
+            mnemonic = Key.R
+          }
+
+          def apply() {
+            alert(s"Publishing request for rule")
+            if(CurrentProject.nonEmpty){
+              val project = CurrentProject.get
+              val relativePath = project.relativePath(file)
+              val ruleDesc = RuleDesc(relativePath.substring(0, relativePath.length-".qrule".length))
+              dp.publish(SuggestRewriteRule(ruleDesc))
+            }
+          }
+        }
+      case _ =>
     }
   }
 

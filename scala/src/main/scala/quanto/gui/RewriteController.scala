@@ -3,15 +3,19 @@ package quanto.gui
 import quanto.data._
 import quanto.data.Names._
 import quanto.rewrite._
+
 import scala.concurrent.{Future, Lock}
 import scala.swing._
 import scala.swing.event._
 import scala.swing.event.ButtonClicked
-import scala.util.{Success,Failure}
+import scala.util.{Failure, Success}
 import quanto.util.json._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import java.io.File
+
 import quanto.layout.ForceLayout
+import quanto.util.UserAlerts
 
 
 class RewriteController(panel: DerivationPanel) extends Publisher {
@@ -56,7 +60,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
     }
 
     resultLock.release()
-    
+
     refreshRewriteDisplay(clearSelection = true)
   }
 
@@ -164,8 +168,16 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
   listenTo(panel.ManualRewritePane.PreviousResultButton, panel.ManualRewritePane.NextResultButton)
   listenTo(panel.ManualRewritePane.ApplyButton)
   listenTo(panel.ManualRewritePane.Rewrites.selection)
+  listenTo(panel)
 
   reactions += {
+    case SuggestRewriteRule(ruleDesc) =>
+      UserAlerts.alert(s"Trying rule $ruleDesc")
+      val currentRules = rules.toSet
+      val newRules = Set(ruleDesc).filter(!currentRules.contains(_))
+
+      if (newRules.nonEmpty) rules ++= newRules
+      rules = rules.sortBy(r => r.name)
     case ButtonClicked(panel.ManualRewritePane.AddRuleButton) =>
       val d = new AddRuleDialog(panel.project)
       d.centerOnScreen()

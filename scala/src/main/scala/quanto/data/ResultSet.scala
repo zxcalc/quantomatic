@@ -2,7 +2,7 @@ package quanto.data
 
 case class ResultLine(rule: RuleDesc, index: Int, total: Int) {
   override def toString = {
-    rule.name + (if (rule.inverse) " [inv]" else "") + " (" + index + "/" + total + ")"
+    (if (rule.inverse) "<- " else "-> ") + rule.name + " (" + index + "/" + total + ")"
   }
 }
 

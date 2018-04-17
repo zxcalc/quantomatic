@@ -9,6 +9,7 @@ import javax.swing.ImageIcon
 import quanto.gui.histview.HistView
 
 case class RequestReRunSimproc() extends Event
+case class SuggestRewriteRule(relativePath: RuleDesc) extends Event
 
 class DerivationPanel(val project: Project)
   extends BorderPanel

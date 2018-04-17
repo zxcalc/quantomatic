@@ -11,6 +11,7 @@ import scala.io.Source
 object FileHelper {
 
   implicit def uriToFile(uri: URI): File = new File(uri)
+  implicit def fileToURI(file: File): URI = file.toURI
 
   implicit def pathToFile(path: String): File = new File(path)
 
@@ -70,6 +71,14 @@ object FileHelper {
     val lines = bufferedSource.getLines().toList
     bufferedSource.close
     lines
+  }
+
+  def extension(file: File) : String = {
+    val pattern = """.*\.(\w+)""".r
+    file.getAbsolutePath match {
+      case pattern(extension) => extension
+      case _ => ""
+    }
   }
 
 
