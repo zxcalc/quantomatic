@@ -52,11 +52,15 @@ case class Graph(
     vdata(vn).isWireVertex && (inEdges(vn).size + outEdges(vn).size) <= 1
   lazy val boundaryNodes : Set[VName] = verts.filter(vdata(_).isBoundary)
   lazy val nodesThatAreNotWires : Set[VName] = verts.filterNot(vdata(_).isWireVertex)
+
+  // "is boundary" returns true for anything that looks like a boundary, or claims to be a boundary
+  def isBoundary(vn: VName) : Boolean = boundaryNodes.contains(vn) || isTerminalWire(vn)
+
   def isCircle(vn: VName): Boolean =
     vdata(vn).isWireVertex && inEdges(vn).size == 1 && inEdges(vn) == outEdges(vn)
 
   def typeOf(v: VName): String = vdata(v).typ
-  def isAdjacentToBoundary(v: VName): Boolean = adjacentVerts(v).exists(isTerminalWire)
+  def isAdjacentToBoundary(v: VName): Boolean = adjacentVerts(v).exists(isBoundary)
   def isAdjacentToType(v: VName, t: String): Boolean = adjacentVerts(v).exists(typeOf(_) == t)
   def isWireVertex(v: VName) = vdata(v).isWireVertex
 
