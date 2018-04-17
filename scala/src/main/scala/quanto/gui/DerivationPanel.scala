@@ -8,10 +8,12 @@ import scala.swing.event._
 import javax.swing.ImageIcon
 import quanto.gui.histview.HistView
 
+case class RequestReRunSimproc() extends Event
 
 class DerivationPanel(val project: Project)
   extends BorderPanel
   with HasDocument
+  with Publisher
 {
   def theory = project.theory
   val document = new DerivationDocument(this)
@@ -37,6 +39,8 @@ class DerivationPanel(val project: Project)
 
   val lhsController = new GraphEditController(LhsView, document.undoStack, readOnly = true)
   val rhsController = new GraphEditController(RhsView, document.undoStack, readOnly = true)
+
+  def ReRunLastSimproc() : Unit = publish(RequestReRunSimproc())
 
   val RewindButton = new Button() {
     icon = new ImageIcon(getClass.getResource("go-first.png"), "First step")

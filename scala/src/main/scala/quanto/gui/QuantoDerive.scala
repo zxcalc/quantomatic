@@ -53,6 +53,9 @@ object QuantoDerive extends SimpleSwingApplication {
   def alert(msg: String) =
     UserAlerts.alert(msg)
 
+  def warn(msg: String) =
+    UserAlerts.alert(msg, UserAlerts.Elevation.WARNING)
+
   def uiScale(i : Int) : Int = UserOptions.scaleInt(i)
 
   //Dialog.showMessage(title = "Error", message = msg, messageType = Dialog.Message.Error)
@@ -709,7 +712,7 @@ object QuantoDerive extends SimpleSwingApplication {
               ruleDoc.rule = ruleDoc.rule.inverse
 
             case _ =>
-              System.err.println("WARNING: Invert rule called with no rule active")
+              warn("WARNING: Invert rule called with no rule active")
           }
         case _ => // no project and/or document open, do nothing
       }
@@ -787,7 +790,7 @@ object QuantoDerive extends SimpleSwingApplication {
               page.document.asInstanceOf[DerivationDocument].root = graphDoc.graph
 
             case _ =>
-              System.err.println("WARNING: Start derivation called with no graph active")
+              warn("WARNING: Start derivation called with no graph active")
           }
         case _ => // no project and/or document open, do nothing
       }
@@ -808,7 +811,7 @@ object QuantoDerive extends SimpleSwingApplication {
               page.document.asInstanceOf[RuleDocument].lhsRef.graph = graphDoc.graph
               addAndFocusPage(page)
             case _ =>
-              System.err.println("WARNING: Start rule called with no graph active")
+              warn("WARNING: Start rule called with no graph active")
           }
         case _ => // no project and/or document open, do nothing
       }
@@ -836,7 +839,7 @@ object QuantoDerive extends SimpleSwingApplication {
                 addAndFocusPage(page)
               }
             case _ =>
-              System.err.println("WARNING: Extract selection with no graph active")
+              warn("WARNING: Extract selection with no graph active")
           }
         case _ => // no project and/or document open, do nothing
       }
@@ -889,7 +892,24 @@ object QuantoDerive extends SimpleSwingApplication {
               addAndFocusPage(page)
           }
         case _ =>
-          System.err.println("WARNING: Extract selection with no graph active")
+          warn("WARNING: Extract selection with no graph active")
+      }
+    }
+
+
+
+    val ReRunLastSimproc = new Action("Re-run last simproc") {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, CommandMask))
+      enabled = true
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.R
+      }
+
+      def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
+        case (Some(project), Some(dp: DerivationPanel)) =>
+          dp.ReRunLastSimproc()
+        case _ =>
+          warn("WARNING: Re-run simproc called with no derivation active")
       }
     }
 
@@ -1051,6 +1071,7 @@ object QuantoDerive extends SimpleSwingApplication {
       DeriveMenu.visible = false
       DeriveMenu.LayoutDerivation.enabled = false
       DeriveMenu.ViewGraph.enabled = false
+      DeriveMenu.ReRunLastSimproc.enabled = false
       WindowMenu.CloseAction.enabled = false
       ExportMenu.ExportAction.enabled = false
 
@@ -1097,6 +1118,7 @@ object QuantoDerive extends SimpleSwingApplication {
               DeriveMenu.visible = true
               DeriveMenu.LayoutDerivation.enabled = true
               DeriveMenu.ViewGraph.enabled = true
+              DeriveMenu.ReRunLastSimproc.enabled = true
             case _ => // nothing else enabled for ML
           }
 

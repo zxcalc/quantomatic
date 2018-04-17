@@ -31,6 +31,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
     panel.SimplifyPane.RefreshButton,
     panel.SimplifyPane.SimplifyButton,
     panel.SimplifyPane.StopButton,
+    panel,
     PythonEditPanel)
 
   def theory = panel.theory
@@ -49,6 +50,8 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
   private var _lastRunSimproc : String = ""
 
   reactions += {
+    case RequestReRunSimproc() =>
+      publish(ReRunSimproc())
     case ReRunSimproc() =>
       publish(StartSimproc(_lastRunSimproc))
     case StartSimproc(simpName) =>
