@@ -6,9 +6,11 @@ import quanto.data._
 import quanto.util.UserAlerts
 import quanto.util.json.Json
 
-import scala.swing.Component
+import scala.collection.mutable
+import scala.ref.Reference
+import scala.swing.Reactions.Reaction
+import scala.swing.{Component, Publisher, RefSet}
 import scala.swing.event.Event
-import scala.swing.Publisher
 import scala.swing.event.Event
 
 
@@ -76,6 +78,8 @@ class TheoryDocument(val parent: Component) extends Document with Publisher {
   override protected def exportDocument(f: File) {
     showSaveAsDialog(None)
   }
+
+  override def titleDescription: String = "Theory Editor"
 
 
 }

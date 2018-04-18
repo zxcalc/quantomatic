@@ -296,8 +296,10 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
 
     EditorsCombined.contents += Swing.VStrut(separation)
     horizontalWrap(new Label(
-      "It is recommended that you back up your project before altering anything on this page!"
-    ))
+      """All changes are saved immediately. Re-open graphs to see the changes."""))
+    horizontalWrap(new Label(
+      """It is recommended that you back up your project before altering anything on this page!"""))
+
     EditorsCombined.contents += Swing.VStrut(separation)
     EditorsCombined.contents += new Separator()
     EditorsCombined.contents += Swing.VStrut(separation)

@@ -30,6 +30,7 @@ import ExecutionContext.Implicits.global
 import java.awt.{Color, Desktop, Window}
 import javax.swing.filechooser.FileNameExtensionFilter
 
+import quanto.gui.QuantoDerive.FileMenu.mnemonic
 import quanto.util._
 
 
@@ -711,6 +712,8 @@ object QuantoDerive extends SimpleSwingApplication {
 
   val RuleMenu = new Menu("Rule") {
     menu =>
+    mnemonic = Key.R
+
     val InvertRule = new Action("Invert Rule") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_I, CommandMask))
       enabled = true
@@ -736,8 +739,10 @@ object QuantoDerive extends SimpleSwingApplication {
   val ProjectMenu = new Menu("Project") {
     menu =>
 
+    mnemonic = Key.P
 
-    val EditTheoryAction = new Action("Edit Theory") {
+
+    val EditTheoryAction = new Action("Alter Theory") {
       menu.contents += new MenuItem(this) {
         mnemonic = Key.T
       }
@@ -787,6 +792,8 @@ object QuantoDerive extends SimpleSwingApplication {
 
   val GraphMenu = new Menu("Graph") {
     menu =>
+    mnemonic = Key.G
+
     val StartDerivation = new Action("Start derivation") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_D, CommandMask))
       enabled = false
@@ -813,7 +820,7 @@ object QuantoDerive extends SimpleSwingApplication {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_R, CommandMask))
       enabled = false
       menu.contents += new MenuItem(this) {
-        mnemonic = Key.R
+        mnemonic = Key.X
       }
 
       def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
@@ -834,7 +841,7 @@ object QuantoDerive extends SimpleSwingApplication {
     val ExtractGraph = new Action("Extract selection to new graph") {
       enabled = true
       menu.contents += new MenuItem(this) {
-        mnemonic = Key.E
+        mnemonic = Key.N
       }
 
       def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
@@ -861,7 +868,8 @@ object QuantoDerive extends SimpleSwingApplication {
 
     val SnapToGrid = new Action("Snap to grid") {
       enabled = false
-      menu.contents += new MenuItem(this) {}
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.S}
 
       def apply() = {
         currentGraphController.foreach(gc => gc.graph = gc.graph.snapToGrid())
@@ -874,6 +882,8 @@ object QuantoDerive extends SimpleSwingApplication {
 
   val DeriveMenu = new Menu("Derivation") {
     menu =>
+    mnemonic = Key.D
+
     val LayoutDerivation = new Action("Layout derivation") {
       //      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
       enabled = false
@@ -889,7 +899,7 @@ object QuantoDerive extends SimpleSwingApplication {
     }
 
 
-    val ViewGraph = new Action("Extract this graph") {
+    val ViewGraph = new Action("Extract to new graph") {
       enabled = true
       menu.contents += new MenuItem(this) {
         mnemonic = Key.E
@@ -932,6 +942,8 @@ object QuantoDerive extends SimpleSwingApplication {
 
 
   val WindowMenu = new Menu("Window") { menu =>
+    mnemonic = Key.W
+
     val CloseAction = new Action("Close tab") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_W, CommandMask))
       enabled = false
@@ -963,6 +975,8 @@ object QuantoDerive extends SimpleSwingApplication {
   }
 
   val HelpMenu = new Menu("Help") { menu =>
+    mnemonic = Key.H
+
     val WebsiteAction = new Action("Quantomatic website") {
       menu.contents += new MenuItem(this) { mnemonic = Key.Q }
       def apply() {
@@ -989,6 +1003,8 @@ object QuantoDerive extends SimpleSwingApplication {
   }
 
   val ExportMenu = new Menu("Export") { menu =>
+    mnemonic = Key.X
+
     val ExportAction = new Action("Export to LaTeX") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_E, CommandMask))
       enabled = false
