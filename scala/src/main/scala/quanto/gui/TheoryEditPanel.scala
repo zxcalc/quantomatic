@@ -6,13 +6,12 @@ import java.io.PrintStream
 import javax.swing.ImageIcon
 
 import org.lindenb.svg.SVGUtils
-import quanto.data.{Theory, TheoryLoadException}
+import quanto.data.{CompositeExpression, GenericParseException, Theory, TheoryLoadException}
 import quanto.data.Theory._
 import quanto.util.UserAlerts.{Elevation, SelfAlertingProcess, alert}
 import quanto.util._
 import quanto.util.json.{Json, JsonObject}
 import quanto.util.swing.ToolBar
-
 import quanto.util.UserOptions.scaleInt
 
 import scala.swing._
@@ -26,6 +25,21 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
   }
   val EditorsCombined = new BoxPanel(Orientation.Vertical)
   val TopScrollablePane = new ScrollPane(EditorsCombined)
+
+  implicit private def valueTypeVectorToString(vs: Vector[ValueType]) : String =
+    vs.map(approvedDataTypes).mkString("",", ","")
+
+  val approvedDataTypes: Map[ValueType, String] = ValueType.values map (v =>
+    v -> (v match {
+    case ValueType.AngleExpr => "angle"
+    case ValueType.Boolean => "boolean"
+    case ValueType.Integer => "integer"
+    case ValueType.Rational => "rational"
+    case ValueType.String => "string"
+    case ValueType.LongString => "string"
+    case ValueType.Enum => "string"
+    case ValueType.Empty => "empty"
+  })) toMap
 
   val approvedColours: Map[String, Color] = Map(
     "red" -> colourMute(new Color(255, 0, 0)),
@@ -44,11 +58,50 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     new Color(m(c.getRed), m(c.getGreen), m(c.getBlue))
   }
 
+
+  def chooseNodeDataType(node: String, current: String): Unit = {
+    val dialog = new DataTypePickingDialog(node, current)
+    dialog.centerOnScreen()
+    dialog.open()
+    if(dialog.wasAccepted){
+      val typeSelected = dialog.DataComboBox.selection.item
+      val newTypeVector: Vector[ValueType] = if(typeSelected == "composite"){
+        try{
+          CompositeExpression.parseTypes(dialog.CustomText.text)
+        } catch {
+          case _ : GenericParseException => Vector()
+        }
+      } else {
+        CompositeExpression.parseTypes(typeSelected)
+      }
+
+
+      val oldVertexDesc = theory.vertexTypes(node)
+      val newTypeValue : ValueDesc = new ValueDesc(typ = newTypeVector,
+        oldVertexDesc.value.enumOptions,
+        oldVertexDesc.value.latexConstants,
+        oldVertexDesc.value.validateWithCore)
+
+      val newVertexDesc : VertexDesc = new VertexDesc(newTypeValue,
+        oldVertexDesc.style,
+        oldVertexDesc.defaultData)
+
+      val newVertexTypes: Map[String, VertexDesc] = theory.vertexTypes + (node -> newVertexDesc)
+      // Update the base document's theory
+      theory = new Theory(name = theory.name,
+        coreName = theory.coreName,
+        vertexTypes = newVertexTypes,
+        edgeTypes = theory.edgeTypes,
+        defaultVertexType = theory.defaultVertexType,
+        defaultEdgeType = theory.defaultEdgeType
+      )
+    }
+  }
+
   def chooseNodeColour(node: String, current: Color): Unit = {
     val dialog = new ColourPickingDialog(node, current)
     dialog.centerOnScreen()
     dialog.open()
-    UserAlerts.debug("Should have opened dialog")
     val newColourHex: String = dialog.CustomText.text
     val newColour = Color.decode(newColourHex)
     val oldStyle: VertexStyleDesc = theory.vertexTypes(node).style
@@ -250,7 +303,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     EditorsCombined.contents += Swing.VStrut(separation)
 
     horizontalWrap(new Label("Vertices:"))
-    theory.vertexTypes.map(vt => {
+    theory.vertexTypes.toSeq.sortBy(vt => vt._1).map(vt => {
       EditorsCombined.contents += new NodeEditor(vt._1, vt._2)
       EditorsCombined.contents += Swing.VStrut(separation)
     })
@@ -261,7 +314,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     EditorsCombined.contents += new Separator()
     EditorsCombined.contents += Swing.VStrut(separation)
     horizontalWrap(new Label("Edges:"))
-    theory.edgeTypes.map(et => {
+    theory.edgeTypes.toSeq.sortBy(et => et._1).map(et => {
       EditorsCombined.contents += new EdgeEditor(et._1, et._2)
       EditorsCombined.contents += Swing.VStrut(separation)
     }
@@ -345,7 +398,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     val AcceptButton = new Button("Accept")
     val CancelButton = new Button("Cancel")
     val StringField = new TextField("")
-    defaultButton = Some(CancelButton)
+    defaultButton = Some(AcceptButton)
     val ShapeEditorPanel : BoxPanel = new BoxPanel(Orientation.Vertical) {
 
       contents += Swing.VStrut(10)
@@ -451,13 +504,96 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     }
   }
 
+  class DataTypePickingDialog(str: String, current: String) extends Dialog {
+    modal = true
+
+    private var currentForBox : String = current
+
+    private val currentParsedType : Option[ValueType] = {
+      try {
+        val types = CompositeExpression.parseTypes(current)
+        if(types.length == 1) {
+          currentForBox = ""
+          Some(types.head)
+        } else {
+          currentForBox = valueTypeVectorToString(types)
+          None
+        }
+      }
+        catch {
+          case GenericParseException(msg) => {
+            currentForBox = ""
+            None
+          }
+        }
+    }
+
+    val dataTypeOptions: Seq[String] = approvedDataTypes.values.toSet.toSeq.sorted :+ "composite"
+    val AcceptButton = new Button("Accept")
+    val CancelButton = new Button("Cancel")
+    val DataComboBox = new ComboBox(dataTypeOptions)
+    DataComboBox.selection.item = {
+      if (currentParsedType.nonEmpty) {
+        current
+      } else {
+        "composite"
+      }
+    }
+    val CustomText = new TextField()
+    CustomText.text = currentForBox
+    val ShapeEditorPanel: BoxPanel = new BoxPanel(Orientation.Vertical) {
+
+      contents += Swing.VStrut(10)
+      contents += new BoxPanel(Orientation.Horizontal) {
+        contents += (Swing.HStrut(10), new Label("Data Type:"), Swing.HStrut(5), DataComboBox, Swing.HStrut(10))
+      }
+      contents += Swing.VStrut(10)
+      contents += new BoxPanel(Orientation.Horizontal) {
+        contents += (Swing.HStrut(10), new Label("Composite Type:"), Swing.HStrut(5), CustomText, Swing.HStrut(10))
+      }
+      contents += Swing.VStrut(10)
+      contents += new BoxPanel(Orientation.Horizontal) {
+        contents += (Swing.HStrut(10), AcceptButton, Swing.HStrut(5), CancelButton, Swing.HStrut(10))
+      }
+      contents += Swing.VStrut(10)
+    }
+
+    enableCustom()
+    defaultButton = Some(CancelButton)
+
+
+    def enableCustom(): Unit = {
+      DataComboBox.selection.item match {
+        case "composite" => CustomText.enabled = true
+        case _ => CustomText.enabled = false
+      }
+    }
+
+    contents = ShapeEditorPanel
+
+    listenTo(AcceptButton, CancelButton, DataComboBox.selection)
+
+    var wasAccepted : Boolean = false
+
+    reactions += {
+      case ButtonClicked(AcceptButton) =>
+        wasAccepted = true
+        close()
+      case ButtonClicked(CancelButton) =>
+        wasAccepted = false
+        close()
+      case SelectionChanged(DataComboBox) =>
+        enableCustom()
+    }
+  }
+
   // example: ColourPickingDialog("X", "foreground colour", Color(10,10,200))
   class ColourPickingDialog(title: String, current: Color) extends Dialog {
     modal = true
 
     val currentColourName = colourToString(current)
 
-    val colourOptions: Seq[String] = approvedColours.keys.toSeq :+ "custom"
+    val colourOptions: Seq[String] = approvedColours.keys.toSet.toSeq.sorted :+ "custom"
     val AcceptButton = new Button("Accept")
     val CancelButton = new Button("Cancel")
     val ColourComboBox = new ComboBox(colourOptions)
@@ -571,28 +707,35 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
   class NodeEditor(nodeName: String, desc: VertexDesc) extends BoxPanel(Orientation.Vertical) {
     // Note that GridPanel expands to fill parent
     maximumSize = maxGridSize
-    contents += new GridPanel(3, 2) {
+    contents += new GridPanel(4, 2) {
+
       contents += new Label("Name")
       contents += new Label(nodeName) // Currently doesn't support renaming nodes (and shouldn't?)
+
       contents += new Label("Shape")
       val EditShapeButton: Button = new Button(desc.style.shape.toString)
       contents += EditShapeButton
+
       contents += new Label("Colour")
       val EditColourButton: Button = new Button(colourToString(desc.style.fillColor))
       contents += EditColourButton
+
+      contents += new Label("Values")
+      val EditValueTypeButton: Button = new Button(valueTypeVectorToString(desc.value.typ))
+      contents += EditValueTypeButton
       //contents += new Label("Label placement")
       //val EditPlacementButton: Button = new Button(desc.style.labelPosition.toString)
       //contents += EditPlacementButton
       //contents += new Label("Example")
       //contents += new Label("Example here")
-      listenTo(EditShapeButton, EditColourButton)
+      listenTo(EditShapeButton, EditColourButton, EditValueTypeButton)
       reactions += {
         case ButtonClicked(EditShapeButton) =>
           chooseNodeShape(nodeName, (desc.style.shape, desc.style.customShape))
         case ButtonClicked(EditColourButton) =>
           chooseNodeColour(nodeName, desc.style.fillColor)
-        //case ButtonClicked(EditPlacementButton) =>
-        //  chooseLabelPlacement(name, desc.style.labelPosition)
+        case ButtonClicked(EditValueTypeButton) =>
+          chooseNodeDataType(nodeName, valueTypeVectorToString(desc.value.typ))
       }
     }
   }
