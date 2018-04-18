@@ -695,13 +695,6 @@ object QuantoDerive extends SimpleSwingApplication {
       def apply() { currentGraphController.foreach(_.pasteSubgraph()) }
     }
 
-    contents += new Separator
-
-    val SnapToGridAction = new Action("Snap to grid") {
-      menu.contents += new MenuItem(this) { mnemonic = Key.S }
-      //accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_G, CommandMask))
-      def apply() { currentGraphController.foreach(_.snapToGrid()) }
-    }
 
 //    val LayoutAction = new Action("Layout Graph") with Reactor {
 //      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
@@ -1082,7 +1075,6 @@ object QuantoDerive extends SimpleSwingApplication {
       EditMenu.PasteAction.enabled = false
       RuleMenu.visible = false
       RuleMenu.InvertRule.enabled = false
-      EditMenu.SnapToGridAction.enabled = false
       GraphMenu.visible = false
       GraphMenu.StartDerivation.enabled = false
       GraphMenu.SnapToGrid.enabled = false
@@ -1115,7 +1107,6 @@ object QuantoDerive extends SimpleSwingApplication {
               EditMenu.CutAction.enabled = true
               EditMenu.CopyAction.enabled = true
               EditMenu.PasteAction.enabled = true
-              EditMenu.SnapToGridAction.enabled = true
               GraphMenu.visible = true
               GraphMenu.StartDerivation.enabled = true
               GraphMenu.StartRule.enabled = true
@@ -1126,7 +1117,6 @@ object QuantoDerive extends SimpleSwingApplication {
               EditMenu.CutAction.enabled = true
               EditMenu.CopyAction.enabled = true
               EditMenu.PasteAction.enabled = true
-              EditMenu.SnapToGridAction.enabled = true
               ExportMenu.ExportAction.enabled = true
               RuleMenu.visible = true
               RuleMenu.InvertRule.enabled = true
