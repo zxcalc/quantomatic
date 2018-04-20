@@ -36,7 +36,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     case ValueType.Integer => "integer"
     case ValueType.Rational => "rational"
     case ValueType.String => "string"
-    case ValueType.LongString => "string"
+    case ValueType.Long => "long"
     case ValueType.Enum => "string"
     case ValueType.Empty => "empty"
   })) toMap

@@ -5,7 +5,7 @@ import quanto.data.Theory.ValueType
 import quanto.data._
 import quanto.util.Rational
 
-class AngleExpressionSpec extends FlatSpec {
+class PhaseExpressionSpec extends FlatSpec {
   behavior of "A rational number"
 
   it should "add correctly" in {

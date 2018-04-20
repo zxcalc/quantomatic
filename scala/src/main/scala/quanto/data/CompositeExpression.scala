@@ -152,7 +152,7 @@ object CompositeExpression {
 
     def STRING: Parser[ValueType] = """[Ss]tring""".r ^^ { _ => ValueType.String }
 
-    def LONG_STRING: Parser[ValueType] = """long_string""".r ^^ { _ => ValueType.LongString }
+    def LONG: Parser[ValueType] = """long(_string|)""".r ^^ { _ => ValueType.Long }
 
     def ENUM: Parser[ValueType] = """enum""".r ^^ { _ => ValueType.Enum }
 
@@ -165,7 +165,7 @@ object CompositeExpression {
         RATIONAL |
         INTEGER |
         STRING |
-        LONG_STRING |
+        LONG |
         ENUM |
         EMPTY
 

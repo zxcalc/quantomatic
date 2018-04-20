@@ -17,7 +17,7 @@ class CompositeExpressionSpec extends FlatSpec {
     assert(parseTypes("string") == Vector(ValueType.String))
     assert(parseTypes("String") == Vector(ValueType.String))
     assert(parseTypes("angle_expr") == Vector(ValueType.AngleExpr))
-    assert(parseTypes("long_string") == Vector(ValueType.LongString))
+    assert(parseTypes("long") == Vector(ValueType.Long))
     assert(parseTypes("Empty") == Vector(ValueType.Empty))
     assert(parseTypes("empty") == Vector(ValueType.Empty))
   }

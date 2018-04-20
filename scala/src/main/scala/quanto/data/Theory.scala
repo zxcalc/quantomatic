@@ -61,7 +61,7 @@ object Theory {
     val Boolean = Value("boolean")
     val Rational = Value("rational")
     val Integer = Value("integer")
-    val LongString = Value("long_string")
+    val Long = Value("long")
     val Enum = Value("enum")
     val Empty = Value("empty")
   }
