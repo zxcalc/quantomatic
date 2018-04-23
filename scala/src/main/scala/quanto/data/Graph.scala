@@ -455,18 +455,31 @@ case class Graph(
 
     var newBoundaries : Set[VName] = Set()
 
+    def midPoint(v1 : VData, v2: VData) : (Double, Double) = {
+      val c1 = v1.coord
+      val c2 = v2.coord
+      val x = (c1._1 + c2._1) / 2.0
+      val y = (c1._2 + c2._2) / 2.0
+      (x, y)
+    }
+
     def breakEdge(g: Graph, e: EName) : Graph = {
       var g2 = g
       val (ends, edges, wireNodes) = edgeEndPoints(e)
       if(ends.size == 2) {
         val joinNode = (ends - vertexName).head
         if (g2.isTerminalWire(joinNode)) {
+          // Delete boundaries that would otherwise float after vertex removal
           g2 = g2.deleteVertex(joinNode)
         } else {
+          // Create a boundary where we cut the wire
           val bName = g.verts.freshWithSuggestion(VName("c-" + vertexName.s+ "-b"))
           newBoundaries += bName
           g2 = g2.addVertex(bName, WireV()).
             addEdge(g.edges.freshWithSuggestion(e), DirEdge(), bName -> joinNode)
+          // Add a coordinate to our new boundary
+          val newCoordinate = midPoint(g.vdata(vertexName), g.vdata(joinNode))
+          g2 = g2.updateVData(bName){vd => vd.withCoord(newCoordinate)}
         }
         g2 = g2.deleteEdges(edges)
         g2 = g2.deleteVertices(wireNodes)
