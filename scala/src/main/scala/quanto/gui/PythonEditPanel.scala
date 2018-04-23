@@ -92,6 +92,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
               ))
 
               QuantoDerive.CurrentProject.foreach(pr => python.getSystemState.path.add(pr.rootFolder))
+              outputTextArea.text = ""
               python.set("output", output)
               python.exec(code)
 
