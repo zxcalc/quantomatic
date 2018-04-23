@@ -1,7 +1,11 @@
 package quanto.rewrite
 
+import quanto.cosy.{AutoReduce, RuleSynthesis}
+import quanto.data.Derivation.DerivationWithHead
 import quanto.data._
 import quanto.layout.ForceLayout
+
+import scala.util.Random
 
 
 abstract class Simproc {
@@ -47,6 +51,15 @@ abstract class Simproc {
 }
 
 object Simproc {
+
+  implicit def fromDerivationWithHead(d: DerivationWithHead): Iterator[(Graph, Rule)] = {
+    if (d._2.nonEmpty) {
+      d._1.stepsTo(d._2.get).map(d._1.steps).map(step => (step.graph, step.rule)).toIterator
+    } else {
+      Iterator.empty
+    }
+  }
+
   private def layout(gr: (Graph, Rule)) = {
     val (graph, rule) = gr
     val layoutProc = new ForceLayout
@@ -60,13 +73,32 @@ object Simproc {
 
     val rhsi = rule.rhs.verts.filter(!rule.rhs.isTerminalWire(_))
     //println(rhsi)
-    graph.verts.foreach { v =>  if (!rhsi.contains(v)) layoutProc.lockVertex(v) }
+    graph.verts.foreach { v => if (!rhsi.contains(v)) layoutProc.lockVertex(v) }
     //graph.verts.foreach { v =>  if (graph.isBoundary(v)) layoutProc.lockVertex(v) }
     (layoutProc.layout(graph, randomCoords = false).snapToGrid(), rule)
     //(graph, rule)
   }
 
-  object EMPTY extends Simproc { override def simp(g: Graph): Iterator[(Graph,Rule)] = Iterator.empty }
+  object EMPTY extends Simproc {
+    override def simp(g: Graph): Iterator[(Graph, Rule)] = Iterator.empty
+  }
+
+  def ANNEAL(rules: List[Rule],
+             maxTime: Int,
+             timeDilation: Double,
+             seed: Random = new Random(),
+             vertexLimit: Option[Int] = None) = new Simproc {
+    override def simp(g: Graph): Iterator[(Graph, Rule)] = {
+      val reduced = AutoReduce.annealingReduce(
+        RuleSynthesis.graphToDerivation(g),
+        rules,
+        maxTime,
+        timeDilation,
+        seed,
+        vertexLimit)
+      fromDerivationWithHead(reduced)
+    }
+  }
 
   // takes a list of rules and rewrites w.r.t. the first that gets a match
   def REWRITE(rules: List[Rule]) = new Simproc {

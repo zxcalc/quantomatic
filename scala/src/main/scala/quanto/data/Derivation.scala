@@ -102,7 +102,7 @@ case class Derivation(root: Graph,
   def stepsTo(head: DSName): Array[DSName] =
     (parentMap.get(head) match {
       case Some(p) => stepsTo(p)
-      case None => Array()
+      case None => Array.empty[DSName]
     }) :+ head
 
   def graphsTo(head: DSName): Array[Graph] = root +: stepsTo(head).map(s => steps(s).graph)

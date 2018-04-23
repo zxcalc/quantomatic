@@ -156,6 +156,7 @@ class RuleSynthesisSpec extends FlatSpec {
       new Random(3),
       None)
     assert(annealed._1.steps.size > target.verts.size)
+    assert(quanto.rewrite.Simproc.fromDerivationWithHead(annealed).hasNext)
   }
   it should "randomly apply appropriate rules" in {
     var ctRules = ZXRules

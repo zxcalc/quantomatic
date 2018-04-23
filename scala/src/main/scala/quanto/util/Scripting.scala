@@ -55,6 +55,12 @@ object Scripting {
     listToPyList(pyListToList[String](ss).map(load_rule))
   }
 
+  def include_inverses(rs: PyList) : PyList = {
+    listToPyList(pyListToList[Rule](rs).flatMap(r => {
+      List(r, r.inverse)
+    }).distinct)
+  }
+
   def plug(g1: Graph, g2: Graph, b1: String, b2: String) =
     g1.plugGraph(g2, VName(b1), VName(b2))
 
@@ -178,6 +184,8 @@ object Scripting {
         else Some(VName(v.toString))
       })
   }
+
+  def ANNEAL(r: PyList, maxTime: Int, dilation: Double) = Simproc.ANNEAL(pyListToList[Rule](r), maxTime, dilation)
 
   def REPEAT(s: Simproc) = Simproc.REPEAT(s)
 
