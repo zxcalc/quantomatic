@@ -6,8 +6,8 @@ import quanto.data.{CompositeExpression, PhaseExpression}
 import quanto.util.{Rational, RationalMatrix}
 
 class PhaseExpressionMatcher(pVars: Vector[String], tVars: Vector[String], mat: RationalMatrix) {
-  val pvSet : Set[String] = pVars.toSet
-  val tvSet : Set[String] = tVars.toSet
+  val pvSet: Set[String] = pVars.toSet
+  val tvSet: Set[String] = tVars.toSet
 
   def addMatch(patternExpression: PhaseExpression, targetExpression: PhaseExpression): Option[PhaseExpressionMatcher] = {
     val patternVars1 = pVars ++ (patternExpression.vars.toSet -- pvSet).toVector
@@ -22,6 +22,7 @@ class PhaseExpressionMatcher(pVars: Vector[String], tVars: Vector[String], mat: 
     }
   }
 
+  def toMap(valueType: ValueType): Map[String, PhaseExpression] = toMap.mapValues(_.as(valueType))
 
   def toMap: Map[String, PhaseExpression] =
     if (mat.numCols == 0) Map()
@@ -35,31 +36,17 @@ class PhaseExpressionMatcher(pVars: Vector[String], tVars: Vector[String], mat: 
 
       mp + (pVars(p) -> PhaseExpression(row.last, coefficients, ValueType.Rational))
     }
-
-  def toMap(valueType: ValueType) : Map[String, PhaseExpression] = toMap.mapValues(_.as(valueType))
 }
 
 object PhaseExpressionMatcher {
+  def empty: PhaseExpressionMatcher = PhaseExpressionMatcher(Vector(), Vector(), None)
+
   def apply(pVars: Vector[String], tVars: Vector[String], modulus: Option[Int]) =
     new PhaseExpressionMatcher(pVars, tVars, new RationalMatrix(Vector(), pVars.length, modulus))
-
-  def empty : PhaseExpressionMatcher = PhaseExpressionMatcher(Vector(), Vector(), None)
 }
 
 
 class CompositeExpressionMatcher(matchers: Map[ValueType, Option[PhaseExpressionMatcher]]) {
-
-  // Add a single matching to a specific valueType
-  def addPhaseMatch(valueType: ValueType, pExpr: PhaseExpression, tExpr: PhaseExpression): Option[CompositeExpressionMatcher] = {
-    val updatedSingletonMatcher = matchers.
-      getOrElse(valueType, Some(PhaseExpressionMatcher(Vector(), Vector(), pExpr.modulus))).
-      get.addMatch(pExpr, tExpr)
-    if (updatedSingletonMatcher.nonEmpty) {
-      Some(new CompositeExpressionMatcher(matchers + (valueType -> updatedSingletonMatcher)))
-    } else {
-      None
-    }
-  }
 
   // Add matchings by component
   def addMatch(pExpr: CompositeExpression, tExpr: CompositeExpression): Option[CompositeExpressionMatcher] = {
@@ -76,6 +63,17 @@ class CompositeExpressionMatcher(matchers: Map[ValueType, Option[PhaseExpression
     })
   }
 
+  // Add a single matching to a specific valueType
+  def addPhaseMatch(valueType: ValueType, pExpr: PhaseExpression, tExpr: PhaseExpression): Option[CompositeExpressionMatcher] = {
+    val updatedSingletonMatcher = matchers.
+      getOrElse(valueType, Some(PhaseExpressionMatcher(Vector(), Vector(), pExpr.modulus))).
+      get.addMatch(pExpr, tExpr)
+    if (updatedSingletonMatcher.nonEmpty) {
+      Some(new CompositeExpressionMatcher(matchers + (valueType -> updatedSingletonMatcher)))
+    } else {
+      None
+    }
+  }
 
   def toMap: Map[ValueType, Map[String, PhaseExpression]] =
     matchers.keySet.map(
@@ -84,5 +82,5 @@ class CompositeExpressionMatcher(matchers: Map[ValueType, Option[PhaseExpression
 }
 
 object CompositeExpressionMatcher {
-  def apply() : CompositeExpressionMatcher = new CompositeExpressionMatcher(Map())
+  def apply(): CompositeExpressionMatcher = new CompositeExpressionMatcher(Map())
 }

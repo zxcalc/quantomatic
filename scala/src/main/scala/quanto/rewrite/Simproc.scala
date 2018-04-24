@@ -9,19 +9,22 @@ import scala.util.Random
 
 
 abstract class Simproc {
-  def simp(g: Graph): Iterator[(Graph, Rule)]
-
   var sourceFile: String = ""
   var sourceCode: String = ""
+
+  def simp(g: Graph): Iterator[(Graph, Rule)]
+
+  // jython binding for >>
+  def __rshift__(t: Simproc): Simproc = this >> t
 
   // chain two simprocs together
   def >>(t: Simproc) = {
     val s = this
     new Simproc {
-      override def simp(g: Graph): Iterator[(Graph, Rule)] = new Iterator[(Graph,Rule)] {
-        var iterS: Iterator[(Graph,Rule)] = s.simp(g)
-        var iterT: Iterator[(Graph,Rule)] = null
-        var lastGraphS = g
+      override def simp(g: Graph): Iterator[(Graph, Rule)] = new Iterator[(Graph, Rule)] {
+        var iterS: Iterator[(Graph, Rule)] = s.simp(g)
+        var iterT: Iterator[(Graph, Rule)] = _
+        var lastGraphS: Graph = g
 
         override def hasNext: Boolean =
           if (iterT != null) iterT.hasNext
@@ -35,9 +38,9 @@ abstract class Simproc {
           if (iterT != null) {
             iterT.next()
           } else if (iterS.hasNext) {
-            val (g1,r1) = iterS.next()
+            val (g1, r1) = iterS.next()
             lastGraphS = g1
-            (g1,r1)
+            (g1, r1)
           } else {
             iterT = t.simp(lastGraphS)
             iterT.next()
@@ -45,9 +48,6 @@ abstract class Simproc {
       }
     }
   }
-
-  // jython binding for >>
-  def __rshift__(t: Simproc): Simproc = this >> t
 }
 
 object Simproc {
@@ -62,37 +62,14 @@ object Simproc {
     }
   }
 
-  private def layout(gr: (Graph, Rule)) = {
-    val (graph, rule) = gr
-    val layoutProc = new ForceLayout
-    layoutProc.keepCentered = false
-    layoutProc.nodeCharge = 0.1
-
-    layoutProc.alpha0 = 0.05
-    layoutProc.alphaAdjust = 1.0
-    layoutProc.maxIterations = 300
-    //layoutProc.keepCentered = false
-
-    val rhsi = rule.rhs.verts.filter(!rule.rhs.isTerminalWire(_))
-    //println(rhsi)
-    graph.verts.foreach { v => if (!rhsi.contains(v)) layoutProc.lockVertex(v) }
-    //graph.verts.foreach { v =>  if (graph.isBoundary(v)) layoutProc.lockVertex(v) }
-    (layoutProc.layout(graph, randomCoords = false).snapToGrid(), rule)
-    //(graph, rule)
-  }
-
-  object EMPTY extends Simproc {
-    override def simp(g: Graph): Iterator[(Graph, Rule)] = Iterator.empty
-  }
-
-
   /**
     * Anneals the graph using only the rules (forwards only), using vertex size as the metric
     * No initial heat specified, just accepts worse states with a (decreasing-over-time) random chance
-    * @param rules          List of rules, taken forwards only
-    * @param steps      Number of steps to be taken
-    * @param dilation   How slowly we stop accepting worse states
-    * @return   The resulting derivation will appear (all at once) in the side bar
+    *
+    * @param rules    List of rules, taken forwards only
+    * @param steps    Number of steps to be taken
+    * @param dilation How slowly we stop accepting worse states
+    * @return The resulting derivation will appear (all at once) in the side bar
     */
   def ANNEAL(rules: List[Rule],
              steps: Int,
@@ -116,24 +93,43 @@ object Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = {
       for (rule <- rules)
         Matcher.findMatches(rule.lhs, g).headOption.foreach { m =>
-            return Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
+          return Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
         }
       //println("got no match REWRITE: " + rules.map{_.name}.toString())
       Iterator.empty
     }
   }
 
+  private def layout(gr: (Graph, Rule)) = {
+    val (graph, rule) = gr
+    val layoutProc = new ForceLayout
+    layoutProc.keepCentered = false
+    layoutProc.nodeCharge = 0.1
+
+    layoutProc.alpha0 = 0.05
+    layoutProc.alphaAdjust = 1.0
+    layoutProc.maxIterations = 300
+    //layoutProc.keepCentered = false
+
+    val rhsInterior = rule.rhs.verts.filter(!rule.rhs.isTerminalWire(_))
+    //println(rhsi)
+    graph.verts.foreach { v => if (!rhsInterior.contains(v)) layoutProc.lockVertex(v) }
+    //graph.verts.foreach { v =>  if (graph.isBoundary(v)) layoutProc.lockVertex(v) }
+    (layoutProc.layout(graph, randomCoords = false).snapToGrid(), rule)
+    //(graph, rule)
+  }
+
   // Applies rewrite rules, but only if the rule affects the targeted vertex
-  def REWRITE_TARGETED(rule: Rule, vp: VName, targ: Graph => Option[VName]) = new Simproc {
+  def REWRITE_TARGETED(rule: Rule, vertexInPattern: VName, target: Graph => Option[VName]) = new Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = {
-      targ(g).flatMap { vt =>
+      target(g).flatMap { vt =>
         //println("REWRITE_TARGETED(" + rule.name + ", " + vt + ")")
         if (g.verts contains vt) {
           val ms = Matcher.initialise(rule.lhs, g, g.verts)
-          ms.matchNewNode(vp, vt).flatMap(_.nextMatch())
+          ms.matchNewNode(vertexInPattern, vt).flatMap(_.nextMatch())
         } else None
       } match {
-        case Some((m,_)) =>
+        case Some((m, _)) =>
           //println("SUCCESS")
           Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
         case None =>
@@ -144,31 +140,31 @@ object Simproc {
     }
   }
 
-  def REWRITE_TARGET_LIST(rule: Rule, vp: VName, targ: List[VName]): Simproc = new Simproc {
+  def REWRITE_TARGET_LIST(rule: Rule, vp: VName, target: List[VName]): Simproc = new Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = {
-      for(vt <- targ) {
+      for (vt <- target) {
         if (g.verts contains vt) {
           val ms = Matcher.initialise(rule.lhs, g, g.verts)
-          ms.matchNewNode(vp, vt).flatMap(_.nextMatch()).map { case (m,_) =>
+          ms.matchNewNode(vp, vt).flatMap(_.nextMatch()).map { case (m, _) =>
             return Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
           }
         }
       }
       Iterator.empty
-//      targ(g).flatMap { vt =>
-//        //println("REWRITE_TARGETED(" + rule.name + ", " + vt + ")")
-//        if (g.verts contains vt) {
-//          val ms = Matcher.initialise(rule.lhs, g, g.verts)
-//          ms.matchNewNode(vp, vt).flatMap(_.nextMatch())
-//        } else None
-//      } match {
-//        case Some((m,_)) =>
-//          //println("SUCCESS")
-//          Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
-//        case None =>
-//          //println("FAILED")
-//          Iterator.empty
-//      }
+      //      targ(g).flatMap { vt =>
+      //        //println("REWRITE_TARGETED(" + rule.name + ", " + vt + ")")
+      //        if (g.verts contains vt) {
+      //          val ms = Matcher.initialise(rule.lhs, g, g.verts)
+      //          ms.matchNewNode(vp, vt).flatMap(_.nextMatch())
+      //        } else None
+      //      } match {
+      //        case Some((m,_)) =>
+      //          //println("SUCCESS")
+      //          Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
+      //        case None =>
+      //          //println("FAILED")
+      //          Iterator.empty
+      //      }
     }
   }
 
@@ -178,8 +174,8 @@ object Simproc {
         if (metric(g) <= target) return Iterator.empty
         for (rule <- rules) {
           Matcher.findMatches(rule.lhs, g).foreach { m =>
-            val (g1,r1) = Rewriter.rewrite(m, rule.rhs, rule.description)
-            if (metric(g1) < metric(g)) return Iterator.single(layout((g1,r1)))
+            val (g1, r1) = Rewriter.rewrite(m, rule.rhs, rule.description)
+            if (metric(g1) < metric(g)) return Iterator.single(layout((g1, r1)))
           }
         }
         Iterator.empty
@@ -192,43 +188,45 @@ object Simproc {
         if (metric(g) <= 0) return Iterator.empty
         for (rule <- rules) {
           Matcher.findMatches(rule.lhs, g).foreach { m =>
-            val (g1,r1) = Rewriter.rewrite(m, rule.rhs, rule.description)
-            if (metric(g1) <= metric(g)) return Iterator.single(layout((g1,r1)))
+            val (g1, r1) = Rewriter.rewrite(m, rule.rhs, rule.description)
+            if (metric(g1) <= metric(g)) return Iterator.single(layout((g1, r1)))
           }
         }
         Iterator.empty
       }
     }
 
-  def REPEAT(s: Simproc): Simproc = new Simproc {
-    override def simp(g: Graph): Iterator[(Graph, Rule)] = new Iterator[(Graph, Rule)] {
-      var iterS: Iterator[(Graph,Rule)] = s.simp(g)
-      var lastGraphS: Graph = g
+  def REPEAT(s: Simproc): Simproc = (g: Graph) => new Iterator[(Graph, Rule)] {
+    var iterS: Iterator[(Graph, Rule)] = s.simp(g)
+    var lastGraphS: Graph = g
 
-      override def hasNext: Boolean =
-        if (iterS.hasNext) true
-        else {
-          val iterT = s.simp(lastGraphS)
-          if (iterT.hasNext) {
-            iterS = iterT
-            true
-          } else false
-        }
+    override def hasNext: Boolean =
+      if (iterS.hasNext) true
+      else {
+        val iterT = s.simp(lastGraphS)
+        if (iterT.hasNext) {
+          iterS = iterT
+          true
+        } else false
+      }
 
-      override def next(): (Graph,Rule) =
-        if (iterS.hasNext) {
-          val (g1,r1) = iterS.next()
+    override def next(): (Graph, Rule) =
+      if (iterS.hasNext) {
+        val (g1, r1) = iterS.next()
+        lastGraphS = g1
+        (g1, r1)
+      } else {
+        val iterT = s.simp(lastGraphS)
+        if (iterT.hasNext) {
+          iterS = iterT
+          val (g1, r1) = iterS.next()
           lastGraphS = g1
-          (g1,r1)
-        } else {
-          val iterT = s.simp(lastGraphS)
-          if (iterT.hasNext) {
-            iterS = iterT
-            val (g1,r1) = iterS.next()
-            lastGraphS = g1
-            (g1,r1)
-          } else null
-        }
-    }
+          (g1, r1)
+        } else null
+      }
+  }
+
+  object EMPTY extends Simproc {
+    override def simp(g: Graph): Iterator[(Graph, Rule)] = Iterator.empty
   }
 }

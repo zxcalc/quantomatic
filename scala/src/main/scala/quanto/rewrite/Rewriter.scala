@@ -1,7 +1,7 @@
 package quanto.rewrite
 
-import quanto.data._
 import quanto.data.Names._
+import quanto.data._
 
 object Rewriter {
   def rewrite(m: Match, rhs: Graph, desc: RuleDesc = RuleDesc()): (Graph, Rule) = {
@@ -22,18 +22,18 @@ object Rewriter {
       .deleteEdges(m1.map.e.codSet)
       .deleteVertices(m1.map.v.directImage(interiorLhs))
 
-    val vmap = interiorRhs.foldRight(m1.map.v.restrictDom(boundary)) { (v, mp) =>
+    val vertexMap = interiorRhs.foldRight(m1.map.v.restrictDom(boundary)) { (v, mp) =>
       mp + (v -> (context.verts union mp.codSet).freshWithSuggestion(v))
     }
 
-    val emap = rhsE.edges.foldRight(PFun[EName, EName]()) { (e, mp) =>
+    val edgeMap = rhsE.edges.foldRight(PFun[EName, EName]()) { (e, mp) =>
       mp + (e -> (context.edges union mp.codSet).freshWithSuggestion(e))
     }
 
 
     // quotient the lhs and rhs such that pairs of boundaries mapped to the same vertex are identified
     val quotientLhs = m1.pattern.rename(m1.map.v.toMap, m1.map.e.toMap, m1.map.bb.toMap)
-    val quotientRhs = rhsE.rename(vmap.toMap, emap.toMap, m1.map.bb.toMap)
+    val quotientRhs = rhsE.rename(vertexMap.toMap, edgeMap.toMap, m1.map.bb.toMap)
 
     val ruleInst = if (desc.inverse) Rule(quotientRhs, quotientLhs, description = desc)
     else Rule(quotientLhs, quotientRhs, description = desc)

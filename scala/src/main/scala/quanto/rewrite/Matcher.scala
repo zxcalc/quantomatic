@@ -1,15 +1,9 @@
 package quanto.rewrite
 
-import quanto.data.Theory.ValueType
 import quanto.data._
-
-import scala.annotation.tailrec
 
 object Matcher {
   def initialise(pat: Graph, tgt: Graph, restrictTo: Set[VName]): MatchState = {
-    // TODO: new free vars should be fresh w.r.t. vars in target
-    val patVars: Vector[(ValueType, String)] = pat.freeVars.toVector
-    val tgtVars: Vector[(ValueType, String)] = tgt.freeVars.toVector
     val patN = pat.normalise
     val tgtN = tgt.normalise
     val restrict0 = restrictTo intersect tgtN.verts
@@ -21,7 +15,7 @@ object Matcher {
 
     MatchState(
       m = Match(pattern0 = patN, pattern = patN, target = tgtN),
-      tVerts = restrict1,
+      targetVertices = restrict1,
       expressionMatcher = CompositeExpressionMatcher()) // Create the matcher empty, it will fill itself in in time
   }
 
