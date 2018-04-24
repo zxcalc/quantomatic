@@ -1,8 +1,7 @@
 package quanto.cosy
 
+import quanto.data.{VName, _}
 import quanto.util.json._
-import quanto.data._
-import quanto.data.VName
 
 /**
   * Enumerates diagrams by composing simple building blocks in a 2D fashion
@@ -174,7 +173,9 @@ object BlockRowMaker {
 
     // Go through the diagonal entries creating all the different spiders
     val greenBlocks = (1 until dimension).foldLeft(
-      List(Block(1, 1, "g", Tensor(dimension, dimension, (i, j) => if (i == 0 && j == 0) Complex.one else Complex.zero)))
+      List(
+        Block(1, 1, "g", Tensor(dimension, dimension, (i, j) => if (i == 0 && j == 0) Complex.one else Complex.zero))
+      )
     )((lb, i) => lb.flatMap(b => (0 until numAngles).map(x =>
       Block(1, 1, b.name + "|" + x, b.tensor + Tensor(dimension, dimension, (j, k) =>
         if (j == i && k == i) ei(x * 2 * math.Pi / numAngles) else Complex.zero)
@@ -281,6 +282,8 @@ object BlockRowMaker {
         Array(1 - ei(2 * i * math.Pi / numAngles), 1 + ei(2 * i * math.Pi / numAngles)))))
     }).toList
 
+  private def ei(angle: Double) = Complex(math.cos(angle), math.sin(angle))
+
   def Bian2Qubit: List[Block] = List(
     // Block(0, 0, " w ", Tensor.id(1).scaled(ei(math.Pi / 4))), Ignored for now.
     Block(1, 1, " 1 ", Tensor.id(2)),
@@ -289,8 +292,6 @@ object BlockRowMaker {
     Block(1, 1, " H ", Tensor(Array(Array(1, 1), Array(1, -1))).scaled(1.0 / math.sqrt(2))),
     Block(1, 1, " S ", Tensor.diagonal(Array(Complex.one, ei(math.Pi / 2))))
   )
-
-  private def ei(angle: Double) = Complex(math.cos(angle), math.sin(angle))
 
   def stackToGraph(stack: BlockStack, blockToGraph: Block => Graph): Graph = {
     var g = (for ((row, index) <- stack.rows.zipWithIndex) yield {
@@ -303,7 +304,11 @@ object BlockRowMaker {
     }).foldLeft(new Graph())((g, sg) => g.appendGraph(sg))
     for ((row, index) <- stack.rows.init.zipWithIndex) {
       for (j <- row.outputs.indices) {
-        g = g.addEdge(EName("r" + index + "e" + j), UndirEdge(), VName("r" + index + "o" + j) -> VName("r" + (index + 1) + "i" + j))
+        g = g.addEdge(
+          EName("r" + index + "e" + j),
+          UndirEdge(),
+          VName("r" + index + "o" + j) -> VName("r" + (index + 1) + "i" + j)
+        )
       }
     }
     g

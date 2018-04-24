@@ -1,10 +1,11 @@
 package quanto.data
 
-import quanto.util.json._
-import scala.collection.SortedSet
-import quanto.gui.{StepState, HeadState, DeriveState}
-import quanto.util.TreeSeq
+import quanto.gui.{DeriveState, HeadState, StepState}
 import quanto.layout.ForceLayout
+import quanto.util.TreeSeq
+import quanto.util.json._
+
+import scala.collection.SortedSet
 
 trait DerivationException
 
@@ -47,7 +48,7 @@ case class DStep(name: DSName,
 object DStep {
 
 
-  def apply(name: DSName, rule: Rule, graph: Graph) : DStep =
+  def apply(name: DSName, rule: Rule, graph: Graph): DStep =
     DStep(name, rule.name, rule, graph)
 
   def toJson(dstep: DStep, parent: Option[DSName], thy: Theory = Theory.DefaultTheory): Json = {
@@ -56,9 +57,10 @@ object DStep {
       "parent" -> parent.map(_.toString),
       "rule_name" -> dstep.ruleName,
       "rule" -> Rule.toJson(dstep.rule, thy),
-      "rule_variant" -> (dstep.rule.description.inverse match {
-        case true => "inverse"
-        case false => "forwards"
+      "rule_variant" -> (if (dstep.rule.description.inverse) {
+        "inverse"
+      } else {
+        "forwards"
       }),
       "graph" -> Graph.toJson(dstep.graph, thy)
     )
@@ -66,7 +68,7 @@ object DStep {
 
   def fromJson(name: DSName, json: Json, thy: Theory = Theory.DefaultTheory): DStep = try {
     val baseRule = Rule.fromJson(json / "rule", thy)
-    val rule : Rule = json ? "rule_variant" match {
+    val rule: Rule = json ? "rule_variant" match {
       case JsonString("inverse") => baseRule.inverse
       case _ => baseRule
     }
@@ -113,12 +115,6 @@ case class Derivation(root: Graph,
     copy(steps = steps + (s -> s1))
   }
 
-  def copy(
-           root: Graph = root,
-           steps: Map[DSName, DStep] = steps,
-           heads: SortedSet[DSName] = heads,
-           parent: PFun[DSName, DSName] = parentMap) = Derivation(root, steps, heads, parent)
-
   def allChildren(s: DSName): Set[DSName] =
     children(s).foldLeft(Set[DSName]()) { case (set, c) => set union allChildren(c) } + s
 
@@ -129,6 +125,12 @@ case class Derivation(root: Graph,
   def firstHead: Option[DSName] = heads.headOption
 
   def addHead(h: DSName): Derivation = copy(heads = heads + h)
+
+  def copy(
+            root: Graph = root,
+            steps: Map[DSName, DStep] = steps,
+            heads: SortedSet[DSName] = heads,
+            parent: PFun[DSName, DSName] = parentMap) = Derivation(root, steps, heads, parent)
 
   def deleteHead(h: DSName): Derivation = copy(heads = heads - h)
 
@@ -153,7 +155,7 @@ case class Derivation(root: Graph,
     copy(
       steps = steps1,
       heads = parentOpt match {
-        case Some(s) => heads1 + s;
+        case Some(`s`) => heads1 + s;
         case _ => heads1
       },
       parent = parent1
@@ -206,7 +208,7 @@ case class Derivation(root: Graph,
 object Derivation {
   type DerivationWithHead = (Derivation, Option[DSName])
 
-  def fromJson(json: Json, thy: Theory = Theory.DefaultTheory) = try {
+  def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): Derivation = try {
     val parent = (json ? "steps").asObject.foldLeft(PFun[DSName, DSName]()) {
       case (pf, (step, obj)) => obj.get("parent") match {
         case Some(JsonString(p)) => pf + (DSName(step) -> DSName(p))
@@ -227,16 +229,16 @@ object Derivation {
       parentMap = parent
     )
   } catch {
-    case e: JsonAccessException => throw new DerivationLoadException(e.getMessage, e)
+    case e: JsonAccessException => throw DerivationLoadException(e.getMessage, e)
     case e: GraphLoadException =>
-      throw new DerivationLoadException("Graph 'root': " + e.getMessage, e)
+      throw DerivationLoadException("Graph 'root': " + e.getMessage, e)
     case e: DerivationLoadException => throw e
     case e: Exception =>
       e.printStackTrace()
-      throw new DerivationLoadException("Error reading JSON", e)
+      throw DerivationLoadException("Error reading JSON", e)
   }
 
-  def toJson(derive: Derivation, thy: Theory = Theory.DefaultTheory) = {
+  def toJson(derive: Derivation, thy: Theory = Theory.DefaultTheory): JsonObject = {
     val steps = derive.steps.map { case (k, v) => (k.toString, DStep.toJson(v, derive.parentMap.get(k), thy)) }
     JsonObject(
       "root" -> Graph.toJson(derive.root, thy),

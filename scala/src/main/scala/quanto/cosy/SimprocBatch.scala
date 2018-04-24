@@ -2,20 +2,19 @@ package quanto.cosy
 
 import java.util.Calendar
 
-import quanto.data._
 import quanto.data.Names._
-import quanto.gui.QuantoDerive
-import quanto.gui.BatchDerivationCreatorPanel
+import quanto.data._
+import quanto.gui.{BatchDerivationCreatorPanel, QuantoDerive}
 import quanto.rewrite.Simproc
-import quanto.util.{FileHelper, UserOptions}
-import quanto.util.json.{Json, JsonArray, JsonObject}
 import quanto.util.UserAlerts.{Elevation, alert}
+import quanto.util.json.{Json, JsonArray, JsonObject}
+import quanto.util.{FileHelper, UserOptions}
 
-import scala.concurrent.Future
-import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.swing.Publisher
 import scala.swing.event.Event
+import scala.util.{Failure, Success}
 
 
 // Each simproc, graph pair generates a SimprocSingleRun result
@@ -79,8 +78,8 @@ case class SimprocLazyBatchResult(notes: String, selectedSimprocs: List[String],
 object SimprocBatchResult {
   def collate(SBResult: SimprocBatchResult): Map[String, List[(Derivation, List[(String, Double)])]] = {
     SBResult.singleResults.
-      groupBy { case SimprocSingleRun(a, b, c) => a }.
-      mapValues(_.map { case SimprocSingleRun(a, b, c) => (b, c) })
+      groupBy { case SimprocSingleRun(a, _, _) => a }.
+      mapValues(_.map { case SimprocSingleRun(_, b, c) => (b, c) })
   }
 
   // Import everything into memory
@@ -181,10 +180,9 @@ object SimprocBatch extends Publisher {
 
   implicit def simprocFromName(name: String): Simproc = {
     try {
-      //TODO: Some other method of providing simprocs for command line access
       loadedSimprocs(name)
     } catch {
-      case e: Exception =>
+      case _: Exception =>
         alert(s"Requested simproc $name was not found. Please load it first.", Elevation.ERROR)
         throw SimprocNotLoaded(name)
     }

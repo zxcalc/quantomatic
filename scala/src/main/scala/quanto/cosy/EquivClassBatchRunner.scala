@@ -15,7 +15,7 @@ object EquivClassBatchRunner {
 
   def apply(numAngles: Int = 8, boundaries: Int = 3, vertices: Int, outputFileName: String = "default.qrun"): Unit = {
     val rg = Theory.fromFile("red_green")
-    var results = EquivClassRunAdjMat(
+    val results = EquivClassRunAdjMat(
       numAngles = numAngles,
       tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = List(),
@@ -26,7 +26,7 @@ object EquivClassBatchRunner {
       s"ColbournRead $numAngles $numAngles $boundaries $vertices")
 
     new File(outputPath).mkdirs()
-    var testFile = new File(outputPath + "/" + outputFileName)
+    val testFile = new File(outputPath + "/" + outputFileName)
     quanto.util.FileHelper.printToFile(testFile, append = false)(
       p => p.println(results.toJSON.toString())
     )
@@ -43,7 +43,7 @@ object TensorBatchRunner {
     val rg = Theory.fromFile("red_green")
 
     val diagramStream = ColbournReadEnum.enumerate(numAngles, numAngles, boundaries, vertices)
-    var results = EquivClassRunAdjMat(
+    val results = EquivClassRunAdjMat(
       numAngles = numAngles,
       tolerance = EquivClassRunAdjMat.defaultTolerance,
       rulesList = List(),

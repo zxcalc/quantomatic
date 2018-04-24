@@ -1,7 +1,7 @@
 package quanto.cosy
 
-import quanto.data._
 import quanto.data.Derivation.DerivationWithHead
+import quanto.data._
 import quanto.rewrite._
 import quanto.util.json.Json
 
@@ -153,7 +153,7 @@ object AutoReduce {
                    remainingRules: List[Rule]): DerivationWithHead = {
     remainingRules match {
       case r :: tailRules => Matcher.findMatches(r.lhs, derivationHeadPair) match {
-        case ruleMatch #:: t =>
+        case ruleMatch #:: _ =>
           val reducedGraph = Rewriter.rewrite(ruleMatch, r.rhs)._1.minimise
           val stepName = quanto.data.Names.mapToNameMap(derivationHeadPair._1.steps).
             freshWithSuggestion(DSName(r.description.name))

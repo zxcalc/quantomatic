@@ -1,10 +1,10 @@
 package quanto.data
 
-import quanto.rewrite.Simproc
-import quanto.util.json._
 import java.io.File
 
+import quanto.rewrite.Simproc
 import quanto.util.FileHelper
+import quanto.util.json._
 
 class ProjectLoadException(message: String, cause: Throwable) extends Exception(message, cause)
 
@@ -17,7 +17,7 @@ case class Project(theory: Theory, projectFile: File, name: String) {
   private val rootFolderFile = projectFile.getParentFile
 
   var simprocs: Map[String, Simproc] = Map()
-  var lastRunPythonFilePath : Option[String] = None
+  var lastRunPythonFilePath: Option[String] = None
 
   def relativePath(f: File): String = {
     rootFolderFile.toURI.relativize(f.toURI).getPath
@@ -45,7 +45,7 @@ object Project {
     )
   } catch {
     // First try loading as though old format
-    case e: Exception =>
+    case _: Exception =>
       try {
         println("Attempting to update project file from old format.")
         Project(Theory.fromJson(json / "theory"), projectFile, projectFile.getName)
@@ -81,7 +81,7 @@ object Project {
     }
     )
     val suggestedFilename = rootFolder + "/" + name + ".qproject"
-      new Project(theory, new File(suggestedFilename), name)
+    new Project(theory, new File(suggestedFilename), name)
   }
 
   def toJson(project: Project): Json = {

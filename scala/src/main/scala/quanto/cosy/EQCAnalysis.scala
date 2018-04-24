@@ -1,7 +1,5 @@
 package quanto.cosy
 
-import quanto.data._
-import quanto.util.Rational
 
 /**
   * Analyse the properties of equivalence classes

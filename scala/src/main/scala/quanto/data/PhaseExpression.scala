@@ -53,7 +53,7 @@ abstract class RationalWithSymbols[Group <: RationalWithSymbols[Group]](val coef
     try {
       constant + coefficients.foldLeft(0.0) { (a, b) => a + (mp(b._1) * Rational.rationalToDouble(b._2)) }
     } catch {
-      case e: Exception => PhaseEvaluationException("Given arguments do not match those in the coefficient list")
+      case _: Exception => PhaseEvaluationException("Given arguments do not match those in the coefficient list")
         0
     }
   }
@@ -128,7 +128,7 @@ class PhaseExpression(const: Rational,
     d
   }
 
-  def as(valueType: ValueType) : PhaseExpression = PhaseExpression(constant, coefficients, valueType)
+  def as(valueType: ValueType): PhaseExpression = PhaseExpression(constant, coefficients, valueType)
 
   def convertTo(valueType: ValueType): PhaseExpression = PhaseExpression(this.constant, this.coefficients, valueType)
 }
@@ -138,21 +138,8 @@ case class FieldData(modulus: Option[Int], finiteField: Boolean)
 
 object PhaseExpression {
 
-  def fieldData(valueType: ValueType) : FieldData = valueType match {
-    case ValueType.AngleExpr => FieldData(Some(2), finiteField = false)
-    case ValueType.Boolean => FieldData(Some(2), finiteField = true)
-    case _ => FieldData(None, finiteField = false)
-  }
-
-
   def apply(r: Rational, valueType: ValueType): PhaseExpression = {
     PhaseExpression(r, Map(), valueType)
-  }
-
-
-  def apply(r: Rational, m: Map[String, Rational], valueType: ValueType): PhaseExpression = {
-    val fData = fieldData(valueType)
-    new PhaseExpression(r, m, fData.modulus, fData.finiteField, valueType)
   }
 
   def parse(s: String, valueType: ValueType): PhaseExpression = {
@@ -163,9 +150,18 @@ object PhaseExpression {
     }
   }
 
-  def zero(valueType: ValueType): PhaseExpression = PhaseExpression(0, Map(), valueType)
-
   def one(valueType: ValueType): PhaseExpression = PhaseExpression(1, Map(), valueType)
+
+  def apply(r: Rational, m: Map[String, Rational], valueType: ValueType): PhaseExpression = {
+    val fData = fieldData(valueType)
+    new PhaseExpression(r, m, fData.modulus, fData.finiteField, valueType)
+  }
+
+  def fieldData(valueType: ValueType): FieldData = valueType match {
+    case ValueType.AngleExpr => FieldData(Some(2), finiteField = false)
+    case ValueType.Boolean => FieldData(Some(2), finiteField = true)
+    case _ => FieldData(None, finiteField = false)
+  }
 
   def toString(valueType: ValueType, phaseExpression: PhaseExpression): String = {
     valueType match {
@@ -175,10 +171,9 @@ object PhaseExpression {
         writeAsBoolean(phaseExpression)
       case ValueType.Rational =>
         phaseExpression.constant +
-          phaseExpression.coefficients.map(kv => kv._2.toString + "*" + kv._1).mkString("+","+","")
+          phaseExpression.coefficients.map(kv => kv._2.toString + "*" + kv._1).mkString("+", "+", "")
     }
   }
-
 
   private def writeAsBoolean(phaseExpression: PhaseExpression): String = {
     val constant = phaseExpression.constant
@@ -229,17 +224,20 @@ object PhaseExpression {
         }
       }
     }
-    if(phaseExpression == PhaseExpression.zero(ValueType.AngleExpr)) s = "0"
+    if (phaseExpression == PhaseExpression.zero(ValueType.AngleExpr)) s = "0"
 
     s
   }
+
+  def zero(valueType: ValueType): PhaseExpression = PhaseExpression(0, Map(), valueType)
 
   private object AngleExpressionParser extends RegexParsers {
     val zero: PhaseExpression = PhaseExpression.zero(ValueType.AngleExpr)
     val one: PhaseExpression = PhaseExpression.one(ValueType.AngleExpr)
 
-    def angleExpression(r: Rational) : PhaseExpression = PhaseExpression(r, ValueType.AngleExpr)
-    def angleExpression(r: Rational, m: Map[String, Rational]) : PhaseExpression = PhaseExpression(r, m, ValueType.AngleExpr)
+    def angleExpression(r: Rational): PhaseExpression = PhaseExpression(r, ValueType.AngleExpr)
+
+    def angleExpression(r: Rational, m: Map[String, Rational]): PhaseExpression = PhaseExpression(r, m, ValueType.AngleExpr)
 
     override def skipWhitespace = true
 
@@ -295,7 +293,7 @@ object PhaseExpression {
         term |
         "" ^^ { _ => zero }
 
-    def p(s: String) = parseAll(expr, s) match {
+    def p(s: String): PhaseExpression = parseAll(expr, s) match {
       case Success(e, _) => e
       case Failure(msg, _) => throw PhaseParseException(msg, ValueType.AngleExpr)
       case Error(msg, _) => throw PhaseParseException(msg, ValueType.AngleExpr)
@@ -304,9 +302,9 @@ object PhaseExpression {
 
 
   private object BooleanExpressionParser extends RegexParsers {
-    def zero = PhaseExpression.zero(ValueType.Boolean)
+    def zero: PhaseExpression = PhaseExpression.zero(ValueType.Boolean)
 
-    def one = PhaseExpression.one(ValueType.Boolean)
+    def one: PhaseExpression = PhaseExpression.one(ValueType.Boolean)
 
     def BooleanExpression(i: Int): PhaseExpression = PhaseExpression(Rational(i), ValueType.Boolean)
 
@@ -362,7 +360,7 @@ object PhaseExpression {
         terms |
         "" ^^ { _ => zero }
 
-    def p(s: String) = parseAll(expr, s) match {
+    def p(s: String): PhaseExpression = parseAll(expr, s) match {
       case Success(e, _) => e
       case Failure(msg, _) => throw PhaseParseException(msg, ValueType.Boolean)
       case Error(msg, _) => throw PhaseParseException(msg, ValueType.Boolean)

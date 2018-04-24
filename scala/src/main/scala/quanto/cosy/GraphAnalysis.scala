@@ -29,31 +29,32 @@ object GraphAnalysis {
     val bypassedAdjacencyMatrix = bypassSpecial(detectPiNodes)(graph, rawAdjacencyMatrix)
     pathDistanceSet(bypassedAdjacencyMatrix, errors, targets) match {
       case None => None
-      case Some(d) => Some(d-1) //account for errors being over-counted in standard distance
+      case Some(d) => Some(d - 1) //account for errors being over-counted in standard distance
     }
 
   }
 
 
-  def distanceOfSingleErrorFromEnd(ends: Set[VName])(graph : Graph, vNames : Set[VName]) : Option[Double] = {
+  def distanceOfSingleErrorFromEnd(ends: Set[VName])(graph: Graph, vNames: Set[VName]): Option[Double] = {
     val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(graph)
     val vertexList = graph.verts.toList
 
     def namesToIndex(name: VName) = vertexList.indexOf(name)
 
-    val targets = ends.map(namesToIndex).toSet
-    val errorNames = detectPiNodes(graph)
+    val targets = ends.map(namesToIndex)
+    // val errorNames = detectPiNodes(graph)
 
 
-    val errors = errorNames.map(namesToIndex)
-    val bypassedAdjacencyMatrix = bypassSpecial(detectPiNodes)(graph, adjacencyMatrix)
+    // val errors = errorNames.map(namesToIndex)
+    // val bypassedAdjacencyMatrix = bypassSpecial(detectPiNodes)(graph, adjacencyMatrix)
+
     implicit def nameToInt(name: VName): Int = {
       adjacencyMatrix._1.indexOf(name)
     }
 
     GraphAnalysis.pathDistanceSet(adjacencyMatrix, vNames.map(nameToInt), targets) match {
       case None => None
-      case Some(d) => Some(d-1)
+      case Some(d) => Some(d - 1)
     }
   }
 
@@ -88,6 +89,80 @@ object GraphAnalysis {
       filter(name => graph.vdata(name).asInstanceOf[NodeV].phaseData.
         firstOrError(ValueType.AngleExpr).
         equals(PhaseExpression(Rational(1), ValueType.AngleExpr))) // Pull out those angle expressions with value \pi
+  }
+
+  def adjacencyMatrix(graph: Graph): (List[VName], BMatrix) = {
+    val vertexNames = graph.verts.toList
+
+    def setToVector(vertexSet: Set[VName]): Vector[Boolean] = {
+      vertexNames.foldLeft(Vector[Boolean]())((vs, v) => vs :+ vertexSet.contains(v))
+    }
+
+    (vertexNames, vertexNames.foldLeft(Vector[Vector[Boolean]]())((vs, v) => vs :+ setToVector(graph.adjacentVerts(v))))
+  }
+
+  def pathDistanceSet(matrixWithNames: (List[VName], BMatrix),
+                      distancesToFind: Set[Int],
+                      measuredFrom: Set[Int]):
+  Option[Double] = {
+
+    val names = matrixWithNames._1
+    // val matrix = matrixWithNames._2
+
+    val distances = distancesFromInitial(matrixWithNames, Set(), measuredFrom.map(i => names(i)))
+
+    val importantDistances = distances.filter(nd => distancesToFind.contains(names.indexOf(nd._1)))
+
+    if (importantDistances.nonEmpty) {
+      val d = intsWithCount(importantDistances.values.toList)
+      if (d < 0) None else Some(d)
+    } else {
+      None
+    }
+  }
+
+  def distancesFromInitial(matrixWithNames: (List[VName], BMatrix), ignoring: Set[VName], initials: Set[VName]):
+  Map[VName, Int] = {
+
+    // Initials have distance 0, unreached have distance -1
+
+    val names = matrixWithNames._1
+    val matrix = matrixWithNames._2
+
+    val vertexIndex: Map[VName, Int] = names.zipWithIndex.map(ni => ni._1 -> ni._2).toMap
+    val initialDistances: Map[VName, Int] = names.map(n => if (initials.contains(n)) n -> 0 else n -> -1).toMap
+
+
+    def requestDistance(name: VName, currentDistances: Vector[Int]): Int = {
+      val index = vertexIndex(name)
+      // Find the distance if not already found
+      val neighbours = matrix(index).zipWithIndex.filter(_._1).map(_._2)
+      val evaluatedNeighbours = (Vector(currentDistances(index)) ++ neighbours.map(neighbour => {
+        val d = currentDistances(neighbour)
+        if (d > -1 && !ignoring.contains(name)) {
+          d + 1
+        } else d
+      }
+      )).filter(d => d > -1)
+      if (evaluatedNeighbours.nonEmpty) evaluatedNeighbours.min else -1
+    }
+
+    def updateDistances(current: Vector[Int]): Vector[Int] = {
+      names.map(v => requestDistance(v, current)).toVector
+    }
+
+    val finalDistances = names.indices.foldLeft(names.map(initialDistances).toVector)((vs, _) => updateDistances(vs))
+    names.zipWithIndex.map(name_index => name_index._1 -> finalDistances(name_index._2)).toMap
+  }
+
+  private def intsWithCount(ints: List[Int]): Double = {
+    val max = ints.max
+    val count = max match {
+      case 0 => 1
+      case _ => ints.count(c => c == max)
+    }
+
+    max + ((count - 1).toDouble / count.toDouble)
   }
 
   def distanceSpecialFromEnds(specials: List[VName])(ends: List[VName])(graph: Graph): Option[Double] = {
@@ -128,86 +203,10 @@ object GraphAnalysis {
     Tensor(complexify2(bMatrix))
   }
 
-  def adjacencyMatrix(graph: Graph): (List[VName], BMatrix) = {
-    val vertexNames = graph.verts.toList
-
-    def setToVector(vertexSet: Set[VName]): Vector[Boolean] = {
-      vertexNames.foldLeft(Vector[Boolean]())((vs, v) => vs :+ vertexSet.contains(v))
-    }
-
-    (vertexNames, vertexNames.foldLeft(Vector[Vector[Boolean]]())((vs, v) => vs :+ setToVector(graph.adjacentVerts(v))))
-  }
-
-
-  def neighbours(matrixWithNames: (List[VName], BMatrix), target: VName) : Set[VName] = {
+  def neighbours(matrixWithNames: (List[VName], BMatrix), target: VName): Set[VName] = {
     val names = matrixWithNames._1
     val matrix = matrixWithNames._2
     val index = names.indexOf(target)
     matrix(index).zipWithIndex.filter(_._1).map(_._2).map(names(_)).toSet
-  }
-
-  def distancesFromInitial(matrixWithNames: (List[VName], BMatrix), ignoring: Set[VName], initials: Set[VName]):
-  Map[VName, Int] = {
-
-    // Initials have distance 0, unreached have distance -1
-
-    val names = matrixWithNames._1
-    val matrix = matrixWithNames._2
-
-    val vertexIndex: Map[VName, Int] = names.zipWithIndex.map(ni => ni._1 -> ni._2).toMap
-    val initialDistances: Map[VName, Int] = names.map(n => if (initials.contains(n)) n -> 0 else n -> -1).toMap
-
-
-    def requestDistance(name: VName, currentDistances: Vector[Int]): Int = {
-      val index = vertexIndex(name)
-      // Find the distance if not already found
-      val neighbours = matrix(index).zipWithIndex.filter(_._1).map(_._2)
-      val evaluatedNeighbours = (Vector(currentDistances(index)) ++ neighbours.map(neighbour => {
-        val d = currentDistances(neighbour)
-        if (d > -1 && !ignoring.contains(name)) {
-          d + 1
-        } else d
-      }
-      )).filter(d => d > -1)
-      if (evaluatedNeighbours.nonEmpty) evaluatedNeighbours.min else -1
-    }
-
-    def updateDistances(current: Vector[Int]): Vector[Int] = {
-      names.map(v => requestDistance(v, current)).toVector
-    }
-
-    val finalDistances = names.indices.foldLeft(names.map(initialDistances).toVector)((vs, _) => updateDistances(vs))
-    names.zipWithIndex.map(name_index => name_index._1 -> finalDistances(name_index._2)).toMap
-  }
-
-
-  private def intsWithCount(ints: List[Int]): Double = {
-    val max = ints.max
-    val count = max match {
-      case 0 => 1
-      case _ => ints.count(c => c == max)
-    }
-
-    max + ((count - 1).toDouble / count.toDouble)
-  }
-
-  def pathDistanceSet(matrixWithNames : (List[VName], BMatrix),
-                      distancesToFind: Set[Int],
-                      measuredFrom: Set[Int]):
-  Option[Double] = {
-
-    val names = matrixWithNames._1
-    // val matrix = matrixWithNames._2
-
-    val distances = distancesFromInitial(matrixWithNames, Set(), measuredFrom.map(i => names(i)))
-
-    val importantDistances = distances.filter(nd => distancesToFind.contains(names.indexOf(nd._1)))
-
-    if (importantDistances.nonEmpty)  {
-      val d = intsWithCount(importantDistances.values.toList)
-      if(d < 0) None else Some(d)
-    } else {
-      None
-    }
   }
 }

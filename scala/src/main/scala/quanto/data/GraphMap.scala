@@ -32,14 +32,16 @@ case class GraphMap(
       bb.codf.forall(_._2.size == 1)
   }
 
-  def addVertex(p: (VName,VName)): GraphMap = copy(v = v + p)
-  def addEdge(p: (EName,EName)): GraphMap = copy(e = e + p)
-  def addBBox(p: (BBName,BBName)): GraphMap = copy(bb = bb + p)
+  def addVertex(p: (VName, VName)): GraphMap = copy(v = v + p)
+
+  def addEdge(p: (EName, EName)): GraphMap = copy(e = e + p)
+
+  def addBBox(p: (BBName, BBName)): GraphMap = copy(bb = bb + p)
 
   def isTotal(g: Graph): Boolean =
-      v.domSet == g.verts &&
-        e.domSet == g.edges &&
-        bb.domSet == g.bboxes
+    v.domSet == g.verts &&
+      e.domSet == g.edges &&
+      bb.domSet == g.bboxes
 
   def image(g: Graph): Graph = g.rename(v.toMap, e.toMap, bb.toMap)
 }

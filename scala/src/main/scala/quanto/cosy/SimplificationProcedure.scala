@@ -134,7 +134,7 @@ object SimplificationProcedure {
     (DerivationWithHead, State) = {
       import state._
       val d = derivation
-      val randRule = rules.toList(seed.nextInt(rules.size))
+      val randRule = rules(seed.nextInt(rules.size))
       val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(d)
       val errors = GraphAnalysis.detectPiNodes(d)
       val specialsDistances = errors.map(eName => (eName, state.weightFunction(d, Set(eName))))
@@ -168,7 +168,7 @@ object SimplificationProcedure {
         println(randRule.description)
         (shrunkNextStep, state.next(Some(suggestedNewSize)))
       } else {
-        println("rej "  + suggestedNewSize)
+        println("rej " + suggestedNewSize)
         (d, state.next(currentDistance))
       }
     }

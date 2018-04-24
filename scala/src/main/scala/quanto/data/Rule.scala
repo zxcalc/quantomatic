@@ -11,21 +11,19 @@ case class RuleLoadException(message: String, cause: Throwable = null)
 case class Rule(private val _lhs: Graph,
                 private val _rhs: Graph,
                 derivation: Option[String] = None,
-                description: RuleDesc = RuleDesc("unnamed")) {
+                description: RuleDesc = RuleDesc()) {
+
+  val lhs: Graph = if (description.inverse) _rhs else _lhs
+  val rhs: Graph = if (description.inverse) _lhs else _rhs
+  val name: String = description.name + (if (description.inverse) " inverted" else "")
 
   def inverse: Rule = {
     Rule(lhs, rhs, derivation, description.invert)
   }
 
-  val lhs: Graph = if (description.inverse) _rhs else _lhs
+  def hasBBoxes: Boolean = lhs.bboxes.nonEmpty || rhs.bboxes.nonEmpty
 
-  val rhs: Graph = if (description.inverse) _lhs else _rhs
-
-  val name: String = description.name + (if (description.inverse) " inverted" else "")
-
-  def hasBBoxes : Boolean = lhs.bboxes.nonEmpty || rhs.bboxes.nonEmpty
-
-  override def toString: String = name + " := "+ _lhs.toString +
+  override def toString: String = name + " := " + _lhs.toString +
     (if (description.inverse) {
       "<--"
     } else {
@@ -48,7 +46,7 @@ object Rule {
       },
       description = if (description.isDefined) description.get else json.get("description") match {
         case Some(JsonString(s)) => RuleDesc(s);
-        case _ => RuleDesc("unnamed")
+        case _ => RuleDesc()
       })
   } catch {
     case e: JsonAccessException =>

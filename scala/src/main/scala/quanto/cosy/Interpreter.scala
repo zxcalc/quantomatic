@@ -2,7 +2,6 @@ package quanto.cosy
 
 import quanto.data.Theory.ValueType
 import quanto.data._
-import quanto.util.Rational
 
 /**
   * An interpreter is given a diagram (as an adjMat and variable assignment) and returns a tensor
@@ -226,11 +225,6 @@ object Interpreter {
       * And the bottom sigma acts on allInputsVector
       */
 
-    {
-      reducedGraphBoundariesVector.length == (uncutBoundariesVector.length + cutSpiderOutputJoins.size)
-      (uncutBoundariesVector.length + numCutSpiderInOuts - cutSpiderOutputJoins.size) == allInputsVector.length
-    }
-
     graphInterpreter(reducedGraph) o
       topSigma o
       (Tensor.idWires(uncutBoundariesVector.size) x spiderTensor) o
@@ -327,4 +321,5 @@ object Interpreter {
   }
 
   case class ZXAngleData(isGreen: Boolean, angle: PhaseExpression)
+
 }

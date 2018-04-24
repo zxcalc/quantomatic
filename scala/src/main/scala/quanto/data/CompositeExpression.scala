@@ -18,11 +18,9 @@ case class TypeNotFoundException(message: String) extends Exception(message)
 // The data is stored as a vector of PhaseExpressions, which are then cast according to the type data
 case class CompositeExpression(valueTypes: Vector[ValueType], values: Vector[PhaseExpression]) {
 
-  val vars: Set[String] = values.flatMap(_.vars).toSet
-
   lazy val varsWithType: Set[(ValueType, String)] =
     values.zipWithIndex.flatMap(valueWithIndex => valueWithIndex._1.vars.map(variableName => (valueTypes(valueWithIndex._2), variableName))).toSet
-
+  val vars: Set[String] = values.flatMap(_.vars).toSet
   val description: ValueType = ValueType.Empty
 
   // Addition
@@ -50,7 +48,7 @@ case class CompositeExpression(valueTypes: Vector[ValueType], values: Vector[Pha
   // Combine strings of each subvalue
   override def toString: String = {
 
-    if(values.forall(e => e == PhaseExpression.zero(e.description))) {
+    if (values.forall(e => e == PhaseExpression.zero(e.description))) {
       ""
     } else {
       val stringValues = values.zipWithIndex.map(pi => (pi._1.description, pi._2) match {
@@ -103,7 +101,8 @@ case class CompositeExpression(valueTypes: Vector[ValueType], values: Vector[Pha
 
 object CompositeExpression {
 
-  implicit val modulus : Option[Int] = None
+  implicit val modulus: Option[Int] = None
+
   def empty: CompositeExpression = {
     CompositeExpression(Vector(), Vector())
   }
@@ -125,7 +124,7 @@ object CompositeExpression {
 
   def parseKnowingTypes(s: String, v: Vector[ValueType]): Vector[PhaseExpression] = {
     // Will fill with empties if more types requested than string elements given
-    val split : Array[String] = s.split(",")
+    val split: Array[String] = s.split(",")
     v.zipWithIndex.map(si => parseSingle(split.lift(si._2).getOrElse(""), si._1))
   }
 
@@ -142,7 +141,8 @@ object CompositeExpression {
 
     // Partial matches will confuse things!
     // Make sure a supermatch comes before a submatch
-    def ANGLE: Parser[ValueType] = """(angle_expr|(LinRat|)[Aa]ngle)""".r ^^ { _ => ValueType.AngleExpr }
+    def ANGLE: Parser[ValueType] =
+      """(angle_expr|(LinRat|)[Aa]ngle)""".r ^^ { _ => ValueType.AngleExpr }
 
     def BOOL: Parser[ValueType] = """[bB]ool(ean|)""".r ^^ { _ => ValueType.Boolean }
 
@@ -160,7 +160,7 @@ object CompositeExpression {
 
 
     def term: Parser[ValueType] =
-        ANGLE |
+      ANGLE |
         BOOL |
         RATIONAL |
         INTEGER |
@@ -171,7 +171,7 @@ object CompositeExpression {
 
 
     def terms: Parser[List[ValueType]] =
-        "(" ~ terms ~ ")" ^^ { case _ ~ t ~ _ => t } |
+      "(" ~ terms ~ ")" ^^ { case _ ~ t ~ _ => t } |
         term ~ "," ~ terms ^^ { case s ~ _ ~ t => s :: t } |
         term ^^ { t => List(t) }
 

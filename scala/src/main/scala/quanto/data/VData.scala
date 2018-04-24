@@ -1,6 +1,5 @@
 package quanto.data
 
-import quanto.data.Theory.ValueType
 import quanto.util.json._
 
 /**
@@ -17,7 +16,6 @@ abstract class VData extends GraphElementData {
   /**
     * Get coordinates of vertex
     *
-    * @throws JsonAccessException
     * @return actual coordinates of vertex or (0,0) if none are specified
     */
   def coord: (Double, Double) = annotation.get("coord") match {
@@ -63,7 +61,7 @@ case class NodeV(
                   annotation: JsonObject = JsonObject(),
                   theory: Theory = Theory.DefaultTheory) extends VData {
   /** Type of the vertex */
-  val typ = (data / "type").stringValue
+  val typ: String = (data / "type").stringValue
   // support input of old-style graphs, where data may be stored at value/pretty
   val value: String = data ? "value" match {
     case str: JsonString => str.stringValue
@@ -88,21 +86,21 @@ case class NodeV(
   //  def label = data.getOrElse("label","").stringValue
   def typeInfo = theory.vertexTypes(typ)
 
-  def withCoord(c: (Double, Double)) =
+  def withCoord(c: (Double, Double)): NodeV =
     copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
 
   /** Create a copy of the current vertex with the new value */
-  def withValue(s: String) =
+  def withValue(s: String): NodeV =
     copy(data = data.setPath("$.value", s).asObject)
 
-  def withTyp(s: String) =
+  def withTyp(s: String): NodeV =
     copy(data = data.setPath("$.type", s).asObject)
 
   def isWireVertex = false
 
   def isBoundary = false
 
-  override def toJson =
+  override def toJson: JsonObject =
     if (data == theory.defaultVertexData)
       JsonObject("annotation" -> annotation).noEmpty
     else
@@ -123,7 +121,7 @@ case class NodeV(
 object NodeV {
   def apply(coord: (Double, Double)): NodeV = NodeV(annotation = JsonObject("coord" -> JsonArray(coord._1, coord._2)))
 
-  def toJson(d: NodeV, theory: Theory) = JsonObject(
+  def toJson(d: NodeV, theory: Theory): JsonObject = JsonObject(
     "data" -> (if (d.data == theory.vertexTypes(d.typ).defaultData) JsonNull else d.data),
     "annotation" -> d.annotation).noEmpty
 
@@ -153,12 +151,12 @@ case class WireV(
 
   def isWireVertex = true
 
-  def isBoundary = annotation.get("boundary") match {
+  def isBoundary: Boolean = annotation.get("boundary") match {
     case Some(JsonBool(b)) => b;
     case _ => false
   }
 
-  def withCoord(c: (Double, Double)) =
+  def withCoord(c: (Double, Double)): WireV =
     copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
 
   def makeBoundary(b: Boolean): WireV =
@@ -176,7 +174,7 @@ case class WireV(
 object WireV {
   def apply(c: (Double, Double)): WireV = WireV(annotation = JsonObject("coord" -> JsonArray(c._1, c._2)))
 
-  def toJson(d: NodeV, theory: Theory) = JsonObject(
+  def toJson(d: NodeV, theory: Theory): JsonObject = JsonObject(
     "data" -> d.data, "annotation" -> d.annotation).noEmpty
 
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): WireV =
