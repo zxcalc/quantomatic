@@ -29,7 +29,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
   implicit private def valueTypeVectorToString(vs: Vector[ValueType]) : String =
     vs.map(approvedDataTypes).mkString("",", ","")
 
-  val approvedDataTypes: Map[ValueType, String] = ValueType.values map (v =>
+  val approvedDataTypes: Map[ValueType, String] = ValueType.values.toList map (v =>
     v -> (v match {
     case ValueType.AngleExpr => "angle"
     case ValueType.Boolean => "boolean"
