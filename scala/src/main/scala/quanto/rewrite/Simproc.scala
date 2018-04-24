@@ -75,6 +75,7 @@ object Simproc {
         Matcher.findMatches(rule.lhs, g).headOption.foreach { m =>
             return Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
         }
+      //println("got no match REWRITE: " + rules.map{_.name}.toString())
       Iterator.empty
     }
   }
@@ -93,16 +94,45 @@ object Simproc {
           //println("SUCCESS")
           Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
         case None =>
+          //println("got no match REWRITE_TARGETED: " + rule.name)
           //println("FAILED")
           Iterator.empty
       }
     }
   }
 
-  def REWRITE_METRIC(rules: List[Rule], metric: Graph => Int) =
+  def REWRITE_TARGET_LIST(rule: Rule, vp: VName, targ: List[VName]): Simproc = new Simproc {
+    override def simp(g: Graph): Iterator[(Graph, Rule)] = {
+      for(vt <- targ) {
+        if (g.verts contains vt) {
+          val ms = Matcher.initialise(rule.lhs, g, g.verts)
+          ms.matchNewNode(vp, vt).flatMap(_.nextMatch()).map { case (m,_) =>
+            return Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
+          }
+        }
+      }
+      Iterator.empty
+//      targ(g).flatMap { vt =>
+//        //println("REWRITE_TARGETED(" + rule.name + ", " + vt + ")")
+//        if (g.verts contains vt) {
+//          val ms = Matcher.initialise(rule.lhs, g, g.verts)
+//          ms.matchNewNode(vp, vt).flatMap(_.nextMatch())
+//        } else None
+//      } match {
+//        case Some((m,_)) =>
+//          //println("SUCCESS")
+//          Iterator.single(layout(Rewriter.rewrite(m, rule.rhs, rule.description)))
+//        case None =>
+//          //println("FAILED")
+//          Iterator.empty
+//      }
+    }
+  }
+
+  def REWRITE_METRIC(rules: List[Rule], metric: Graph => Int, target: Int = 0) =
     new Simproc {
       override def simp(g: Graph): Iterator[(Graph, Rule)] = {
-        if (metric(g) <= 0) return Iterator.empty
+        if (metric(g) <= target) return Iterator.empty
         for (rule <- rules) {
           Matcher.findMatches(rule.lhs, g).foreach { m =>
             val (g1,r1) = Rewriter.rewrite(m, rule.rhs, rule.description)

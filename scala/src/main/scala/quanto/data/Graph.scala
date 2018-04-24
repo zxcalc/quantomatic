@@ -50,6 +50,7 @@ case class Graph(
   def isInternalWire(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).size == 1 && inEdges(v).size == 1
   def isTerminalWire(vn: VName): Boolean =
     vdata(vn).isWireVertex && (inEdges(vn).size + outEdges(vn).size) <= 1
+  def isBoundary(vn: VName): Boolean = isTerminalWire(vn)
   lazy val boundaryNodes : Set[VName] = verts.filter(vdata(_).isBoundary)
   lazy val nodesThatAreNotWires : Set[VName] = verts.filterNot(vdata(_).isWireVertex)
 
@@ -63,6 +64,8 @@ case class Graph(
   def isAdjacentToBoundary(v: VName): Boolean = adjacentVerts(v).exists(isBoundary)
   def isAdjacentToType(v: VName, t: String): Boolean = adjacentVerts(v).exists(typeOf(_) == t)
   def isWireVertex(v: VName) = vdata(v).isWireVertex
+
+  def numAdjacentBoundaries(vn: VName): Int = adjacentVerts(vn).count(isTerminalWire)
 
   def representsWire(vn: VName) = vdata(vn).isWireVertex &&
     (predVerts(vn).headOption match {
