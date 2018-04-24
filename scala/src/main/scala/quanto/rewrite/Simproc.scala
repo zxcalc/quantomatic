@@ -52,6 +52,8 @@ abstract class Simproc {
 
 object Simproc {
 
+  // Converts a (Derivation, Head) pair into an iterated series of steps
+  // Allows gluing together of simprocs and derivations
   implicit def fromDerivationWithHead(d: DerivationWithHead): Iterator[(Graph, Rule)] = {
     if (d._2.nonEmpty) {
       d._1.stepsTo(d._2.get).map(d._1.steps).map(step => (step.graph, step.rule)).toIterator
@@ -83,17 +85,26 @@ object Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = Iterator.empty
   }
 
+
+  /**
+    * Anneals the graph using only the rules (forwards only), using vertex size as the metric
+    * No initial heat specified, just accepts worse states with a (decreasing-over-time) random chance
+    * @param rules          List of rules, taken forwards only
+    * @param steps      Number of steps to be taken
+    * @param dilation   How slowly we stop accepting worse states
+    * @return   The resulting derivation will appear (all at once) in the side bar
+    */
   def ANNEAL(rules: List[Rule],
-             maxTime: Int,
-             timeDilation: Double,
+             steps: Int,
+             dilation: Double,
              seed: Random = new Random(),
              vertexLimit: Option[Int] = None) = new Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = {
       val reduced = AutoReduce.annealingReduce(
         RuleSynthesis.graphToDerivation(g),
         rules,
-        maxTime,
-        timeDilation,
+        steps,
+        dilation,
         seed,
         vertexLimit)
       fromDerivationWithHead(reduced)

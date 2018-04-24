@@ -194,7 +194,7 @@ object Scripting {
       })
   }
 
-  def ANNEAL(r: PyList, maxTime: Int, dilation: Double) = Simproc.ANNEAL(pyListToList[Rule](r), maxTime, dilation)
+  def ANNEAL(r: PyList, steps: Int, dilation: Double) = Simproc.ANNEAL(pyListToList[Rule](r), steps, dilation)
 
   def REWRITE_TARGET_LIST(rule: Rule, v: String, tlist: PyList) = Simproc.REWRITE_TARGET_LIST(rule, VName(v), pyListToList(tlist))
 
