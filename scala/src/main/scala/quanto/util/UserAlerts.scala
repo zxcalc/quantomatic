@@ -2,10 +2,10 @@ package quanto.util
 
 import java.io.File
 import java.util.concurrent.TimeUnit
-import java.util.{Calendar, Date, UUID}
+import java.util.{Calendar, Date}
 
-import scala.swing.{Color, Dialog, Publisher}
 import scala.swing.event.Event
+import scala.swing.{Color, Dialog, Publisher}
 
 
 // Universal system for alerting the user
@@ -14,15 +14,76 @@ import scala.swing.event.Event
 // Listen to events via AlertPublisher
 object UserAlerts {
 
+  var ongoingProcesses: List[UserStartedProcess] = List()
+  var alerts: List[Alert] = List()
+
+  def leastCompleteProcess: Option[UserStartedProcess] = {
+    if (ongoingProcesses.isEmpty) None else {
+      val indeterminate = ongoingProcesses.find(op => !op.determinate)
+      if (indeterminate.nonEmpty) indeterminate else {
+        Some(ongoingProcesses.minBy(op => op.value))
+      }
+    }
+  }
+
+  def latestMessage: Alert = {
+    if (alerts.headOption.nonEmpty) alerts.head else {
+      alert("Quantomatic starting up")
+      latestMessage
+    }
+  }
+
+  def alert(message: Any): Unit = alert(message.toString, Elevation.NOTICE)
+
+  def debug(message: String): Unit = alert(message, Elevation.DEBUG)
+
+  def errorBox(message: String): Unit = {
+    alert(message, Elevation.ERROR)
+    Dialog.showMessage(
+      title = "Error",
+      message = message,
+      messageType = Dialog.Message.Error)
+  }
+
+  def alert(message: String, elevation: Elevation.Elevation): Unit = {
+    val newAlert = Alert(Calendar.getInstance().getTime, elevation, message)
+    println(newAlert.toString)
+    alerts = newAlert :: alerts
+    AlertPublisher.publish(UserAlertEvent(newAlert))
+    writeToLogFile(newAlert)
+  }
+
+  def writeToLogFile(alert: Alert, force: Boolean = false): Unit = {
+    val elevation = alert.elevationText match {
+      case "" => ""
+      case e => s"[$e]"
+    }
+    if (logFile.nonEmpty && (UserOptions.logging || force)) {
+      FileHelper.printToFile(logFile.get)(
+        p => p.println(UserOptions.preferredTimeFormat.format(alert.time) + ": " + elevation + alert.message)
+      )
+
+    }
+  }
+
+  def logFile: Option[File] = {
+    // It's possible to get here before the GUI instantiates
+    val project = quanto.gui.QuantoDerive.CurrentProject
+    if (project != null && project.nonEmpty) {
+      Some(new File(quanto.gui.QuantoDerive.CurrentProject.get.rootFolder + s"/${project.get.name}_log.txt"))
+    }
+    else {
+      None
+    }
+  }
+
   case class UserAlertEvent(alert: Alert) extends Event
 
   case class UserProcessUpdate(ongoingProcess: UserStartedProcess) extends Event
 
-  object AlertPublisher extends Publisher
-
   class SelfAlertingProcess(name: String) extends UserStartedProcess(name) {
     alert(name + ": Started")
-    val startTime : Long = Calendar.getInstance().getTimeInMillis
+    val startTime: Long = Calendar.getInstance().getTimeInMillis
 
 
     override def halt(): Unit = {
@@ -52,14 +113,6 @@ object UserAlerts {
 
     def determinate: Boolean = _determinate
 
-    def value: Int = _value
-
-    def value_=(newValue: Int): Unit = {
-      _value = newValue
-      _determinate = true
-      AlertPublisher.publish(UserProcessUpdate(this))
-    }
-
     def setIndeterminate(): Unit = {
       _value = 0
       _determinate = false
@@ -69,6 +122,14 @@ object UserAlerts {
     def fail(): Unit = {
       _failed = true
       value = 100
+    }
+
+    def value: Int = _value
+
+    def value_=(newValue: Int): Unit = {
+      _value = newValue
+      _determinate = true
+      AlertPublisher.publish(UserProcessUpdate(this))
     }
 
     def finish(): Unit = {
@@ -83,19 +144,6 @@ object UserAlerts {
     ongoingProcesses = this :: ongoingProcesses
     AlertPublisher.publish(UserProcessUpdate(this))
   }
-
-  var ongoingProcesses: List[UserStartedProcess] = List()
-
-
-  def leastCompleteProcess: Option[UserStartedProcess] = {
-    if (ongoingProcesses.isEmpty) None else {
-      val indeterminate = ongoingProcesses.find(op => !op.determinate)
-      if (indeterminate.nonEmpty) indeterminate else {
-        Some(ongoingProcesses.minBy(op => op.value))
-      }
-    }
-  }
-
 
   case class Alert(time: Date, elevation: Elevation.Elevation, message: String) {
     override def toString: String = UserOptions.preferredTimeFormat.format(time) + ": " + message
@@ -121,61 +169,10 @@ object UserAlerts {
     }
   }
 
+  object AlertPublisher extends Publisher
+
   object Elevation extends Enumeration {
     type Elevation = Value
     val ALERT, ERROR, WARNING, NOTICE, DEBUG = Value
-  }
-
-  var alerts: List[Alert] = List()
-
-  def latestMessage: Alert = {
-    if (alerts.headOption.nonEmpty) alerts.head else {
-      alert("Quantomatic starting up")
-      latestMessage
-    }
-  }
-
-  def alert(message: Any): Unit = alert(message.toString, Elevation.NOTICE)
-
-  def debug(message: String): Unit = alert(message, Elevation.DEBUG)
-
-  def errorbox(message: String): Unit = {
-    alert(message, Elevation.ERROR)
-    Dialog.showMessage(
-      title = "Error",
-      message = message,
-      messageType = Dialog.Message.Error)
-  }
-
-  def alert(message: String, elevation: Elevation.Elevation): Unit = {
-    val newAlert = Alert(Calendar.getInstance().getTime, elevation, message)
-    println(newAlert.toString)
-    alerts = newAlert :: alerts
-    AlertPublisher.publish(UserAlertEvent(newAlert))
-    writeToLogFile(newAlert)
-  }
-
-  def logFile: Option[File] = {
-    // It's possible to get here before the GUI instantiates
-    val project = quanto.gui.QuantoDerive.CurrentProject
-    if (project != null && project.nonEmpty) {
-      Some(new File(quanto.gui.QuantoDerive.CurrentProject.get.rootFolder + s"/${project.get.name}_log.txt"))
-    }
-    else {
-      None
-    }
-  }
-
-  def writeToLogFile(alert: Alert, force : Boolean = false): Unit = {
-    val elevation = alert.elevationText match {
-      case "" => ""
-      case e => s"[$e]"
-    }
-    if (logFile.nonEmpty && (UserOptions.logging || force)) {
-      FileHelper.printToFile(logFile.get)(
-        p => p.println(UserOptions.preferredTimeFormat.format(alert.time) + ": " + elevation + alert.message)
-      )
-
-    }
   }
 }

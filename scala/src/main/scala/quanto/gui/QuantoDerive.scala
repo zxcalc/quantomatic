@@ -49,7 +49,7 @@ object QuantoDerive extends SimpleSwingApplication {
   // Dialogs in in scala.swing seem to be broken since updated scala to 2.12, so
   // we're using the javax.swing versions instead
   def error(msg: String) =
-    UserAlerts.errorbox(msg)
+    UserAlerts.errorBox(msg)
 
   def alert(msg: String) =
     UserAlerts.alert(msg)

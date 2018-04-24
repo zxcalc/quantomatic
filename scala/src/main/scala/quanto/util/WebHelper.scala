@@ -1,6 +1,7 @@
 package quanto.util
-import java.net.URL
+
 import java.awt.Desktop
+import java.net.URL
 
 object WebHelper {
 

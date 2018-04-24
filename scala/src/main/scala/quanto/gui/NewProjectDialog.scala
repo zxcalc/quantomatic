@@ -116,11 +116,11 @@ class NewProjectDialog extends Dialog {
       val path = ProjectLocationField.text
       val folder = new File(path + "/" + name)
       if (name.isEmpty) {
-        UserAlerts.errorbox("Please enter a name for your project.")
+        UserAlerts.errorBox("Please enter a name for your project.")
       } else if (folder.exists()) {
-        UserAlerts.errorbox("That folder is already in use.")
+        UserAlerts.errorBox("That folder is already in use.")
       } else if (theory.isEmpty) {
-        UserAlerts.errorbox("Please choose a theory.")
+        UserAlerts.errorBox("Please choose a theory.")
       } else {
         result = Some((theory, name, path))
         close()

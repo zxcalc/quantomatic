@@ -11,6 +11,7 @@ import scala.io.Source
 object FileHelper {
 
   implicit def uriToFile(uri: URI): File = new File(uri)
+
   implicit def fileToURI(file: File): URI = file.toURI
 
   implicit def pathToFile(path: String): File = new File(path)
@@ -64,7 +65,7 @@ object FileHelper {
 
   def readFile[T](file: File, conversion: Json => T): T = conversion(Json.parse(file))
 
-  def readJson(file: File) : Json = Json.parse(file)
+  def readJson(file: File): Json = Json.parse(file)
 
   def readFile(file: File): List[String] = {
     val bufferedSource = Source.fromFile(file)
@@ -73,7 +74,7 @@ object FileHelper {
     lines
   }
 
-  def extension(file: File) : String = {
+  def extension(file: File): String = {
     val pattern = """.*\.(\w+)""".r
     file.getAbsolutePath match {
       case pattern(extension) => extension

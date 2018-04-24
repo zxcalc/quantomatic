@@ -229,7 +229,7 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
         }
 
       } else {
-          UserAlerts.errorbox("You must first save this derivation before exporting a theorem")
+          UserAlerts.errorBox("You must first save this derivation before exporting a theorem")
       }
 
     case SelectionChanged(_) =>
