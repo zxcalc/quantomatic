@@ -167,6 +167,15 @@ object Scripting {
     Simproc.REWRITE_METRIC(rules, {g => Py.py2int(metric.__call__(Py.java2py(g)))})
   }
 
+  def REWRITE_METRIC_TO(o: Object, metric: PyFunction, target: Int) = {
+    val rules = o match {
+      case list: PyList => pyListToList(list)
+      case _ => List(o.asInstanceOf[Rule])
+    }
+
+    Simproc.REWRITE_METRIC(rules, {g => Py.py2int(metric.__call__(Py.java2py(g)))}, target)
+  }
+
   def REWRITE_WEAK_METRIC(o: Object, metric: PyFunction) = {
     val rules = o match {
       case list: PyList => pyListToList(list)
@@ -187,12 +196,15 @@ object Scripting {
 
   def ANNEAL(r: PyList, maxTime: Int, dilation: Double) = Simproc.ANNEAL(pyListToList[Rule](r), maxTime, dilation)
 
+  def REWRITE_TARGET_LIST(rule: Rule, v: String, tlist: PyList) = Simproc.REWRITE_TARGET_LIST(rule, VName(v), pyListToList(tlist))
+
   def REPEAT(s: Simproc) = Simproc.REPEAT(s)
 
   // REDUCE_XXX(-) := REPEAT(REWRITE_XXX(-))
   def REDUCE(o: Object) = REPEAT(REWRITE(o))
   def REDUCE_TARGETED(rule: Rule, v: String, targ: PyFunction) = REPEAT(REWRITE_TARGETED(rule, v, targ))
   def REDUCE_METRIC(o: Object, metric: PyFunction) = REPEAT(REWRITE_METRIC(o, metric))
+  def REDUCE_METRIC_TO(o: Object, metric: PyFunction, target: Int) = REPEAT(REWRITE_METRIC_TO(o, metric, target))
   def REDUCE_WEAK_METRIC(o: Object, metric: PyFunction) = REPEAT(REWRITE_WEAK_METRIC(o, metric))
 
   private def register_simproc(simprocName: String, simproc: Simproc, sourceFile: String): Unit = {
