@@ -1,18 +1,15 @@
 package quanto.gui
 
-import java.awt.{BorderLayout, Color, Shape}
-import java.awt.event.{KeyAdapter, KeyEvent}
-import java.io.PrintStream
-import javax.swing.ImageIcon
+import java.awt.{Color, Shape}
 
 import org.lindenb.svg.SVGUtils
-import quanto.data.{CompositeExpression, GenericParseException, Theory, TheoryLoadException}
 import quanto.data.Theory._
-import quanto.util.UserAlerts.{Elevation, SelfAlertingProcess, alert}
+import quanto.data.{CompositeExpression, GenericParseException, Theory, TheoryLoadException}
+import quanto.util.UserAlerts.{Elevation, alert}
+import quanto.util.UserOptions.scaleInt
 import quanto.util._
 import quanto.util.json.{Json, JsonObject}
 import quanto.util.swing.ToolBar
-import quanto.util.UserOptions.scaleInt
 
 import scala.swing._
 import scala.swing.event.{ButtonClicked, SelectionChanged}
@@ -346,7 +343,12 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
       val newVertexDesc = new VertexDesc(
         value = new ValueDesc(),
         style = new VertexStyleDesc(shape = VertexShape.Circle),
-        defaultData = new JsonObject()
+        defaultData = JsonObject(
+          "default_data" -> JsonObject(
+            "type" -> Json.stringToJson(result),
+            "value" -> Json.stringToJson("")
+          )
+        )
       )
       val newVertexTypes: Map[String, Theory.VertexDesc] = theory.vertexTypes ++ Map(result -> newVertexDesc)
       // Update the base document's theory
