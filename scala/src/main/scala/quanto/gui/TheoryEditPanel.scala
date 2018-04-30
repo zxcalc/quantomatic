@@ -11,6 +11,8 @@ import quanto.util._
 import quanto.util.json.{Json, JsonObject}
 import quanto.util.swing.ToolBar
 
+import scala.language.postfixOps
+
 import scala.swing._
 import scala.swing.event.{ButtonClicked, SelectionChanged}
 
