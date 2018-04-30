@@ -876,6 +876,18 @@ object QuantoDerive extends SimpleSwingApplication {
       }
 
     }
+
+    val MinimiseGraph = new Action("Minimise") {
+      enabled = false
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.M}
+
+      def apply() = {
+        currentGraphController.foreach(gc => gc.minimiseGraph())
+      }
+
+    }
+
     visible = false
   }
 
@@ -1094,6 +1106,7 @@ object QuantoDerive extends SimpleSwingApplication {
       GraphMenu.visible = false
       GraphMenu.StartDerivation.enabled = false
       GraphMenu.SnapToGrid.enabled = false
+      GraphMenu.MinimiseGraph.enabled = false
       GraphMenu.StartRule.enabled = false
       GraphMenu.ExtractGraph.enabled = false
       DeriveMenu.visible = false
@@ -1127,6 +1140,7 @@ object QuantoDerive extends SimpleSwingApplication {
               GraphMenu.StartDerivation.enabled = true
               GraphMenu.StartRule.enabled = true
               GraphMenu.SnapToGrid.enabled = true
+              GraphMenu.MinimiseGraph.enabled = true
               GraphMenu.ExtractGraph.enabled = true
               ExportMenu.ExportAction.enabled = true
             case panel: RuleEditPanel =>
@@ -1138,6 +1152,7 @@ object QuantoDerive extends SimpleSwingApplication {
               RuleMenu.InvertRule.enabled = true
               GraphMenu.visible = true
               GraphMenu.SnapToGrid.enabled = true
+              GraphMenu.MinimiseGraph.enabled = true
             case panel: DerivationPanel =>
               ExportMenu.ExportAction.enabled = true
               histView = Some(panel.histView)
