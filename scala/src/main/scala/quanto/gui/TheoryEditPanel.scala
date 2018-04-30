@@ -344,10 +344,8 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
         value = new ValueDesc(),
         style = new VertexStyleDesc(shape = VertexShape.Circle),
         defaultData = JsonObject(
-          "default_data" -> JsonObject(
-            "type" -> Json.stringToJson(result),
-            "value" -> Json.stringToJson("")
-          )
+          "type" -> Json.stringToJson(result),
+          "value" -> Json.stringToJson("")
         )
       )
       val newVertexTypes: Map[String, Theory.VertexDesc] = theory.vertexTypes ++ Map(result -> newVertexDesc)

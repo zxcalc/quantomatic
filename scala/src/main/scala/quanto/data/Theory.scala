@@ -293,8 +293,7 @@ object Theory {
     implicit def fromJson(json: Json): VertexDesc = VertexDesc(
       value = json / "value",
       style = json / "style",
-      defaultData = (json / "default_data").asObject
-    )
+      defaultData = json.getOrElse("default_data", "").asObject)
 
     implicit def toJson(v: VertexDesc): JsonObject = JsonObject(
       "value" -> v.value,
