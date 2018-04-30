@@ -872,7 +872,7 @@ object QuantoDerive extends SimpleSwingApplication {
         mnemonic = Key.S}
 
       def apply() = {
-        currentGraphController.foreach(gc => gc.graph = gc.graph.snapToGrid())
+        currentGraphController.foreach(gc => gc.snapToGrid())
       }
 
     }
