@@ -1,22 +1,21 @@
 package quanto.gui
 
-import graphview._
-
-import swing._
-import swing.event._
-import Key.Modifier
-import quanto.data._
-import Names._
-import quanto.layout.ForceLayout
-import quanto.util.json._
-import quanto.layout.constraint._
-import java.awt.event.{ActionEvent, ActionListener}
-import java.awt.datatransfer._
 import java.awt.Toolkit
+import java.awt.datatransfer._
+import java.awt.event.{ActionEvent, ActionListener}
 import java.util.Calendar
 
-import quanto.gui.graphview.{BBoxOverlay, EdgeOverlay}
-import quanto.util.{Globals, UserAlerts, UserOptions}
+import quanto.data.Names._
+import quanto.data._
+import quanto.gui.graphview.{BBoxOverlay, EdgeOverlay, _}
+import quanto.layout.ForceLayout
+import quanto.layout.constraint._
+import quanto.util.json._
+import quanto.util.{Globals, UserOptions}
+
+import scala.swing._
+import scala.swing.event.Key.Modifier
+import scala.swing.event._
 
 case class VertexSelectionChanged(graph: Graph, selectedVerts: Set[VName]) extends GraphEvent
 
@@ -421,39 +420,45 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
   def cycleVertexType(vertex: VName, shift: Int = 1, includeWire: Boolean = false): Unit = {
 
-      view.invalidateVertex(vertex)
-      graph.adjacentEdges(vertex).foreach {
-        view.invalidateEdge
-      }
-      val currentData = graph.vdata(vertex)
-      val options = if (includeWire) {
-        theory.vertexTypes.keys.toSeq :+ "<wire>"
-      } else {
-        theory.vertexTypes.keys.toSeq
-      }
-      val current = options.indexOf(currentData.typ)
+    view.invalidateVertex(vertex)
+    graph.adjacentEdges(vertex).foreach {
+      view.invalidateEdge
+    }
+    val currentData = graph.vdata(vertex)
+    val options = if (includeWire) {
+      theory.vertexTypes.keys.toSeq :+ "<wire>"
+    } else {
+      theory.vertexTypes.keys.toSeq
+    }
+    val current = options.indexOf(currentData.typ)
 
-      val newTyp = options((current + shift + options.length) % options.length)
-      val coords = (currentData.coord._1, currentData.coord._2)
-      graph = graph.updateVData(vertex)(d => {
-        newTyp match {
-          case "<wire>" =>
-            WireV.apply(coords)
-          case _ =>
-            NodeV(theory.vertexTypes(newTyp).defaultData,
-              annotation = d.annotation,
-              theory = theory).withCoord(coords)
-        }
+    val newTyp = options((current + shift + options.length) % options.length)
+    val coords = (currentData.coord._1, currentData.coord._2)
+    graph = graph.updateVData(vertex)(d => {
+      newTyp match {
+        case "<wire>" =>
+          WireV.apply(coords)
+        case _ =>
+          NodeV(theory.vertexTypes(newTyp).defaultData,
+            annotation = d.annotation,
+            theory = theory).withCoord(coords)
       }
-      )
-      graph = graph.coerceWiresAndBoundaries
-      view.repaint()
+    }
+    )
+    graph = graph.coerceWiresAndBoundaries
+    view.repaint()
   }
 
 
   def normaliseGraph(): Unit = {
     view.invalidateGraph(true)
     graph = graph.normalise.coerceWiresAndBoundaries
+    view.repaint()
+  }
+
+  def minimiseGraph(): Unit = {
+    view.invalidateGraph(true)
+    graph = graph.minimise.coerceWiresAndBoundaries
     view.repaint()
   }
 
@@ -581,7 +586,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
           mouseState = FreehandTool(newPath, newTime)
           view.edgeOverlay = Some(EdgeOverlay(pt, src = vname, tgt = Some(vname)))
           view.repaint()
-        case RequestNormaliseGraph() =>
+        case RequestMinimiseGraph() =>
         case RequestFocusOnGraph() =>
         case state => throw new InvalidMouseStateException("MousePressed", state)
       }
@@ -636,7 +641,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
                 // mouseState = FreehandTool(newPath, newTime)
               }
           }
-        case RequestNormaliseGraph() =>
+        case RequestMinimiseGraph() =>
         case RequestFocusOnGraph() =>
         case SelectionBox(start,_) =>
           val box = SelectionBox(start, pt)
@@ -867,7 +872,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
           view.bboxOverlay = None
           view.repaint()
 
-        case RequestNormaliseGraph() =>
+        case RequestMinimiseGraph() =>
         case RequestFocusOnGraph() =>
         case state => throw new InvalidMouseStateException("MouseReleased", state)
       }
@@ -943,8 +948,8 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
       if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) {
         snapToGrid()
       }
-    case KeyPressed(_, Key.N, _, _)  =>
-      normaliseGraph()
+    case KeyPressed(_, Key.M, _, _)  =>
+      minimiseGraph()
     case KeyPressed(_, Key.F, modifiers, _) =>
       if ((modifiers & Modifier.Shift) != Modifier.Shift) {
         mouseState = FreehandTool(None, None)

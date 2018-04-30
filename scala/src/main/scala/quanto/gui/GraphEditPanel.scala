@@ -88,10 +88,10 @@ class GraphEditControls(theory: Theory) extends Publisher {
 
 
 
-  val NormaliseButton = new ToggleButton() with ToolButton {
-    icon = new ImageIcon(GraphEditor.getClass.getResource("normalise.png"), "Normalise")
-    tooltip = "Straighten edges, and convert leaves to boundaries (N)"
-    tool = RequestNormaliseGraph()
+  val MinimiseButton = new ToggleButton() with ToolButton {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("normalise.png"), "Minimise")
+    tooltip = "Straighten edges, and convert leaves to boundaries (M)"
+    tool = RequestMinimiseGraph()
   }
 
   val GraphToolGroup = new ButtonGroup(SelectButton,
@@ -163,7 +163,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
       setMouseState(t.tool)
   }
 
-  listenTo(RelaxButton.mouse.clicks, NormaliseButton, FocusGraphButton)
+  listenTo(RelaxButton.mouse.clicks, MinimiseButton, FocusGraphButton)
 
   reactions += {
     case MousePressed(RelaxButton,_,_,_,_) =>
@@ -172,8 +172,8 @@ class GraphEditControls(theory: Theory) extends Publisher {
     case MouseReleased(RelaxButton,_,_,_,_) =>
       RelaxButton.selected= false
       publish(MouseStateChanged(RelaxToolUp()))
-    case ButtonClicked(NormaliseButton) =>
-      NormaliseButton.selected = false
+    case ButtonClicked(MinimiseButton) =>
+      MinimiseButton.selected = false
     case ButtonClicked(FocusGraphButton) =>
       FocusGraphButton.selected = false
   }
@@ -184,7 +184,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
   MainToolBar.peer.addSeparator()
   MainToolBar.contents += FocusGraphButton
   MainToolBar.contents += RelaxButton
-  MainToolBar.contents += NormaliseButton
+  MainToolBar.contents += MinimiseButton
 
 }
 
@@ -230,7 +230,7 @@ with HasDocument
       graphView.repaint()
     case MouseStateChanged(RelaxToolDown()) => graphEditController.startRelaxGraph(true)
     case MouseStateChanged(RelaxToolUp()) => graphEditController.endRelaxGraph()
-    case MouseStateChanged(RequestNormaliseGraph()) => graphEditController.normaliseGraph()
+    case MouseStateChanged(RequestMinimiseGraph()) => graphEditController.minimiseGraph()
     case MouseStateChanged(RequestFocusOnGraph()) => graphEditController.focusOnGraph()
     case MouseStateChanged(m) =>
       if (graphEditController.rDown) graphEditController.endRelaxGraph()
