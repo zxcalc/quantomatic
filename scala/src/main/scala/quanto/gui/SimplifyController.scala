@@ -25,7 +25,7 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
   case class RefreshSimprocs() extends Event
   case class ReRunSimproc() extends Event
   case class HaltSimproc() extends Event
-  case class SimprocHalted() extends Exception("Simproc halted")
+  case class SimprocHaltedWhileRunning() extends Exception("Simproc halted")
 
   listenTo(this,
     panel.SimplifyPane.RefreshButton,
@@ -69,9 +69,11 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
         val processReporting = new SelfAlertingProcess("Simproc: " + simpName)
         val simpIdAtStart = simpId
         val res = Future[Boolean] {
-          for ((graph, rule) <- simproc.simp(panel.LhsView.graph)) {
-            // Don't update the derivation if the simpId call has changed
-            if(simpId == simpIdAtStart) {
+          val iteratedSimp : Iterator[(Graph, Rule)] = simproc.simp(panel.LhsView.graph)
+
+          // Don't update the derivation if the simpId call has changed
+          while(iteratedSimp.hasNext && simpId == simpIdAtStart){
+            val (graph, rule) = iteratedSimp.next()
             val suggest = simpName + "-" + rule.name.replaceFirst("^.*\\/", "") + "-0"
             val step = DStep(
               name = panel.derivation.steps.freshWithSuggestion(DSName(suggest)),
@@ -83,9 +85,11 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
               Swing.onEDT {
                 panel.controller.state = HeadState(Some(step.name))
               }
-            } else {
-              throw SimprocHalted()
-            }
+          }
+
+
+          if(simpId != simpIdAtStart) {
+            throw SimprocHaltedWhileRunning()
           }
 
           true
@@ -94,14 +98,13 @@ class SimplifyController(panel: DerivationPanel) extends Publisher {
         res.onComplete {
           case Success(b) =>
             processReporting.finish()
-          case Failure(SimprocHalted()) =>
+          case Failure(SimprocHaltedWhileRunning()) =>
             processReporting.halt()
           case Failure(e) =>
             e.printStackTrace()
         }
       }
     case HaltSimproc() =>
-      UserAlerts.alert("Simprocs halted")
       simpId += 1
     case RefreshSimprocs() =>
       refreshSimprocs()
