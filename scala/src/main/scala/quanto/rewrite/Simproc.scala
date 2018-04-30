@@ -4,6 +4,7 @@ import quanto.cosy.{AutoReduce, RuleSynthesis}
 import quanto.data.Derivation.DerivationWithHead
 import quanto.data._
 import quanto.layout.ForceLayout
+import quanto.util.UserAlerts
 
 import scala.util.Random
 
@@ -85,6 +86,13 @@ object Simproc {
         seed,
         vertexLimit)
       fromDerivationWithHead(reduced)
+    }
+  }
+
+  def LOG(graphEval: Graph => String) = new Simproc {
+    override def simp(g: Graph): Iterator[(Graph, Rule)] = {
+      UserAlerts.alert(graphEval(g), UserAlerts.Elevation.NOTICE)
+      Iterator.empty
     }
   }
 

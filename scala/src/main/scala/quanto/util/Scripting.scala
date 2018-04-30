@@ -11,7 +11,6 @@ import quanto.util.json._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import UserAlerts.{Elevation, alert}
 // object providing functions specifically for python scripting
 
 object Scripting {
@@ -195,6 +194,13 @@ object Scripting {
   }
 
   def ANNEAL(r: PyList, steps: Int, dilation: Double) = Simproc.ANNEAL(pyListToList[Rule](r), steps, dilation)
+
+  def LOG(graphEval: PyFunction) = Simproc.LOG(
+    g => {
+      val pyReturn = graphEval.__call__(Py.java2py(g))
+      if (pyReturn.isInstanceOf[PyString]) pyReturn.toString else ""
+    }
+  )
 
   def REWRITE_TARGET_LIST(rule: Rule, v: String, tlist: PyList) = Simproc.REWRITE_TARGET_LIST(rule, VName(v), pyListToList(tlist))
 
