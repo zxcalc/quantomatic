@@ -472,19 +472,19 @@ case class Graph(
 
   def updateBBData(bbn: BBName)(f: BBData => BBData): Graph = copy(bbdata = bbdata + (bbn -> f(bbdata(bbn))))
 
-  def rename(vrn: Map[VName, VName], ern: Map[EName, EName], brn: Map[BBName, BBName]): Graph = {
+  def rename(vrn: Map[VName, VName] = Map(), ern: Map[EName, EName] = Map(), brn: Map[BBName, BBName] = Map()): Graph = {
     // compute inverses
     //    val vrni = vrn.foldLeft(Map[VName,VName]()) { case (mp, (k,v)) => mp + (v -> k) }
     //    val erni = ern.foldLeft(Map[EName,EName]()) { case (mp, (k,v)) => mp + (v -> k) }
     //    val brni = brn.foldLeft(Map[BBName,BBName]()) { case (mp, (k,v)) => mp + (v -> k) }
 
-    val vdata1 = vdata.foldLeft(Map[VName, VData]()) { case (mp, (k, v)) => mp + (vrn(k) -> v) }
-    val edata1 = edata.foldLeft(Map[EName, EData]()) { case (mp, (k, v)) => mp + (ern(k) -> v) }
-    val bbdata1 = bbdata.foldLeft(Map[BBName, BBData]()) { case (mp, (k, v)) => mp + (brn(k) -> v) }
-    val source1 = source.foldLeft(PFun[EName, VName]()) { case (mp, (k, v)) => mp + (ern(k) -> vrn(v)) }
-    val target1 = target.foldLeft(PFun[EName, VName]()) { case (mp, (k, v)) => mp + (ern(k) -> vrn(v)) }
-    val inBBox1 = inBBox.foldLeft(BinRel[VName, BBName]()) { case (mp, (k, v)) => mp + (vrn(k) -> brn(v)) }
-    val bboxParent1 = bboxParent.foldLeft(PFun[BBName, BBName]()) { case (mp, (k, v)) => mp + (brn(k) -> brn(v)) }
+    val vdata1 = vdata.foldLeft(Map[VName, VData]()) { case (mp, (k, v)) => mp + (vrn.getOrElse(k, k) -> v) }
+    val edata1 = edata.foldLeft(Map[EName, EData]()) { case (mp, (k, v)) => mp + (ern.getOrElse(k, k) -> v) }
+    val bbdata1 = bbdata.foldLeft(Map[BBName, BBData]()) { case (mp, (k, v)) => mp + (brn.getOrElse(k, k) -> v) }
+    val source1 = source.foldLeft(PFun[EName, VName]()) { case (mp, (k, v)) => mp + (ern.getOrElse(k, k) -> vrn.getOrElse(v, v)) }
+    val target1 = target.foldLeft(PFun[EName, VName]()) { case (mp, (k, v)) => mp + (ern.getOrElse(k, k) -> vrn.getOrElse(v, v)) }
+    val inBBox1 = inBBox.foldLeft(BinRel[VName, BBName]()) { case (mp, (k, v)) => mp + (vrn.getOrElse(k, k) -> brn.getOrElse(v, v)) }
+    val bboxParent1 = bboxParent.foldLeft(PFun[BBName, BBName]()) { case (mp, (k, v)) => mp + (brn.getOrElse(k, k) -> brn.getOrElse(v, v)) }
 
     copy(vdata = vdata1, edata = edata1, source = source1, target = target1,
       bbdata = bbdata1, inBBox = inBBox1, bboxParent = bboxParent1)
@@ -1040,7 +1040,7 @@ case class Graph(
 
   def bboxesContaining(vn: VName): Set[BBName] = inBBox.domf(vn)
 
-  def toJson(theory: Theory): Json = Graph.toJson(this, theory)
+  def toJson(theory: Theory = Theory.DefaultTheory): Json = Graph.toJson(this, theory)
 
   private def dftSuccessors[T](fromV: VName, exploredV: Set[VName], exploredE: Set[EName])(base: T)
                               (f: (T, EName, GraphSearchContext) => T): (T, Set[VName], Set[EName]) = {

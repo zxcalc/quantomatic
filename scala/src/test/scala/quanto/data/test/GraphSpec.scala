@@ -395,6 +395,12 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     assert(twobb1.inBBox.domf(v1) === bs)
   }
 
+  it should "rename correctly" in {
+    var renamed = twobb.addEdge(twobb.edges.fresh, UndirEdge(), "v0" -> "v0").rename(Map("v0" -> "v1"))
+    assert(renamed.verts.contains("v1"))
+    assert(renamed.inBBox.domf("v1").nonEmpty)
+  }
+
   behavior of "A graph with angles"
 
   it should "return the free variables" in {
