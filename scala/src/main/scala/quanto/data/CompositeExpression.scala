@@ -78,6 +78,15 @@ case class CompositeExpression(valueTypes: Vector[ValueType], values: Vector[Pha
     }
   }
 
+  def first[T <: PhaseExpression](valueType: ValueType): Option[T] = {
+    try {
+      Some(this.firstOrError(valueType))
+    }
+    catch {
+      case _: Throwable => None
+    }
+  }
+
   def substSubValues(mp: Map[String, PhaseExpression]): CompositeExpression =
     mp.foldLeft(this) { case (e, (v, e1)) => e.substSubValue(v, e1) }
 
