@@ -401,6 +401,12 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     assert(renamed.inBBox.domf("v1").nonEmpty)
   }
 
+  it should "add correctly" in {
+    var added = twobb.appendGraph(twobb.renameAvoiding(twobb))
+    assert(added.verts.size == 2)
+    println(added)
+  }
+
   behavior of "A graph with angles"
 
   it should "return the free variables" in {

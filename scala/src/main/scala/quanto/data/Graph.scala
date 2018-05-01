@@ -578,15 +578,17 @@ case class Graph(
   def bboxes: Set[BBName] = bbdata.keySet
 
   // append the given graph. note that its names should already be fresh
-  def appendGraph(g: Graph): Graph = {
+  def appendGraph(g: Graph, noOverlap : Boolean = true): Graph = {
     val coords = verts.map(vdata(_).coord)
 
     // Pick any vertex in g and offset until that vertex is not sitting exactly
     // on top of another.
     var offset = 0.0
-    g.verts.headOption.foreach { v1 =>
-      val (x, y) = g.vdata(v1).coord
-      while (coords.contains((x + offset, y))) offset += 1.0
+    if(noOverlap) {
+      g.verts.headOption.foreach { v1 =>
+        val (x, y) = g.vdata(v1).coord
+        while (coords.contains((x + offset, y))) offset += 1.0
+      }
     }
 
     val g1 = g.verts.foldLeft(g) { (g1, v) =>
