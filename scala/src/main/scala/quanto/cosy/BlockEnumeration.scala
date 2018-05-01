@@ -98,11 +98,18 @@ object BlockRow {
   }
 }
 
-case class BlockStack(rows: List[BlockRow], suggestedGraph : Option[Graph] = None) extends Ordered[BlockStack] {
+case class BlockStack(rows: List[BlockRow],
+                      suggestedTensor : Option[Tensor] = None,
+                      suggestedGraph : Option[Graph] = None) extends Ordered[BlockStack] {
+
+
   lazy val tensor: Tensor = if (rows.isEmpty) {
     Tensor.id(1)
   } else {
-    rows.foldRight(Tensor.id(rows.last.tensor.width))((a, b) => a.tensor o b)
+    suggestedTensor match {
+      case Some(t) => t
+      case None => rows.foldRight(Tensor.id(rows.last.tensor.width))((a, b) => a.tensor o b)
+    }
   }
   lazy val toJson = JsonObject(
     "rows" -> JsonArray(rows.map(b => b.toJson)),
@@ -130,14 +137,19 @@ case class BlockStack(rows: List[BlockRow], suggestedGraph : Option[Graph] = Non
 
   }
 
-  //left-most row is on top!
+  // newly added row is on top!
+  // And our graphs go bottom to top
+  // Forces computation of tensor and graph (as that's what this is designed for)
   def append(row: BlockRow) : BlockStack = {
-    if(rows.nonEmpty){
+    val newTensor  = if(rows.nonEmpty){
       require(rows.head.outputs == row.inputs)
+      row.tensor o tensor
+    } else{
+      row.tensor
     }
     val newRows = row :: rows
     val newGraph = BlockStack.joinRowsInStack(BlockStack.graphStackUnjoined(graph, row.graph, rows.length))
-    new BlockStack(newRows, Some(newGraph))
+    new BlockStack(newRows, Some(newTensor), Some(newGraph))
   }
 
 }

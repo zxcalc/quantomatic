@@ -216,10 +216,11 @@ class BlockEnumerationSpec extends FlatSpec {
     var row3 = new BlockRow(List(ZXClifford(0), ZXClifford(3)))
     var b1 = BlockStack(List(row, row2, row3))
     var b2 = BlockStack(List(row2, row3)).append(row)
-    List(b1,b2).foreach(b => FileHelper.printJson("./blockstacks/" + b.graph.hashCode + ".qgraph",Graph.toJson(b.graph)))
+    var b3 = BlockStack(List()).append(row3).append(row2).append(row)
     var g1 = b1.graph
     var g2 = b2.graph
     assert(b1.tensor == b2.tensor)
+    assert(b1.tensor == b3.tensor)
     assert(g1.edges.size == g2.edges.size)
     assert(g1.verts.toList.sorted == g2.verts.toList.sorted)
 
