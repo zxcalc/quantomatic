@@ -1,5 +1,7 @@
 package quanto.cosy
 
+import quanto.cosy.BlockRowMaker.QuickGraph
+import quanto.data.Names._
 import quanto.data.{VName, _}
 import quanto.util.json._
 
@@ -10,12 +12,13 @@ class BlockEnumeration {
 
 }
 
-case class Block(inputs: List[Int], outputs: List[Int], name: String, tensor: Tensor) {
+case class Block(inputs: List[Int], outputs: List[Int], name: String, tensor: Tensor, graph: Graph = new Graph()) {
   lazy val toJson = JsonObject(
     "inputs" -> inputs,
     "outputs" -> outputs,
     "name" -> name,
-    "tensor" -> tensor.toJson
+    "tensor" -> tensor.toJson,
+    "graph" -> graph.toJson()
   )
 
   override def toString: String = this.name
@@ -26,11 +29,15 @@ object Block {
     new Block((js / "inputs").asArray.map(x => x.intValue).toList,
       (js / "outputs").asArray.map(x => x.intValue).toList,
       (js / "name").stringValue,
-      Tensor.fromJson((js / "tensor").asObject))
+      Tensor.fromJson((js / "tensor").asObject),
+      Graph.fromJson((js / "graph").asObject))
   }
 }
 
-case class BlockRow(blocks: List[Block], suggestTensor: Option[Tensor] = None) {
+
+case class BlockRow(blocks: List[Block], suggestTensor: Option[Tensor] = None, suggestGraph : Option[Graph] = None) {
+
+
   implicit def optionTensor(t: Tensor): Option[Tensor] = {
     Option(t)
   }
@@ -40,6 +47,13 @@ case class BlockRow(blocks: List[Block], suggestTensor: Option[Tensor] = None) {
   lazy val tensor: Tensor = suggestTensor match {
     case Some(t) => t
     case None => blocks.foldLeft(Tensor.id(1))((a, b) => a x b.tensor)
+  }
+
+  lazy val graph: Graph = suggestGraph match {
+    case Some(g) => g
+    case None => blocks.foldLeft(new Graph()) { (g, b) =>
+      BlockRow.graphsSideBySide(g, b.graph)
+    }
   }
 
   lazy val toJson = JsonObject(
@@ -56,9 +70,35 @@ object BlockRow {
   def fromJson(js: JsonObject): BlockRow = {
     new BlockRow((js / "blocks").asArray.map(j => Block.fromJson(j.asObject)).toList)
   }
+
+
+
+  def graphsSideBySide(fixed: Graph, added: Graph): Graph = {
+
+
+    val startingInputs = fixed.verts.filter(vn => vn.prefix == "i-")
+    val startingOutputs = fixed.verts.filter(vn => vn.prefix == "o-")
+    val shift = math.max(startingInputs.size, startingOutputs.size)
+
+    val aShifted: Graph = added.verts.foldLeft(added)((g, vn) =>  g.updateVData(vn)(vd => {
+      val currentCoord = added.vdata(vn).coord
+      added.vdata(vn).withCoord(currentCoord._1 + shift, currentCoord._2)
+    }
+    ))
+
+    val renameMap = aShifted.verts.flatMap(vn => (vn.prefix, vn.suffix) match {
+      case ("i-", n) => Some(vn -> VName("i-" + (n+startingInputs.size)))
+      case ("o-", n) => Some(vn -> VName("o-" + (n+startingOutputs.size)))
+      case (a, b) => Some(vn -> VName("bl-"+shift + "-" + a + b ))
+      case _ => None
+    }).toMap
+
+    val aShiftedRename = aShifted.rename(vrn = renameMap, ern = Map(), brn = Map())
+    fixed.appendGraph(aShiftedRename.renameAvoiding(fixed), false)
+  }
 }
 
-case class BlockStack(rows: List[BlockRow]) extends Ordered[BlockStack] {
+case class BlockStack(rows: List[BlockRow], suggestedGraph : Option[Graph] = None) extends Ordered[BlockStack] {
   lazy val tensor: Tensor = if (rows.isEmpty) {
     Tensor.id(1)
   } else {
@@ -79,11 +119,60 @@ case class BlockStack(rows: List[BlockRow]) extends Ordered[BlockStack] {
     this.rows.length - that.asInstanceOf[BlockStack].rows.length
   }
 
+
+    //left-most row is on top!
+  lazy val graph : Graph = {
+    suggestedGraph match {
+      case Some(g) => g
+      case None => BlockStack.joinRowsInStack(
+        rows.reverse.zipWithIndex.foldRight(new Graph())((ri, g) => BlockStack.graphStackUnjoined(g, ri._1.graph, ri._2)))
+    }
+
+  }
+
+  //left-most row is on top!
+  def append(row: BlockRow) : BlockStack = {
+    if(rows.nonEmpty){
+      require(rows.head.outputs == row.inputs)
+    }
+    val newRows = row :: rows
+    val newGraph = BlockStack.joinRowsInStack(BlockStack.graphStackUnjoined(graph, row.graph, rows.length))
+    new BlockStack(newRows, Some(newGraph))
+  }
+
 }
 
 object BlockStack {
   def fromJson(js: JsonObject): BlockStack = {
     new BlockStack((js / "rows").asArray.map(j => BlockRow.fromJson(j.asObject)).toList)
+  }
+
+
+  def joinRowsInStack(graph: Graph) : Graph = {
+    var g = QuickGraph(graph)
+    val InputPattern = raw"r-(\d+)-i-(\d+)".r
+    g.verts.foreach(vName => vName.s match {
+      case InputPattern(n, m) =>
+        // For 0.toString is coming out as "" not "0", but this shouldn't affect us
+        if (g.verts.contains(s"r-${Integer.parseInt(n)-1}-o-$m")) {
+        g = g.joinIfNotAlready(s"r-${Integer.parseInt(n)-1}-o-$m", s"r-$n-i-$m")
+      }
+      case _ => g
+    }
+    )
+    g
+  }
+
+  def graphStackUnjoined(fixed : Graph, adding: Graph, depth : Int): Graph = {
+    val renameMap = adding.verts.map(vn =>  vn -> VName(s"r-$depth-${vn.s}")).toMap
+    val aRenamed = adding.rename(vrn = renameMap, ern = Map(), brn = Map())
+    val aRenamedShifted = aRenamed.verts.foldLeft(aRenamed)((g, vn) => g.updateVData(vn)(vd => {
+      val currentCoord = aRenamed.vdata(vn).coord
+      aRenamed.vdata(vn).withCoord(currentCoord._1, currentCoord._2 + depth)
+    }
+    ))
+
+  fixed.appendGraph(aRenamedShifted.renameAvoiding(fixed), noOverlap = false)
   }
 }
 
@@ -97,13 +186,79 @@ object BlockRowMaker {
     }
   }
 
+
+  class QuickGraph(graph: Graph) {
+    val _g : Graph = graph
+    def node(nodeType: String, angle: String = "", xCoord : Double = 0, nodeName : String = "v-0") : QuickGraph = {
+      val name = _g.verts.freshWithSuggestion(VName(nodeName))
+      val data = NodeV(data = JsonObject("type" -> nodeType, "value" -> angle)).withCoord((xCoord, 0))
+      QuickGraph(_g.addVertex(name, data))
+    }
+    def addInput(count : Int = 1) : QuickGraph = {
+      count match {
+        case 0 => this
+        case 1 =>
+          val name = _g.verts.freshWithSuggestion(VName("i-0"))
+          val data = WireV().withCoord(name.suffix,-0.5)
+          QuickGraph(_g.addVertex(name, data))
+        case n =>
+          val name = _g.verts.freshWithSuggestion(VName("i-0"))
+          val data = WireV().withCoord(name.suffix,-0.5)
+          QuickGraph(_g.addVertex(name, data)).addInput(count -1)
+      }
+    }
+    def addOutput(count: Int = 1) : QuickGraph = {
+      count match {
+        case 0 => this
+        case 1 =>
+          val name = _g.verts.freshWithSuggestion(VName("o-0"))
+          val data = WireV().withCoord(name.suffix,0.5)
+          QuickGraph(_g.addVertex(name, data))
+        case n =>
+          val name = _g.verts.freshWithSuggestion(VName("o-0"))
+          val data = WireV().withCoord(name.suffix,0.5)
+          QuickGraph(_g.addVertex(name, data)).addOutput(count -1)
+      }
+    }
+
+    def join(s1 : String, s2: String) : QuickGraph = {
+      val name = _g.edges.freshWithSuggestion("e-0")
+      val data = UndirEdge()
+      val v1 = VName(s1)
+      val v2 = VName(s2)
+      QuickGraph(_g.addEdge(name, data, v1 -> v2))
+    }
+
+    def joinIfNotAlready(s1: String, s2: String) : QuickGraph = {
+      val isJoined = _g.adjacentVerts(s1).contains(s2)
+      if(!isJoined){
+        this.join(s1, s2)
+      }else{
+        this
+      }
+    }
+
+    def apply() : Graph = _g
+  }
+
+  object QuickGraph {
+    def apply(graph: Graph = new Graph()) = new QuickGraph(graph)
+
+    implicit def slow(qg: QuickGraph) : Graph = qg()
+  }
+
+
   val ZXClifford: List[Block] = List(
-    Block(1, 1, " 1 ", Tensor.idWires(1)),
-    Block(2, 2, " s ", Tensor.swap(List(1, 0))),
-    Block(1, 1, " H ", Hadamard(2)),
-    //Block(1, 1, "gp2", Tensor(Array(Array[Complex](1, 0), Array[Complex](0, Complex(0, 1))))),
-    Block(2, 2, "CNT", Tensor(Array(Array(1, 0, 0, 0), Array(0, 1, 0, 0), Array(0, 0, 0, 1), Array(0, 0, 1, 0)))) //,
-    //Block(2, 2, "GRN", Tensor(Array(Array(1, 0, 0, 0), Array(0, 0, 0, 0), Array(0, 0, 0, 0), Array(0, 0, 0, 1))))
+    Block(1, 1, " 1 ", Tensor.idWires(1), QuickGraph().addInput().addOutput().join("i-0", "o-0")),
+    Block(2, 2, " s ", Tensor.swap(List(1, 0)),
+      QuickGraph().addInput(2).addOutput(2).join("i-0", "o-1").join("i-1", "o-0")),
+    Block(1, 1, " H ", Hadamard(2), QuickGraph().addInput().addOutput()
+      .node("hadamard", nodeName = "h").join("i-0", "h").join("h", "o-0")),
+    Block(2, 2, "CNT", Tensor(Array(Array(1, 0, 0, 0), Array(0, 1, 0, 0), Array(0, 0, 0, 1), Array(0, 0, 1, 0))),
+      QuickGraph().addInput(2).addOutput(2).node("Z", nodeName = "z").node("X", xCoord = 1, nodeName = "x")
+        .join("i-0", "z").join("i-1", "x")
+        .join("o-0", "z").join("o-1", "x")
+        .join("z", "x"))
   )
 
   val BellTeleportation: List[Block] = List(
@@ -353,7 +508,7 @@ object BlockRowMaker {
     var eCount = 0
 
     def join(v0: String, v1: String): Unit = {
-      g = g.addEdge("e" + eCount, UndirEdge(), v0 -> v1)
+      g = g.addEdge(g.edges.fresh, UndirEdge(), vnamepair(v0,v1))
       eCount += 1
     }
 

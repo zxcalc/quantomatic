@@ -2,12 +2,15 @@ package quanto.cosy.test
 
 import quanto.cosy._
 import org.scalatest.FlatSpec
-import quanto.data.Rule
+import quanto.data.{Graph, GraphTikz, Rule}
 import quanto.rewrite.Matcher
+import quanto.cosy.BlockRowMaker._
+import quanto.util.FileHelper
 
 /**
   * Created by hector on 28/06/17.
   */
+
 
 class BlockEnumerationSpec extends FlatSpec {
 
@@ -66,7 +69,7 @@ class BlockEnumerationSpec extends FlatSpec {
 
   it should "find wire identities" in {
     var rowsAllowed = BlockRowMaker(1, allowedBlocks = List(
-      Block(1, 1, " 1 ", Tensor.idWires(1)),
+      Block(1, 1, " 1 ", Tensor.idWires(1), new Graph()),
       Block(1, 1, " w ", new Tensor(Array(Array[Complex](1, 0), Array[Complex](0, -1)))),
       Block(1, 1, " b ", new Tensor(Array(Array[Complex](0, 1), Array[Complex](1, 0))))
     ))
@@ -183,4 +186,49 @@ class BlockEnumerationSpec extends FlatSpec {
     tp.foreach(x => println("---- \n " + x.toString + "\n" + x.tensor))
     assert(tp.nonEmpty)
   }
+
+  behavior of "graph generation"
+
+  it should "make a pair horizontally" in {
+    var row = new BlockRow(List(ZXClifford(0), ZXClifford(1)))
+    var g = row.graph
+    assert(g.verts.size == 6)
+  }
+
+  it should "make a pair vertically" in {
+    var row = new BlockRow(List(ZXClifford(0)))
+    var g = BlockStack(List(row, row)).graph
+    assert(g.verts.size == 4)
+    assert(g.edges.size == 3)
+    assert(g.minimise.edges.size == 1)
+  }
+
+  it should "make a 2x2" in {
+    var row = new BlockRow(List(ZXClifford(3), ZXClifford(1)))
+    var row2 = new BlockRow(List(ZXClifford(1), ZXClifford(3)))
+    var g = BlockStack(List(row, row2)).graph
+    assert(g.verts.size == 20)
+  }
+
+  it should "cache rows" in {
+    var row = new BlockRow(List(ZXClifford(0), ZXClifford(1)))
+    var row2 = new BlockRow(List(ZXClifford(3), ZXClifford(0)))
+    var row3 = new BlockRow(List(ZXClifford(0), ZXClifford(3)))
+    var b1 = BlockStack(List(row, row2, row3))
+    var b2 = BlockStack(List(row2, row3)).append(row)
+    List(b1,b2).foreach(b => FileHelper.printJson("./blockstacks/" + b.graph.hashCode + ".qgraph",Graph.toJson(b.graph)))
+    var g1 = b1.graph
+    var g2 = b2.graph
+    assert(b1.tensor == b2.tensor)
+    assert(g1.edges.size == g2.edges.size)
+    assert(g1.verts.toList.sorted == g2.verts.toList.sorted)
+
+  }
+
+  /*
+  it should "make lots of graphs" in {
+    val bs = BlockStackMaker(2, BlockRowMaker.makeRowsOfSize(2,allowedBlocks = ZXClifford, maxInOut = Some(3)))
+    bs.foreach(b => FileHelper.printJson("./blockstacks/" + b.graph.hashCode + ".qgraph",Graph.toJson(b.graph)))
+  }
+  */
 }
