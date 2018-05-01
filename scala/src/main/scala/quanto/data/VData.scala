@@ -71,7 +71,7 @@ case class NodeV(
   // if the theory says this node should have a value, try to parse it,
   // and store it in "phaseData". If it should have a value, but parsing fails, set
   // it to empty.
-  val (phaseData: CompositeExpression, hasValue: Boolean) =
+  lazy val (phaseData: CompositeExpression, hasValue: Boolean) =
   try {
     val phaseTypes = theory.vertexTypes(typ).value.typ
     val phaseValues = CompositeExpression.parseKnowingTypes(value, phaseTypes)
