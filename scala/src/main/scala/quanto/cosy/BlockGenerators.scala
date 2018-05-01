@@ -20,7 +20,7 @@ object BlockGenerators {
     val _g : Graph = graph
     def node(nodeType: String, angle: String = "", xCoord : Double = 0, nodeName : String = "v-0") : QuickGraph = {
       val name = _g.verts.freshWithSuggestion(VName(nodeName))
-      val data = NodeV(data = JsonObject("type" -> nodeType, "value" -> angle)).withCoord((xCoord, 0))
+      val data = NodeV(data = JsonObject("type" -> nodeType, "value" -> angle), theory = _g.data.theory).withCoord((xCoord, 0))
       QuickGraph(_g.addVertex(name, data))
     }
     def addInput(count : Int = 1) : QuickGraph = {
