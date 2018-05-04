@@ -32,7 +32,7 @@ abstract class CoSyRun[S, T](
 
   def makeTensor(gen: S): T
 
-  val matchBorders : Regex= "".r
+  val matchBorders : Regex
 
   def graphLeftBiggerRight(left: Graph, right: Graph): Boolean
 
@@ -74,13 +74,7 @@ abstract class CoSyRun[S, T](
 
             val boundaryData = NodeV()
 
-            def makeSolidBoundaries(graph: Graph) : Graph = {
-              graph.verts.foldLeft(graph){ (g, vn) =>
-                g.updateVData(vn){
-                  vd => vd.
-                }
-              }
-            }
+            
 
             // check that it isn't a duplicate of that graph
             val constrainedMatches =
@@ -173,6 +167,7 @@ object CoSyRuns {
         currentStack.append(unusedRows.next())
       }
     }
+    override val matchBorders: Regex = "(i|o)-".r
     val blocks: List[Block] = BlockGenerators.ZXClifford
     val rows: List[BlockRow] = BlockRowMaker.makeRowsOfSize(numBoundaries, blocks, Some(numBoundaries))
     var unusedRows: Iterator[BlockRow] = rows.toIterator
@@ -302,6 +297,8 @@ object CoSyRuns {
     } else {
       a.isRoughly(b)
     }
+
+    override val matchBorders: Regex = "b-".r
 
     private implicit def stringToPhase(s: String): PhaseExpression = {
       PhaseExpression.parse(s, ValueType.AngleExpr)
