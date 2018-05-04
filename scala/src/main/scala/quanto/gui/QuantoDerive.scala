@@ -1153,6 +1153,7 @@ object QuantoDerive extends SimpleSwingApplication {
               GraphMenu.visible = true
               GraphMenu.SnapToGrid.enabled = true
               GraphMenu.MinimiseGraph.enabled = true
+              GraphMenu.ExtractGraph.enabled = true
             case panel: DerivationPanel =>
               ExportMenu.ExportAction.enabled = true
               histView = Some(panel.histView)
