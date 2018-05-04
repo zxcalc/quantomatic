@@ -5,7 +5,7 @@ import java.util.Calendar
 
 import quanto.data.Theory.ValueType
 import quanto.data._
-import quanto.rewrite.Matcher
+import quanto.rewrite.{Match, Matcher}
 import quanto.util.FileHelper._
 import quanto.util.json.JsonObject
 import quanto.util.{FileHelper, Rational}
@@ -32,7 +32,7 @@ abstract class CoSyRun[S, T](
 
   def makeTensor(gen: S): T
 
-  val matchBorders : Regex
+  val matchBorders : Option[Regex]
 
   def graphLeftBiggerRight(left: Graph, right: Graph): Boolean
 
@@ -68,21 +68,34 @@ abstract class CoSyRun[S, T](
             // Something with that tensor exists
             val existing : Graph = equivClasses(similar)
 
-            def borderNodes(g: Graph) : Set[VName] = g.verts.filter(vn => matchBorders.findFirstMatchIn(vn.s).nonEmpty)
+            def borderNodes(g: Graph) : Set[VName] = g.verts.filter(vn => matchBorders.get.findFirstMatchIn(vn.s).nonEmpty)
 
             val overlappingNodes = borderNodes(graph).intersect(borderNodes(existing))
 
-            val boundaryData = NodeV()
+            val boundaryData = NodeV(JsonObject(
+              "type" -> "dummyBoundary",
+              "value" -> ""
+            ),
+              JsonObject(),
+              theory)
 
-            
+            val constrainedMatches = if (matchBorders.nonEmpty) {
+              def makeSolidBoundaries(graph: Graph): Graph = {
+                graph.verts.filter(vn => matchBorders.get.findFirstIn(vn.s).nonEmpty).
+                  foldLeft(graph) { (g, vn) =>
+                    g.updateVData(vn) { _ => boundaryData }
+                  }
+              }
 
-            // check that it isn't a duplicate of that graph
-            val constrainedMatches =
-              Matcher.findMatches(graph, existing).filter(
+              // check that it isn't a duplicate of that graph
+              Matcher.findMatches(makeSolidBoundaries(graph), makeSolidBoundaries(existing)).filter(
                 m => overlappingNodes.forall(
                   vn => m.map.v.dom.toList.contains(vn) && m.map.v.domf(vn).contains(vn)
                 )
               )
+            } else {
+              Stream[Match]()
+            }
             if (constrainedMatches.isEmpty){
               createRule(graph, existing)
             }else{
@@ -167,7 +180,7 @@ object CoSyRuns {
         currentStack.append(unusedRows.next())
       }
     }
-    override val matchBorders: Regex = "(i|o)-".r
+    override val matchBorders = Some("(i|o)-".r)
     val blocks: List[Block] = BlockGenerators.ZXClifford
     val rows: List[BlockRow] = BlockRowMaker.makeRowsOfSize(numBoundaries, blocks, Some(numBoundaries))
     var unusedRows: Iterator[BlockRow] = rows.toIterator
@@ -185,7 +198,7 @@ object CoSyRuns {
 
       def phase(vdata: VData): PhaseExpression =
         vdata match {
-          case NodeV(d, a, t) => vdata.asInstanceOf[NodeV].phaseData.first(ValueType.AngleExpr) match {
+          case NodeV(d, a, t) => vdata.asInstanceOf[NodeV].phaseData.first[PhaseExpression](ValueType.AngleExpr) match {
             case Some(p) => p
             case None => PhaseExpression.zero(ValueType.AngleExpr)
           }
@@ -204,7 +217,7 @@ object CoSyRuns {
         return false
       }
 
-      // Number of ndoes
+      // Number of nodes
       def nodes(graph: Graph): Int = graph.vdata.size
 
       val nodeDiff = nodes(left) - nodes(right)
@@ -298,7 +311,7 @@ object CoSyRuns {
       a.isRoughly(b)
     }
 
-    override val matchBorders: Regex = "b-".r
+    override val matchBorders = None
 
     private implicit def stringToPhase(s: String): PhaseExpression = {
       PhaseExpression.parse(s, ValueType.AngleExpr)
