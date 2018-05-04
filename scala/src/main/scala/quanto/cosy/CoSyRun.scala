@@ -1,17 +1,14 @@
 package quanto.cosy
 
 import java.io.File
-import java.nio.file.Path
 import java.util.Calendar
-import java.util.concurrent.TimeUnit
 
-import quanto.cosy.Interpreter.ZXAngleData
 import quanto.data.Theory.ValueType
-import quanto.util.FileHelper._
 import quanto.data._
-import quanto.rewrite.{Matcher, Rewriter}
-import quanto.util.{FileHelper, Rational}
+import quanto.rewrite.Matcher
+import quanto.util.FileHelper._
 import quanto.util.json.JsonObject
+import quanto.util.{FileHelper, Rational}
 
 import scala.concurrent.duration.Duration
 
@@ -40,6 +37,8 @@ abstract class CoSyRun[S, T](
 
   def makeString(a: S, b: T): String
 
+  def doWithUnmatched(a: S) : Unit
+
   def begin(): Unit = {
     def now(): Long = Calendar.getInstance().getTimeInMillis
 
@@ -56,6 +55,7 @@ abstract class CoSyRun[S, T](
       }
 
       if (!matchesReductionRule) {
+        doWithUnmatched(next)
         val interpretation = makeTensor(next)
         // Need to check rough equivalence
         val similarTensors = equivClasses.keys.filter(t => compareTensor(t, interpretation))
@@ -65,8 +65,9 @@ abstract class CoSyRun[S, T](
             // Something with that tensor exists
             val existing = equivClasses(similar)
             createRule(graph, existing)
-            if (graphLeftBiggerRight(existing, graph))
+            if (graphLeftBiggerRight(existing, graph)) {
               equivClasses = equivClasses + (interpretation -> graph) // update with smaller graph
+            }
           }
         } else {
           equivClasses = equivClasses + (interpretation -> graph)
@@ -132,30 +133,41 @@ object CoSyRuns {
       override def hasNext: Boolean = true
 
       override def next(): BlockStack = {
-        if (!unnusedRows.hasNext) {
-          if (!unnusedStacks.hasNext) {
-            unnusedStacks = nextRoundOfStacks.toIterator
+        if (!unusedRows.hasNext) {
+          if (!unusedStacks.hasNext) {
+            unusedStacks = nextRoundOfStacks.toIterator
             nextRoundOfStacks = List()
           }
-          unnusedRows = rows.toIterator
-          currentStack = unnusedStacks.next()
+          unusedRows = rows.toIterator
+          currentStack = unusedStacks.next()
         }
-        BlockStack(unnusedRows.next() :: currentStack.rows)
+        currentStack.append(unusedRows.next())
       }
     }
-    val blocks: List[Block] = BlockRowMaker.StandardCircuit()
+    val blocks: List[Block] = BlockGenerators.ZXClifford
     val rows: List[BlockRow] = BlockRowMaker.makeRowsOfSize(numBoundaries, blocks, Some(numBoundaries))
-    var unnusedRows: Iterator[BlockRow] = rows.toIterator
-    var unnusedStacks: Iterator[BlockStack] = rows.map(r => BlockStack(List(r))).toIterator
+    var unusedRows: Iterator[BlockRow] = rows.toIterator
+    var unusedStacks: Iterator[BlockStack] = rows.map(r => BlockStack(List(r))).toIterator
     var nextRoundOfStacks: List[BlockStack] = List()
-    var currentStack: BlockStack = unnusedStacks.next()
+    var currentStack: BlockStack = unusedStacks.next()
+
+    override def doWithUnmatched(a: BlockStack): Unit = {
+      nextRoundOfStacks = a :: nextRoundOfStacks
+    }
 
     override def compareTensor(a: Tensor, b: Tensor): Boolean = a.isRoughlyUpToScalar(b)
 
     override def graphLeftBiggerRight(left: Graph, right: Graph): Boolean = {
 
       def phase(vdata: VData): PhaseExpression =
-        vdata.asInstanceOf[NodeV].phaseData.firstOrError(ValueType.AngleExpr)
+        vdata match {
+          case NodeV(d, a, t) => vdata.asInstanceOf[NodeV].phaseData.first(ValueType.AngleExpr) match {
+            case Some(p) => p
+            case None => PhaseExpression.zero(ValueType.AngleExpr)
+          }
+          case _ => PhaseExpression.zero(ValueType.AngleExpr)
+        }
+
 
       // Number of T-gates
       def countT(graph: Graph): Int = graph.vdata.count(nd => phase(nd._2).constant == Rational(1, 4))
@@ -223,7 +235,13 @@ object CoSyRuns {
     override def makeString(a: BlockStack, b: Tensor): String = s"$a: ${b.toJson},"
 
     override def makeGraph(gen: BlockStack): Graph = {
-      new Graph()
+      val g = gen.graph.minimise
+      val IOPattern = raw"r-\d+-(i|o)-(\d+)".r
+      val renameMap : Map[VName, VName] = g.verts.map(vn => vn -> (vn.s match {
+        case IOPattern(io, n) => VName(io + "-" + n)
+        case _ => vn
+      })).toMap
+      g.rename(renameMap)
     }
 
   }
@@ -233,15 +251,16 @@ object CoSyRuns {
                duration: Duration,
                outputDir: File,
                numAngles: Int,
-               numBoundaries: Int,
+               numBoundaries: List[Int],
                numVertices: Int,
                scalars: Boolean
               ) extends CoSyRun[AdjMat, Tensor](rulesDir, theory, duration, outputDir, makeValuesFile = true) {
 
 
     override val Generator: Iterator[AdjMat] =
-      ColbournReadEnum.enumerate(1, 1, numBoundaries, 0).iterator ++
-        ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries, numVertices).iterator
+      (ColbournReadEnum.enumerate(1, 1, numBoundaries.max, 0).iterator ++
+        ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries.max, numVertices).iterator).
+        filter(a => numBoundaries.contains(a.numBoundaries))
     private val gdata = (for (i <- 0 until numAngles) yield {
       NodeV(data = JsonObject("type" -> "Z", "value" -> angleMap(i).toString), theory = theory)
     }).toVector
@@ -259,6 +278,9 @@ object CoSyRuns {
       PhaseExpression.parse(s, ValueType.AngleExpr)
     }
 
+    override def doWithUnmatched(a: AdjMat): Unit = {
+      // Don't need to do anything, since Colbourn-Read handles generating adj-mats
+    }
 
     override def makeTensor(gen: AdjMat): Tensor = Interpreter.interpretZXGraph(makeGraph(gen))
 
