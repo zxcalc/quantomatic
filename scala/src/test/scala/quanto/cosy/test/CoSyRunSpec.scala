@@ -138,6 +138,38 @@ class CoSyRunSpec extends FlatSpec {
                                    |                "type": "hadamard",
                                    |                "value": ""
                                    |            }
+                                   |        },
+                                   |        "dummyBoundary": {
+                                   |            "value": {
+                                   |                "type": "empty",
+                                   |                "latex_constants": true,
+                                   |                "validate_with_core": false
+                                   |            },
+                                   |            "style": {
+                                   |                "label": {
+                                   |                    "position": "center",
+                                   |                    "fg_color": [
+                                   |                        0.0,
+                                   |                        0.0,
+                                   |                        0.0
+                                   |                    ]
+                                   |                },
+                                   |                "stroke_color": [
+                                   |                    0.0,
+                                   |                    0.0,
+                                   |                    0.0
+                                   |                ],
+                                   |                "fill_color": [
+                                   |                    0.0,
+                                   |                    1.0,
+                                   |                    1.0
+                                   |                ],
+                                   |                "shape": "rectangle"
+                                   |            },
+                                   |            "default_data": {
+                                   |                "type": "dummyBoundary",
+                                   |                "value": ""
+                                   |            }
                                    |        }
                                    |    },
                                    |    "default_vertex_type": "Z",
@@ -172,7 +204,7 @@ class CoSyRunSpec extends FlatSpec {
                                    |    }
                                    |}
     """.stripMargin)
-    var CR = new CoSyRuns.CoSyCircuit(duration = Duration(10,"seconds"), numBoundaries = 1, outputDir = new File("./cosyrun"),
+    var CR = new CoSyRuns.CoSyCircuit(duration = Duration(10,"minutes"), numBoundaries = 2, outputDir = new File("./cosyrun/"),
       rulesDir = new File(""), theory = theory)
    //CR.begin()
     assert(1 == 1)
