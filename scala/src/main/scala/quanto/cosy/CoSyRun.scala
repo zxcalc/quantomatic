@@ -32,7 +32,7 @@ abstract class CoSyRun[S, T](
 
   def makeTensor(gen: S): T
 
-  val matchBorders : Option[Regex]
+  val matchBorders: Option[Regex]
 
   def graphLeftBiggerRight(left: Graph, right: Graph): Boolean
 
@@ -40,7 +40,7 @@ abstract class CoSyRun[S, T](
 
   def makeString(a: S, b: T): String
 
-  def doWithUnmatched(a: S) : Unit
+  def doWithUnmatched(a: S): Unit
 
   def begin(): Unit = {
     def now(): Long = Calendar.getInstance().getTimeInMillis
@@ -66,20 +66,21 @@ abstract class CoSyRun[S, T](
         if (similarTensors.nonEmpty) {
           for (similar <- similarTensors) {
             // Something with that tensor exists
-            val existing : Graph = equivClasses(similar)
-
-            def borderNodes(g: Graph) : Set[VName] = g.verts.filter(vn => matchBorders.get.findFirstMatchIn(vn.s).nonEmpty)
-
-            val overlappingNodes = borderNodes(graph).intersect(borderNodes(existing))
-
-            val boundaryData = NodeV(JsonObject(
-              "type" -> "dummyBoundary",
-              "value" -> ""
-            ),
-              JsonObject(),
-              theory)
+            val existing: Graph = equivClasses(similar)
 
             val constrainedMatches = if (matchBorders.nonEmpty) {
+
+              def borderNodes(g: Graph): Set[VName] = g.verts.filter(vn => matchBorders.get.findFirstMatchIn(vn.s).nonEmpty)
+
+              val overlappingNodes = borderNodes(graph).intersect(borderNodes(existing))
+
+              val boundaryData = NodeV(JsonObject(
+                "type" -> "dummyBoundary",
+                "value" -> ""
+              ),
+                JsonObject(),
+                theory)
+
               def makeSolidBoundaries(graph: Graph): Graph = {
                 graph.verts.filter(vn => matchBorders.get.findFirstIn(vn.s).nonEmpty).
                   foldLeft(graph) { (g, vn) =>
@@ -96,9 +97,9 @@ abstract class CoSyRun[S, T](
             } else {
               Stream[Match]()
             }
-            if (constrainedMatches.isEmpty){
+            if (constrainedMatches.isEmpty) {
               createRule(graph, existing)
-            }else{
+            } else {
               // Don't create a rule between isomorphic (constrained) graphs
             }
             if (graphLeftBiggerRight(existing, graph)) {
@@ -206,6 +207,21 @@ object CoSyRuns {
         }
 
 
+      // position
+
+      val positionPattern: Regex = raw"r-(\d+)-bl-(\d+)-\w+-\d+".r
+
+      def weightByName(vName: VName): Int = {
+        def int(string: String): Int = string.toInt
+
+        vName.s match {
+          case positionPattern(a, b, c, d) => (113 * int(a)) + (11 * int(b))
+          case _ => 0
+        }
+      }
+
+
+
       // Number of T-gates
       def countT(graph: Graph): Int = graph.vdata.count(nd => phase(nd._2).constant == Rational(1, 4))
 
@@ -274,7 +290,7 @@ object CoSyRuns {
     override def makeGraph(gen: BlockStack): Graph = {
       val g = gen.graph.minimise
       val IOPattern = raw"r-\d+-(i|o)-(\d+)".r
-      val renameMap : Map[VName, VName] = g.verts.map(vn => vn -> (vn.s match {
+      val renameMap: Map[VName, VName] = g.verts.map(vn => vn -> (vn.s match {
         case IOPattern(io, n) => VName(io + "-" + n)
         case _ => vn
       })).toMap
