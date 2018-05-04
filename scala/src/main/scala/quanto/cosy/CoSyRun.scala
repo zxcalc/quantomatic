@@ -11,6 +11,7 @@ import quanto.util.json.JsonObject
 import quanto.util.{FileHelper, Rational}
 
 import scala.concurrent.duration.Duration
+import scala.util.matching.Regex
 
 /**
   * This class performs the actual batch conjecture synthesis
@@ -30,6 +31,8 @@ abstract class CoSyRun[S, T](
   def makeGraph(gen: S): Graph
 
   def makeTensor(gen: S): T
+
+  val matchBorders : Regex= "".r
 
   def graphLeftBiggerRight(left: Graph, right: Graph): Boolean
 
@@ -63,8 +66,34 @@ abstract class CoSyRun[S, T](
         if (similarTensors.nonEmpty) {
           for (similar <- similarTensors) {
             // Something with that tensor exists
-            val existing = equivClasses(similar)
-            createRule(graph, existing)
+            val existing : Graph = equivClasses(similar)
+
+            def borderNodes(g: Graph) : Set[VName] = g.verts.filter(vn => matchBorders.findFirstMatchIn(vn.s).nonEmpty)
+
+            val overlappingNodes = borderNodes(graph).intersect(borderNodes(existing))
+
+            val boundaryData = NodeV()
+
+            def makeSolidBoundaries(graph: Graph) : Graph = {
+              graph.verts.foldLeft(graph){ (g, vn) =>
+                g.updateVData(vn){
+                  vd => vd.
+                }
+              }
+            }
+
+            // check that it isn't a duplicate of that graph
+            val constrainedMatches =
+              Matcher.findMatches(graph, existing).filter(
+                m => overlappingNodes.forall(
+                  vn => m.map.v.dom.toList.contains(vn) && m.map.v.domf(vn).contains(vn)
+                )
+              )
+            if (constrainedMatches.isEmpty){
+              createRule(graph, existing)
+            }else{
+              // Don't create a rule between isomorphic (constrained) graphs
+            }
             if (graphLeftBiggerRight(existing, graph)) {
               equivClasses = equivClasses + (interpretation -> graph) // update with smaller graph
             }
