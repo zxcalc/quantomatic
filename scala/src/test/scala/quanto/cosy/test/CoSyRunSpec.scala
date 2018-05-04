@@ -134,7 +134,7 @@ class CoSyRunSpec extends FlatSpec {
                                    |                ],
                                    |                "shape": "rectangle"
                                    |            },
-                                   |            "default_data": {inbox
+                                   |            "default_data": {
                                    |                "type": "hadamard",
                                    |                "value": ""
                                    |            }
@@ -172,7 +172,7 @@ class CoSyRunSpec extends FlatSpec {
                                    |    }
                                    |}
     """.stripMargin)
-    var CR = new CoSyRuns.CoSyCircuit(duration = Duration(10,"seconds"), numBoundaries = 1, outputDir = new File("/home/hector/code/scratch/"),
+    var CR = new CoSyRuns.CoSyCircuit(duration = Duration(10,"seconds"), numBoundaries = 1, outputDir = new File("./cosyrun"),
       rulesDir = new File(""), theory = theory)
    //CR.begin()
     assert(1 == 1)
