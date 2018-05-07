@@ -14,6 +14,7 @@ import java.awt.event.{KeyEvent, MouseAdapter, MouseEvent}
 import quanto.util.json.{Json, JsonString}
 import quanto.data._
 import java.io.{File, FilenameFilter, IOException, PrintWriter}
+
 import javax.swing.plaf.metal.MetalLookAndFeel
 import java.util.prefs.Preferences
 
@@ -28,8 +29,9 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
 import java.awt.{Color, Desktop, Window}
-import javax.swing.filechooser.FileNameExtensionFilter
+import java.lang.NullPointerException
 
+import javax.swing.filechooser.FileNameExtensionFilter
 import quanto.gui.QuantoDerive.FileMenu.mnemonic
 import quanto.util._
 
@@ -127,8 +129,7 @@ object QuantoDerive extends SimpleSwingApplication {
         unloadProject()
         None
     } finally {
-
-      FileMenu.updateNewEnabled()
+      refreshAllMenus()
     }
   }
 
@@ -466,20 +467,6 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
-    def updateNewEnabled() {
-      CurrentProject match {
-        case Some(_) =>
-          NewGraphAction.enabled = true
-          NewAxiomAction.enabled = true
-          //NewMLAction.enabled = true
-        case None =>
-          NewGraphAction.enabled = false
-          NewAxiomAction.enabled = false
-          //NewMLAction.enabled = false
-      }
-    }
-
-    updateNewEnabled()
 
     val SaveAction = new Action("Save") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_S, CommandMask))
@@ -554,7 +541,7 @@ object QuantoDerive extends SimpleSwingApplication {
                 Project.toJson(proj).writeTo(projectFile)
                 loadProject(projectFile.getAbsolutePath)
                 //core ! SetMLWorkingDir(rootFolder)
-                updateNewEnabled()
+                refreshAllMenus()
               }
             case None =>
           }
@@ -583,7 +570,7 @@ object QuantoDerive extends SimpleSwingApplication {
                     error("Unexpected error when opening project")
                     e.printStackTrace()
                 } finally {
-                  updateNewEnabled()
+                  refreshAllMenus()
                 }
               } else {
                 error(s"Folder does not contain a Quantomatic project: $projectFile")
@@ -600,7 +587,7 @@ object QuantoDerive extends SimpleSwingApplication {
         if (closeAllOrListOfDocuments()) {
           ProjectFileTree.root = None
           CurrentProject = None
-          updateNewEnabled()
+          refreshAllMenus()
         }
       }
     }
@@ -1093,10 +1080,29 @@ object QuantoDerive extends SimpleSwingApplication {
       }
 
     case SelectionChanged(_) =>
+      refreshAllMenus()
+  }
+
+//  val versionResp = core ? Call("!!", "system", "version")
+//  versionResp.onSuccess { case Success(JsonString(version)) =>
+//    Swing.onEDT { CoreStatus.text = "OK"; CoreStatus.foreground = new Color(0,150,0) }
+//  }
+
+  private def refreshAllMenus() = {
+    try {
       FileMenu.SaveAction.enabled = false
       FileMenu.SaveAsAction.enabled = false
       FileMenu.SaveAllAction.enabled = false
+      CurrentProject match {
+        case Some(_) =>
+          FileMenu.NewGraphAction.enabled = true
+          FileMenu.NewAxiomAction.enabled = true
+        case None =>
+          FileMenu.NewGraphAction.enabled = false
+          FileMenu.NewAxiomAction.enabled = false
+      }
       TheoryMenu.visible = true
+      TheoryMenu.enabled = CurrentProject.nonEmpty
       TheoryMenu.EditTheoryAction.enabled = CurrentProject.nonEmpty
       TheoryMenu.BatchDerivationAction.enabled = CurrentProject.nonEmpty
       EditMenu.CutAction.enabled = false
@@ -1167,12 +1173,11 @@ object QuantoDerive extends SimpleSwingApplication {
 
         case _ => // leave everything disabled
       }
+    } catch {
+      case _: NullPointerException =>
+      // Null Pointer Exception thrown when accessing GUI too early
+    }
   }
-
-//  val versionResp = core ? Call("!!", "system", "version")
-//  versionResp.onSuccess { case Success(JsonString(version)) =>
-//    Swing.onEDT { CoreStatus.text = "OK"; CoreStatus.foreground = new Color(0,150,0) }
-//  }
 
   // The highest level GUI contents
   val Main = new BorderPanel {
@@ -1215,4 +1220,5 @@ object QuantoDerive extends SimpleSwingApplication {
   }
 
   def top = _mainframe
+  refreshAllMenus()
 }
