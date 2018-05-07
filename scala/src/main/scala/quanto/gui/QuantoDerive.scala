@@ -127,6 +127,7 @@ object QuantoDerive extends SimpleSwingApplication {
         unloadProject()
         None
     } finally {
+
       FileMenu.updateNewEnabled()
     }
   }
@@ -736,7 +737,7 @@ object QuantoDerive extends SimpleSwingApplication {
     visible = false
   }
 
-  val ProjectMenu = new Menu("Project") {
+  val TheoryMenu = new Menu("Theory") {
     menu =>
 
     mnemonic = Key.P
@@ -1095,9 +1096,9 @@ object QuantoDerive extends SimpleSwingApplication {
       FileMenu.SaveAction.enabled = false
       FileMenu.SaveAsAction.enabled = false
       FileMenu.SaveAllAction.enabled = false
-      ProjectMenu.visible = true
-      ProjectMenu.EditTheoryAction.enabled = CurrentProject.nonEmpty
-      ProjectMenu.BatchDerivationAction.enabled = CurrentProject.nonEmpty
+      TheoryMenu.visible = true
+      TheoryMenu.EditTheoryAction.enabled = CurrentProject.nonEmpty
+      TheoryMenu.BatchDerivationAction.enabled = CurrentProject.nonEmpty
       EditMenu.CutAction.enabled = false
       EditMenu.CopyAction.enabled = false
       EditMenu.PasteAction.enabled = false
@@ -1202,7 +1203,7 @@ object QuantoDerive extends SimpleSwingApplication {
 
 
     menuBar = new MenuBar {
-      contents += (FileMenu, ProjectMenu, EditMenu, DeriveMenu, RuleMenu, GraphMenu, WindowMenu, ExportMenu, HelpMenu)
+      contents += (FileMenu, TheoryMenu, EditMenu, DeriveMenu, RuleMenu, GraphMenu, WindowMenu, ExportMenu, HelpMenu)
     }
 
     import javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE
