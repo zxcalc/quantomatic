@@ -82,7 +82,11 @@ class BatchDerivationResultsPanel()
     LabelNumSimprocs.text = numSimprocs.toString
     LabelSimprocsUsed.text = simprocsUsed.getOrElse(List()).mkString("\n")
     LabelNumPairs.text = numPairs.toString
-    LabelNumGraphs.text = (numPairs / numSimprocs).toString
+    LabelNumGraphs.text = (numPairs, numSimprocs) match {
+      case (0, _) => "0"
+      case (n, 0) => n.toString
+      case (a,b) => (a/b).toString
+    }
     LabelTimeTaken.text = if (timeTaken.nonEmpty) {
       timeTaken.get.toString
     } else {

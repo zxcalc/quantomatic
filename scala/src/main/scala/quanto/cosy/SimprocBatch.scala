@@ -106,6 +106,8 @@ object SimprocBatchResult {
 // Then pulls loaded simprocs etc. from the project
 case class SimprocBatch(selectedSimprocs: List[String], selectedGraphs: List[Graph], notes: String) {
   def run(): Unit = {
+    alert(s"Beginning simproc batch run on ${selectedGraphs.length} graphs, " +
+      s"with simprocs\n${selectedSimprocs.mkString("\n")}")
 
     val simprocGraphPairs = for (simprocName <- selectedSimprocs; graph <- selectedGraphs) yield (simprocName, graph)
     val listFutureResults = simprocGraphPairs.map(sg => {
@@ -173,7 +175,9 @@ object SimprocBatch extends Publisher {
   listenTo(this)
   reactions += {
     case SimprocBatchRunComplete(result) =>
-      val fileName = UserOptions.preferredDateTimeFormat.format(Calendar.getInstance().getTime) + ".qsbr"
+      alert("Simproc Batch completed")
+      val fileName = UserOptions.preferredDateTimeFormat.format(Calendar.getInstance().getTime)
+      .replace(":","-").replace(".","--") + ".qsbr"
       val projectRoot = QuantoDerive.CurrentProject.map(p => p.rootFolder + "/").getOrElse("")
       FileHelper.printJson(projectRoot + "batch_results/" + fileName, result.toJson)
   }
