@@ -61,15 +61,27 @@ object RuleSynthesis {
   }
 
   def minimiseRuleset(rules: List[Rule], theory: Theory, seed: Random = new Random()): List[Rule] = {
-    rules.map(rule => minimiseRuleInPresenceOf(rule, rules.filter(otherRule => otherRule != rule)))
+    val reduced = rules.map(rule => minimiseRuleInPresenceOf(rule, rules.filter(otherRule => otherRule != rule)))
+    val reducedLessTautologies = removeTautologies(reduced.map(_._1))
+    if (reducedLessTautologies.size < reduced.size || reduced.exists(_._2)) {
+      minimiseRuleset(reducedLessTautologies, theory)
+    } else {
+      reducedLessTautologies
+    }
   }
 
-  def minimiseRuleInPresenceOf(rule: Rule, otherRules: List[Rule], seed: Random = new Random()): Rule = {
+  def minimiseRuleInPresenceOf(rule: Rule, otherRules: List[Rule], seed: Random = new Random()): (Rule, Boolean) = {
     val minLhs: Graph = AutoReduce.genericReduce(graphToDerivation(rule.lhs), otherRules, seed)
     val minRhs: Graph = AutoReduce.genericReduce(graphToDerivation(rule.rhs), otherRules, seed)
     val wasItReduced = (minLhs < rule.lhs) || (minRhs < rule.rhs)
-    new Rule(minLhs, minRhs, description = RuleDesc(
-      rule.name + (if (wasItReduced) " reduced" else "")))
+    (new Rule(minLhs, minRhs, description = RuleDesc(
+      rule.name + (if (wasItReduced) " reduced" else ""))), wasItReduced)
+  }
+
+  def removeTautologies(rules: List[Rule]) : List[Rule] = {
+    rules.filter(r => {
+      Matcher.findMatches(r.lhs, r.rhs).isEmpty && Matcher.findMatches(r.lhs, r.rhs).isEmpty
+    })
   }
 }
 
@@ -123,7 +135,7 @@ object AutoReduce {
                       rules: List[Rule],
                       seed: Random = new Random(),
                       vertexLimit: Option[Int] = None): DerivationWithHead = {
-    val maxTime = math.pow(derivationHeadPair.verts.size, 2).toInt // Set as squaring #vertices for now
+    val maxTime = 100 + math.pow(derivationHeadPair.verts.size, 2).toInt // Set as squaring #vertices for now
     val timeDilation = 3 // Gives an e^-3 ~ 0.05% chance of a non-reduction rule on the final step
     annealingReduce(derivationHeadPair, rules, maxTime, timeDilation, seed, vertexLimit)
   }

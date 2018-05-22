@@ -7,10 +7,12 @@ import quanto.cosy._
 import scala.concurrent.duration.Duration
 import java.io.File
 
-import quanto.data.{Graph, Project, Theory, WireV}
+import quanto.data._
 import quanto.rewrite.Matcher
 import quanto.util.FileHelper
 import quanto.util.json.Json
+
+import scala.util.Random
 
 /**
   * Created by hector on 24/05/17.
@@ -20,19 +22,22 @@ class CoSyRunSpec extends FlatSpec {
   behavior of "ZX"
 
   it should "do a small run" in {
+    var theory = Theory.fromFile("red_green")
     var CR = new CoSyRuns.CoSyZX(duration = Duration.Inf,
-      numBoundaries = List(2,4),
+      numBoundaries = List(0, 1, 2, 3),
       outputDir = None,
-      scalars = false,
+      scalars = true,
       numVertices = 2,
-      rulesDir = new File(""), theory = Theory.fromFile("red_green"),
+      rulesDir = new File(""), theory = theory,
       numAngles = 2)
     // Don't test this here
     // It isn't a standard feature
     // And pollutes the filesystem
     // Ask hmillerbakewell@gmail.com for more information
-    CR.begin()
+    //CR.begin()
     assert(1 == 1)
+    //var reduced = RuleSynthesis.minimiseRuleset(CR.reductionRules, theory, new Random(1))
+    //reduced.foreach(r => FileHelper.printJson(s"./cosy/${r.lhs.hashCode}-${r.rhs.hashCode}.qrule", Rule.toJson(r, theory)))
   }
 
   behavior of "ZX Circuit"
