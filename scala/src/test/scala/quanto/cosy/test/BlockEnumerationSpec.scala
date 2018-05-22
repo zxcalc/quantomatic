@@ -206,16 +206,16 @@ class BlockEnumerationSpec extends FlatSpec {
   }
 
   it should "make a 2x2" in {
-    var row = new BlockRow(List(ZXClifford(3), ZXClifford(1)))
-    var row2 = new BlockRow(List(ZXClifford(1), ZXClifford(3)))
+    var row = new BlockRow(List(ZXClifford(5), ZXClifford(1)))
+    var row2 = new BlockRow(List(ZXClifford(1), ZXClifford(5)))
     var g = BlockStack(List(row, row2)).graph
     assert(g.verts.size == 20)
   }
 
   it should "cache rows" in {
     var row = new BlockRow(List(ZXClifford(0), ZXClifford(1)))
-    var row2 = new BlockRow(List(ZXClifford(3), ZXClifford(0)))
-    var row3 = new BlockRow(List(ZXClifford(0), ZXClifford(3)))
+    var row2 = new BlockRow(List(ZXClifford(5), ZXClifford(0)))
+    var row3 = new BlockRow(List(ZXClifford(0), ZXClifford(5)))
     var b1 = BlockStack(List(row, row2, row3))
     var b2 = BlockStack(List(row2, row3)).append(row)
     var b3 = BlockStack(List()).append(row3).append(row2).append(row)

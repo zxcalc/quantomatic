@@ -88,6 +88,22 @@ object BlockGenerators {
       QuickGraph(ZX).addInput(2).addOutput(2).join("i-0", "o-1").join("i-1", "o-0")),
     Block(1, 1, " H ", Hadamard(2), QuickGraph(ZX).addInput().addOutput()
       .node("hadamard", nodeName = "h").join("i-0", "h").join("h", "o-0")),
+    Block(1, 1, "gpi", Tensor(Array(Array(1, 0), Array(0, -1))), QuickGraph(ZX).addInput().addOutput()
+      .node("Z", nodeName = "zpi", angle = raw"\pi").join("i-0", "zpi").join("zpi", "o-0")),
+    Block(1, 1, "rpi", Tensor(Array(Array(0, 1), Array(1, 0))), QuickGraph(ZX).addInput().addOutput()
+      .node("X", nodeName = "xpi", angle = raw"\pi").join("i-0", "xpi").join("xpi", "o-0")),
+    Block(2, 2, "CNT", Tensor(Array(Array(1, 0, 0, 0), Array(0, 1, 0, 0), Array(0, 0, 0, 1), Array(0, 0, 1, 0))),
+      QuickGraph(ZX).addInput(2).addOutput(2).node("Z", nodeName = "z").node("X", xCoord = 1, nodeName = "x")
+        .join("i-0", "z").join("i-1", "x")
+        .join("o-0", "z").join("o-1", "x")
+        .join("z", "x"))
+  )
+
+
+  val ZXCNOT: List[Block] = List(
+    Block(1, 1, " 1 ", Tensor.idWires(1), QuickGraph(ZX).addInput().addOutput().join("i-0", "o-0")),
+    Block(2, 2, " s ", Tensor.swap(List(1, 0)),
+      QuickGraph(ZX).addInput(2).addOutput(2).join("i-0", "o-1").join("i-1", "o-0")),
     Block(2, 2, "CNT", Tensor(Array(Array(1, 0, 0, 0), Array(0, 1, 0, 0), Array(0, 0, 0, 1), Array(0, 0, 1, 0))),
       QuickGraph(ZX).addInput(2).addOutput(2).node("Z", nodeName = "z").node("X", xCoord = 1, nodeName = "x")
         .join("i-0", "z").join("i-1", "x")

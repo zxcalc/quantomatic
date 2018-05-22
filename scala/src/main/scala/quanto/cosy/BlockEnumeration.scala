@@ -35,7 +35,7 @@ object Block {
 }
 
 
-case class BlockRow(blocks: List[Block], suggestTensor: Option[Tensor] = None, suggestGraph : Option[Graph] = None) {
+case class BlockRow(blocks: List[Block], suggestTensor: Option[Tensor] = None, suggestGraph: Option[Graph] = None) {
 
 
   implicit def optionTensor(t: Tensor): Option[Tensor] = {
@@ -72,7 +72,6 @@ object BlockRow {
   }
 
 
-
   def graphsSideBySide(fixed: Graph, added: Graph): Graph = {
 
 
@@ -80,16 +79,16 @@ object BlockRow {
     val startingOutputs = fixed.verts.filter(vn => vn.prefix == "o-")
     val shift = math.max(startingInputs.size, startingOutputs.size)
 
-    val aShifted: Graph = added.verts.foldLeft(added)((g, vn) =>  g.updateVData(vn)(vd => {
+    val aShifted: Graph = added.verts.foldLeft(added)((g, vn) => g.updateVData(vn)(vd => {
       val currentCoord = added.vdata(vn).coord
       added.vdata(vn).withCoord(currentCoord._1 + shift, currentCoord._2)
     }
     ))
 
     val renameMap = aShifted.verts.flatMap(vn => (vn.prefix, vn.suffix) match {
-      case ("i-", n) => Some(vn -> VName("i-" + (n+startingInputs.size)))
-      case ("o-", n) => Some(vn -> VName("o-" + (n+startingOutputs.size)))
-      case (a, b) => Some(vn -> VName("bl-"+shift + "-" + a + b ))
+      case ("i-", n) => Some(vn -> VName("i-" + (n + startingInputs.size)))
+      case ("o-", n) => Some(vn -> VName("o-" + (n + startingOutputs.size)))
+      case (a, b) => Some(vn -> VName("bl-" + shift + "-" + a + b))
       case _ => None
     }).toMap
 
@@ -99,8 +98,8 @@ object BlockRow {
 }
 
 case class BlockStack(rows: List[BlockRow],
-                      suggestedTensor : Option[Tensor] = None,
-                      suggestedGraph : Option[Graph] = None) extends Ordered[BlockStack] {
+                      suggestedTensor: Option[Tensor] = None,
+                      suggestedGraph: Option[Graph] = None) extends Ordered[BlockStack] {
 
 
   lazy val tensor: Tensor = if (rows.isEmpty) {
@@ -127,8 +126,8 @@ case class BlockStack(rows: List[BlockRow],
   }
 
 
-    //left-most row is on top!
-  lazy val graph : Graph = {
+  //left-most row is on top!
+  lazy val graph: Graph = {
     suggestedGraph match {
       case Some(g) => g
       case None => BlockStack.joinRowsInStack(
@@ -140,12 +139,12 @@ case class BlockStack(rows: List[BlockRow],
   // newly added row is on top!
   // And our graphs go bottom to top
   // Forces computation of tensor and graph (as that's what this is designed for)
-  def append(row: BlockRow) : BlockStack = {
+  def append(row: BlockRow): BlockStack = {
     //TODO: Make this parallel?
-    val newTensor  = if(rows.nonEmpty){
+    val newTensor = if (rows.nonEmpty) {
       require(rows.head.outputs == row.inputs)
       row.tensor o tensor
-    } else{
+    } else {
       row.tensor
     }
     val newRows = row :: rows
@@ -161,23 +160,23 @@ object BlockStack {
   }
 
 
-  def joinRowsInStack(graph: Graph) : Graph = {
+  def joinRowsInStack(graph: Graph): Graph = {
     var g = QuickGraph(graph)
     val InputPattern = raw"r-(\d+)-i-(\d+)".r
     g.verts.foreach(vName => vName.s match {
       case InputPattern(n, m) =>
         // For 0.toString is coming out as "" not "0", but this shouldn't affect us
-        if (g.verts.contains(s"r-${Integer.parseInt(n)-1}-o-$m")) {
-        g = g.joinIfNotAlready(s"r-${Integer.parseInt(n)-1}-o-$m", s"r-$n-i-$m")
-      }
+        if (g.verts.contains(s"r-${Integer.parseInt(n) - 1}-o-$m")) {
+          g = g.joinIfNotAlready(s"r-${Integer.parseInt(n) - 1}-o-$m", s"r-$n-i-$m")
+        }
       case _ => g
     }
     )
     g
   }
 
-  def graphStackUnjoined(fixed : Graph, adding: Graph, depth : Int): Graph = {
-    val renameMap = adding.verts.map(vn =>  vn -> VName(s"r-$depth-${vn.s}")).toMap
+  def graphStackUnjoined(fixed: Graph, adding: Graph, depth: Int): Graph = {
+    val renameMap = adding.verts.map(vn => vn -> VName(s"r-$depth-${vn.s}")).toMap
     val aRenamed = adding.rename(vrn = renameMap, ern = Map(), brn = Map())
     val aRenamedShifted = aRenamed.verts.foldLeft(aRenamed)((g, vn) => g.updateVData(vn)(vd => {
       val currentCoord = aRenamed.vdata(vn).coord
@@ -185,7 +184,7 @@ object BlockStack {
     }
     ))
 
-  fixed.appendGraph(aRenamedShifted.renameAvoiding(fixed), noOverlap = false)
+    fixed.appendGraph(aRenamedShifted.renameAvoiding(fixed), noOverlap = false)
   }
 }
 
@@ -236,19 +235,21 @@ object BlockRowMaker {
 
   def apply(maxBlocks: Int, allowedBlocks: List[Block], maxInOut: Option[Int] = None): List[BlockRow] = {
     require(maxBlocks >= 0)
-    (for (i <- 0 to maxBlocks) yield {
-      makeRowsOfSize(i, allowedBlocks, maxInOut)
-    }).flatten.toList
+    makeRowsUpToSize(maxBlocks, allowedBlocks, maxInOut)
   }
 
-  def makeRowsOfSize(size: Int,
-                     allowedBlocks: List[Block],
-                     maxInOut: Option[Int] = None): List[BlockRow] = {
+  def makeRowsUpToSize(size: Int,
+                       allowedBlocks: List[Block],
+                       maxInOut: Option[Int] = None): List[BlockRow] = {
     val maybeTooLargeRows: List[BlockRow] = size match {
       case 0 => List[BlockRow]()
       case 1 => allowedBlocks.map(b => new BlockRow(List(b)))
-      case n => for (base <- makeRowsOfSize(n - 1, allowedBlocks, maxInOut); block <- allowedBlocks) yield {
-        new BlockRow(block :: base.blocks)
+      case n => {
+        val fewerBlocks = makeRowsUpToSize(n - 1, allowedBlocks, maxInOut)
+
+        (for (base <- fewerBlocks; block <- allowedBlocks) yield {
+          new BlockRow(block :: base.blocks)
+        }) ::: fewerBlocks
       }
     }
     maxInOut match {

@@ -205,8 +205,8 @@ class CoSyRunSpec extends FlatSpec {
                                    |}
     """.stripMargin)
     var CR = new CoSyRuns.CoSyCircuit(duration = Duration(10,"minutes"), numBoundaries = 2, outputDir = new File("./cosyrun/"),
-      rulesDir = new File(""), theory = theory)
-   //CR.begin()
+      rulesDir = new File("./cosyrun/"), theory = theory)
+   //var rules = CR.begin()
     assert(1 == 1)
   }
 

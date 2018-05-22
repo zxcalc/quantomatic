@@ -42,7 +42,7 @@ abstract class CoSyRun[S, T](
 
   def doWithUnmatched(a: S): Unit
 
-  def begin(): Unit = {
+  def begin(): List[Rule] = {
     def now(): Long = Calendar.getInstance().getTimeInMillis
 
     val timeStart = now()
@@ -50,15 +50,17 @@ abstract class CoSyRun[S, T](
       // Get a graph
       val next: S = Generator.next()
       val graph = makeGraph(next)
+
       var matchesReductionRule: Boolean = false
-      for (rule <- reductionRules) {
-        if (Matcher.findMatches(rule.lhs, graph).nonEmpty) {
+      // want it to stop at the first match it finds
+      reductionRules.foreach(rule =>
+        if (!matchesReductionRule &&
+          Matcher.findMatches(rule.lhs, graph).nonEmpty) {
           matchesReductionRule = true
         }
-      }
+      )
 
       if (!matchesReductionRule) {
-        doWithUnmatched(next)
         val interpretation = makeTensor(next)
         // Need to check rough equivalence
         val similarTensors = equivClasses.keys.filter(t => compareTensor(t, interpretation))
@@ -68,12 +70,16 @@ abstract class CoSyRun[S, T](
             // Something with that tensor exists
             val existing: Graph = equivClasses(similar)
 
+
+            // Check whether graphs are isomorphic, after constraining their boundaries
             val constrainedMatches = if (matchBorders.nonEmpty) {
 
-              def borderNodes(g: Graph): Set[VName] = g.verts.filter(vn => matchBorders.get.findFirstMatchIn(vn.s).nonEmpty)
+              def borderNodes(g: Graph): Set[VName] = g.verts.filter(vn => vn.s.matches(matchBorders.get.regex))
 
               val overlappingNodes = borderNodes(graph).intersect(borderNodes(existing))
 
+              // TODO:
+              // This is a hack, because it requires the theory to have "dummyBoundary" nodes
               val boundaryData = NodeV(JsonObject(
                 "type" -> "dummyBoundary",
                 "value" -> ""
@@ -97,16 +103,24 @@ abstract class CoSyRun[S, T](
             } else {
               Stream[Match]()
             }
+
+
+
             if (constrainedMatches.isEmpty) {
+              doWithUnmatched(next)
               createRule(graph, existing)
+              // update class with smaller graph
+              if (graphLeftBiggerRight(existing, graph)) {
+                equivClasses = equivClasses + (similar -> graph)
+              }
             } else {
               // Don't create a rule between isomorphic (constrained) graphs
             }
-            if (graphLeftBiggerRight(existing, graph)) {
-              equivClasses = equivClasses + (interpretation -> graph) // update with smaller graph
-            }
+
           }
         } else {
+          // doesn't fit into any existing class
+          doWithUnmatched(next)
           equivClasses = equivClasses + (interpretation -> graph)
           if (makeValuesFile) {
             FileHelper.printToFile(
@@ -119,6 +133,7 @@ abstract class CoSyRun[S, T](
         // Nothing to do, since it can be reduced
       }
     }
+    reductionRules
   }
 
 
@@ -129,7 +144,7 @@ abstract class CoSyRun[S, T](
       (existing, suggested)
     }
     val r = new Rule(lhs, rhs)
-    val name = s"${suggested.hashCode}_${existing.hashCode}.qrule"
+    val name = s"${lhs.hashCode}_${rhs.hashCode}.qrule"
     printJson(outputDir.toURI.resolve("./" + name).getPath, Rule.toJson(r))
     loadRule(r)
     r
@@ -167,7 +182,7 @@ object CoSyRuns {
 
     override val Generator: Iterator[BlockStack] = new Iterator[BlockStack] {
 
-      override def hasNext: Boolean = true
+      override def hasNext: Boolean = unusedStacks.hasNext || unusedRows.hasNext || nextRoundOfStacks.nonEmpty
 
       override def next(): BlockStack = {
         if (!unusedRows.hasNext) {
@@ -181,9 +196,10 @@ object CoSyRuns {
         currentStack.append(unusedRows.next())
       }
     }
-    override val matchBorders = Some("(i|o)-".r)
-    val blocks: List[Block] = BlockGenerators.ZXClifford
-    val rows: List[BlockRow] = BlockRowMaker.makeRowsOfSize(numBoundaries, blocks, Some(numBoundaries))
+    override val matchBorders = Some(raw"""(i|o)-(\d+)""".r)
+    val blocks: List[Block] = BlockGenerators.ZXCNOT
+    val rows: List[BlockRow] = BlockRowMaker.makeRowsUpToSize(numBoundaries, blocks, Some(numBoundaries))
+      .filter(br => br.inputs.size == numBoundaries && br.outputs.size == numBoundaries)
     var unusedRows: Iterator[BlockRow] = rows.toIterator
     var unusedStacks: Iterator[BlockStack] = rows.map(r => BlockStack(List(r))).toIterator
     var nextRoundOfStacks: List[BlockStack] = List()
@@ -205,21 +221,6 @@ object CoSyRuns {
           }
           case _ => PhaseExpression.zero(ValueType.AngleExpr)
         }
-
-
-      // position
-
-      val positionPattern: Regex = raw"r-(\d+)-bl-(\d+)-\w+-\d+".r
-
-      def weightByName(vName: VName): Int = {
-        def int(string: String): Int = string.toInt
-
-        vName.s match {
-          case positionPattern(a, b, c, d) => (113 * int(a)) + (11 * int(b))
-          case _ => 0
-        }
-      }
-
 
 
       // Number of T-gates
@@ -279,6 +280,32 @@ object CoSyRuns {
       if (phaseDiff < 0) {
         return false
       }
+
+      // position
+
+      val positionPattern: Regex = raw"r-(\d+)-bl-(\d+)-\w+-\d+".r
+
+      def weightByName(vName: VName): Int = {
+        def int(string: String): Int = string.toInt
+
+        vName.s match {
+          case positionPattern(a, b) => (113 * int(a)) + (11 * int(b))
+          case _ => 0
+        }
+      }
+
+      def weightByNameOfGraph (graph: Graph) : Int = graph.verts.map(weightByName).sum
+
+
+      val weightDiff = weightByNameOfGraph(left) - weightByNameOfGraph(right)
+      if (weightDiff > 0) {
+        return true
+      }
+      if (weightDiff < 0) {
+        return false
+      }
+
+
 
       false
     }
