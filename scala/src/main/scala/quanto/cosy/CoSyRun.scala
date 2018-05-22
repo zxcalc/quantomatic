@@ -20,8 +20,7 @@ abstract class CoSyRun[S, T](
                               rulesDir: File,
                               theory: Theory,
                               duration: Duration,
-                              outputDir: File,
-                              makeValuesFile: Boolean
+                              outputDir: File
                             ) {
 
   val Generator: Iterator[S]
@@ -105,7 +104,6 @@ abstract class CoSyRun[S, T](
             }
 
 
-
             if (constrainedMatches.isEmpty) {
               doWithUnmatched(next)
               createRule(graph, existing)
@@ -122,12 +120,10 @@ abstract class CoSyRun[S, T](
           // doesn't fit into any existing class
           doWithUnmatched(next)
           equivClasses = equivClasses + (interpretation -> graph)
-          if (makeValuesFile) {
-            FileHelper.printToFile(
-              outputDir.toURI.resolve("./values.txt"),
-              makeString(next, interpretation),
-              append = true)
-          }
+          FileHelper.printToFile(
+            outputDir.toURI.resolve("./values.txt"),
+            makeString(next, interpretation),
+            append = true)
         }
       } else {
         // Nothing to do, since it can be reduced
@@ -178,7 +174,7 @@ object CoSyRuns {
                     duration: Duration,
                     outputDir: File,
                     numBoundaries: Int
-                   ) extends CoSyRun[BlockStack, Tensor](rulesDir, theory, duration, outputDir, makeValuesFile = true) {
+                   ) extends CoSyRun[BlockStack, Tensor](rulesDir, theory, duration, outputDir) {
 
     override val Generator: Iterator[BlockStack] = new Iterator[BlockStack] {
 
@@ -294,7 +290,7 @@ object CoSyRuns {
         }
       }
 
-      def weightByNameOfGraph (graph: Graph) : Int = graph.verts.map(weightByName).sum
+      def weightByNameOfGraph(graph: Graph): Int = graph.verts.map(weightByName).sum
 
 
       val weightDiff = weightByNameOfGraph(left) - weightByNameOfGraph(right)
@@ -304,7 +300,6 @@ object CoSyRuns {
       if (weightDiff < 0) {
         return false
       }
-
 
 
       false
@@ -334,7 +329,7 @@ object CoSyRuns {
                numBoundaries: List[Int],
                numVertices: Int,
                scalars: Boolean
-              ) extends CoSyRun[AdjMat, Tensor](rulesDir, theory, duration, outputDir, makeValuesFile = true) {
+              ) extends CoSyRun[AdjMat, Tensor](rulesDir, theory, duration, outputDir) {
 
 
     override val Generator: Iterator[AdjMat] =
