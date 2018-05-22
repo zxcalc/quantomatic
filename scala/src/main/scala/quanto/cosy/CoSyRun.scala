@@ -363,7 +363,10 @@ object CoSyRuns {
       // Don't need to do anything, since Colbourn-Read handles generating adj-mats
     }
 
-    override def makeTensor(gen: AdjMat): Tensor = Interpreter.interpretZXGraph(makeGraph(gen))
+    override def makeTensor(gen: AdjMat): Tensor = {
+      val asGraph = makeGraph(gen)
+      Interpreter.interpretZXGraph(asGraph, asGraph.verts.filter(asGraph.isTerminalWire).toList.sortBy(_.s))
+    }
 
     override def makeGraph(gen: AdjMat): Graph = Graph.fromAdjMat(gen, rdata, gdata)
 

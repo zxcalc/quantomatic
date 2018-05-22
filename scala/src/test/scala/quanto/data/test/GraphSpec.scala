@@ -503,30 +503,30 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
   }
 
   it should "cut out a lone vertex" in {
-    val (g0,b) = cut_g.
+    val(g0,nb, rb) = cut_g.
       normalise.cutVertex("v0")
-    assert(b.isEmpty)
+    assert(nb.isEmpty)
     assert(g0.nodesThatAreNotWires.size == 2)
     assert(g0.edges.size == 2) //double expected because normalisation
   }
 
   it should "cut out a vertex attached to another vertex" in {
-    val (g0,b) = cut_g.
+    val (g0,nb, rb) = cut_g.
       normalise.addEdge("ee0", DirEdge(), "v0" -> "v1").cutVertex("v0")
-    assert(b.size == 1)
+    assert(nb.size == 1)
     assert(g0.nodesThatAreNotWires.size == 2)
     assert(g0.edges.size == 3) // One going left to boundary, two between v1 and v2
   }
 
 
   it should "cut out a vertex attached to another vertex and a boundary" in {
-    val (g0,b) = cut_g.
+    val (g0,nb, rb) = cut_g.
       normalise.
       addEdge("ee0", DirEdge(), "v0" -> "v1").
       addVertex("b0", WireV()).
       addEdge("ee1", DirEdge(), "b0" -> "v0").
       cutVertex("v0")
-    assert(b.size == 1)
+    assert(nb.size == 1)
     assert(g0.nodesThatAreNotWires.size == 2)
     assert(g0.edges.size == 3) // One going left to boundary, two between v1 and v2
   }

@@ -16,40 +16,43 @@ class InterpreterSpec extends FlatSpec {
 
 
   implicit def vname(str: String): VName = VName(str)
+
   implicit def vname2(strs: (String, String)): (VName, VName) = (vname(strs._1), vname(strs._2))
+
   implicit def ename(str: String): EName = EName(str)
+
   it should "make string graph 1" in {
     var g = new Graph().
-      addVertex(vname("v0"),WireV()).
+      addVertex(vname("v0"), WireV()).
       addVertex(vname("v1"), WireV()).
       addVertex(vname("v2"), WireV()).
       addVertex(vname("v3"), WireV()).
       addEdge("e0", UndirEdge(), "v0" -> "v1").
       addEdge("e1", UndirEdge(), "v2" -> "v3")
-  stringGraph(g, new Tensor(Array(Array[Complex](1,0,0,1))))
+    stringGraph(g, new Tensor(Array(Array[Complex](1, 0, 0, 1))), List("v0", "v1", "v2", "v3"))
   }
 
   it should "make string graph 2" in {
     var g = new Graph().
-      addVertex(vname("v0"),WireV()).
+      addVertex(vname("v0"), WireV()).
       addVertex(vname("v1"), WireV()).
       addVertex(vname("v2"), WireV()).
       addVertex(vname("v3"), WireV()).
       addEdge("e0", UndirEdge(), "v0" -> "v2").
       addEdge("e1", UndirEdge(), "v1" -> "v3")
-    stringGraph(g, new Tensor(Array(Array[Complex](1,0,0,1))))
+    stringGraph(g, new Tensor(Array(Array[Complex](1, 0, 0, 1))), List("v0", "v1", "v2", "v3"))
   }
 
 
   it should "make string graph 3" in {
     var g = new Graph().
-      addVertex(vname("v0"),WireV()).
+      addVertex(vname("v0"), WireV()).
       addVertex(vname("v1"), WireV()).
       addVertex(vname("v2"), WireV()).
       addVertex(vname("v3"), WireV()).
       addEdge("e0", UndirEdge(), "v0" -> "v3").
       addEdge("e1", UndirEdge(), "v1" -> "v2")
-    stringGraph(g, new Tensor(Array(Array[Complex](1,0,0,1))))
+    stringGraph(g, new Tensor(Array(Array[Complex](1, 0, 0, 1))), List("v0", "v1", "v2", "v3"))
   }
 
   behavior of "ZX"
@@ -70,13 +73,14 @@ class InterpreterSpec extends FlatSpec {
   )
   //Change the last number for larger tests
   //Don't include boundaries as the methods can give permutations of each other's answers
-  val smallAdjMats: Stream[AdjMat] = ColbournReadEnum.enumerate(2, 2, 0, 2)
+  val smallAdjMats: Stream[AdjMat] = ColbournReadEnum.enumerate(2, 2, 2, 2)
 
   implicit def quickGraph(amat: AdjMat): Graph = Graph.fromAdjMat(amat, rdata, gdata)
 
   implicit def stringToPhase(s: String): PhaseExpression = {
     PhaseExpression.parse(s, ValueType.AngleExpr)
   }
+
   var one = Complex.one
   var zero = Complex.zero
 
@@ -164,7 +168,12 @@ class InterpreterSpec extends FlatSpec {
     assert(i1.isRoughly(zxSpider(false, "pi", 2, 0)))
   }
 
-  def amatToGraphToZXTensor(adjMat: AdjMat) = Interpreter.interpretZXGraph(adjMat)
+  def amatToGraphToZXTensor(adjMat: AdjMat) = {
+    val asGraph = quickGraph(adjMat)
+    Interpreter.interpretZXGraph(asGraph,
+      asGraph.verts.filter(asGraph.isTerminalWire).toList.sortBy(vn => vn.s))
+  }
+
   it should "process red spider law" in {
     // Simple red and green identities
     var amat = new AdjMat(numRedTypes = 4, numGreenTypes = 4)
@@ -313,6 +322,10 @@ class InterpreterSpec extends FlatSpec {
     var errors: List[AdjMat] = smallAdjMats.filterNot(adj =>
       amatToZXTensor(adj).isRoughly(amatToGraphToZXTensor(adj))).toList
     assert(errors.isEmpty)
+  }
+
+  it should "agree between block stacks and spiders" in {
+    assert(true)
   }
 
 

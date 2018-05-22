@@ -92,7 +92,7 @@ object Interpreter {
 
   def interpretZWAdjMat(adjMat: AdjMat): Tensor = interpretZWAdjMatSpidersFirst(adjMat)
 
-  def interpretZXGraph(graph: Graph): Tensor = {
+  def interpretZXGraph(graph: Graph, boundaryList : List[VName]): Tensor = {
 
     // remove any wire vertices etc
     val minGraph = graph.minimise
@@ -112,10 +112,11 @@ object Interpreter {
     minGraph.vdata.count(nd => !nd._2.isWireVertex) match {
       case 0 =>
         stringGraph(minGraph, interpretZXSpider(
-          ZXAngleData(isGreen = true, PhaseExpression.zero(ValueType.AngleExpr)), 2, 0)
+          ZXAngleData(isGreen = true, PhaseExpression.zero(ValueType.AngleExpr)), 2, 0),
+          boundaryList
         )
       case _ =>
-        pullOutVertexGraph(minGraph, interpretZXGraph, spiderInterpreter)
+        pullOutVertexGraph(minGraph, boundaryList, interpretZXGraph, spiderInterpreter)._1
     }
   }
 
@@ -126,13 +127,13 @@ object Interpreter {
     * @param graph : Graph
     * @return
     */
-  def stringGraph(graph: Graph, cap: Tensor): Tensor = {
+  def stringGraph(graph: Graph, cap: Tensor, boundaries: List[VName]): Tensor = {
     if (graph.verts.size % 2 != 0) {
       throw new Error("String graph should have an even number of boundaries")
     }
     val numVerts = graph.verts.size
     val caps = cap.power(numVerts / 2)
-    val nameVector: Vector[VName] = graph.verts.toVector.sorted
+    val nameVector: Vector[VName] = boundaries.toVector
 
     var claimed: List[VName] = List()
 
@@ -159,40 +160,40 @@ object Interpreter {
   }
 
   private def pullOutVertexGraph(startingGraph: Graph,
-                                 graphInterpreter: Graph => Tensor,
-                                 spiderInterpreter: (NodeV, Int, Int) => Tensor): Tensor = {
+                                 startingBoundaries: List[VName],
+                                 graphInterpreter: (Graph, List[VName]) => Tensor,
+                                 spiderInterpreter: (NodeV, Int, Int) => Tensor): (Tensor, List[VName]) = {
     def ratioDanglingWires(name: VName): Double = {
       // A measure of how many boundary vs non-boundary neighbours the node has
       val numBoundary = startingGraph.adjacentVerts(name).count(vn => startingGraph.isTerminalWire(vn))
       (1 + numBoundary).toDouble / (1 + startingGraph.adjacentVerts(name).size - numBoundary)
     }
 
-    def boundaries(g: Graph): Set[VName] = g.verts.filter(g.isTerminalWire)
+    // def boundaries(g: Graph): Set[VName] = g.verts.filter(g.isTerminalWire)
 
     // Pick a vertex to shift from graph to tensor
     val cutVertex = startingGraph.verts.filterNot(vn => startingGraph.vdata(vn).isWireVertex).maxBy(ratioDanglingWires)
     val numCutSpiderInOuts = startingGraph.adjacentVerts(cutVertex).size
 
     // cut out that vertex, as well as any boundaries it was attached to
-    val (reducedGraph, cutSpiderOutputJoins) = startingGraph.cutVertex(cutVertex)
-    val startingGraphBoundaries = boundaries(startingGraph)
-    val reducedGraphBoundaries = boundaries(reducedGraph)
+    val (reducedGraph, freshMadeBoundaries, removedBoundaries) = startingGraph.cutVertex(cutVertex)
+    val uncutBoundariesVector: Vector[VName] =
+      startingBoundaries.filter(b => !removedBoundaries.contains(b)).toVector
+    val reducedGraphBoundaries = uncutBoundariesVector.toList ++ freshMadeBoundaries.toList
 
     val spiderTensor = spiderInterpreter(
       startingGraph.vdata(cutVertex).asInstanceOf[NodeV],
-      numCutSpiderInOuts - cutSpiderOutputJoins.size,
-      cutSpiderOutputJoins.size)
+      numCutSpiderInOuts - freshMadeBoundaries.size,
+      freshMadeBoundaries.size)
 
-    val reducedGraphBoundariesVector: Vector[VName] = reducedGraphBoundaries.toVector.sorted
-    val uncutBoundariesVector: Vector[VName] = (reducedGraphBoundaries -- cutSpiderOutputJoins).toVector.sorted
-    val allInputsVector: Vector[VName] = startingGraphBoundaries.toVector.sorted
+    val reducedGraphBoundariesVector: Vector[VName] = reducedGraphBoundaries.toVector
 
     val bottomSigma: Tensor = {
       val swapList: List[Int] = {
         var leftCount = 0
-        var rightCount = (reducedGraphBoundaries -- cutSpiderOutputJoins).size
-        allInputsVector.indices.map(i =>
-          if (reducedGraphBoundaries.contains(allInputsVector(i))) {
+        var rightCount = (reducedGraphBoundaries.toSet -- freshMadeBoundaries).size
+        startingBoundaries.indices.map(i =>
+          if (reducedGraphBoundaries.contains(startingBoundaries(i))) {
             leftCount += 1
             leftCount - 1
           } else {
@@ -201,11 +202,11 @@ object Interpreter {
           }
         ).toList
       }
-      Tensor.swap(allInputsVector.size, swapList)
+      Tensor.swap(startingBoundaries.size, swapList)
     }
 
     val topSigma: Tensor = {
-      val inputs: Vector[VName] = uncutBoundariesVector ++ cutSpiderOutputJoins.toVector
+      val inputs: Vector[VName] = uncutBoundariesVector ++ freshMadeBoundaries.toVector
       Tensor.swap(reducedGraphBoundaries.size,
         i => reducedGraphBoundariesVector.indexOf(inputs(i)))
     }
@@ -225,10 +226,10 @@ object Interpreter {
       * And the bottom sigma acts on allInputsVector
       */
 
-    graphInterpreter(reducedGraph) o
+    (graphInterpreter(reducedGraph, reducedGraphBoundaries) o
       topSigma o
       (Tensor.idWires(uncutBoundariesVector.size) x spiderTensor) o
-      bottomSigma
+      bottomSigma, reducedGraphBoundaries)
   }
 
   private def interpretAdjMat(adj: AdjMat, join: Tensor, vertexToTensor: (Int) => Tensor): Tensor = {

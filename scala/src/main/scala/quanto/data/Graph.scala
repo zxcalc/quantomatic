@@ -52,7 +52,6 @@ case class Graph(
                   bbdata: Map[BBName, BBData] = Map[BBName, BBData](),
                   inBBox: BinRel[VName, BBName] = BinRel[VName, BBName](),
                   bboxParent: PFun[BBName, BBName] = PFun[BBName, BBName]()) extends Ordered[Graph] {
-  lazy val boundaryNodes: Set[VName] = verts.filter(vdata(_).isBoundary)
   lazy val nodesThatAreNotWires: Set[VName] = verts.filterNot(vdata(_).isWireVertex)
   protected val factory = new Graph(_, _, _, _, _, _, _, _)
 
@@ -417,12 +416,13 @@ case class Graph(
     * dangling edges have a newly created boundary at one end.
     *
     * @param vertexName Vertex Name
-    * @return (Cut graph, new boundaries)
+    * @return (Cut graph, new boundaries, removed boundaries)
     */
-  def cutVertex(vertexName: VName): (Graph, Set[VName]) = {
+  def cutVertex(vertexName: VName): (Graph, Set[VName], Set[VName]) = {
     var g = this
 
     var newBoundaries: Set[VName] = Set()
+    var oldBoundaries: Set[VName] = Set()
 
     def midPoint(v1: VData, v2: VData): (Double, Double) = {
       val c1 = v1.coord
@@ -438,6 +438,7 @@ case class Graph(
       if (ends.size == 2) {
         val joinNode = (ends - vertexName).head
         if (g2.isTerminalWire(joinNode)) {
+          oldBoundaries += joinNode
           // Delete boundaries that would otherwise float after vertex removal
           g2 = g2.deleteVertex(joinNode)
         } else {
@@ -462,7 +463,7 @@ case class Graph(
     g = source.codf(vertexName).foldLeft(g) { (g, e) => breakEdge(g, e) }
     g = target.codf(vertexName).foldLeft(g) { (g, e) => breakEdge(g, e) }
     g = g.deleteVertex(vertexName)
-    (g, newBoundaries)
+    (g, newBoundaries, oldBoundaries)
   }
 
   // data updaters
