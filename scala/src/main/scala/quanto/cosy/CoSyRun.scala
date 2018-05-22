@@ -20,7 +20,7 @@ abstract class CoSyRun[S, T](
                               rulesDir: File,
                               theory: Theory,
                               duration: Duration,
-                              outputDir: File
+                              outputDir: Option[File]
                             ) {
 
   val Generator: Iterator[S]
@@ -120,10 +120,12 @@ abstract class CoSyRun[S, T](
           // doesn't fit into any existing class
           doWithUnmatched(next)
           equivClasses = equivClasses + (interpretation -> graph)
-          FileHelper.printToFile(
-            outputDir.toURI.resolve("./values.txt"),
-            makeString(next, interpretation),
-            append = true)
+          if(outputDir.nonEmpty){
+            FileHelper.printToFile(
+              outputDir.get.toURI.resolve("./values.txt"),
+              makeString(next, interpretation),
+              append = true)
+          }
         }
       } else {
         // Nothing to do, since it can be reduced
@@ -141,7 +143,9 @@ abstract class CoSyRun[S, T](
     }
     val r = new Rule(lhs, rhs)
     val name = s"${lhs.hashCode}_${rhs.hashCode}.qrule"
-    printJson(outputDir.toURI.resolve("./" + name).getPath, Rule.toJson(r))
+    if(outputDir.nonEmpty){
+      printJson(outputDir.get.toURI.resolve("./" + name).getPath, Rule.toJson(r))
+    }
     loadRule(r)
     r
   }
@@ -172,7 +176,7 @@ object CoSyRuns {
   class CoSyCircuit(rulesDir: File,
                     theory: Theory,
                     duration: Duration,
-                    outputDir: File,
+                    outputDir: Option[File],
                     numBoundaries: Int
                    ) extends CoSyRun[BlockStack, Tensor](rulesDir, theory, duration, outputDir) {
 
@@ -324,7 +328,7 @@ object CoSyRuns {
   class CoSyZX(rulesDir: File,
                theory: Theory,
                duration: Duration,
-               outputDir: File,
+               outputDir: Option[File],
                numAngles: Int,
                numBoundaries: List[Int],
                numVertices: Int,

@@ -22,7 +22,7 @@ class CoSyRunSpec extends FlatSpec {
   it should "do a small run" in {
     var CR = new CoSyRuns.CoSyZX(duration = Duration.Inf,
       numBoundaries = List(2,4),
-      outputDir = new File("/home/hector/code/scratch/"),
+      outputDir = None,
       scalars = false,
       numVertices = 2,
       rulesDir = new File(""), theory = Theory.fromFile("red_green"),
@@ -204,7 +204,7 @@ class CoSyRunSpec extends FlatSpec {
                                    |    }
                                    |}
     """.stripMargin)
-    var CR = new CoSyRuns.CoSyCircuit(duration = Duration(10,"minutes"), numBoundaries = 2, outputDir = new File("./cosyrun/"),
+    var CR = new CoSyRuns.CoSyCircuit(duration = Duration(10,"minutes"), numBoundaries = 2, outputDir = None,
       rulesDir = new File("./cosyrun/"), theory = theory)
    //var rules = CR.begin()
     assert(1 == 1)
