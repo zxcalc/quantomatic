@@ -61,12 +61,12 @@ object RuleSynthesis {
   }
 
   def minimiseRuleset(rules: List[Rule], theory: Theory, seed: Random = new Random()): List[Rule] = {
-    val reduced = rules.map(rule => minimiseRuleInPresenceOf(rule, rules.filter(otherRule => otherRule != rule)))
-    val reducedLessTautologies = removeTautologies(reduced.map(_._1))
-    if (reducedLessTautologies.size < reduced.size || reduced.exists(_._2)) {
-      minimiseRuleset(reducedLessTautologies, theory)
+    val reduced = rules.map(rule => minimiseRuleInPresenceOf(rule, rules.filter(otherRule => otherRule != rule), seed))
+    //val reducedLessTautologies = removeTautologies(reduced.map(_._1))
+    if (reduced.exists(_._2)) {
+      minimiseRuleset(reduced.map(_._1), theory)
     } else {
-      reducedLessTautologies
+      reduced.map(_._1)
     }
   }
 
@@ -78,11 +78,6 @@ object RuleSynthesis {
       rule.name + (if (wasItReduced) " reduced" else ""))), wasItReduced)
   }
 
-  def removeTautologies(rules: List[Rule]) : List[Rule] = {
-    rules.filter(r => {
-      Matcher.findMatches(r.lhs, r.rhs).isEmpty && Matcher.findMatches(r.lhs, r.rhs).isEmpty
-    })
-  }
 }
 
 /**

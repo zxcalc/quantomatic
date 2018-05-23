@@ -141,7 +141,7 @@ class RuleSynthesisSpec extends FlatSpec {
     var smallRules = ctRules.filter(_.name.matches(raw"S\d.*"))
     var minimisedRules = RuleSynthesis.minimiseRuleset(smallRules ::: smallRules.map(_.inverse), rg, new Random(1))
     minimisedRules.foreach(println)
-    assert(minimisedRules.size < smallRules.size)
+    assert(minimisedRules.map(r => r.name).exists(_.contains("reduced")))
   }
 
   it should "make a long derivation from annealing" in {
