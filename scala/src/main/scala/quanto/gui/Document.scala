@@ -140,7 +140,7 @@ abstract class Document extends Publisher {
 
       val choice = JOptionPane.showOptionDialog(null,
         "Do you want to save your changes or discard them?",
-        "Unsaved changes",
+        "Unsaved changes in "+titleDescription,
         JOptionPane.DEFAULT_OPTION,
         JOptionPane.WARNING_MESSAGE, null,
         List("Save", "Discard", "Cancel").toArray,

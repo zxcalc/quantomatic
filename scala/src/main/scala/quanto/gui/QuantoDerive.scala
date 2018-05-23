@@ -957,6 +957,22 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
+
+    val CloseAllAction = new Action("Close all tabs") {
+      accelerator = None
+      enabled = false
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.A
+      }
+
+      def apply() {
+        MainDocumentTabs.documents.foreach(page => {
+          MainDocumentTabs.focus(page)
+          if (page.document.promptUnsaved()) MainDocumentTabs.remove(page)
+        })
+      }
+    }
+
     contents += new Separator
 
     val IncreaseUIScaling = new Action("Increase UI scaling") {
@@ -1121,6 +1137,7 @@ object QuantoDerive extends SimpleSwingApplication {
       DeriveMenu.ViewGraph.enabled = false
       DeriveMenu.ReRunLastSimproc.enabled = false
       WindowMenu.CloseAction.enabled = false
+      WindowMenu.CloseAllAction.enabled = false
       ExportMenu.ExportAction.enabled = false
 
       histView = None
@@ -1130,6 +1147,7 @@ object QuantoDerive extends SimpleSwingApplication {
       MainDocumentTabs.currentContent match {
         case Some(content: HasDocument) =>
           WindowMenu.CloseAction.enabled = true
+          WindowMenu.CloseAllAction.enabled = true
           FileMenu.SaveAction.enabled = true
           FileMenu.SaveAsAction.enabled = true
           FileMenu.SaveAllAction.enabled = true
