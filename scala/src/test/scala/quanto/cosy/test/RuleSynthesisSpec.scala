@@ -139,7 +139,7 @@ class RuleSynthesisSpec extends FlatSpec {
     var ctRules = ZXRules
     // Pick out S1, S2 and REDUCIBLE
     var smallRules = ctRules.filter(_.name.matches(raw"S\d.*"))
-    var minimisedRules = RuleSynthesis.minimiseRuleset(smallRules ::: smallRules.map(_.inverse), rg)
+    var minimisedRules = RuleSynthesis.minimiseRuleset(smallRules ::: smallRules.map(_.inverse), rg, new Random(1))
     minimisedRules.foreach(println)
     assert(minimisedRules.size < smallRules.size)
   }
