@@ -410,15 +410,17 @@ case class Graph(
 
   def deleteVertices(vs: Set[VName]): Graph = vs.foldRight(this) { (v, g) => g.deleteVertex(v) }
 
+  def cutVertex(vertexName: VName): (Graph, Set[VName], Set[VName]) = cutVertex(vertexName, verts.filter(isBoundary))
   /**
     * Delete a vertex, but leave edges dangling if they were attached to another non-boundary node,
     * removes boundaries adjacent to the cut vertex,
     * dangling edges have a newly created boundary at one end.
     *
     * @param vertexName Vertex Name
+    * @param removingBoundaries If any of these are neighbours then remove whole-cloth
     * @return (Cut graph, new boundaries, removed boundaries)
     */
-  def cutVertex(vertexName: VName): (Graph, Set[VName], Set[VName]) = {
+  def cutVertex(vertexName: VName, removingBoundaries: Set[VName]): (Graph, Set[VName], Set[VName]) = {
     var g = this
 
     var newBoundaries: Set[VName] = Set()
@@ -437,7 +439,7 @@ case class Graph(
       val (ends, edges, wireNodes) = edgeEndPoints(e)
       if (ends.size == 2) {
         val joinNode = (ends - vertexName).head
-        if (g2.isTerminalWire(joinNode)) {
+        if (g2.isTerminalWire(joinNode) && removingBoundaries.contains(joinNode)) {
           oldBoundaries += joinNode
           // Delete boundaries that would otherwise float after vertex removal
           g2 = g2.deleteVertex(joinNode)

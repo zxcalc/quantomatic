@@ -841,7 +841,7 @@ object QuantoDerive extends SimpleSwingApplication {
               if(vertSelection.nonEmpty) {
                 val inverseSelection = gep.graphEditController.graph.verts -- vertSelection
                 val snippedGraph = inverseSelection.foldLeft(graphDoc.graph) {
-                  (g, v) => g.cutVertex(v)._1
+                  (g, v) => g.cutVertex(v, g.verts.filter(g.isBoundary))._1
                 }
                 page.document.asInstanceOf[GraphDocument].graph = snippedGraph
                 addAndFocusPage(page)

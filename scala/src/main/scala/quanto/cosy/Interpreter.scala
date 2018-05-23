@@ -92,7 +92,7 @@ object Interpreter {
 
   def interpretZWAdjMat(adjMat: AdjMat): Tensor = interpretZWAdjMatSpidersFirst(adjMat)
 
-  def interpretZXGraph(graph: Graph, boundaryList : List[VName]): Tensor = {
+  def interpretZXGraph(graph: Graph, inputList: List[VName], outputList: List[VName]): Tensor = {
 
     // remove any wire vertices etc
     val minGraph = graph.minimise
@@ -113,10 +113,11 @@ object Interpreter {
       case 0 =>
         stringGraph(minGraph, interpretZXSpider(
           ZXAngleData(isGreen = true, PhaseExpression.zero(ValueType.AngleExpr)), 2, 0),
-          boundaryList
+          inputList,
+          outputList
         )
       case _ =>
-        pullOutVertexGraph(minGraph, boundaryList, interpretZXGraph, spiderInterpreter)._1
+        pullOutVertexGraph(minGraph, inputList, outputList, interpretZXGraph, spiderInterpreter)
     }
   }
 
@@ -127,58 +128,116 @@ object Interpreter {
     * @param graph : Graph
     * @return
     */
-  def stringGraph(graph: Graph, cap: Tensor, boundaries: List[VName]): Tensor = {
+  def stringGraph(graph: Graph, cap: Tensor, inputList: List[VName], outputList: List[VName]): Tensor = {
     if (graph.verts.size % 2 != 0) {
       throw new Error("String graph should have an even number of boundaries")
     }
-    val numVerts = graph.verts.size
-    val caps = cap.power(numVerts / 2)
-    val nameVector: Vector[VName] = boundaries.toVector
 
-    var claimed: List[VName] = List()
+    // GRAPHS ARE READ BOTTOM TO TOP HERE.
 
-    def toNeighbour(place: Int): Int = {
-      val name: VName = nameVector(place)
+    val numInternalInputs = inputList.count(vn => {
+      inputList.contains(graph.adjacentVerts(vn).head)
+    })
+    val numInternalOutputs = outputList.count(vn => {
+      outputList.contains(graph.adjacentVerts(vn).head)
+    })
+
+    val joinLowerList = inputList.filterNot(vn => inputList.contains(graph.adjacentVerts(vn).head))
+    val joinUpperList = outputList.filterNot(vn => outputList.contains(graph.adjacentVerts(vn).head))
+
+    var claimedInternalCaps: List[VName] = List()
+    var claimedInternalCups: List[VName] = List()
+
+    val numJoin = (inputList.size + outputList.size - numInternalInputs - numInternalOutputs) / 2
+
+    def toLowerNeighbour(place: Int): Int = {
+      val name: VName = inputList(place)
       val neighbour: VName = graph.adjacentVerts(name).head
-      val index = claimed.indexOf(name)
-      if (index < 0) {
-        claimed = claimed :+ name
-        claimed = claimed :+ neighbour
-        toNeighbour(place)
+      if (inputList.contains(neighbour) && inputList.contains(name)) {
+        val index = claimedInternalCaps.indexOf(name)
+        if (index < 0) {
+          claimedInternalCaps = claimedInternalCaps :+ name
+          claimedInternalCaps = claimedInternalCaps :+ neighbour
+          toLowerNeighbour(place)
+        } else {
+          index
+        }
       } else {
-        index
+        numInternalInputs + joinLowerList.indexOf(name)
       }
     }
 
-    val sigma = if (numVerts > 0) {
-      Tensor.swap(numVerts, toNeighbour)
+
+    def toUpperNeighbour(place: Int): Int = {
+      val name: VName = outputList(place)
+      val neighbour: VName = graph.adjacentVerts(name).head
+      if (outputList.contains(neighbour) && outputList.contains(name)) {
+        val index = claimedInternalCups.indexOf(name)
+        if (index < 0) {
+          claimedInternalCups = claimedInternalCups :+ name
+          claimedInternalCups = claimedInternalCups :+ neighbour
+          toUpperNeighbour(place)
+        } else {
+          index
+        }
+      } else {
+        numInternalOutputs + joinUpperList.indexOf(name)
+      }
+    }
+
+    def toJoin(place: Int) : Int = {
+      val name: VName = joinLowerList(place)
+      val neighbour: VName = graph.adjacentVerts(name).head
+      joinUpperList.indexOf(neighbour)
+    }
+
+    val caps = cap.power(numInternalInputs / 2)
+    val cups = cap.transpose.power(numInternalOutputs / 2)
+
+    val sigmaLower = if (inputList.nonEmpty) {
+      Tensor.swap(inputList.length, toLowerNeighbour).transpose
     } else {
       Tensor(Array(Array(Complex(1, 0))))
     }
 
-    caps o sigma
+    val sigmaUpper = if (outputList.nonEmpty) {
+      Tensor.swap(outputList.length, toUpperNeighbour)
+    } else {
+      Tensor(Array(Array(Complex(1, 0))))
+    }
+
+    val sigmaMid = if (joinLowerList.nonEmpty) {
+      Tensor.swap(joinLowerList.length, toJoin).transpose
+    } else {
+      Tensor(Array(Array(Complex(1, 0))))
+    }
+
+    sigmaUpper o (cups x Tensor.idWires(numJoin)) o sigmaMid o (caps x Tensor.idWires(numJoin)) o sigmaLower
   }
 
   private def pullOutVertexGraph(startingGraph: Graph,
-                                 startingBoundaries: List[VName],
-                                 graphInterpreter: (Graph, List[VName]) => Tensor,
-                                 spiderInterpreter: (NodeV, Int, Int) => Tensor): (Tensor, List[VName]) = {
+                                 inputList: List[VName],
+                                 outputList: List[VName],
+                                 graphInterpreter: (Graph, List[VName], List[VName]) => Tensor,
+                                 spiderInterpreter: (NodeV, Int, Int) => Tensor): Tensor = {
     def ratioDanglingWires(name: VName): Double = {
       // A measure of how many boundary vs non-boundary neighbours the node has
-      val numBoundary = startingGraph.adjacentVerts(name).count(vn => startingGraph.isTerminalWire(vn))
+      val numBoundary = startingGraph.adjacentVerts(name).count(vn => inputList.contains(vn))
       (1 + numBoundary).toDouble / (1 + startingGraph.adjacentVerts(name).size - numBoundary)
     }
 
     // def boundaries(g: Graph): Set[VName] = g.verts.filter(g.isTerminalWire)
 
     // Pick a vertex to shift from graph to tensor
-    val cutVertex = startingGraph.verts.filterNot(vn => startingGraph.vdata(vn).isWireVertex).maxBy(ratioDanglingWires)
+    val cutVertex = startingGraph.verts
+      .filterNot(vn => startingGraph.vdata(vn).isWireVertex)
+      .maxBy(ratioDanglingWires)
     val numCutSpiderInOuts = startingGraph.adjacentVerts(cutVertex).size
 
     // cut out that vertex, as well as any boundaries it was attached to
-    val (reducedGraph, freshMadeBoundaries, removedBoundaries) = startingGraph.cutVertex(cutVertex)
+    val (reducedGraph, freshMadeBoundaries, removedBoundaries) = startingGraph.cutVertex(cutVertex, inputList.toSet)
     val uncutBoundariesVector: Vector[VName] =
-      startingBoundaries.filter(b => !removedBoundaries.contains(b)).toVector
+      inputList.filter(b => !removedBoundaries.contains(b)).toVector
     val reducedGraphBoundaries = uncutBoundariesVector.toList ++ freshMadeBoundaries.toList
 
     val spiderTensor = spiderInterpreter(
@@ -192,8 +251,8 @@ object Interpreter {
       val swapList: List[Int] = {
         var leftCount = 0
         var rightCount = (reducedGraphBoundaries.toSet -- freshMadeBoundaries).size
-        startingBoundaries.indices.map(i =>
-          if (reducedGraphBoundaries.contains(startingBoundaries(i))) {
+        inputList.indices.map(i =>
+          if (reducedGraphBoundaries.contains(inputList(i))) {
             leftCount += 1
             leftCount - 1
           } else {
@@ -202,21 +261,22 @@ object Interpreter {
           }
         ).toList
       }
-      Tensor.swap(startingBoundaries.size, swapList)
+      Tensor.swap(inputList.size, swapList).transpose
     }
 
+    /*
     val topSigma: Tensor = {
       val inputs: Vector[VName] = uncutBoundariesVector ++ freshMadeBoundaries.toVector
       Tensor.swap(reducedGraphBoundaries.size,
         i => reducedGraphBoundariesVector.indexOf(inputs(i)))
     }
+    */
 
     /**
       * Starting with the graph G, pulling out the spider S
       * You want:
       *
       * [     G'    ]
-      * [ topSigma ]
       * [id]  x [S]
       * [ botSigma ]
       *
@@ -224,12 +284,13 @@ object Interpreter {
       * S is the cut spider,
       * the identity is on uncutBoundariesVector
       * And the bottom sigma acts on allInputsVector
+      * (Rather than having topSigma now just have different lis tof inputs for G')
       */
 
-    (graphInterpreter(reducedGraph, reducedGraphBoundaries) o
-      topSigma o
+    graphInterpreter(reducedGraph, reducedGraphBoundaries, outputList) o
+      // topSigma o
       (Tensor.idWires(uncutBoundariesVector.size) x spiderTensor) o
-      bottomSigma, reducedGraphBoundaries)
+      bottomSigma
   }
 
   private def interpretAdjMat(adj: AdjMat, join: Tensor, vertexToTensor: (Int) => Tensor): Tensor = {
