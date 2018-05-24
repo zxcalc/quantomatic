@@ -161,4 +161,18 @@ class TensorSpec extends FlatSpec {
     var t3 = new Tensor(Array(Array(Complex(0, 1), zero), Array(zero, Complex(1, 0))))
     assert(!t1.isRoughlyUpToScalar(t3))
   }
+
+
+  it should "compare zeroes" in {
+    var t1 = new Tensor(Array(Array(zero, zero)))
+    var t2 = Tensor(Array(Array(zero,Complex(0.000001,0))))
+    assert(!t1.isRoughlyUpToScalar(t2))
+    assert(t1.isRoughlyUpToScalar(t2.scaled(Complex(0.00000000001,0))))
+  }
+
+  it should "compare zero and one" in {
+    var t1 = new Tensor(Array(Array(Complex(0, 0.00000000000000001))))
+    var t2 = Tensor(Array(Array(one)))
+    assert(!t1.isRoughlyUpToScalar(t2))
+  }
 }

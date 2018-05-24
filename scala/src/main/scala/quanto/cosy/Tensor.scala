@@ -162,20 +162,41 @@ class Tensor(c: Array[Array[Complex]]) {
   def entry(down: Int, across: Int): Complex = contents(down)(across)
 
   def isRoughlyUpToScalar(that: Tensor, distance: Double = Tensor.defaultDistance): Boolean = {
-    //
+
+    if (!this.isSameShapeAs(that)) return false
+
+    val thisIsRoughly0 = this.isRoughly(Tensor.zero(this.height, this.width), distance)
+    val thatIsRoughly0 = that.isRoughly(Tensor.zero(this.height, this.width), distance)
+
+    if (thisIsRoughly0 && thatIsRoughly0) return true
+    if (thisIsRoughly0 && !thatIsRoughly0) return false
+    if (!thisIsRoughly0 && thatIsRoughly0) return false
     this.distanceAfterScaling(that) < distance
   }
 
   def distanceAfterScaling(that: Tensor): Double = {
     if (this.isSameShapeAs(that)) {
-      var maxEntry = (0, 0)
-      var maxEntryValue = Complex.zero
-      for (i <- this.c.indices; j <- this.c.head.indices) {
+
+      val (maxEntry, maxEntryValue) =
+        (for (i <- this.c.indices; j <- this.c.head.indices) yield (i, j)).toList.foldLeft((0, 0), Complex.zero) {
+          (agg, coord) => {
+            val value = this.c(coord._1)(coord._2)
+            if (value.abs > agg._2.abs) {
+              (coord, value)
+            } else {
+              agg
+            }
+          }
+        }
+
+      /*
+      {
         if (this.c(i)(j).abs > maxEntryValue.abs) {
           maxEntry = (i, j)
           maxEntryValue = this.c(i)(j)
         }
       }
+      */
       if (maxEntryValue == Complex.zero) {
         this.distance(that)
       } else {

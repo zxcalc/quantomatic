@@ -27,20 +27,33 @@ abstract class CoSyRun[S, T](
   var reductionRules: List[Rule] = List()
   var equivClasses: Map[T, Graph] = Map()
 
+  // Turn your generator into a graph
   def makeGraph(gen: S): Graph
 
+  // Turn your generator into a tensor
   def makeTensor(gen: S): T
 
+  // If you want to check for isomorphisms specify a regex to match the boundaries here
   val matchBorders: Option[Regex]
 
+  // Compare two graphs. Strictly bigger than.
   def graphLeftBiggerRight(left: Graph, right: Graph): Boolean
 
+  // See if two tensors should be considered equivalent
+  // e.g. isRoughly or isRoughlyUpToScalar
   def compareTensor(a: T, b: T): Boolean
 
+  def findClassesCloseTo(tensor: T): Map[T, Graph] = equivClasses.filter(tv => compareTensor(tv._1, tensor))
+
+  // How to store the values in values.txt
   def makeString(a: S, b: T): String
 
+  // what to do with graphs that aren't hit by reduction rules
+  // e.g. for circuits put that circuit into the pile to be added to for next iteration
   def doWithUnmatched(a: S): Unit
 
+  // Core loop.
+  // Comes with option of time restriction.
   def begin(): List[Rule] = {
     def now(): Long = Calendar.getInstance().getTimeInMillis
 
@@ -50,24 +63,36 @@ abstract class CoSyRun[S, T](
       val next: S = Generator.next()
       val nextGraph = makeGraph(next)
 
-      val matchesReductionRule = reductionRules.map(r => (r, false)).foldLeft(false) {
-        (aggregateBoolean, ruleFalse) => if (!aggregateBoolean) {
-          Matcher.findMatches(ruleFalse._1.lhs, nextGraph).nonEmpty
-        } else {
-          true
-        }
+/*
+// Print out each graph made
+      if (outputDir.nonEmpty) {
+        FileHelper.printToFile(
+          outputDir.get.toURI.resolve("./" + nextGraph.hashCode + ".qgraph"),
+          Graph.toJson(nextGraph).toString,
+          append = true)
       }
+      */
 
+      val matchesReductionRule = reductionRules.exists(rule => Matcher.findMatches(rule.lhs, nextGraph).nonEmpty)
+
+      // Check if it can be reduced by known rules
       if (!matchesReductionRule) {
         val interpretation = makeTensor(next)
-        val similarTensors = equivClasses.keys.filter(t => compareTensor(t, interpretation))
+        val nearbyClasses = findClassesCloseTo(interpretation)
 
-        if (similarTensors.nonEmpty) {
-          for (similarTensor <- similarTensors) {
+        nearbyClasses.size match {
+          case 0 =>
+            // doesn't fit into any existing class
+            doWithUnmatched(next)
+            equivClasses = equivClasses + (interpretation -> nextGraph)
+            updateValuesFile(next, interpretation)
+          case 1 =>
             // Something with that tensor exists
-            val existing: Graph = equivClasses(similarTensor)
+            val equivClass = nearbyClasses.head
+            val existing: Graph = equivClass._2
 
 
+            // Don't create a rule between isomorphic (constrained at the boundary) graphs
             val isomorphic = if (matchBorders.nonEmpty) {
               checkIsomorphic(nextGraph, existing)
             } else {
@@ -77,24 +102,44 @@ abstract class CoSyRun[S, T](
 
             if (!isomorphic) {
               doWithUnmatched(next)
-              createRule(nextGraph, existing)
-              // update class with smaller graph
               if (graphLeftBiggerRight(existing, nextGraph)) {
-                equivClasses = equivClasses + (similarTensor -> nextGraph)
+                // update class with smaller graph
+                equivClasses = equivClasses + (equivClass._1 -> nextGraph)
+                createRule(existing, nextGraph)
+              } else {
+                // new graph is at least as big as current
+                // keep status quo, create rule
+                createRule(nextGraph, existing)
               }
-            } else {
-              // Don't create a rule between isomorphic (constrained) graphs
             }
 
-          }
-        } else {
-          // doesn't fit into any existing class
-          doWithUnmatched(next)
-          equivClasses = equivClasses + (interpretation -> nextGraph)
-          updateValuesFile(next, interpretation)
+          case n =>
+            // Somehow in the approximation radius of two classes
+            // For now, add to both.
+            for (equivClass <- nearbyClasses) {
+              // Something with that tensor exists
+              val existing: Graph = equivClass._2
+
+
+              val isomorphic = if (matchBorders.nonEmpty) {
+                checkIsomorphic(nextGraph, existing)
+              } else {
+                false
+              }
+
+
+              if (!isomorphic) {
+                doWithUnmatched(next)
+                createRule(nextGraph, existing)
+                // update class with smaller graph
+                if (graphLeftBiggerRight(existing, nextGraph)) {
+                  equivClasses = equivClasses + (equivClass._1 -> nextGraph)
+                }
+              } else {
+                // Don't create a rule between isomorphic (constrained) graphs
+              }
+            }
         }
-      } else {
-        // Nothing to do, since it can be reduced
       }
     }
     reductionRules
@@ -109,57 +154,52 @@ abstract class CoSyRun[S, T](
     }
   }
 
-  private def checkIsomorphic(g1: Graph, g2: Graph) : Boolean = {
+  private def checkIsomorphic(g1: Graph, g2: Graph): Boolean = {
     // Check whether graphs are isomorphic, after constraining their boundaries
 
-      def borderNodes(g: Graph): Set[VName] = g.verts.filter(vn => vn.s.matches(matchBorders.get.regex))
+    def borderNodes(g: Graph): Set[VName] = g.verts.filter(vn => vn.s.matches(matchBorders.get.regex))
 
-      val overlappingNodes = borderNodes(g1).intersect(borderNodes(g2))
+    val overlappingNodes = borderNodes(g1).intersect(borderNodes(g2))
 
-      // TODO:
-      // This is a hack, because it requires the theory to have "dummyBoundary" nodes
-      val boundaryData = NodeV(JsonObject(
-        "type" -> "dummyBoundary",
-        "value" -> ""
-      ),
-        JsonObject(),
-        theory)
+    // TODO:
+    // This is a hack, because it requires the theory to have "dummyBoundary" nodes
+    val boundaryData = NodeV(JsonObject(
+      "type" -> "dummyBoundary",
+      "value" -> ""
+    ),
+      JsonObject(),
+      theory)
 
-      def makeSolidBoundaries(graph: Graph): Graph = {
-        graph.verts.filter(vn => matchBorders.get.findFirstIn(vn.s).nonEmpty).
-          foldLeft(graph) { (g, vn) =>
-            g.updateVData(vn) { _ => boundaryData }
-          }
-      }
+    def makeSolidBoundaries(graph: Graph): Graph = {
+      graph.verts.filter(vn => matchBorders.get.findFirstIn(vn.s).nonEmpty).
+        foldLeft(graph) { (g, vn) =>
+          g.updateVData(vn) { _ => boundaryData }
+        }
+    }
 
-      val solid1 = makeSolidBoundaries(g1)
-      val solid2 = makeSolidBoundaries(g2)
+    val solid1 = makeSolidBoundaries(g1)
+    val solid2 = makeSolidBoundaries(g2)
 
-      // check that it isn't a duplicate of that graph
-      val matches12 = Matcher.findMatches(solid1, solid2).filter(
-        m => overlappingNodes.forall(
-          vn => m.map.v.dom.toList.contains(vn) && m.map.v.domf(vn).contains(vn)
-        )
+    // check that it isn't a duplicate of that graph
+    val matches12 = Matcher.findMatches(solid1, solid2).filter(
+      m => overlappingNodes.forall(
+        vn => m.map.v.dom.toList.contains(vn) && m.map.v.domf(vn).contains(vn)
       )
+    )
 
-      val matches21 = Matcher.findMatches(solid2, solid1).filter(
-        m => overlappingNodes.forall(
-          vn => m.map.v.dom.toList.contains(vn) && m.map.v.domf(vn).contains(vn)
-        )
+    val matches21 = Matcher.findMatches(solid2, solid1).filter(
+      m => overlappingNodes.forall(
+        vn => m.map.v.dom.toList.contains(vn) && m.map.v.domf(vn).contains(vn)
       )
+    )
 
     matches21.nonEmpty && matches12.nonEmpty
   }
 
-  def createRule(suggested: Graph, existing: Graph): Rule = {
-    val (lhs, rhs) = if (graphLeftBiggerRight(suggested, existing)) {
-      (suggested, existing)
-    } else {
-      (existing, suggested)
-    }
-    val r = new Rule(lhs, rhs)
+  def createRule(lhs: Graph, rhs: Graph): Rule = {
     val name = s"${lhs.hashCode}_${rhs.hashCode}.qrule"
-    if(outputDir.nonEmpty){
+    val r = new Rule(lhs, rhs, derivation = Some("CoSy"), description = RuleDesc(name))
+    if (outputDir.nonEmpty) {
       printJson(outputDir.get.toURI.resolve("./" + name).getPath, Rule.toJson(r))
     }
     loadRule(r)
@@ -196,6 +236,10 @@ object CoSyRuns {
                     numBoundaries: Int
                    ) extends CoSyRun[BlockStack, Tensor](rulesDir, theory, duration, outputDir) {
 
+
+    // Include the empty diagram
+    // equivClasses = equivClasses + (Tensor(Array(Array(1))) -> new Graph())
+
     override val Generator: Iterator[BlockStack] = new Iterator[BlockStack] {
 
       override def hasNext: Boolean = unusedStacks.hasNext || unusedRows.hasNext || nextRoundOfStacks.nonEmpty
@@ -224,6 +268,7 @@ object CoSyRuns {
     override def doWithUnmatched(a: BlockStack): Unit = {
       nextRoundOfStacks = a :: nextRoundOfStacks
     }
+
 
     override def compareTensor(a: Tensor, b: Tensor): Boolean = a.isRoughlyUpToScalar(b)
 
@@ -455,7 +500,7 @@ object CoSyRuns {
       false
     }
 
-    private def angleMap = (x: Int) => PhaseExpression(new Rational(x, numAngles), ValueType.AngleExpr)
+    private def angleMap = (x: Int) => PhaseExpression(new Rational(2*x, numAngles), ValueType.AngleExpr)
 
 
   }

@@ -24,20 +24,28 @@ class CoSyRunSpec extends FlatSpec {
   it should "do a small run" in {
     var theory = Theory.fromFile("red_green")
     var CR = new CoSyRuns.CoSyZX(duration = Duration.Inf,
-      numBoundaries = List(0, 1, 2, 3),
+      numBoundaries = List(0,1,2),
       outputDir = None,
-      scalars = true,
+      scalars = false,
       numVertices = 2,
-      rulesDir = new File(""), theory = theory,
-      numAngles = 2)
+      rulesDir = new File("./cosy/"), theory = theory,
+      numAngles    = 4)
+
+    def interpret(g: Graph) = Interpreter.interpretZXGraph(g, g.verts.filter(g.isBoundary).toList, List())
     // Don't test this here
     // It isn't a standard feature
     // And pollutes the filesystem
     // Ask hmillerbakewell@gmail.com for more information
-    //CR.begin()
+
+    CR.begin()
     assert(1 == 1)
-    //var reduced = RuleSynthesis.minimiseRuleset(CR.reductionRules, theory, new Random(1))
+    /*
+    val reduced = RuleSynthesis.minimiseRuleset(CR.reductionRules, theory, new Random(1))
     //reduced.foreach(r => FileHelper.printJson(s"./cosy/${r.lhs.hashCode}-${r.rhs.hashCode}.qrule", Rule.toJson(r, theory)))
+    reduced.foreach(r =>
+      assert(interpret(r.lhs).isRoughly(interpret(r.rhs))))
+      */
+
   }
 
   behavior of "ZX Circuit"
@@ -209,9 +217,15 @@ class CoSyRunSpec extends FlatSpec {
                                    |    }
                                    |}
     """.stripMargin)
-    var CR = new CoSyRuns.CoSyCircuit(duration = Duration(10,"minutes"), numBoundaries = 2, outputDir = None,
+
+    // THIS WILL RUN UNTIL THE TIME RUNS OUT.
+    var CR = new CoSyRuns.CoSyCircuit(duration = Duration(10, "minutes"), numBoundaries = 3, outputDir = None,
       rulesDir = new File("./cosyrun/"), theory = theory)
-   //var rules = CR.begin()
+    // var rules = CR.begin()
+    /*
+    val reduced = RuleSynthesis.minimiseRuleset(CR.reductionRules, theory, new Random(1))
+    reduced.foreach(r => FileHelper.printJson(s"./cosy/${r.lhs.hashCode}-${r.rhs.hashCode}.qrule", Rule.toJson(r, theory)))
+    */
     assert(1 == 1)
   }
 
