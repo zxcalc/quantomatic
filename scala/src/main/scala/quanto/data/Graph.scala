@@ -8,6 +8,7 @@ import quanto.util.json._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.math.sqrt
+import scala.util.Random
 
 class GraphException(msg: String, cause: Throwable = null) extends Exception(msg, cause)
 
@@ -1268,8 +1269,10 @@ object Graph {
       else if (rdata.nonEmpty) rdata(0).theory
       else throw new GraphException("Must give at least one piece of node data")
 
+    val seed = new Random()
+    def r : Double = seed.nextDouble()
     var g = Graph(thy)
-    for (i <- 0 until amat.numBoundaries) g = g.addVertex(VName("v" + i), WireV(theory = thy))
+    for (i <- 0 until amat.numBoundaries) g = g.addVertex(VName("v" + i), WireV(theory = thy).withCoord(i,0))
 
     var i = amat.numBoundaries
 
@@ -1286,12 +1289,12 @@ object Graph {
     }
 
     for (t <- 0 until amat.numRedTypes; _ <- 0 until red(t)) {
-      g = g.addVertex(VName("v" + i), rdata(t))
+      g = g.addVertex(VName("v" + i), rdata(t).withCoord(i,t + r))
       i += 1
     }
 
     for (t <- 0 until amat.numGreenTypes; _ <- 0 until green(t)) {
-      g = g.addVertex(VName("v" + i), gdata(t))
+      g = g.addVertex(VName("v" + i), gdata(t).withCoord(i,t+r))
       i += 1
     }
 
