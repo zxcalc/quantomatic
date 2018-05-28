@@ -4,7 +4,191 @@ import quanto.data.Theory.ValueType
 import quanto.data._
 import quanto.util.Rational
 
+import scala.util.matching.Regex
+
 object GraphAnalysis {
+
+  def zxCircuitLeftBiggerRight(left: Graph, right: Graph): Boolean = {
+
+    // Circuit comparison of graphs
+    // Cares about T-count
+
+    val Angle = ValueType.AngleExpr
+
+    def phase(vdata: VData): PhaseExpression =
+      vdata match {
+        case NodeV(d, a, t) => vdata.asInstanceOf[NodeV].phaseData.first[PhaseExpression](ValueType.AngleExpr) match {
+          case Some(p) => p
+          case None => PhaseExpression.zero(ValueType.AngleExpr)
+        }
+        case _ => PhaseExpression.zero(ValueType.AngleExpr)
+      }
+
+
+    // Number of T-gates
+    def countT(graph: Graph): Int = graph.vdata.count(nd => phase(nd._2).constant == Rational(1, 4))
+
+    val tDiff = countT(left) - countT(right)
+    if (tDiff > 0) {
+      return true
+    }
+    if (tDiff < 0) {
+      return false
+    }
+
+    // Number of nodes
+    def nodes(graph: Graph): Int = graph.vdata.size
+
+    val nodeDiff = nodes(left) - nodes(right)
+    if (nodeDiff > 0) {
+      return true
+    }
+    if (nodeDiff < 0) {
+      return false
+    }
+
+    // Number of edges
+    def edges(graph: Graph): Int = graph.edata.size
+
+    val edgeDiff = edges(left) - edges(right)
+    if (edgeDiff > 0) {
+      return true
+    }
+    if (edgeDiff < 0) {
+      return false
+    }
+
+    // Number of "Z" nodes
+    // We favour these!
+    // Purely for aesthetic reasons
+    def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.typ == "Z")
+
+    val zDiff = countZ(left) - countZ(right)
+    if (zDiff < 0) {
+      return true
+    }
+    if (zDiff > 0) {
+      return false
+    }
+
+    // sum of the phases
+    def phaseSum(graph: Graph): PhaseExpression = graph.vdata.map(nd => phase(nd._2)).
+      foldLeft(PhaseExpression.zero(Angle)) { (s, a) => s + a }
+
+    val phaseDiff = (phaseSum(left) - phaseSum(right)).constant
+    if (phaseDiff > 0) {
+      return true
+    }
+    if (phaseDiff < 0) {
+      return false
+    }
+
+    // position
+
+    val positionPattern: Regex = raw"r-(\d+)-bl-(\d+)-\w+-\d+".r
+
+    def weightByName(vName: VName): Int = {
+      def int(string: String): Int = string.toInt
+
+      vName.s match {
+        case positionPattern(a, b) => (113 * int(a)) + (11 * int(b))
+        case _ => 0
+      }
+    }
+
+    def weightByNameOfGraph(graph: Graph): Int = graph.verts.map(weightByName).sum
+
+
+    val weightDiff = weightByNameOfGraph(left) - weightByNameOfGraph(right)
+    if (weightDiff > 0) {
+      return true
+    }
+    if (weightDiff < 0) {
+      return false
+    }
+
+
+    false
+  }
+
+
+  def zxGraphLeftBiggerRight(left: Graph, right: Graph): Boolean = {
+
+    // Graph comparison for ZX diagrams
+    // Cares about node count, then phases
+
+    implicit def stringToPhase(s: String): PhaseExpression = {
+      PhaseExpression.parse(s, ValueType.AngleExpr)
+    }
+
+
+    // First count number of nodes
+    def nodes(graph: Graph): Int = graph.vdata.size
+
+    val node = nodes(left) - nodes(right)
+    if (node > 0) {
+      return true
+    }
+    if (node < 0) {
+      return false
+    }
+
+    // Number of edges
+    def edges(graph: Graph): Int = graph.edata.size
+
+    val edge = edges(left) - edges(right)
+    if (edge > 0) {
+      return true
+    }
+    if (edge < 0) {
+      return false
+    }
+
+    // Number of "Z" nodes
+    def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.typ == "Z")
+
+    val zDiff = countZ(left) - countZ(right)
+    if (zDiff > 0) {
+      return true
+    }
+    if (zDiff < 0) {
+      return false
+    }
+
+    // Sum of Z angles
+    val Pi = math.Pi
+
+    def sumAngles(graph: Graph, filterType: String): PhaseExpression = graph.vdata.
+      filter(nd => nd._2.typ == filterType).
+      foldLeft(PhaseExpression.zero(ValueType.AngleExpr)) {
+        (angle, nd) => angle + nd._2.asInstanceOf[NodeV].value
+      }
+
+    val ZAngles: Rational = sumAngles(left, "Z").constant - sumAngles(right, "Z").constant
+    if (ZAngles > 0) {
+      return true
+    }
+    if (ZAngles < 0) {
+      return false
+    }
+
+    // Sum of X angles
+
+    val XAngles: Rational = sumAngles(left, "X").constant - sumAngles(right, "X").constant
+    if (XAngles % (2 * Pi) > Pi) {
+      return true
+    }
+    if (XAngles % (2 * Pi) < Pi) {
+      return false
+    }
+
+
+    false
+  }
+
+
+
+
   type BMatrix = Vector[Vector[Boolean]]
 
   def tensorToBooleanMatrix(tensor: Tensor): BMatrix = {
