@@ -8,7 +8,12 @@ import scala.util.matching.Regex
 
 object GraphAnalysis {
 
-  def zxCircuitLeftBiggerRight(left: Graph, right: Graph): Boolean = {
+  def zxCircuitCompare(left: Graph, right: Graph): Int = {
+
+    // returns x where
+    // x < 0 iff this < that
+    // x == 0 iff this == that
+    // x > 0 iff this > that
 
     // Circuit comparison of graphs
     // Cares about T-count
@@ -29,34 +34,19 @@ object GraphAnalysis {
     def countT(graph: Graph): Int = graph.vdata.count(nd => phase(nd._2).constant == Rational(1, 4))
 
     val tDiff = countT(left) - countT(right)
-    if (tDiff > 0) {
-      return true
-    }
-    if (tDiff < 0) {
-      return false
-    }
+    if (tDiff != 0) return tDiff
 
     // Number of nodes
     def nodes(graph: Graph): Int = graph.vdata.size
 
     val nodeDiff = nodes(left) - nodes(right)
-    if (nodeDiff > 0) {
-      return true
-    }
-    if (nodeDiff < 0) {
-      return false
-    }
+    if (nodeDiff != 0) return nodeDiff
 
     // Number of edges
     def edges(graph: Graph): Int = graph.edata.size
 
     val edgeDiff = edges(left) - edges(right)
-    if (edgeDiff > 0) {
-      return true
-    }
-    if (edgeDiff < 0) {
-      return false
-    }
+    if (edgeDiff != 0) return edgeDiff
 
     // Number of "Z" nodes
     // We favour these!
@@ -64,55 +54,27 @@ object GraphAnalysis {
     def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.typ == "Z")
 
     val zDiff = countZ(left) - countZ(right)
-    if (zDiff < 0) {
-      return true
-    }
-    if (zDiff > 0) {
-      return false
-    }
+    if (zDiff != 0) return zDiff
 
     // sum of the phases
     def phaseSum(graph: Graph): PhaseExpression = graph.vdata.map(nd => phase(nd._2)).
       foldLeft(PhaseExpression.zero(Angle)) { (s, a) => s + a }
 
     val phaseDiff = (phaseSum(left) - phaseSum(right)).constant
-    if (phaseDiff > 0) {
-      return true
-    }
-    if (phaseDiff < 0) {
-      return false
-    }
+    if (phaseDiff > 0) return 1
+    if (phaseDiff < 0) return -1
 
-    // position
-
-    val positionPattern: Regex = raw"r-(\d+)-bl-(\d+)-\w+-\d+".r
-
-    def weightByName(vName: VName): Int = {
-      def int(string: String): Int = string.toInt
-
-      vName.s match {
-        case positionPattern(a, b) => (113 * int(a)) + (11 * int(b))
-        case _ => 0
-      }
-    }
-
-    def weightByNameOfGraph(graph: Graph): Int = graph.verts.map(weightByName).sum
-
-
-    val weightDiff = weightByNameOfGraph(left) - weightByNameOfGraph(right)
-    if (weightDiff > 0) {
-      return true
-    }
-    if (weightDiff < 0) {
-      return false
-    }
-
-
-    false
+    0
   }
 
 
-  def zxGraphLeftBiggerRight(left: Graph, right: Graph): Boolean = {
+  def zxGraphCompare(left: Graph, right: Graph): Int = {
+
+    // returns x where
+    // x < 0 iff this < that
+    // x == 0 iff this == that
+    // x > 0 iff this > that
+
 
     // Graph comparison for ZX diagrams
     // Cares about node count, then phases
@@ -126,34 +88,19 @@ object GraphAnalysis {
     def nodes(graph: Graph): Int = graph.vdata.size
 
     val node = nodes(left) - nodes(right)
-    if (node > 0) {
-      return true
-    }
-    if (node < 0) {
-      return false
-    }
+    if (node != 0) return node
 
     // Number of edges
     def edges(graph: Graph): Int = graph.edata.size
 
     val edge = edges(left) - edges(right)
-    if (edge > 0) {
-      return true
-    }
-    if (edge < 0) {
-      return false
-    }
+    if (edge != 0) return edge
 
     // Number of "Z" nodes
     def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.typ == "Z")
 
     val zDiff = countZ(left) - countZ(right)
-    if (zDiff > 0) {
-      return true
-    }
-    if (zDiff < 0) {
-      return false
-    }
+    if (zDiff != 0) return zDiff
 
     // Sum of Z angles
     val Pi = math.Pi
@@ -164,29 +111,21 @@ object GraphAnalysis {
         (angle, nd) => angle + nd._2.asInstanceOf[NodeV].value
       }
 
+    // sumAngles returns a value in [0,2)
+
     val ZAngles: Rational = sumAngles(left, "Z").constant - sumAngles(right, "Z").constant
-    if (ZAngles > 0) {
-      return true
-    }
-    if (ZAngles < 0) {
-      return false
-    }
+    if (ZAngles > 0) return 1
+    if (ZAngles < 0) return -1
 
     // Sum of X angles
 
     val XAngles: Rational = sumAngles(left, "X").constant - sumAngles(right, "X").constant
-    if (XAngles % (2 * Pi) > Pi) {
-      return true
-    }
-    if (XAngles % (2 * Pi) < Pi) {
-      return false
-    }
+    if (XAngles > 0) return 1
+    if (XAngles < 0) return -1
 
 
-    false
+    0
   }
-
-
 
 
   type BMatrix = Vector[Vector[Boolean]]

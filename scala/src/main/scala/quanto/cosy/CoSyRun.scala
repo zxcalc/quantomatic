@@ -274,6 +274,7 @@ object CoSyRuns {
     override def compareTensor(a: Tensor, b: Tensor): Boolean = a.isRoughlyUpToScalar(b)
 
     override def graphLeftBiggerRight(left: Graph, right: Graph): Boolean =
+      GraphAnalysis.zxCircuitCompare(left, right) > 0
 
     override def makeTensor(gen: BlockStack): Tensor = gen.tensor
 
@@ -337,7 +338,7 @@ object CoSyRuns {
     }
 
     override def graphLeftBiggerRight(left: Graph, right: Graph): Boolean =
-      GraphAnalysis.zxGraphLeftBiggerRight(left, right)
+      GraphAnalysis.zxGraphCompare(left, right) > 0
 
     private def angleMap = (x: Int) => PhaseExpression(new Rational(2 * x, numAngles), ValueType.AngleExpr)
 
@@ -414,7 +415,7 @@ object CoSyRuns {
     }
 
     override def graphLeftBiggerRight(left: Graph, right: Graph): Boolean =
-      GraphAnalysis.zxGraphLeftBiggerRight(left, right)
+      GraphAnalysis.zxGraphCompare(left, right) > 0
 
     private def angleMap(x: Int): CompositeExpression =
       if (x < numAngles) {
