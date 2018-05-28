@@ -92,7 +92,7 @@ object Interpreter {
 
   def interpretZWAdjMat(adjMat: AdjMat): Tensor = interpretZWAdjMatSpidersFirst(adjMat)
 
-  def interpretSpiderGraph(graph: Graph, spiderInterpreter: (NodeV, Int, Int) => Tensor, inputList: List[VName], outputList: List[VName]): Tensor = {
+  def interpretSpiderGraph(spiderInterpreter: (NodeV, Int, Int) => Tensor)(graph: Graph,  inputList: List[VName], outputList: List[VName]): Tensor = {
 
     // remove any wire vertices etc
     val minGraph = graph.minimise
@@ -105,25 +105,22 @@ object Interpreter {
           outputList
         )
       case _ =>
-        pullOutVertexGraph(minGraph, inputList, outputList, interpretZXGraph, spiderInterpreter)
+        pullOutVertexGraph(minGraph, inputList, outputList, interpretSpiderGraph(spiderInterpreter), spiderInterpreter)
     }
   }
 
-  def interpretZXGraph(graph: Graph, inputList: List[VName], outputList: List[VName]): Tensor = {
-    def spiderInterpreter(vdata: NodeV, inputs: Int, outputs: Int): Tensor = {
+  def zxSpiderInterpreter(vdata: NodeV, inputs: Int, outputs: Int): Tensor = {
 
-      val zxData: ZXAngleData = {
-        val isGreen = vdata.typ == "Z"
-        val angle = PhaseExpression.parse(vdata.value, ValueType.AngleExpr)
-        ZXAngleData(isGreen, angle)
-      }
-
-      interpretZXSpider(zxData, inputs, outputs)
+    val zxData: ZXAngleData = {
+      val isGreen = vdata.typ == "Z"
+      val angle = PhaseExpression.parse(vdata.value, ValueType.AngleExpr)
+      ZXAngleData(isGreen, angle)
     }
 
-    interpretSpiderGraph(graph, spiderInterpreter, inputList, outputList)
-
+    interpretZXSpider(zxData, inputs, outputs)
   }
+
+  val interpretZXGraph : (Graph, List[VName], List[VName]) => Tensor = interpretSpiderGraph(zxSpiderInterpreter)
 
   /**
     * Given a graph of just boundaries and edges,

@@ -3,6 +3,7 @@ package quanto.cosy
 import java.io.File
 import java.util.Calendar
 
+import quanto.cosy.Interpreter.{ZXAngleData, interpretZXSpider}
 import quanto.data.Theory.ValueType
 import quanto.data._
 import quanto.rewrite.{Match, Matcher}
@@ -63,7 +64,8 @@ abstract class CoSyRun[S, T](
       val next: S = Generator.next()
       val nextGraph = makeGraph(next)
 
-/*
+
+      /*
 // Print out each graph made
       if (outputDir.nonEmpty) {
         FileHelper.printToFile(
@@ -71,7 +73,7 @@ abstract class CoSyRun[S, T](
           Graph.toJson(nextGraph).toString,
           append = true)
       }
-      */
+*/
 
       val matchesReductionRule = reductionRules.exists(rule => Matcher.findMatches(rule.lhs, nextGraph).nonEmpty)
 
@@ -505,4 +507,156 @@ object CoSyRuns {
 
   }
 
+  class CoSyZXBool(rulesDir: File,
+                   theory: Theory,
+                   duration: Duration,
+                   outputDir: Option[File],
+                   numAngles: Int,
+                   numBoundaries: List[Int],
+                   numVertices: Int,
+                   scalars: Boolean
+                  ) extends CoSyRun[AdjMat, Tensor](rulesDir, theory, duration, outputDir) {
+
+
+    override val Generator: Iterator[AdjMat] =
+      (ColbournReadEnum.enumerate(1, 1, numBoundaries.max, 0).iterator ++
+        ColbournReadEnum.enumerate(2*numAngles, 2*numAngles, numBoundaries.max, numVertices).iterator).
+        filter(a => numBoundaries.contains(a.numBoundaries))
+
+
+
+    private val gdata = (for (i <- 0 until 2*numAngles) yield {
+      NodeV(data = JsonObject("type" -> "Z", "value" -> angleMap(i).toString), theory = theory)
+    }).toVector
+    private val rdata = (for (i <- 0 until 2*numAngles) yield {
+      NodeV(data = JsonObject("type" -> "X", "value" -> angleMap(i).toString), theory = theory)
+    }).toVector
+
+    override def compareTensor(a: Tensor, b: Tensor): Boolean = if (!scalars) {
+      a.isRoughlyUpToScalar(b)
+    } else {
+      a.isRoughly(b)
+    }
+
+    override val matchBorders = None
+
+    private implicit def stringToPhase(s: String): PhaseExpression = {
+      CompositeExpression.parseKnowingTypes(s, Vector(ValueType.AngleExpr, ValueType.Boolean))(1)
+    }
+
+    override def doWithUnmatched(a: AdjMat): Unit = {
+      // Don't need to do anything, since Colbourn-Read handles generating adj-mats
+    }
+
+    override def makeTensor(gen: AdjMat): Tensor = {
+      val asGraph = makeGraph(gen)
+
+      def spiderInterpreter(vdata: NodeV, inputs: Int, outputs: Int): Tensor = {
+
+        val zxData: ZXAngleData = {
+          val isGreen = vdata.typ == "Z"
+          val angle = CompositeExpression.parseKnowingTypes(vdata.value, Vector(ValueType.AngleExpr, ValueType.Boolean))
+          if (angle(1).constant == Rational(1, 1)) {
+            ZXAngleData(isGreen, angle(0))
+          } else {
+            ZXAngleData(isGreen, PhaseExpression(new Rational(0, 1), ValueType.AngleExpr))
+          }
+        }
+
+        interpretZXSpider(zxData, inputs, outputs)
+      }
+
+
+      Interpreter.interpretSpiderGraph(spiderInterpreter)(asGraph, asGraph.verts.filter(asGraph.isTerminalWire).toList.sortBy(_.s), List())
+    }
+
+    override def makeGraph(gen: AdjMat): Graph = Graph.fromAdjMat(gen, rdata, gdata)
+
+    override def makeString(a: AdjMat, b: Tensor): String = {
+      s"adj${a.hash}: ${b.toJson},"
+    }
+
+    override def graphLeftBiggerRight(left: Graph, right: Graph): Boolean = {
+      // First count number of nodes
+      def nodes(graph: Graph): Int = graph.vdata.size
+
+      val node = nodes(left) - nodes(right)
+      if (node > 0) {
+        return true
+      }
+      if (node < 0) {
+        return false
+      }
+
+      // Number of edges
+      def edges(graph: Graph): Int = graph.edata.size
+
+      val edge = edges(left) - edges(right)
+      if (edge > 0) {
+        return true
+      }
+      if (edge < 0) {
+        return false
+      }
+
+      // Number of "Z" nodes
+      def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.typ == "Z")
+
+      val zDiff = countZ(left) - countZ(right)
+      if (zDiff > 0) {
+        return true
+      }
+      if (zDiff < 0) {
+        return false
+      }
+
+      // Sum of Z angles
+      val Pi = math.Pi
+
+      def sumAngles(graph: Graph, filterType: String): PhaseExpression = graph.vdata.
+        filter(nd => nd._2.typ == filterType).
+        foldLeft(PhaseExpression.zero(ValueType.AngleExpr)) {
+          (angle, nd) => angle + nd._2.asInstanceOf[NodeV].value
+        }
+
+      val ZAngles: Rational = sumAngles(left, "Z").constant - sumAngles(right, "Z").constant
+      if (ZAngles > 0) {
+        return true
+      }
+      if (ZAngles < 0) {
+        return false
+      }
+
+      // Sum of X angles
+
+      val XAngles: Rational = sumAngles(left, "X").constant - sumAngles(right, "X").constant
+      if (XAngles % (2 * Pi) > Pi) {
+        return true
+      }
+      if (XAngles % (2 * Pi) < Pi) {
+        return false
+      }
+
+
+      false
+    }
+
+    private def angleMap(x: Int): CompositeExpression =
+      if (x < numAngles) {
+        CompositeExpression(Vector(ValueType.AngleExpr, ValueType.Boolean),
+
+          Vector(PhaseExpression(new Rational(2 * x, numAngles), ValueType.AngleExpr),
+            PhaseExpression(new Rational(1, 1), ValueType.Boolean)))
+
+      } else {
+        CompositeExpression(Vector(ValueType.AngleExpr, ValueType.Boolean),
+
+          Vector(PhaseExpression(new Rational(2 * (x-numAngles), numAngles), ValueType.AngleExpr),
+            PhaseExpression(new Rational(0, 1), ValueType.Boolean)))
+
+      }
+
+
+  }
 }
+
