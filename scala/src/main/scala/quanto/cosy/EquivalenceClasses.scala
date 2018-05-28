@@ -7,6 +7,8 @@ import quanto.util.json.{Json, JsonAccessException, JsonArray, JsonObject}
 
 /**
   * Synthesises diagrams, holds the data and generates equivalence classes
+  *
+  * Everything here has essentially be superseded by the new CoSyRun system
   */
 
 

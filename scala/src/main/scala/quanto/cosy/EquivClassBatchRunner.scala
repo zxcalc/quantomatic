@@ -8,6 +8,7 @@ import quanto.util.json.{JsonArray, JsonObject}
 /**
   * Created by hector on 20/06/2017.
   * A wrapper object for the most common qsynth run
+  * Superseded by the CoSyRun system
   */
 object EquivClassBatchRunner {
 

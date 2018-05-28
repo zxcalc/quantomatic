@@ -21,6 +21,7 @@ object RuleSynthesis {
   }
 
   /** Given an equivalence class creates rules for any irreducible members of the class */
+  // Superseded by CoSyRun
   def graphEquivClassReduction[T](makeGraph: (T => Graph),
                                   equivalenceClass: EquivalenceClass[T],
                                   knownRules: List[Rule]): List[Rule] = {
