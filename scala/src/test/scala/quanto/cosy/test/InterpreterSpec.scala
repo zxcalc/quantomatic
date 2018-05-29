@@ -113,7 +113,7 @@ class InterpreterSpec extends FlatSpec {
       addEdge("e0", UndirEdge(), "v0" -> "v3").
       addEdge("e1", UndirEdge(), "v1" -> "v2")
     val tensor = stringGraph(g, cap, List("v0", "v1"), List("v2", "v3"))
-    assert(tensor == (Tensor.swap(List(1,0))))
+    assert(tensor == Tensor.swap(List(1,0)))
   }
 
 
@@ -138,7 +138,7 @@ class InterpreterSpec extends FlatSpec {
       .join("i-1", "o-0")
       .join("i-2", "o-1")
     val tensor = stringGraph(g, cap, List("i-0","i-1","i-2"), List("o-0","o-1","o-2"))
-    assert(tensor == Tensor.swap(List(2, 0, 1)).transpose) // Non-obvious which way is up.
+    assert(tensor == Tensor.swap(List(2, 0, 1)))
   }
 
 
@@ -148,7 +148,7 @@ class InterpreterSpec extends FlatSpec {
       .join("i-1", "o-2")
       .join("i-2", "o-0")
     val tensor = stringGraph(g, cap, List("i-0","i-1","i-2"), List("o-0","o-1","o-2"))
-    assert(tensor == Tensor.swap(List(2, 0, 1))) // Non-obvious which way is up.
+    assert(tensor == Tensor.swap(List(1,2,0)))
   }
 
   behavior of "ZX"
@@ -323,44 +323,41 @@ class InterpreterSpec extends FlatSpec {
   behavior of "ZW"
 
   it should "Evaluate the four-output GHZ spider" in {
-    var t = Interpreter.interpretZWSpider(black = true, 4)
-    assert(t == Tensor(Array(Array(1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0))).transpose)
+    val t1 = Interpreter.interpretZWSpiderNoInputs(black = true, 4)
+    val g = QuickGraph(Theory.fromFile("ZW")).addOutput(4).node("w", nodeName = "w")
+      .join("w", "o-0")
+      .join("w", "o-1")
+      .join("w", "o-2")
+      .join("w", "o-3")
+
+    val t2 = Interpreter.interpretSpiderGraph(zwSpiderInterpreter)(g, List(), List("o-0", "o-1", "o-2", "o-3"))
+    val t3 = Tensor(Array(Array(1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0))).transpose
+    assert(t1 == t3)
+    assert(t2 == t3)
   }
 
-  /* Too intensive!
-  it should "agree on rule 5d" in {
-    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
-    amat = amat.addVertex(Vector())
-    amat = amat.addVertex(Vector(false))
-    amat = amat.nextType.get
-    // Blacks (reds)
-    amat = amat.addVertex(Vector(true, false))
-    amat = amat.addVertex(Vector(false, false, true))
-    amat = amat.addVertex(Vector(false, false, false, true))
-    amat = amat.addVertex(Vector(false, true, false, false, true))
-    amat = amat.nextType.get
-    // Whites (greens)
-    amat = amat.addVertex(Vector(false, false, false, true, true, false))
+  it should "make w spiders" in {
+    val g = QuickGraph(Theory.fromFile("ZW")).addInput().addOutput().node("w", nodeName = "w")
+      .join("i-0", "w").join("w", "o-0")
 
-    var lhs = amat.copy()
 
-    amat = new AdjMat(numBoundaries = 2, numRedTypes = 1, numGreenTypes = 1)
-    amat = amat.addVertex(Vector())
-    amat = amat.addVertex(Vector(false))
-    amat = amat.nextType.get
-    // Blacks (reds)
-    amat = amat.addVertex(Vector(true, false))
-    amat = amat.addVertex(Vector(false, false, true))
-    amat = amat.addVertex(Vector(false, false, false, false))
-    amat = amat.addVertex(Vector(false, true, false, false, true))
+    val t1 = Interpreter.interpretSpiderGraph(zwSpiderInterpreter)(g, List("i-0"), List("o-0"))
+    assert(t1.isRoughly(Tensor(Array(Array(0, 1), Array(1, 0)))))
 
-    var t1 = Interpreter.interpretZWAdjMat(lhs)
-    var t2 = Interpreter.interpretZWAdjMat(amat)
-    println(t1)
+
+    val t2 = Interpreter.interpretSpiderGraph(zwSpiderInterpreter)(g, List("i-0", "o-0"), List())
+    assert(t2.isRoughly(Tensor(Array(Array(0, 1, 1, 0)))))
+
+
+    val g3 = QuickGraph(Theory.fromFile("ZW")).addInput().addOutput(2).node("w", nodeName = "w")
+      .join("i-0", "w").join("w", "o-0").join("w", "o-1")
+
+
+    val t3 = Interpreter.interpretSpiderGraph(zwSpiderInterpreter)(g3, List("i-0"), List("o-0", "o-1"))
+    assert(t3.isRoughly(Tensor(Array(Array(0, 1, 1, 0), Array(1, 0, 0, 0))).transpose))
   }
-  */
 
-  it should "agree on rule 3a" in {
+  it should "agree on rule nat_c^n" in {
 
     var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
     amat = amat.addVertex(Vector())
@@ -389,24 +386,19 @@ class InterpreterSpec extends FlatSpec {
     amat = amat.addVertex(Vector(false, false, false, true, true))
     amat = amat.addVertex(Vector(true, false, false, false, false, true))
 
-    var t1 = Interpreter.interpretZWAdjMat(rhs)
-    var t2 = Interpreter.interpretZWAdjMat(amat)
-    assert(t1 == t2)
+    var t1 = Interpreter.interpretZWAdjMat(rhs, List("v0"), List("v1", "v2"))
+    var t2 = Interpreter.interpretZWAdjMat(amat, List("v0"), List("v1", "v2"))
+    assert(t1.isRoughly(t2))
   }
 
-  it should "agree on rule 5c" in {
+  it should "agree on rule inv" in {
 
-    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
-    amat = amat.nextType.get
-    // Blacks (reds)
-    amat = amat.addVertex(Vector())
-    amat = amat.addVertex(Vector(true))
-    amat = amat.addVertex(Vector(false, true))
-    amat = amat.addVertex(Vector(false, false, true))
-    amat = amat.nextType.get
+    val g = QuickGraph(Theory.fromFile("ZW")).addInput().addOutput().node("w",nodeName = "w1").node("w",nodeName = "w2")
+      .join("i-0", "w1").join("w1","w2").join("w2", "o-0")
 
-    var t1 = Interpreter.interpretZWAdjMat(amat)
-    assert(t1 == Tensor.id(1))
+
+    var t1 = Interpreter.interpretSpiderGraph(zwSpiderInterpreter)(g, List("i-0"),List("o-0"))
+    assert(t1.isRoughly(Tensor.idWires(1)))
   }
 
   behavior of "block stacks and graph interpreters"
@@ -475,11 +467,11 @@ class InterpreterSpec extends FlatSpec {
     val stacks = BlockStackMaker.makeStacksOfSize(height, rows)
     var gate = stacks.filter(_.toString == "(CNT x  1 )")
 
-    val breakdown = Tensor.swap(List(2,1,0)).transpose o
+    val breakdown = Tensor.swap(List(2,1,0)) o
       (Tensor.idWires(2) x Tensor(Array(Array(1,0,0,0), Array(0,0,0,1)))) o
-      Tensor.swap(List(2,0,1,3)).transpose o
+      Tensor.swap(List(2,0,1,3)) o
       (Tensor.idWires(2) x Tensor(Array(Array(1,0,0,1), Array(0,1,1,0))).transpose) o
-      Tensor.swap(List(0,2,1)).transpose
+      Tensor.swap(List(0,2,1))
 
 
     val breakdown2 = Tensor(Array(Array(1,0,0,0), Array(0,1,0,0), Array(0,0,0,1), Array(0,0,1,0))) x Tensor.idWires(1)
@@ -515,8 +507,11 @@ class InterpreterSpec extends FlatSpec {
 
 
   it should "agree on small adjmats" in {
-    var errors: List[AdjMat] = smallAdjMats.filterNot(adj =>
-      amatToZXTensor(adj).isRoughly(amatToGraphToZXTensor(adj))).toList
+    val errors: List[AdjMat] = smallAdjMats.filterNot(adj => {
+      val am = amatToZXTensor(adj)
+      val gr = amatToGraphToZXTensor(adj)
+      am.isRoughly(gr)
+    }).toList
     assert(errors.isEmpty)
   }
 
@@ -529,6 +524,11 @@ class InterpreterSpec extends FlatSpec {
     stacks.foreach(bs => {
       val asGraph = bs.graph
       val tensorFromGraph = Interpreter.interpretZXGraph(asGraph,
+        asGraph.verts.filter(_.s.matches(raw"r-0-i-\d+")).toList.sortBy(vn => vn.s),
+        asGraph.verts.filter(_.s.matches(raw"r-"+(height-1)+raw"-o-\d+")).toList.sortBy(vn => vn.s))
+      assert(bs.tensor.isRoughlyUpToScalar(tensorFromGraph))
+      val asGraph2 = bs.graph
+      val tensorFromGraph2 = Interpreter.interpretZXGraph(asGraph,
         asGraph.verts.filter(_.s.matches(raw"r-0-i-\d+")).toList.sortBy(vn => vn.s),
         asGraph.verts.filter(_.s.matches(raw"r-"+(height-1)+raw"-o-\d+")).toList.sortBy(vn => vn.s))
       assert(bs.tensor.isRoughlyUpToScalar(tensorFromGraph))

@@ -2,6 +2,7 @@ package quanto.cosy
 
 import quanto.data.Theory.ValueType
 import quanto.data._
+import quanto.util.json.JsonObject
 
 /**
   * An interpreter is given a diagram (as an adjMat and variable assignment) and returns a tensor
@@ -55,7 +56,7 @@ object Interpreter {
     composite.firstOrError(ValueType.AngleExpr)
   }
 
-  def interpretZWSpider(black: Boolean, outputs: Int): Tensor = {
+  def interpretZWSpiderNoInputs(black: Boolean, outputs: Int): Tensor = {
     require(outputs >= 0)
     val toString = "ZW:" + black.toString + ":" + outputs
     val spider = if (cached.contains(toString)) cached(toString) else {
@@ -67,7 +68,7 @@ object Interpreter {
           case 3 => Tensor(Array(Array(0, 1, 1, 0, 1, 0, 0, 0))).transpose
           case _ =>
             val bY = Tensor(Array(Array(0, 1, 1, 0), Array(1, 0, 0, 0))).transpose
-            val base = interpretZWSpider(black, outputs - 1)
+            val base = interpretZWSpiderNoInputs(black, outputs - 1)
             (Tensor.idWires(outputs - 2) x bY) o base
         }
       } else {
@@ -90,7 +91,36 @@ object Interpreter {
     interpretZXAdjMatSpidersFirst(adjMat, greenAM, redAM)
   }
 
-  def interpretZWAdjMat(adjMat: AdjMat): Tensor = interpretZWAdjMatSpidersFirst(adjMat)
+  def zwSpiderInterpreter(nodeV: NodeV, inputs: Int, outputs: Int) : Tensor = {
+    (inputs, outputs) match {
+      case (0, 0) => Tensor.id(1)
+      case (0, n) => interpretZWSpiderNoInputs( nodeV.typ.toLowerCase == "w",n)
+      case (m, n) =>
+        (Tensor.idWires(n) x Tensor(Array(Array(1, 0, 0, 1)))) o
+          (zwSpiderInterpreter(nodeV, m-1, n+1) x Tensor.idWires(1))
+    }
+  }
+
+  def interpretZWAdjMat(adjMat: AdjMat, inputs: List[VName], outputs: List[VName]): Tensor = {
+    val blackNodes = Vector(
+      NodeV(
+        JsonObject(
+          "type" -> "w",
+          "value" -> ""
+        )
+      )
+    )
+    val whiteNodes = Vector(
+      NodeV(
+        JsonObject(
+          "type" -> "z",
+          "value" -> "1"
+        )
+      )
+    )
+    val graph = Graph.fromAdjMat(adjMat, blackNodes, whiteNodes)
+    interpretSpiderGraph(zwSpiderInterpreter)(graph, inputs, outputs)
+  }
 
   def interpretSpiderGraph(spiderInterpreter: (NodeV, Int, Int) => Tensor)(graph: Graph,  inputList: List[VName], outputList: List[VName]): Tensor = {
 
@@ -136,6 +166,8 @@ object Interpreter {
 
     // GRAPHS ARE READ BOTTOM TO TOP HERE.
 
+
+    // Errors here are from node names appearing in the input or output list but not in the graph
     val numInternalInputs = inputList.count(vn => {
       inputList.contains(graph.adjacentVerts(vn).head)
     })
@@ -196,19 +228,19 @@ object Interpreter {
     val cups = cap.transpose.power(numInternalOutputs / 2)
 
     val sigmaLower = if (inputList.nonEmpty) {
-      Tensor.swap(inputList.length, toLowerNeighbour).transpose
+      Tensor.swap(inputList.length, toLowerNeighbour)
     } else {
       Tensor(Array(Array(Complex(1, 0))))
     }
 
     val sigmaUpper = if (outputList.nonEmpty) {
-      Tensor.swap(outputList.length, toUpperNeighbour)
+      Tensor.swap(outputList.length, toUpperNeighbour).transpose
     } else {
       Tensor(Array(Array(Complex(1, 0))))
     }
 
     val sigmaMid = if (joinLowerList.nonEmpty) {
-      Tensor.swap(joinLowerList.length, toJoin).transpose
+      Tensor.swap(joinLowerList.length, toJoin)
     } else {
       Tensor(Array(Array(Complex(1, 0))))
     }
@@ -262,7 +294,7 @@ object Interpreter {
           }
         ).toList
       }
-      Tensor.swap(inputList.size, swapList).transpose
+      Tensor.swap(inputList.size, swapList)
     }
 
     /*
@@ -330,7 +362,7 @@ object Interpreter {
           connectionList = connectionList ++ List(claimLeg(i), claimLeg(j))
         }
       }
-      connectingCaps.plugAbove(allSpidersTensors, connectionList)
+      connectingCaps o Tensor.swap(connectionList).transpose o allSpidersTensors
     }
   }
 
@@ -375,8 +407,8 @@ object Interpreter {
       // Using ZX colours for now
       colour match {
         case VertexColour.Boundary => Tensor.id(2)
-        case VertexColour.Green => interpretZWSpider(!black, numLegs)
-        case VertexColour.Red => interpretZWSpider(black, numLegs)
+        case VertexColour.Green => interpretZWSpiderNoInputs(!black, numLegs)
+        case VertexColour.Red => interpretZWSpiderNoInputs(black, numLegs)
       }
     }
 

@@ -83,10 +83,13 @@ class TensorSpec extends FlatSpec {
   it should "construct 2-wire swap matrices" in {
     var s1 = Tensor.swap(2, x => 1 - x)
     assert(s1.toString == "1 0 0 0\n0 0 1 0\n0 1 0 0\n0 0 0 1")
-    var s2 = Tensor.swap(List(0, 2, 1))
-    assert(s2.toStringSparse ==
-      "1 . . . . . . .\n. . 1 . . . . .\n. 1 . . . . . .\n. . . 1 . . . ." +
-        "\n. . . . 1 . . .\n. . . . . . 1 .\n. . . . . 1 . .\n. . . . . . . 1")
+  }
+
+  it should "make swaps the right way up" in {
+    val id = Tensor.idWires(1)
+    val s1 = Tensor.swap(List(1,0))
+    val s2 = Tensor.swap(List(2,0,1))
+    assert(((id x s1) o (s1 x id)) == s2)
   }
 
   it should "plug tensors into other tensors" in {

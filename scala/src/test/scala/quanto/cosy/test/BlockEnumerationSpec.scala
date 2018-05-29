@@ -192,7 +192,7 @@ class BlockEnumerationSpec extends FlatSpec {
   val ZXClifford = BlockGenerators.ZXClifford
 
   it should "make a pair horizontally" in {
-    var row = new BlockRow(List(ZXClifford(0), ZXClifford(1)))
+    var row = new BlockRow(List(ZXClifford(1), ZXClifford(3)))
     var g = row.graph
     assert(g.verts.size == 6)
   }
@@ -209,7 +209,7 @@ class BlockEnumerationSpec extends FlatSpec {
     var row = new BlockRow(List(ZXClifford(5), ZXClifford(1)))
     var row2 = new BlockRow(List(ZXClifford(1), ZXClifford(5)))
     var g = BlockStack(List(row, row2)).graph
-    assert(g.verts.size == 20)
+    assert(g.verts.size == 12)
   }
 
   it should "cache rows" in {
@@ -227,10 +227,4 @@ class BlockEnumerationSpec extends FlatSpec {
     assert(g1.verts.toList.sorted == g2.verts.toList.sorted)
   }
 
-  /*
-  it should "make lots of graphs" in {
-    val bs = BlockStackMaker(2, BlockRowMaker.makeRowsOfSize(2,allowedBlocks = ZXClifford, maxInOut = Some(3)))
-    bs.foreach(b => FileHelper.printJson("./blockstacks/" + b.graph.hashCode + ".qgraph",Graph.toJson(b.graph)))
-  }
-  */
 }

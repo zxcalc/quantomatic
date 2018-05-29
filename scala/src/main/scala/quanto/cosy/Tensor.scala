@@ -388,12 +388,14 @@ object Tensor {
 
   def swap(asList: List[Int]): Tensor = {
     // Produce the matrix that sends WIRE i to WIRE asList(i)
+    // READ BOTTOM TO TOP
     val gen = (x: Int) => asList(x)
     swap(asList.length, gen)
   }
 
   def swap(size: Int, gen: Int => Int): Tensor = {
     // Produce the matrix that sends WIRE i to WIRE gen(i)
+    // READ BOTTOM TO TOP
     val genAsList: List[Int] = (0 until size).map(gen).toList
 
     if (swapCache.contains(genAsList)) {
@@ -412,7 +414,7 @@ object Tensor {
 
       }
 
-      val answer = permutation(math.pow(2, size).toInt, permGen)
+      val answer = permutation(math.pow(2, size).toInt, permGen).transpose
       swapCache += genAsList -> answer
       answer
     }

@@ -32,6 +32,8 @@ object Block {
       Tensor.fromJson((js / "tensor").asObject),
       Graph.fromJson((js / "graph").asObject))
   }
+
+  implicit def toTensor(b: Block) : Tensor = b.tensor
 }
 
 

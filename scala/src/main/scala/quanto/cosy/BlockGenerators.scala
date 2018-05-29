@@ -81,17 +81,107 @@ object BlockGenerators {
 
   val ZX : Theory = Theory.fromFile("ZX")
 
+  def zxCNOT(size: Int = 2): Block = {
+    require(size >= 2)
+    // Size 2 is the standard
+    val tensorSize = Math.pow(2, size).toInt
+    val cut = tensorSize - 2
+    val swap = Tensor.swap((0 until size).map {
+      case 0 => 0
+      case 1 => size - 1
+      case n => n - 1
+    }.toList)
+    val graph = (1 until size).foldLeft(QuickGraph(ZX).addInput(size).addOutput(size)) {
+      (g, i) =>
+        i match {
+          case 1 => g.node("Z", nodeName = "z", xCoord = i - 1).join("i-" + i, "z").join("z", "o-" + i)
+          case size => g.node("X", nodeName = "x", xCoord = i - 1).join("i-" + i, "x").join("x", "o-" + i)
+          case _ => g.join("i-" + i, "o-" + i)
+        }
+    }.join("z", "x")
+    Block(size, size, "CNOT" + size,
+      swap o
+        (
+          Tensor(Array(Array(1, 0, 0, 0), Array(0, 1, 0, 0), Array(0, 0, 0, 1), Array(0, 0, 1, 0)))
+          x Tensor.idWires(size - 2)
+          )
+      o swap.transpose
+      ,
+      graph
+    )
+  }
+  def zxTONC(size: Int = 2): Block = {
+    require(size >= 2)
+    // Size 2 is the standard
+    val swapList = (0 until size).map {
+      i => {
+        if (i == 0) size - 1
+        else if (i == size - 1) 0
+        else i
+      }
+    }.toList
+    val swap = Tensor.swap(swapList)
+    Block(size, size, "TONC" + size, swap.transpose o zxCNOT(size) o swap,
+      (1 until size).foldLeft(QuickGraph(ZX).addInput(size).addOutput(size)) {
+        (g, i) =>
+          i match {
+            case size => g.node("Z", nodeName = "z", xCoord = i - 1).join("i-" + i, "z").join("z", "o-" + i)
+            case 1 => g.node("X", nodeName = "z", xCoord = i - 1).join("i-" + i, "x").join("x", "o-" + i)
+            case _ => g.join("i-" + i, "o-" + i)
+          }
+      }.join("z", "x")
+    )
+  }
+
+
+  def zxCNOTs(maxWidth: Int = 2): IndexedSeq[Block] = for (i <- 2 to maxWidth) yield zxCNOT(i)
+  def zxTONCs(maxWidth: Int = 2): IndexedSeq[Block] = for (i <- 2 to maxWidth) yield zxCNOT(i)
+
+  val zxQubitHadamard : Block = Block(1, 1, " H ", Hadamard(2), QuickGraph(ZX).addInput().addOutput()
+    .node("hadamard", nodeName = "h").join("i-0", "h").join("h", "o-0"))
+
+  def zxQubitTwists(twoPiDivision: Int = 4): IndexedSeq[Block] = {
+    def tensor(angle: Int, nodeType: String): Tensor = {
+      nodeType match {
+        case "Z" => Tensor(Array(
+          Array(Complex.one, Complex.zero),
+          Array(Complex.zero, ei(2 * angle * math.Pi / twoPiDivision))))
+        case "X" =>
+          Tensor(Array(
+            Array(1 + ei(2 * angle * math.Pi / twoPiDivision), 1 - ei(2 * angle * math.Pi / twoPiDivision)),
+            Array(1 - ei(2 * angle * math.Pi / twoPiDivision), 1 + ei(2 * angle * math.Pi / twoPiDivision))))
+      }
+    }
+
+    def block(angle: Int, nodeType: String): Block = {
+      Block(1, 1, angle + nodeType + twoPiDivision, tensor(angle, nodeType),
+        QuickGraph(ZX)
+          .addInput().addOutput()
+          .node(nodeType = nodeType, nodeName = nodeType, angle = s"${2*angle} / $twoPiDivision")
+          .join("i-0", nodeType).join(nodeType, "o-0"))
+    }
+
+    (0 until twoPiDivision).flatMap(i =>
+      List(block(i, "X"), block(i, "Z"))
+    )
+  }
+
 
   val ZXClifford: List[Block] = List(
     Block(1, 1, " 1 ", Tensor.idWires(1), QuickGraph(ZX).addInput().addOutput().join("i-0", "o-0")),
+    zxQubitHadamard,
     Block(2, 2, " s ", Tensor.swap(List(1, 0)),
       QuickGraph(ZX).addInput(2).addOutput(2).join("i-0", "o-1").join("i-1", "o-0")),
-    Block(1, 1, " H ", Hadamard(2), QuickGraph(ZX).addInput().addOutput()
-      .node("hadamard", nodeName = "h").join("i-0", "h").join("h", "o-0")),
     Block(1, 1, "gpi", Tensor(Array(Array(1, 0), Array(0, -1))), QuickGraph(ZX).addInput().addOutput()
       .node("Z", nodeName = "zpi", angle = raw"\pi").join("i-0", "zpi").join("zpi", "o-0")),
     Block(1, 1, "rpi", Tensor(Array(Array(0, 1), Array(1, 0))), QuickGraph(ZX).addInput().addOutput()
       .node("X", nodeName = "xpi", angle = raw"\pi").join("i-0", "xpi").join("xpi", "o-0")),
+    Block(1, 1, "gp2", Tensor(Array(Array(Complex(1,0), Complex(0,0)), Array(Complex(0,0), Complex(0,1)))),
+      QuickGraph(ZX).addInput().addOutput()
+      .node("Z", nodeName = "z", angle = raw"\pi / 2").join("i-0", "z").join("z", "o-0")),
+    Block(1, 1, "rp2", Tensor(Array(Array(Complex(1,1), Complex(1,-1)), Array(Complex(1,-1), Complex(1,1)))),
+      QuickGraph(ZX).addInput().addOutput()
+      .node("X", nodeName = "x", angle = raw"\pi / 2").join("i-0", "x").join("x", "o-0")),
     Block(2, 2, "CNT", Tensor(Array(Array(1, 0, 0, 0), Array(0, 1, 0, 0), Array(0, 0, 0, 1), Array(0, 0, 1, 0))),
       QuickGraph(ZX).addInput(2).addOutput(2).node("Z", nodeName = "z").node("X", xCoord = 1, nodeName = "x")
         .join("i-0", "z").join("i-1", "x")
