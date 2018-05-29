@@ -34,6 +34,10 @@ case class MatchState(
     */
   @tailrec
   final def nextMatch(): Option[(Match, Option[MatchState])] = {
+//    if (m.map.e.domSet.size == 4) {
+//      print("got 4 edges")
+//    }
+
     // if unmatched circles are found in the pattern, match them first
     if (uCircles.nonEmpty) {
       val pc = uCircles.min
@@ -53,7 +57,8 @@ case class MatchState(
     } else if (psNodes.nonEmpty) {
       val np = psNodes.min
 
-      if (pVertexMayBeCompleted(np)) {
+      val cmp = pVertexMayBeCompleted(np)
+      if (cmp) {
         val nt = m.map.v(np)
         // get the next matchable edge in the neighbourhood of np
         val uEdges = m.pattern.adjacentEdges(np).filter(e =>
@@ -81,8 +86,10 @@ case class MatchState(
                   val et = candidateEdges1.min
                   val next = copy(candidateEdges = Some(candidateEdges1 - et))
                   matchNewWire(np, ep, nt, et) match {
-                    case Some(ms1) => ms1.copy(candidateEdges = None, nextState = Some(next)).nextMatch()
-                    case None => next.nextMatch()
+                    case Some(ms1) =>
+                      ms1.copy(candidateEdges = None, nextState = Some(next)).nextMatch()
+                    case None =>
+                      next.nextMatch()
                   }
                 }
             }
@@ -259,19 +266,23 @@ case class MatchState(
           bboxOrbits.codf(rep).forall { pv1 =>
             m.map.v.get(pv1) match {
               case None => true
-              case Some(tv1) => (pv <= pv1) == (tv <= tv1)
+              case Some(tv1) => if (pv <= pv1) { tv <= tv1 } else { true }
             }
           }
         case None => true
       }
 
   def pVertexMayBeCompleted(vp: VName): Boolean = {
-    val allVertices = m.pattern.adjacentVerts(vp)
-    val concreteVertices = allVertices.filter(v => m.pattern.bboxesContaining(v).isEmpty)
-    val hasBBox = allVertices.size > concreteVertices.size
+    val allEdges = m.pattern.adjacentEdges(vp)
+    val concreteEdges = allEdges.filter(e => m.pattern.bboxesContaining(m.pattern.edgeGetOtherVertex(e, vp)).isEmpty)
+    val hasBBox = allEdges.size > concreteEdges.size
     val tArity = m.target.arity(m.map.v(vp))
-
-    concreteVertices.size == tArity || (hasBBox && concreteVertices.size <= tArity)
+    concreteEdges.size == tArity || (hasBBox && concreteEdges.size <= tArity)
+    //val allVertices = m.pattern.adjacentVerts(vp)
+    //val concreteVertices = allVertices.filter(v => m.pattern.bboxesContaining(v).isEmpty)
+    //val hasBBox = allVertices.size > concreteVertices.size
+    //val tArity = m.target.arity(m.map.v(vp))
+    //concreteVertices.size == tArity || (hasBBox && concreteVertices.size <= tArity)
   }
 
   // TODO: we may only need to check the closest parent, not all parents

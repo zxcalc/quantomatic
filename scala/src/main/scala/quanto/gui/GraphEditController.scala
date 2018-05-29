@@ -459,6 +459,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   def minimiseGraph(): Unit = {
     view.invalidateGraph(true)
     graph = graph.minimise.coerceWiresAndBoundaries
+    //graph = graph.normalise
     view.repaint()
   }
 
