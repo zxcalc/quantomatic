@@ -80,11 +80,11 @@ class GraphEditControls(theory: Theory) extends Publisher {
 
 
 
-  val FreehandButton = new ToggleButton() with ToolButton {
-    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Freehand drawing")
-    tool = FreehandTool(None, None)
-    tooltip = "Freehand draw (F)"
-  }
+  //val FreehandButton = new ToggleButton() with ToolButton {
+  //  icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Freehand drawing")
+  //  tool = FreehandTool(None, None)
+  //  tooltip = "Freehand draw (F)"
+  //}
 
 
 
@@ -98,8 +98,8 @@ class GraphEditControls(theory: Theory) extends Publisher {
     AddVertexButton,
     AddBoundaryButton,
     AddEdgeButton,
-    AddBangBoxButton,
-    FreehandButton)
+    AddBangBoxButton // , FreehandButton
+  )
 
   def setMouseState(m : MouseState) {
     val previousToolButton = GraphToolGroup.selected
@@ -111,7 +111,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
         EdgeTypeLabel.enabled = false
         EdgeTypeSelect.enabled = false
         EdgeDirected.enabled = false
-        GraphToolGroup.select(FreehandButton)
+        //GraphToolGroup.select(FreehandButton)
       case SelectTool() =>
         VertexTypeLabel.enabled = false
         VertexTypeSelect.enabled = false
@@ -179,7 +179,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
   }
 
   val MainToolBar = new ToolBar {
-    contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton, FreehandButton)
+    contents += (SelectButton, AddVertexButton, AddBoundaryButton, AddEdgeButton, AddBangBoxButton) //, FreehandButton)
   }
   MainToolBar.peer.addSeparator()
   MainToolBar.contents += FocusGraphButton
