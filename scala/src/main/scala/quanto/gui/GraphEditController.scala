@@ -451,15 +451,11 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
 
   def normaliseGraph(): Unit = {
-    view.invalidateGraph(true)
-    graph = graph.normalise.coerceWiresAndBoundaries
-    view.repaint()
+    replaceGraph(graph.normalise.coerceWiresAndBoundaries, "Normalised graph")
   }
 
   def minimiseGraph(): Unit = {
-    view.invalidateGraph(true)
-    graph = graph.minimise.coerceWiresAndBoundaries
-    view.repaint()
+    replaceGraph(graph.minimise.coerceWiresAndBoundaries, "Minimised graph")
   }
 
   def focusOnGraph(): Unit = {
