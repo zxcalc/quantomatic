@@ -87,7 +87,6 @@ class GraphEditControls(theory: Theory) extends Publisher {
   }
 
 
-
   val MinimiseButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("normalise.png"), "Minimise")
     tooltip = "Straighten edges, and convert leaves to boundaries (M)"
@@ -99,7 +98,8 @@ class GraphEditControls(theory: Theory) extends Publisher {
     AddBoundaryButton,
     AddEdgeButton,
     AddBangBoxButton,
-    FreehandButton)
+    FreehandButton
+  )
 
   def setMouseState(m : MouseState) {
     val previousToolButton = GraphToolGroup.selected

@@ -181,6 +181,7 @@ object QuantoDerive extends SimpleSwingApplication {
   def addAndFocusPage(d : DocumentPage): Unit = {
     MainDocumentTabs += d
     listenTo(d.tabComponent)
+    MainDocumentTabs.publishChanged()
     d.document.publish(DocumentChanged(d.document))
   }
 
@@ -619,6 +620,7 @@ object QuantoDerive extends SimpleSwingApplication {
           case Some(doc) =>
             enabled = doc.document.undoStack.canUndo
             title = "Undo " + doc.document.undoStack.undoActionName.getOrElse("")
+            //listenTo(doc.document)
           case None =>
             enabled = false
             title = "Undo"
@@ -627,7 +629,8 @@ object QuantoDerive extends SimpleSwingApplication {
       listenTo(MainDocumentTabs.selection)
 
       reactions += {
-        case DocumentChanged(_) => updateUndoCommand()
+        case DocumentChanged(_) =>
+          updateUndoCommand()
         case SelectionChanged(_) =>
           currentDocument.foreach { doc => listenTo(doc.document) }
           updateUndoCommand()
