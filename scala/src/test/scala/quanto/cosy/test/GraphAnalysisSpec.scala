@@ -114,4 +114,21 @@ class GraphAnalysisSpec extends FlatSpec {
     assert(eDistances.get == 2.0)
   }
 
+  behavior of "Graph comparison"
+
+  it should "compare all these graphs" in {
+    def compare(a: Graph, b: Graph) = GraphAnalysis.zxGraphCompare(a, b)
+
+    implicit def stackToGraph(s: BlockStack) : Graph = s.graph
+    implicit def rowToGraph(s: BlockRow) : Graph = s.graph
+    implicit def blockToGraph(s: Block) : Graph = s.graph
+
+    def zx(s: String) : Graph = BlockGenerators.ZXClifford.filter(b => b.name == s).head
+
+    val hadamard = zx(" H ")
+    val id = zx(" 1 ")
+
+    assert(compare(hadamard, id) > 0)
+  }
+
 }

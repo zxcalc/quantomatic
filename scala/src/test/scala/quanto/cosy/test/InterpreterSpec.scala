@@ -133,7 +133,7 @@ class InterpreterSpec extends FlatSpec {
 
 
   it should "make (id x s) o (s x id)" in {
-    var g = QuickGraph.apply(BlockGenerators.ZX).addInput(3).addOutput(3)
+    var g = QuickGraph.apply(BlockGenerators.ZXTheory).addInput(3).addOutput(3)
       .join("i-0", "o-2")
       .join("i-1", "o-0")
       .join("i-2", "o-1")
@@ -143,7 +143,7 @@ class InterpreterSpec extends FlatSpec {
 
 
   it should "make (s x id) o (id x s)" in {
-    var g = QuickGraph.apply(BlockGenerators.ZX).addInput(3).addOutput(3)
+    var g = QuickGraph.apply(BlockGenerators.ZXTheory).addInput(3).addOutput(3)
       .join("i-0", "o-1")
       .join("i-1", "o-2")
       .join("i-2", "o-0")
@@ -408,7 +408,7 @@ class InterpreterSpec extends FlatSpec {
 
   it should "interpret Z pi/4" in {
 
-    val cnotGraph = QuickGraph(BlockGenerators.ZX).addInput(1).addOutput(1).node("Z", nodeName = "z", angle = "1/4")
+    val cnotGraph = QuickGraph(BlockGenerators.ZXTheory).addInput(1).addOutput(1).node("Z", nodeName = "z", angle = "1/4")
       .join("i-0", "z")
       .join("o-0", "z")
 
@@ -419,7 +419,7 @@ class InterpreterSpec extends FlatSpec {
 
   it should "interpret X pi/4" in {
 
-    val cnotGraph = QuickGraph(BlockGenerators.ZX).addInput(1).addOutput(1).node("X", nodeName = "x", angle = "1/4")
+    val cnotGraph = QuickGraph(BlockGenerators.ZXTheory).addInput(1).addOutput(1).node("X", nodeName = "x", angle = "1/4")
       .join("i-0", "x")
       .join("o-0", "x")
 
@@ -430,7 +430,7 @@ class InterpreterSpec extends FlatSpec {
 
   it should "interpret X pi" in {
 
-    val cnotGraph = QuickGraph(BlockGenerators.ZX).addInput(1).addOutput(1).node("X", nodeName = "x", angle = "1")
+    val cnotGraph = QuickGraph(BlockGenerators.ZXTheory).addInput(1).addOutput(1).node("X", nodeName = "x", angle = "1")
       .join("i-0", "x")
       .join("o-0", "x")
 
@@ -440,7 +440,7 @@ class InterpreterSpec extends FlatSpec {
 
 
   it should "interpret CNOT" in {
-    val cnotGraph = QuickGraph(BlockGenerators.ZX).addInput(2).addOutput(2).node("Z", nodeName = "z").node("X", xCoord = 1, nodeName = "x")
+    val cnotGraph = QuickGraph(BlockGenerators.ZXTheory).addInput(2).addOutput(2).node("Z", nodeName = "z").node("X", xCoord = 1, nodeName = "x")
       .join("i-0", "z").join("i-1", "x")
       .join("o-0", "z").join("o-1", "x")
       .join("z", "x")
@@ -455,7 +455,7 @@ class InterpreterSpec extends FlatSpec {
   }
 
   it should "interpret CNOT x id" in {
-    val cnotGraph = QuickGraph(BlockGenerators.ZX).addInput(3).addOutput(3).node("Z", nodeName = "z").node("X", xCoord = 1, nodeName = "x")
+    val cnotGraph = QuickGraph(BlockGenerators.ZXTheory).addInput(3).addOutput(3).node("Z", nodeName = "z").node("X", xCoord = 1, nodeName = "x")
       .join("i-0", "z").join("i-1", "x")
       .join("o-0", "z").join("o-1", "x")
       .join("z", "x")
@@ -492,7 +492,7 @@ class InterpreterSpec extends FlatSpec {
 
 
   it should "interpret green strings" in {
-    val cnotGraph = QuickGraph(BlockGenerators.ZX).addInput(3).addOutput(3)
+    val cnotGraph = QuickGraph(BlockGenerators.ZXTheory).addInput(3).addOutput(3)
       .node("Z", nodeName = "z2")
       .node("Z", nodeName = "z1")
       .node("Z", nodeName = "z0")
