@@ -82,7 +82,7 @@ class GraphEditControls(theory: Theory) extends Publisher {
 
   val FreehandButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Freehand drawing")
-    tool = FreehandTool(None, None)
+    tool = FreehandTool(None, startedWithNew = false)
     tooltip = "Freehand draw (F)"
   }
 
