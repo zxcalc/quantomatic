@@ -7,6 +7,7 @@ BUNDLE=target/QuantoDerive
 
 # Rebuild the core heap
 echo Rebuilding the core heap...
+mkdir -p ../core/heaps
 (cd ../core; ../scala/dist/linux-dist/poly --use build_heap.ML)
 
 
@@ -36,7 +37,8 @@ echo Including jars...
 cp -f lib_managed/jars/*/*/akka-actor*.jar $BUNDLE/jars
 cp -f lib_managed/jars/*/*/scala-library*.jar $BUNDLE/jars
 cp -f lib_managed/jars/*/*/scala-swing*.jar $BUNDLE/jars
-cp -f lib_managed/jars/*/*/jackson-core*.jar $BUNDLE/jars
+cp -f lib_managed/bundles/*/*/scala-parser-combinators*.jar $BUNDLE/jars
+cp -f lib_managed/bundles/*/*/jackson-core*.jar $BUNDLE/jars
 cp -f lib_managed/bundles/*/*/config*.jar $BUNDLE/jars
 
 # grab local dependences
