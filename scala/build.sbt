@@ -26,7 +26,7 @@ libraryDependencies += "com.fasterxml.jackson.module" % "jackson-module-scala_2.
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % "test"
 
-libraryDependencies += "org.scala-lang.modules" % "scala-swing_2.12" % "2.0.2"
+libraryDependencies += "org.scala-lang.modules" % "scala-swing_2.12" % "2.0.3"
 
 //libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value
 
