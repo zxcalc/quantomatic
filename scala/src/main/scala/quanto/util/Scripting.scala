@@ -152,6 +152,16 @@ object Scripting {
 
   // python wrappers for simproc combinators
   val EMPTY = Simproc.EMPTY
+
+  //takes in a python function that accepts a json version of the graph
+  // and outputs new json content for a new graph
+  def JSON_REWRITE(func: PyFunction) = new Simproc{
+    override def simp(g: Graph): Iterator[(Graph, Rule)] = {
+      val input = g.toJson().toString()
+      val output = Py.tojava(func.__call__(Py.java2py(input)),classOf[String])
+      Iterator.single((Graph.fromJson(Json.parse(output),project.theory),Rule(Graph(),Graph())))
+    }
+  }
   def REWRITE(o: Object) = o match {
     case list: PyList => Simproc.REWRITE(pyListToList(list))
     case _ => Simproc.REWRITE(List(o.asInstanceOf[Rule]))
