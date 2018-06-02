@@ -5,6 +5,11 @@
 
 BUNDLE=target/QuantoDerive
 
+# Pre-build cleanup, so we know we're building in a consistent environment.
+sbt clean
+rm -r ../core/heaps/* 
+rm -r $BUNDLE/*
+
 # Rebuild the core heap
 echo Rebuilding the core heap...
 mkdir -p ../core/heaps
@@ -23,7 +28,8 @@ sbt package
 
 echo Including binaries...
 cp -f dist/linux-dist/quanto-derive.sh $BUNDLE/
-cp -f dist/linux-dist/polybin dist/linux-dist/poly $BUNDLE/bin
+cp -f dist/linux-dist/polybin $BUNDLE/bin
+cp -f dist/linux-dist/poly $BUNDLE/bin
 cp -f dist/linux-dist/libpolyml.so.4 $BUNDLE/bin
 
 echo Including heap...
