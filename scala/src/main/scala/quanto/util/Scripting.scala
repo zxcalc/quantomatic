@@ -98,6 +98,11 @@ object Scripting {
 //    }
   }
 
+  def new_graph_from_json(jsonString: String): Unit = {
+    val doc = QuantoDerive.newGraph()
+    doc.replaceJson(Json.parse(jsonString))
+  }
+
   class derivation(start : Graph) {
     var d = Derivation(start)
 

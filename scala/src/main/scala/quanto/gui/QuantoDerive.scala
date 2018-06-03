@@ -36,6 +36,8 @@ import quanto.gui.QuantoDerive.FileMenu.mnemonic
 import quanto.util._
 
 
+class NoProjectException extends Exception("No project open.")
+
 object QuantoDerive extends SimpleSwingApplication {
   System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
@@ -420,6 +422,18 @@ object QuantoDerive extends SimpleSwingApplication {
   }
 
 
+  def newGraph(): GraphDocument = {
+    CurrentProject match {
+      case Some(project) =>
+        val page = new GraphDocumentPage(project.theory)
+        addAndFocusPage(page)
+        page.document.asInstanceOf[GraphDocument]
+      case None =>
+        throw new NoProjectException
+    }
+  }
+
+
   object FileMenu extends Menu("File") { menu =>
     mnemonic = Key.F
 
@@ -427,10 +441,7 @@ object QuantoDerive extends SimpleSwingApplication {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask))
       menu.contents += new MenuItem(this) { mnemonic = Key.G }
       def apply() {
-        CurrentProject.foreach{ project =>
-          val page = new GraphDocumentPage(project.theory)
-          addAndFocusPage(page)
-        }
+        newGraph()
       }
     }
 
