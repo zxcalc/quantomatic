@@ -2,7 +2,7 @@ name := "quanto"
 
 version := "1.0"
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.12.6"
 
 scalacOptions ++= Seq("-feature", "-language:implicitConversions")
 
@@ -14,19 +14,19 @@ fork := true
 
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
  
-libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.9" withSources() withJavadoc()
+libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.12" withSources() withJavadoc()
 
-libraryDependencies += "com.fasterxml.jackson.core" % "jackson-core" % "2.9.4"
+libraryDependencies += "com.fasterxml.jackson.core" % "jackson-core" % "2.9.5"
 
-libraryDependencies += "com.fasterxml.jackson.module" % "jackson-module-scala_2.12" % "2.9.4"
+libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.9.5"
 
 //libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test"
 
 //libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.4"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 
-libraryDependencies += "org.scala-lang.modules" % "scala-swing_2.12" % "2.0.2"
+libraryDependencies += "org.scala-lang.modules" %% "scala-swing" % "2.0.3"
 
 //libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value
 
