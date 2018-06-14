@@ -167,6 +167,29 @@ object Scripting {
       Iterator.single((Graph.fromJson(Json.parse(output),project.theory),Rule(Graph(),Graph())))
     }
   }
+
+  def JSON_REWRITE_STEPS(starter: PyMethod, step_getter: PyMethod, name_getter: PyMethod) = new Simproc{
+    override def simp(g: Graph): Iterator[(Graph, Rule)] = {
+      val input = g.toJson().toString()
+      val total_steps = Py.tojava(starter.__call__(Py.java2py(input)),classOf[Integer])
+      var index = 0
+      new Iterator[(Graph, Rule)] {
+        override def length = total_steps
+        override def hasNext: Boolean = index < total_steps
+        override def next(): (Graph, Rule) = {
+          if (index < total_steps) {
+            val name = Py.tojava(name_getter.__call__(Py.java2py(index)), classOf[String])
+            println("Adding rewrite step: " + name)
+            val js = Py.tojava(step_getter.__call__(Py.java2py(index)), classOf[String])
+            val rule = Rule(Graph(), Graph(), None, RuleDesc(name))
+            index += 1
+            (Graph.fromJson(Json.parse(js), project.theory), rule)
+          }
+          else null
+        }
+      }
+    }
+  }
   def REWRITE(o: Object) = o match {
     case list: PyList => Simproc.REWRITE(pyListToList(list))
     case _ => Simproc.REWRITE(List(o.asInstanceOf[Rule]))
