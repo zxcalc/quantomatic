@@ -305,7 +305,9 @@ object CoSyRuns {
 
     override val Generator: Iterator[AdjMat] =
       (ColbournReadEnum.enumerate(1, 1, numBoundaries.max, 0).iterator ++
-        ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries.max, numVertices).iterator).
+        ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries.max, numVertices).sortBy(
+          adj => adj.numBoundaries + adj.numGreen + adj.numRed
+        ).iterator).
         filter(a => numBoundaries.contains(a.numBoundaries))
     private val gdata = (for (i <- 0 until numAngles) yield {
       NodeV(data = JsonObject("type" -> "Z", "value" -> angleMap(i).toString), theory = theory)
