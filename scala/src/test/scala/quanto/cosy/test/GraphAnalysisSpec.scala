@@ -4,6 +4,7 @@ import java.io.File
 
 import org.scalatest.FlatSpec
 import quanto.cosy.RuleSynthesis._
+import quanto.cosy.GraphAnalysis._
 import quanto.cosy._
 import quanto.data._
 import quanto.util.Rational
@@ -129,6 +130,67 @@ class GraphAnalysisSpec extends FlatSpec {
     val id = zx(" 1 ")
 
     assert(compare(hadamard, id) > 0)
+  }
+
+  behavior of "Connectiviy analysis"
+
+  it should "leave empty graph disconnected" in {
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.addVertex(Vector(false, false))
+    val cc = connectionClasses(amat)
+    assert(cc == (0 until 3).toVector)
+  }
+
+
+  it should "connect all in line graph" in {
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(true))
+    amat = amat.addVertex(Vector(false, true))
+    val cc = connectionClasses(amat)
+    assert(cc == Vector(0,0,0))
+  }
+
+
+  it should "find two classes" in {
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.addVertex(Vector(true, false))
+    val cc = connectionClasses(amat)
+    assert(cc == Vector(0,1,0))
+  }
+
+  it should "detect no scalars in all boundaries" in {
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.addVertex(Vector(true, false))
+    assert(!containsScalars(amat))
+  }
+
+  it should "detect no scalars with some non-boundaries" in {
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.addVertex(Vector(true, false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, true, false))
+    assert(!containsScalars(amat))
+  }
+
+
+  it should "detect scalars with some non-boundaries" in {
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.addVertex(Vector(true, false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, false, false))
+    amat = amat.addVertex(Vector(false, false, false, true))
+    assert(containsScalars(amat))
   }
 
 }

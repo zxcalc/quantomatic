@@ -127,6 +127,28 @@ object GraphAnalysis {
     0
   }
 
+  def connectionClasses(adjMat: AdjMat) : Vector[Int] = {
+    val initialVector = (0 until adjMat.size).toVector
+    def join(v: Vector[Int], i: Int, j: Int): Vector[Int] ={
+      v.map {a => if (a == v(i) || a == v(j)) {math.min(v(i),v(j))} else a }
+    }
+    adjMat.mat.zipWithIndex.flatMap(rowWithIndex => {
+
+      val rci = rowWithIndex._1.zipWithIndex
+      rci.map(bi => (bi._1, bi._2, rowWithIndex._2))
+    }).filter(_._1).map(bii => (bii._2, bii._3)).foldLeft(initialVector){
+      (v, ii) => join(v, ii._1, ii._2)
+    }
+  }
+
+  def containsScalars(adjMat: AdjMat) : Boolean = {
+    // Boundaries are at the front of the adjmat, and are given labels first
+    // So if any class still has labels higher than the number of boundaries
+    // it can't be connected to any of the boundaries
+    val cc = connectionClasses(adjMat)
+    !cc.forall(_ < adjMat.numBoundaries)
+  }
+
 
   type BMatrix = Vector[Vector[Boolean]]
 
