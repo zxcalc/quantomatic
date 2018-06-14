@@ -107,7 +107,7 @@ object GraphAnalysis {
 
     def sumAngles(graph: Graph, filterType: String): Rational = graph.vdata.
       filter(nd => nd._2.typ == filterType).
-      foldLeft(Rational(0,0)) {
+      foldLeft(Rational(0,1)) {
         (angle, nd) => angle + stringToPhase(nd._2.asInstanceOf[NodeV].value).constant
       }
 
