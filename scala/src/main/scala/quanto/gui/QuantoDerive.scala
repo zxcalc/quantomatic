@@ -118,6 +118,7 @@ object QuantoDerive extends SimpleSwingApplication {
         updateProjectFile(projectFile)
         ProjectFileTree.root = Some(project.rootFolder)
         prefs.put("lastProjectFile", projectFileLocation)
+        UserAlerts.registerLogFile(Some(new File(project.rootFolder + s"/${project.name}_log.txt")))
         alert(s"Successfully loaded project: $projectFileLocation")
         Some(project)
       } else {

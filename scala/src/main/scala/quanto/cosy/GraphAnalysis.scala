@@ -105,21 +105,21 @@ object GraphAnalysis {
     // Sum of Z angles
     val Pi = math.Pi
 
-    def sumAngles(graph: Graph, filterType: String): PhaseExpression = graph.vdata.
+    def sumAngles(graph: Graph, filterType: String): Rational = graph.vdata.
       filter(nd => nd._2.typ == filterType).
-      foldLeft(PhaseExpression.zero(ValueType.AngleExpr)) {
-        (angle, nd) => angle + nd._2.asInstanceOf[NodeV].value
+      foldLeft(Rational(0,1)) {
+        (angle, nd) => angle + stringToPhase(nd._2.asInstanceOf[NodeV].value).constant
       }
 
-    // sumAngles returns a value in [0,2)
+    // sumAngles returns a rational that is probably bigger than 2 (remember that the pi is left out)
 
-    val ZAngles: Rational = sumAngles(left, "Z").constant - sumAngles(right, "Z").constant
+    val ZAngles: Rational = sumAngles(left, "Z") - sumAngles(right, "Z")
     if (ZAngles > 0) return 1
     if (ZAngles < 0) return -1
 
     // Sum of X angles
 
-    val XAngles: Rational = sumAngles(left, "X").constant - sumAngles(right, "X").constant
+    val XAngles: Rational = sumAngles(left, "X") - sumAngles(right, "X")
     if (XAngles > 0) return 1
     if (XAngles < 0) return -1
 

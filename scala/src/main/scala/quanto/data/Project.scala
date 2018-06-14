@@ -55,7 +55,7 @@ object Project {
       }
   }
 
-  def fromTheoryOrProjectFile(theoryOrProjectFile: File, rootFolder: File = new File("."), name: String = ""): Project = {
+  def fromTheoryOrProjectFile(theoryOrProjectFile: File, rootFolder: File = new File("."), name: String = "main"): Project = {
     println(s"Asked to load project from: $theoryOrProjectFile")
     val theory: Theory = Theory.fromJson({
       val extension: String = theoryOrProjectFile.getAbsolutePath.replaceAll(".*\\.", "")

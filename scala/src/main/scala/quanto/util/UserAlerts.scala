@@ -66,16 +66,13 @@ object UserAlerts {
     }
   }
 
-  def logFile: Option[File] = {
-    // It's possible to get here before the GUI instantiates
-    val project = quanto.gui.QuantoDerive.CurrentProject
-    if (project != null && project.nonEmpty) {
-      Some(new File(quanto.gui.QuantoDerive.CurrentProject.get.rootFolder + s"/${project.get.name}_log.txt"))
-    }
-    else {
-      None
-    }
+  def registerLogFile(optionFile: Option[File]) : Unit = {
+    _logFile = optionFile
   }
+
+  private var _logFile : Option[File] = None
+
+  def logFile: Option[File] = _logFile
 
   case class UserAlertEvent(alert: Alert) extends Event
 

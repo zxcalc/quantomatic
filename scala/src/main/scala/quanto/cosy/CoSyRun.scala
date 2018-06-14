@@ -9,7 +9,7 @@ import quanto.data._
 import quanto.rewrite.{Match, Matcher}
 import quanto.util.FileHelper._
 import quanto.util.json.JsonObject
-import quanto.util.{FileHelper, Rational}
+import quanto.util.{FileHelper, Rational, UserAlerts}
 
 import scala.concurrent.duration.Duration
 import scala.util.matching.Regex
@@ -303,12 +303,28 @@ object CoSyRuns {
               ) extends CoSyRun[AdjMat, Tensor](rulesDir, theory, duration, outputDir) {
 
 
-    override val Generator: Iterator[AdjMat] =
-      (ColbournReadEnum.enumerate(1, 1, numBoundaries.max, 0).iterator ++
-        ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries.max, numVertices).sortBy(
-          adj => adj.numBoundaries + adj.numGreen + adj.numRed
-        ).iterator).
+    override val Generator: Iterator[AdjMat] = {
+      val identitiesFirst  = ColbournReadEnum.enumerate(1, 1, numBoundaries.max, 0).
         filter(a => numBoundaries.contains(a.numBoundaries))
+
+      val CR = ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries.max, numVertices)
+
+      UserAlerts.alert("CoSy: Finished Colbourn-Read")
+
+      val CRScalars = if(scalars) CR else CR.filter(adj => !GraphAnalysis.containsScalars(adj))
+
+      UserAlerts.alert("CoSy: Filtered out scalars")
+
+      val CRScalarsSorted = CRScalars.sortBy(adj => adj.numBoundaries + adj.numGreen + adj.numRed)
+
+      UserAlerts.alert("CoSy: Sorted AdjMats")
+
+      val combined = identitiesFirst.iterator ++
+        CRScalars.iterator.filter(a => numBoundaries.contains(a.numBoundaries))
+
+      combined
+    }
+
     private val gdata = (for (i <- 0 until numAngles) yield {
       NodeV(data = JsonObject("type" -> "Z", "value" -> angleMap(i).toString), theory = theory)
     }).toVector
