@@ -309,18 +309,18 @@ object CoSyRuns {
 
       val CR = ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries.max, numVertices)
 
-      UserAlerts.alert("CoSy: Finished Colbourn-Read")
+      UserAlerts.alert(s"CoSy: Finished Colbourn-Read (${CR.size})")
 
       val CRScalars = if(scalars) CR else CR.filter(adj => !GraphAnalysis.containsScalars(adj))
 
-      UserAlerts.alert("CoSy: Filtered out scalars")
+      UserAlerts.alert(s"CoSy: Filtered out scalars (${CRScalars.size})")
 
-      val CRScalarsSorted = CRScalars.sortBy(adj => adj.numBoundaries + adj.numGreen + adj.numRed)
+      val CRScalarsSorted = CRScalars.sortBy(_.size)
 
       UserAlerts.alert("CoSy: Sorted AdjMats")
 
       val combined = identitiesFirst.iterator ++
-        CRScalars.iterator.filter(a => numBoundaries.contains(a.numBoundaries))
+        CRScalarsSorted.iterator.filter(a => numBoundaries.contains(a.numBoundaries))
 
       combined
     }
