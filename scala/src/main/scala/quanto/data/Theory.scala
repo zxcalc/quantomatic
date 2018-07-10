@@ -32,6 +32,27 @@ case class Theory(
 
   def defaultEdgeData: JsonObject = edgeTypes(defaultEdgeType).defaultData
 
+  def mixin(that: Theory, overwriteName: Option[String]): Theory = {
+    // New overwrites old!
+    Theory(overwriteName.getOrElse(name),
+      overwriteName.getOrElse(coreName),
+      vertexTypes ++ that.vertexTypes,
+      edgeTypes ++ that.edgeTypes,
+      that.defaultVertexType, that.defaultEdgeType)
+  }
+
+  def mixin(
+           newVertexTypes: Map[String, Theory.VertexDesc] = Map(),
+           newEdgeTypes: Map[String, Theory.EdgeDesc] = Map(),
+           newName: Option[String] = None): Theory = {
+    // Overwrites existing types of the same name
+    Theory(newName.getOrElse(name),
+      newName.getOrElse(coreName),
+      vertexTypes ++ newVertexTypes,
+      edgeTypes ++ newEdgeTypes,
+      defaultVertexType, defaultEdgeType)
+  }
+
   override def toString: String = coreName
 }
 
@@ -192,36 +213,36 @@ object Theory {
                      )
 
   object ValueType extends Enumeration with JsonEnumConversions {
-    val String : ValueType = Value("string")
-    val AngleExpr : ValueType = Value("angle_expr")
-    val Boolean : ValueType = Value("boolean")
-    val Rational : ValueType = Value("rational")
-    val Integer : ValueType = Value("integer")
-    val Long : ValueType = Value("long")
-    val Enum : ValueType = Value("enum")
-    val Empty : ValueType = Value("empty")
+    val String: ValueType = Value("string")
+    val AngleExpr: ValueType = Value("angle_expr")
+    val Boolean: ValueType = Value("boolean")
+    val Rational: ValueType = Value("rational")
+    val Integer: ValueType = Value("integer")
+    val Long: ValueType = Value("long")
+    val Enum: ValueType = Value("enum")
+    val Empty: ValueType = Value("empty")
   }
 
   object VertexShape extends Enumeration with JsonEnumConversions {
-    val Circle : VertexShape = Value("circle")
-    val Rectangle : VertexShape = Value("rectangle")
-    val Custom : VertexShape = Value("custom")
+    val Circle: VertexShape = Value("circle")
+    val Rectangle: VertexShape = Value("rectangle")
+    val Custom: VertexShape = Value("custom")
 
 
     def fromName(name: String): Option[VertexShape] = this.values.find(v => v.toString == name)
   }
 
   object VertexLabelPosition extends Enumeration with JsonEnumConversions {
-    val Center : VertexLabelPosition = Value("center")
-    val Inside : VertexLabelPosition = Value("inside")
-    val Below : VertexLabelPosition = Value("below")
+    val Center: VertexLabelPosition = Value("center")
+    val Inside: VertexLabelPosition = Value("inside")
+    val Below: VertexLabelPosition = Value("below")
 
     def fromName(name: String): Option[VertexLabelPosition] = this.values.find(v => v.toString == name)
   }
 
   object EdgeLabelPosition extends Enumeration with JsonEnumConversions {
-    val Center : EdgeLabelPosition = Value("center")
-    val Auto : EdgeLabelPosition = Value("auto")
+    val Center: EdgeLabelPosition = Value("center")
+    val Auto: EdgeLabelPosition = Value("auto")
   }
 
   object ValueDesc {
@@ -315,4 +336,5 @@ object Theory {
       "default_data" -> v.defaultData
     )
   }
+
 }

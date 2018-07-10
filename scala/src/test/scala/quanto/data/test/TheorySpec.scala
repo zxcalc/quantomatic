@@ -169,4 +169,22 @@ class TheorySpec extends FlatSpec {
     print(loaded.vertexTypes)
     assert(loaded === thy)
   }
+
+  behavior of "mixing theories"
+
+  it should "mix with itself" in {
+    assert(thy.mixin(thy, None) == thy)
+  }
+
+  val plain = Theory.fromFile("plain")
+  val rg = Theory.fromFile("red_green")
+
+  it should "mix with others" in {
+    val mixedPlainRG = plain.mixin(rg, Some("plain with red_green"))
+    assert(mixedPlainRG.vertexTypes.keySet == Set("var", "hadamard", "Z", "X"))
+  }
+
+  it should "mix with fragments" in {
+    assert(plain.mixin(newVertexTypes = rg.vertexTypes.filter(_._1 == "Z")).vertexTypes.keySet == Set("var", "Z"))
+  }
 }
