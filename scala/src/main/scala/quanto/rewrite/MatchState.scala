@@ -354,9 +354,13 @@ case class MatchState(
     val tDir = m.target.edata(et).isDirected
     val pOutEdge = m.pattern.source(ep) == vp
     val tOutEdge = m.target.source(et) == vt
+    val pType = m.pattern.edata(ep).typ
+    val tType = m.target.edata(et).typ
 
     // match directedness and, if the edge is directed, direction
-    if ((pDir && tDir && pOutEdge == tOutEdge) || (!pDir && !tDir)) {
+    // also match on type
+    // TODO: Match data on edges
+    if (((pDir && tDir && pOutEdge == tOutEdge) || (!pDir && !tDir)) && (pType == tType)) {
       val newVp = m.pattern.edgeGetOtherVertex(ep, vp)
       val newVt = m.target.edgeGetOtherVertex(et, vt)
 

@@ -3,7 +3,7 @@ package quanto.rewrite.test
 import quanto.rewrite._
 import quanto.data._
 import org.scalatest._
-import quanto.data.Theory.ValueType
+import quanto.data.Theory.{EdgeDesc, ValueType}
 import quanto.util.json.Json
 
 class MatcherSpec extends FlatSpec {
@@ -636,6 +636,51 @@ class MatcherSpec extends FlatSpec {
     assert(matches.forall { _.isTotal })
     assert(matches.forall { _.isHomomorphism })
   }
+
+
+  val stringWire = rg.edgeTypes("string")
+  val twoWire : Theory = rg.mixin(newEdgeTypes = Map("q" -> stringWire.copy()))
+
+  it should "fail to match edges of different types" in {
+      val g = Graph.fromJson(Json.parse(
+        """
+          |{
+          |  "node_vertices": {
+          |    "v0": {"data": {"type": "Z", "value": ""}},
+          |    "v1": {"data": {"type": "X", "value": ""}}
+          |  },
+          |  "undir_edges": {
+          |    "e0": {"data": {"type": "string"},"src": "v0", "tgt": "v1"},
+          |    "e1": {"data": {"type": "q"},"src": "v0", "tgt": "v1"}
+          |  }
+          |}
+        """.stripMargin), thy = rg)
+      val matches = Matcher.findMatches(g, g)
+      assert(matches.size === 1)
+   }
+
+
+  it should "find 2x2 matches from different wire types" in {
+    val g = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z", "value": ""}},
+        |    "v1": {"data": {"type": "X", "value": ""}}
+        |  },
+        |  "undir_edges": {
+        |    "e0": {"data": {"type": "string"},"src": "v0", "tgt": "v1"},
+        |    "e1": {"data": {"type": "q"},"src": "v0", "tgt": "v1"},
+        |    "e2": {"data": {"type": "string"},"src": "v0", "tgt": "v1"},
+        |    "e3": {"data": {"type": "q"},"src": "v0", "tgt": "v1"}
+        |  }
+        |}
+      """.stripMargin), thy = rg)
+    val matches = Matcher.findMatches(g, g)
+    assert(matches.size === 4)
+  }
+
+
 
   it should "match a graph with 2 components on itself" in {
     val g1 = Graph.fromJson(Json.parse(
