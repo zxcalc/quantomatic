@@ -58,4 +58,13 @@ class BlockGeneratorsSpec extends FlatSpec {
     assert(t4.tensor.isRoughlyUpToScalar(t4graphInterpretation))
 
   }
+
+  it should "not have string edges, only rails" in {
+    val blocks: List[Block] = BlockGenerators.ZXGates(4, 1)
+    val rows: List[BlockRow] = BlockRowMaker.makeRowsUpToSize(1, blocks, Some(1))
+    val stacks = BlockStackMaker.makeStacksOfSize(2, rows)
+    val graphs = stacks.map(_.graph)
+    val graphsWithStrings = graphs.filter(g => g.edata.values.exists(ed => ed.typ == "string"))
+    assert(graphsWithStrings.isEmpty)
+  }
 }

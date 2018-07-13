@@ -53,20 +53,20 @@ object BlockGenerators {
     def join(s1 : String, s2: String, edgeType : Option[String] = None) : QuickGraph = {
       val name = _g.edges.freshWithSuggestion("e-0")
       val eData = if(edgeType.isEmpty) {
-        Theory.DefaultTheory.defaultEdgeData
+        _g.data.theory.edgeTypes(_g.data.theory.defaultEdgeType).defaultData
       } else {
         _g.data.theory.edgeTypes(edgeType.get).defaultData
       }
-      val data = UndirEdge(eData)
+      val data = UndirEdge(eData, theory = _g.data.theory)
       val v1 = VName(s1)
       val v2 = VName(s2)
       QuickGraph(_g.addEdge(name, data, v1 -> v2))
     }
 
-    def joinIfNotAlready(s1: String, s2: String) : QuickGraph = {
+    def joinIfNotAlready(s1: String, s2: String, edgeType : Option[String] = None) : QuickGraph = {
       val isJoined = _g.adjacentVerts(s1).contains(s2)
       if(!isJoined){
-        this.join(s1, s2)
+        this.join(s1, s2, edgeType)
       }else{
         this
       }
@@ -85,6 +85,7 @@ object BlockGenerators {
   }
 
   val ZXTheory : Theory = Theory.fromFile("ZX")
+  val ZXRails : Theory = Theory.fromFile("ZXRails")
 
   def zxCNOT(size: Int = 2): Block = {
     require(size >= 2)
@@ -97,14 +98,15 @@ object BlockGenerators {
       case n => n - 1
     }.toList)
     val penultimate = size - 1
-    val graph = (0 until size).foldLeft(QuickGraph(ZXTheory).addInput(size).addOutput(size)) {
+    val graph = (0 until size).foldLeft(QuickGraph(ZXRails).addInput(size).addOutput(size)) {
       (g, i) =>
         i match {
           case 0 => g.node("Z", nodeName = "z", xCoord = i).join("i-" + i, "z").join("z", "o-" + i)
-          case `penultimate` => g.node("X", nodeName = "x", xCoord = i).join("i-" + i, "x").join("x", "o-" + i)
-          case _ => g.join("i-" + i, "o-" + i)
+          case `penultimate` =>
+            g.node("X", nodeName = "x", xCoord = i).join("i-" + i, "x").join("x", "o-" + i)
+          case _ => g.join("i-" + i, "o-" + i, Some("rail"))
         }
-    }.join("z", "x")
+    }.join("z", "x", Some("string"))
     Block(size, size, "CNOT" + size,
       swap o
         (
@@ -129,14 +131,14 @@ object BlockGenerators {
     val swap = Tensor.swap(swapList)
     val penultimate = size - 1
     Block(size, size, "TONC" + size, swap.transpose o zxCNOT(size) o swap,
-      (0 until size).foldLeft(QuickGraph(ZXTheory).addInput(size).addOutput(size)) {
+      (0 until size).foldLeft(QuickGraph(ZXRails).addInput(size).addOutput(size)) {
         (g, i) =>
           i match {
             case `penultimate` => g.node("Z", nodeName = "z", xCoord = i).join("i-" + i, "z").join("z", "o-" + i)
             case 0 => g.node("X", nodeName = "x", xCoord = i).join("i-" + i, "x").join("x", "o-" + i)
             case _ => g.join("i-" + i, "o-" + i)
           }
-      }.join("z", "x")
+      }.join("z", "x", Some("string"))
     )
   }
 
@@ -144,7 +146,7 @@ object BlockGenerators {
   def zxCNOTs(maxWidth: Int = 2): List[Block] = (for (i <- 2 to maxWidth) yield zxCNOT(i)).toList
   def zxTONCs(maxWidth: Int = 2): List[Block] = (for (i <- 2 to maxWidth) yield zxCNOT(i)).toList
 
-  val zxQubitHadamard : Block = Block(1, 1, " H ", Hadamard(2), QuickGraph(ZXTheory).addInput().addOutput()
+  val zxQubitHadamard : Block = Block(1, 1, " H ", Hadamard(2), QuickGraph(ZXRails).addInput().addOutput()
     .node("hadamard", nodeName = "h").join("i-0", "h").join("h", "o-0"))
 
   def zxQubitTwists(twoPiDivision: Int = 4): IndexedSeq[Block] = {
@@ -161,11 +163,11 @@ object BlockGenerators {
     }
 
     def block(angle: Int, nodeType: String): Block = {
-      Block(1, 1, angle + nodeType + twoPiDivision, tensor(angle, nodeType),
-        QuickGraph(ZXTheory)
+      Block(1, 1, (2*angle) + nodeType + twoPiDivision, tensor(angle, nodeType),
+        QuickGraph(ZXRails)
           .addInput().addOutput()
           .node(nodeType = nodeType, nodeName = nodeType, angle = s"${2*angle} / $twoPiDivision")
-          .join("i-0", nodeType).join(nodeType, "o-0"))
+          .join("i-0", nodeType, Some("rail")).join(nodeType, "o-0", Some("rail")))
     }
 
     (0 until twoPiDivision).flatMap(i =>
@@ -175,37 +177,37 @@ object BlockGenerators {
 
 
   val ZXClifford: List[Block] = List(
-    Block(1, 1, " 1 ", Tensor.idWires(1), QuickGraph(ZXTheory).addInput().addOutput().join("i-0", "o-0")),
+    Block(1, 1, " 1 ", Tensor.idWires(1), QuickGraph(ZXRails).addInput().addOutput().join("i-0", "o-0", Some("rail"))),
     zxQubitHadamard,
     Block(2, 2, " s ", Tensor.swap(List(1, 0)),
-      QuickGraph(ZXTheory).addInput(2).addOutput(2).join("i-0", "o-1").join("i-1", "o-0")),
-    Block(1, 1, "gpi", Tensor(Array(Array(1, 0), Array(0, -1))), QuickGraph(ZXTheory).addInput().addOutput()
-      .node("Z", nodeName = "zpi", angle = raw"\pi").join("i-0", "zpi").join("zpi", "o-0")),
-    Block(1, 1, "rpi", Tensor(Array(Array(0, 1), Array(1, 0))), QuickGraph(ZXTheory).addInput().addOutput()
-      .node("X", nodeName = "xpi", angle = raw"\pi").join("i-0", "xpi").join("xpi", "o-0")),
-    Block(1, 1, "gp2", Tensor(Array(Array(Complex(1,0), Complex(0,0)), Array(Complex(0,0), Complex(0,1)))),
-      QuickGraph(ZXTheory).addInput().addOutput()
-      .node("Z", nodeName = "z", angle = raw"\pi / 2").join("i-0", "z").join("z", "o-0")),
-    Block(1, 1, "rp2", Tensor(Array(Array(Complex(1,1), Complex(1,-1)), Array(Complex(1,-1), Complex(1,1)))),
-      QuickGraph(ZXTheory).addInput().addOutput()
-      .node("X", nodeName = "x", angle = raw"\pi / 2").join("i-0", "x").join("x", "o-0")),
+      QuickGraph(ZXRails).addInput(2).addOutput(2).join("i-0", "o-1", Some("rail")).join("i-1", "o-0", Some("rail"))),
+    Block(1, 1, "gpi", Tensor(Array(Array(1, 0), Array(0, -1))), QuickGraph(ZXRails).addInput().addOutput()
+      .node("Z", nodeName = "zpi", angle = raw"\pi").join("i-0", "zpi", Some("rail")).join("zpi", "o-0", Some("rail"))),
+    Block(1, 1, "rpi", Tensor(Array(Array(0, 1), Array(1, 0))), QuickGraph(ZXRails).addInput().addOutput()
+      .node("X", nodeName = "xpi", angle = raw"\pi").join("i-0", "xpi", Some("rail")).join("xpi", "o-0", Some("rail"))),
+    Block(1, 1, "gp2", Tensor(Array(Array(Complex(1, 0), Complex(0, 0)), Array(Complex(0, 0), Complex(0, 1)))),
+      QuickGraph(ZXRails).addInput().addOutput()
+        .node("Z", nodeName = "z", angle = raw"\pi / 2").join("i-0", "z", Some("rail")).join("z", "o-0", Some("rail"))),
+    Block(1, 1, "rp2", Tensor(Array(Array(Complex(1, 1), Complex(1, -1)), Array(Complex(1, -1), Complex(1, 1)))),
+      QuickGraph(ZXRails).addInput().addOutput()
+        .node("X", nodeName = "x", angle = raw"\pi / 2").join("i-0", "x", Some("rail")).join("x", "o-0", Some("rail"))),
     Block(2, 2, "CNT", Tensor(Array(Array(1, 0, 0, 0), Array(0, 1, 0, 0), Array(0, 0, 0, 1), Array(0, 0, 1, 0))),
-      QuickGraph(ZXTheory).addInput(2).addOutput(2).node("Z", nodeName = "z").node("X", xCoord = 1, nodeName = "x")
-        .join("i-0", "z").join("i-1", "x")
-        .join("o-0", "z").join("o-1", "x")
-        .join("z", "x"))
+      QuickGraph(ZXRails).addInput(2).addOutput(2).node("Z", nodeName = "z").node("X", xCoord = 1, nodeName = "x")
+        .join("i-0", "z", Some("rail")).join("i-1", "x", Some("rail"))
+        .join("o-0", "z", Some("rail")).join("o-1", "x", Some("rail"))
+        .join("z", "x", Some("string")))
   )
 
 
   val ZXCNOT: List[Block] = List(
-    Block(1, 1, " 1 ", Tensor.idWires(1), QuickGraph(ZXTheory).addInput().addOutput().join("i-0", "o-0")),
+    Block(1, 1, " 1 ", Tensor.idWires(1), QuickGraph(ZXRails).addInput().addOutput().join("i-0", "o-0", Some("rail"))),
     Block(2, 2, " s ", Tensor.swap(List(1, 0)),
-      QuickGraph(ZXTheory).addInput(2).addOutput(2).join("i-0", "o-1").join("i-1", "o-0")),
+      QuickGraph(ZXRails).addInput(2).addOutput(2).join("i-0", "o-1", Some("rail")).join("i-1", "o-0", Some("rail"))),
     Block(2, 2, "CNT", Tensor(Array(Array(1, 0, 0, 0), Array(0, 1, 0, 0), Array(0, 0, 0, 1), Array(0, 0, 1, 0))),
-      QuickGraph(ZXTheory).addInput(2).addOutput(2).node("Z", nodeName = "z").node("X", xCoord = 1, nodeName = "x")
-        .join("i-0", "z").join("i-1", "x")
-        .join("o-0", "z").join("o-1", "x")
-        .join("z", "x"))
+      QuickGraph(ZXRails).addInput(2).addOutput(2).node("Z", nodeName = "z").node("X", xCoord = 1, nodeName = "x")
+        .join("i-0", "z", Some("rail")).join("i-1", "x", Some("rail"))
+        .join("o-0", "z", Some("rail")).join("o-1", "x", Some("rail"))
+        .join("z", "x", Some("string")))
   )
 
   val BellTeleportation: List[Block] = List(
@@ -344,180 +346,11 @@ object BlockGenerators {
       }).flatten.toList
   }
 
-  val ZXRailsTheory : Theory = Theory.fromJson(
-    """
-      |{
-      |        "name": "ZXRails",
-      |        "core_name": "red_green",
-      |        "vertex_types": {
-      |            "X": {
-      |                "value": {
-      |                    "type": "angle_expr",
-      |                    "latex_constants": true,
-      |                    "validate_with_core": false
-      |                },
-      |                "style": {
-      |                    "label": {
-      |                        "position": "inside",
-      |                        "fg_color": [
-      |                            1.0,
-      |                            1.0,
-      |                            1.0
-      |                        ]
-      |                    },
-      |                    "stroke_color": [
-      |                        0.0,
-      |                        0.0,
-      |                        0.0
-      |                    ],
-      |                    "fill_color": [
-      |                        1.0,
-      |                        0.0,
-      |                        0.0
-      |                    ],
-      |                    "shape": "circle"
-      |                },
-      |                "default_data": {
-      |                    "type": "X",
-      |                    "value": ""
-      |                }
-      |            },
-      |            "hadamard": {
-      |                "value": {
-      |                    "type": "string",
-      |                    "latex_constants": false,
-      |                    "validate_with_core": false
-      |                },
-      |                "style": {
-      |                    "label": {
-      |                        "position": "inside",
-      |                        "fg_color": [
-      |                            0.0,
-      |                            0.20000000298023224,
-      |                            0.0
-      |                        ]
-      |                    },
-      |                    "stroke_color": [
-      |                        0.0,
-      |                        0.0,
-      |                        0.0
-      |                    ],
-      |                    "fill_color": [
-      |                        1.0,
-      |                        1.0,
-      |                        0.0
-      |                    ],
-      |                    "shape": "rectangle"
-      |                },
-      |                "default_data": {
-      |                    "type": "hadamard",
-      |                    "value": ""
-      |                }
-      |            },
-      |            "Z": {
-      |                "value": {
-      |                    "type": "angle_expr",
-      |                    "latex_constants": true,
-      |                    "validate_with_core": false
-      |                },
-      |                "style": {
-      |                    "label": {
-      |                        "position": "inside",
-      |                        "fg_color": [
-      |                            0.0,
-      |                            0.0,
-      |                            0.0
-      |                        ]
-      |                    },
-      |                    "stroke_color": [
-      |                        0.0,
-      |                        0.0,
-      |                        0.0
-      |                    ],
-      |                    "fill_color": [
-      |                        0.0,
-      |                        1.0,
-      |                        0.0
-      |                    ],
-      |                    "shape": "circle"
-      |                },
-      |                "default_data": {
-      |                    "type": "Z",
-      |                    "value": ""
-      |                }
-      |            }
-      |        },
-      |        "default_vertex_type": "Z",
-      |        "default_edge_type": "string",
-      |        "edge_types": {
-      |            "string": {
-      |                "value": {
-      |                    "type": "empty",
-      |                    "latex_constants": false,
-      |                    "validate_with_core": false
-      |                },
-      |                "style": {
-      |                    "stroke_color": [
-      |                        0.0,
-      |                        0.0,
-      |                        1.0
-      |                    ],
-      |                    "stroke_width": 1,
-      |                    "label": {
-      |                        "position": "center",
-      |                        "fg_color": [
-      |                            0.0,
-      |                            0.0,
-      |                            1.0
-      |                        ],
-      |                        "bg_color": [
-      |                            0.800000011920929,
-      |                            0.800000011920929,
-      |                            1.0,
-      |                            0.699999988079071
-      |                        ]
-      |                    }
-      |                },
-      |                "default_data": {
-      |                    "type": "string",
-      |                    "value": ""
-      |                }
-      |            },
-      |            "rail": {
-      |                "value": {
-      |                    "type": "empty",
-      |                    "latex_constants": false,
-      |                    "validate_with_core": false
-      |                },
-      |                "style": {
-      |                    "stroke_color": [
-      |                        0.0,
-      |                        0.0,
-      |                        0.0
-      |                    ],
-      |                    "stroke_width": 1,
-      |                    "label": {
-      |                        "position": "auto",
-      |                        "fg_color": [
-      |                            0.0,
-      |                            0.0,
-      |                            0.0
-      |                        ]
-      |                    }
-      |                },
-      |                "default_data": {
-      |                    "type": "plain"
-      |                }
-      |            }
-      |        }
-      |    }
-    """.stripMargin)
-
-
   def ZXGates(numAngles: Int = 8, CNOTWidth: Int = 2): List[Block] = List(
-    Block(1, 1, " 1 ", Tensor.idWires(1), QuickGraph(ZXRailsTheory).addInput().addOutput().join("i-0", "o-0")),
-    Block(2, 2, " s ", Tensor.swap(List(1, 0))),
-    zxQubitHadamard) :::
+    Block(1, 1, " 1 ", Tensor.idWires(1), QuickGraph(ZXRails).addInput().addOutput().join("i-0", "o-0")),
+    Block(2, 2, " s ", Tensor.swap(List(1, 0)))
+    //, zxQubitHadamard
+  ) :::
     zxQubitTwists(numAngles).toList :::
     zxCNOTs(CNOTWidth) :::
     zxTONCs(CNOTWidth)

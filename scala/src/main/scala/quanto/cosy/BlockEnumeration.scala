@@ -103,6 +103,7 @@ case class BlockStack(rows: List[BlockRow],
                       suggestedTensor: Option[Tensor] = None,
                       suggestedGraph: Option[Graph] = None) extends Ordered[BlockStack] {
 
+  require(rows.flatMap(_.blocks).nonEmpty) // require at least one block
 
   lazy val tensor: Tensor = if (rows.isEmpty) {
     Tensor.id(1)
@@ -132,8 +133,17 @@ case class BlockStack(rows: List[BlockRow],
   lazy val graph: Graph = {
     suggestedGraph match {
       case Some(g) => g
-      case None => BlockStack.joinRowsInStack(
-        rows.reverse.zipWithIndex.foldRight(new Graph())((ri, g) => BlockStack.graphStackUnjoined(g, ri._1.graph, ri._2)))
+      case None =>
+        val blocks = rows.flatMap(row => row.blocks)
+        if (blocks.isEmpty) {
+          new Graph()
+        } else {
+          val gdata = blocks.head.graph.data
+          BlockStack.joinRowsInStack(
+            rows.reverse.zipWithIndex.foldRight(new Graph(data = gdata))((ri, g) =>
+              BlockStack.graphStackUnjoined(g, ri._1.graph, ri._2)))
+
+        }
     }
 
   }
@@ -169,7 +179,7 @@ object BlockStack {
       case InputPattern(n, m) =>
         // For 0.toString is coming out as "" not "0", but this shouldn't affect us
         if (g.verts.contains(s"r-${Integer.parseInt(n) - 1}-o-$m")) {
-          g = g.joinIfNotAlready(s"r-${Integer.parseInt(n) - 1}-o-$m", s"r-$n-i-$m")
+          g = g.joinIfNotAlready(s"r-${Integer.parseInt(n) - 1}-o-$m", s"r-$n-i-$m", Some("rail"))
         }
       case _ => g
     }
@@ -186,7 +196,13 @@ object BlockStack {
     }
     ))
 
-    fixed.appendGraph(aRenamedShifted.renameAvoiding(fixed), noOverlap = false)
+    if(fixed.data.theory != adding.data.theory){
+      fixed.copy(data = fixed.data.copy(theory = fixed.data.theory.mixin(adding.data.theory, None)))
+        .appendGraph(aRenamedShifted.renameAvoiding(fixed), noOverlap = false)
+    }else{
+      fixed
+        .appendGraph(aRenamedShifted.renameAvoiding(fixed), noOverlap = false)
+    }
   }
 }
 

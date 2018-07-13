@@ -31,7 +31,11 @@ object GraphAnalysis {
 
 
     // Number of T-gates
-    def countT(graph: Graph): Int = graph.vdata.count(nd => phase(nd._2).constant == Rational(1, 4))
+    def countT(graph: Graph): Int = graph.vdata.count(nd => {
+      val const = phase(nd._2).constant
+      // T-gate if an odd multiple of \pi/4
+      ((const.n * (const.d / 4)) % 2) == 1
+    })
 
     val tDiff = countT(left) - countT(right)
     if (tDiff != 0) return tDiff
@@ -57,10 +61,10 @@ object GraphAnalysis {
     if (zDiff != 0) return zDiff
 
     // sum of the phases
-    def phaseSum(graph: Graph): PhaseExpression = graph.vdata.map(nd => phase(nd._2)).
-      foldLeft(PhaseExpression.zero(Angle)) { (s, a) => s + a }
+    def phaseSum(graph: Graph): Rational = graph.vdata.map(nd => phase(nd._2)).
+      foldLeft(Rational(0,1)) { (s, a) => s + a.constant }
 
-    val phaseDiff = (phaseSum(left) - phaseSum(right)).constant
+    val phaseDiff = phaseSum(left) - phaseSum(right)
     if (phaseDiff > 0) return 1
     if (phaseDiff < 0) return -1
 

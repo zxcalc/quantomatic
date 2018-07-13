@@ -218,7 +218,7 @@ class BlockEnumerationSpec extends FlatSpec {
     var row3 = new BlockRow(List(ZXClifford(0), ZXClifford(5)))
     var b1 = BlockStack(List(row, row2, row3))
     var b2 = BlockStack(List(row2, row3)).append(row)
-    var b3 = BlockStack(List()).append(row3).append(row2).append(row)
+    var b3 = BlockStack(List(row3)).append(row2).append(row)
     var g1 = b1.graph
     var g2 = b2.graph
     assert(b1.tensor == b2.tensor)

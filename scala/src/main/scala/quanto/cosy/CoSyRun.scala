@@ -4,11 +4,11 @@ import java.io.File
 import java.util.Calendar
 
 import quanto.cosy.Interpreter.{ZXAngleData, interpretZXSpider}
-import quanto.data.Theory.ValueType
+import quanto.data.Theory.{ValueType, VertexDesc}
 import quanto.data._
 import quanto.rewrite.{Match, Matcher}
 import quanto.util.FileHelper._
-import quanto.util.json.JsonObject
+import quanto.util.json.{Json, JsonObject}
 import quanto.util.{FileHelper, Rational, UserAlerts}
 
 import scala.concurrent.duration.Duration
@@ -159,22 +159,61 @@ abstract class CoSyRun[S, T](
   private def checkIsomorphic(g1: Graph, g2: Graph): Boolean = {
     // Check whether graphs are isomorphic, after constraining their boundaries
 
+    if(g1.verts.size != g2.verts.size) return false
+
     def borderNodes(g: Graph): Set[VName] = g.verts.filter(vn => vn.s.matches(matchBorders.get.regex))
 
     val overlappingNodes = borderNodes(g1).intersect(borderNodes(g2))
 
-    // TODO:
-    // This is a hack, because it requires the theory to have "dummyBoundary" nodes
+    if(overlappingNodes != borderNodes(g1) || overlappingNodes != borderNodes(g2)){
+      return false
+    }
+
+    val dummyVertexDesc = VertexDesc.fromJson(
+      Json.parse("""{
+                   |            "value": {
+                   |                "type": "empty",
+                   |                "latex_constants": true,
+                   |                "validate_with_core": false
+                   |            },
+                   |            "style": {
+                   |                "label": {
+                   |                    "position": "center",
+                   |                    "fg_color": [
+                   |                        0.0,
+                   |                        0.0,
+                   |                        0.0
+                   |                    ]
+                   |                },
+                   |                "stroke_color": [
+                   |                    0.0,
+                   |                    0.0,
+                   |                    0.0
+                   |                ],
+                   |                "fill_color": [
+                   |                    0.0,
+                   |                    1.0,
+                   |                    1.0
+                   |                ],
+                   |                "shape": "rectangle"
+                   |            },
+                   |            "default_data": {
+                   |                "type": "dummyBoundary",
+                   |                "value": ""
+                   |            }
+                   |        } """.stripMargin))
+
+    val dummyTheory = theory.mixin(newVertexTypes = Map("dummyBoundary" -> dummyVertexDesc))
     val boundaryData = NodeV(JsonObject(
       "type" -> "dummyBoundary",
       "value" -> ""
     ),
       JsonObject(),
-      theory)
+      dummyTheory)
 
     def makeSolidBoundaries(graph: Graph): Graph = {
       graph.verts.filter(vn => matchBorders.get.findFirstIn(vn.s).nonEmpty).
-        foldLeft(graph) { (g, vn) =>
+        foldLeft(graph.copy(data = graph.data.copy(theory = dummyTheory))) { (g, vn) =>
           g.updateVData(vn) { _ => boundaryData }
         }
     }
@@ -202,7 +241,7 @@ abstract class CoSyRun[S, T](
     val name = s"${lhs.hashCode}_${rhs.hashCode}.qrule"
     val r = new Rule(lhs, rhs, derivation = Some("CoSy"), description = RuleDesc(name))
     if (outputDir.nonEmpty) {
-      printJson(outputDir.get.toURI.resolve("./" + name).getPath, Rule.toJson(r))
+      printJson(outputDir.get.toURI.resolve("./" + name).getPath, Rule.toJson(r, lhs.data.theory))
     }
     loadRule(r)
     r
@@ -250,6 +289,7 @@ object CoSyRuns {
           if (!unusedStacks.hasNext) {
             unusedStacks = nextRoundOfStacks.toIterator
             nextRoundOfStacks = List()
+            UserAlerts.alert("Finished next row")
           }
           unusedRows = rows.toIterator
           currentStack = unusedStacks.next()
@@ -258,9 +298,11 @@ object CoSyRuns {
       }
     }
     override val matchBorders = Some(raw"""(i|o)-(\d+)""".r)
-    val blocks: List[Block] = BlockGenerators.ZXCNOT
+    val blocks: List[Block] = BlockGenerators.ZXGates(4, numBoundaries)
+    UserAlerts.alert(s"Created ${blocks.length} blocks")
     val rows: List[BlockRow] = BlockRowMaker.makeRowsUpToSize(numBoundaries, blocks, Some(numBoundaries))
       .filter(br => br.inputs.size == numBoundaries && br.outputs.size == numBoundaries)
+    UserAlerts.alert(s"Created ${rows.length} rows")
     var unusedRows: Iterator[BlockRow] = rows.toIterator
     var unusedStacks: Iterator[BlockStack] = rows.map(r => BlockStack(List(r))).toIterator
     var nextRoundOfStacks: List[BlockStack] = List()
