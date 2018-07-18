@@ -5,6 +5,7 @@ import quanto.data._
 import quanto.util.Rational
 
 import scala.util.matching.Regex
+import scala.util.parsing.combinator.RegexParsers
 
 object GraphAnalysis {
 
@@ -62,13 +63,76 @@ object GraphAnalysis {
 
     // sum of the phases
     def phaseSum(graph: Graph): Rational = graph.vdata.map(nd => phase(nd._2)).
-      foldLeft(Rational(0,1)) { (s, a) => s + a.constant }
+      foldLeft(Rational(0, 1)) { (s, a) => s + a.constant }
 
     val phaseDiff = phaseSum(left) - phaseSum(right)
     if (phaseDiff > 0) return 1
     if (phaseDiff < 0) return -1
 
+    // Weighting by row
+    // example node name: r-2-bl-1-h-1
+    def positionWeighting(graph: Graph): Double = {
+      def nodeWeighting(node: NodeV): Double = {
+        (node.typ match {
+          case "X" =>
+            2 * (1 + node.phaseData.values.head.constant)
+          case "Z" =>
+            1 + node.phaseData.values.head.constant
+          case "hadamard" =>
+            1
+        }) / 3 // Scale so any given node has weight at most 1, bust still > 0
+      }
+
+      graph.vdata.toList.map(nameData => {
+        nameData._2 match {
+          case v: NodeV =>
+            // Non-wire nodes are weighted biased towards the bottom left
+            val placement = CircuitPlacementParser.p(nameData._1.toString)
+            placement._1 + placement._2 + nodeWeighting(v)
+          case _ =>
+            // wires have no weight
+            0
+        }
+      }).sum
+    }
+
+    val circuitWeightLeft = positionWeighting(left)
+    val circuitWeightRight = positionWeighting(right)
+    if (circuitWeightLeft > circuitWeightRight) {
+      return 1
+    }
+    if (circuitWeightLeft < circuitWeightRight) {
+      return -1
+    }
+
     0
+  }
+
+  case class CircuitPlacementParseException(input: String) extends Error
+
+  object CircuitPlacementParser extends RegexParsers {
+
+    override def skipWhitespace = true
+
+    def INT: Parser[Int] =
+      """[0-9]+""".r ^^ {
+        _.toInt
+      }
+
+    def IDENT: Parser[String] =
+      """[\\a-zA-Z_][a-zA-Z0-9_]*""".r ^^ {
+        _.toString
+      }
+
+    // example node name: r-2-bl-1-h-1
+    def expr: Parser[(Int, Int, String)] =
+      "r-" ~ INT ~ "-bl-" ~ INT ~ "-" ~ IDENT ~ "-" ~ INT ^^ { case _ ~ r ~ _ ~ bl ~ _ ~ s ~ _ ~ _ => (r, bl, s) }
+
+    def p(s: String): (Int, Int, String) = parseAll(expr, s) match {
+      case Success(e, _) => e
+      case Failure(msg, _) => throw CircuitPlacementParseException(msg)
+      case Error(msg, _) => throw CircuitPlacementParseException(msg)
+    }
   }
 
 
@@ -111,7 +175,7 @@ object GraphAnalysis {
 
     def sumAngles(graph: Graph, filterType: String): Rational = graph.vdata.
       filter(nd => nd._2.typ == filterType).
-      foldLeft(Rational(0,1)) {
+      foldLeft(Rational(0, 1)) {
         (angle, nd) => angle + stringToPhase(nd._2.asInstanceOf[NodeV].value).constant
       }
 
@@ -131,21 +195,26 @@ object GraphAnalysis {
     0
   }
 
-  def connectionClasses(adjMat: AdjMat) : Vector[Int] = {
+  def connectionClasses(adjMat: AdjMat): Vector[Int] = {
     val initialVector = (0 until adjMat.size).toVector
-    def join(v: Vector[Int], i: Int, j: Int): Vector[Int] ={
-      v.map {a => if (a == v(i) || a == v(j)) {math.min(v(i),v(j))} else a }
+
+    def join(v: Vector[Int], i: Int, j: Int): Vector[Int] = {
+      v.map { a => if (a == v(i) || a == v(j)) {
+        math.min(v(i), v(j))
+      } else a
+      }
     }
+
     adjMat.mat.zipWithIndex.flatMap(rowWithIndex => {
 
       val rci = rowWithIndex._1.zipWithIndex
       rci.map(bi => (bi._1, bi._2, rowWithIndex._2))
-    }).filter(_._1).map(bii => (bii._2, bii._3)).foldLeft(initialVector){
+    }).filter(_._1).map(bii => (bii._2, bii._3)).foldLeft(initialVector) {
       (v, ii) => join(v, ii._1, ii._2)
     }
   }
 
-  def containsScalars(adjMat: AdjMat) : Boolean = {
+  def containsScalars(adjMat: AdjMat): Boolean = {
     // Boundaries are at the front of the adjmat, and are given labels first
     // So if any class still has labels higher than the number of boundaries
     // it can't be connected to any of the boundaries

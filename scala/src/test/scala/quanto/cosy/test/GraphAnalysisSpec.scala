@@ -193,4 +193,34 @@ class GraphAnalysisSpec extends FlatSpec {
     assert(containsScalars(amat))
   }
 
+  behavior of "circuit analysis"
+
+  // Only works for circuits generated inside CoSy
+  // Note that this will not magically give you reductions - it is not graph-invariant by circuit-invariant
+  // Turning a graph upside down gives very a very different measure
+
+  it should "distill circuit placement from name via regex" in {
+    val example = "r-2-bl-1-h-1"
+    val output = CircuitPlacementParser.p(example)
+    assert (output == (2,1,"h"))
+  }
+
+  it should "bias circuits to the left" in {
+    val blocks: List[Block] = BlockGenerators.ZXGates(1)
+    val rows: List[BlockRow] = BlockRowMaker.makeRowsUpToSize(2, blocks, Some(2))
+    val stacks = BlockStackMaker.makeStacksOfSize(1, rows)
+    val e1 = stacks.find(_.toString == "( 1  x 0Z1)").get
+    val e2 = stacks.find(_.toString == "(0Z1 x  1 )").get
+    assert(zxCircuitCompare(e1.graph, e2.graph) > 0)
+  }
+
+  it should "bias circuits down" in {
+    val blocks: List[Block] = BlockGenerators.ZXGates(1)
+    val rows: List[BlockRow] = BlockRowMaker.makeRowsUpToSize(1, blocks, Some(1))
+    val stacks = BlockStackMaker.makeStacksOfSize(2, rows)
+    val e1 = stacks.find(_.toString == "( 1 ) o (0Z1)").get
+    val e2 = stacks.find(_.toString == "(0Z1) o ( 1 )").get
+    assert(zxCircuitCompare(e1.graph, e2.graph) < 0)
+  }
+
 }
