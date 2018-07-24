@@ -1018,7 +1018,7 @@ object QuantoDerive extends SimpleSwingApplication {
     val SimprocAPIAction = new Action("Simproc API") {
       menu.contents += new MenuItem(this) { mnemonic = Key.S }
       def apply() {
-        WebHelper.openWebpage("https://quantomatic.github.io/SimprocAPI.html")
+        WebHelper.openWebpage("https://quantomatic.github.io#SimprocAPI")
       }
     }
 
