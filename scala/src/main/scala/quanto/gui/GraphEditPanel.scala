@@ -235,5 +235,8 @@ with HasDocument
     case MouseStateChanged(m) =>
       if (graphEditController.rDown) graphEditController.endRelaxGraph()
       graphEditController.mouseState = m
+    case DocumentRequestingNaturalFocus(d) =>
+      graphView.requestFocus()
     }
+
 }

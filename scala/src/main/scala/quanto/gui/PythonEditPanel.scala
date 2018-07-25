@@ -36,7 +36,7 @@ class PythonEditPanel extends BorderPanel with HasDocument {
   def code : String = CodeArea.getText
 
   val document = new CodeDocument("Python Script", "py", this, CodeArea.TextArea)
-
+  listenTo(document)
 
   var execThread : Thread = null
   val textPanel = CodeArea.Component
@@ -73,8 +73,9 @@ class PythonEditPanel extends BorderPanel with HasDocument {
   listenTo(RunButton, InterruptButton)
 
   def allSimprocs : Map[String, Simproc] = QuantoDerive.CurrentProject.map(p => p.simprocs).getOrElse(Map())
-
   reactions += {
+    case DocumentRequestingNaturalFocus(_) =>
+      CodeArea.TextArea.requestFocus()
     case ButtonClicked(RunButton) =>
       if (execThread == null) {
         val processReporting = new SelfAlertingProcess(s"Python $documentName")

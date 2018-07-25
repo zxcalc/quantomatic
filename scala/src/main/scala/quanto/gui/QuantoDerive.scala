@@ -186,6 +186,7 @@ object QuantoDerive extends SimpleSwingApplication {
     listenTo(d.tabComponent)
     MainDocumentTabs.publishChanged()
     d.document.publish(DocumentChanged(d.document))
+    d.document.focusOnNaturalComponent()
   }
 
   listenTo(quanto.util.UserOptions.OptionsChanged)

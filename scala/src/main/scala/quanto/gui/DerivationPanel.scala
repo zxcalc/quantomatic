@@ -220,6 +220,7 @@ class DerivationPanel(val project: Project)
 
 
   add(GraphViewPanel, BorderPanel.Position.Center)
+  listenTo(document)
   listenTo(LhsGraphPane, RhsGraphPane)
   listenTo(ManualRewritePane.PreviewScrollPane, SimplifyPane.PreviewScrollPane)
 
@@ -236,6 +237,8 @@ class DerivationPanel(val project: Project)
     case UIElementResized(SimplifyPane.PreviewScrollPane) =>
       SimplifyPane.Preview.resizeViewToFit()
       SimplifyPane.Preview.repaint()
+    case DocumentRequestingNaturalFocus(_) =>
+      histView.requestFocus()
   }
 
   // construct the controller last, as it depends on the panel elements already being initialised

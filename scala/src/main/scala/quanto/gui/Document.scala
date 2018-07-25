@@ -15,6 +15,7 @@ abstract class DocumentEvent extends Event
 case class DocumentChanged(sender: Document) extends DocumentEvent
 case class DocumentSaved(sender: Document) extends DocumentEvent
 case class DocumentReplaced(sender: Document) extends DocumentEvent
+case class DocumentRequestingNaturalFocus(sender: Document) extends DocumentEvent
 
 /**
  * For an object connected to a single file. Provides an undo stack, tracks changes, and gives
@@ -251,6 +252,12 @@ abstract class Document extends Publisher {
   reactions += {
     case UndoRegistered(_) =>
       publish(DocumentChanged(this))
+  }
+
+  // Publishes a request for the view to focus on whatever is "correct" for the document.
+  // E.g. give focus to the text area if you open a .py file
+  def focusOnNaturalComponent() : Unit = {
+    publish(DocumentRequestingNaturalFocus(this))
   }
 }
 

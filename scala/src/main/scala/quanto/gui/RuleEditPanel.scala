@@ -57,5 +57,8 @@ with HasDocument
       rhsController.endRelaxGraph()
       lhsController.mouseState = m
       rhsController.mouseState = m
+    case DocumentRequestingNaturalFocus(_) =>
+      lhsView.requestFocus()
   }
+
 }
