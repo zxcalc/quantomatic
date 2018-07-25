@@ -163,6 +163,21 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     undoStack.register("Add Edge") { deleteEdge(e) }
   }
 
+  // Uses the current state of the controller to add an edge
+  private def addEdgeFromController(v1: VName, v2: VName): Unit = {
+    controlsOpt.foreach { c =>
+      val edgeType = theory.edgeTypes(c.EdgeTypeSelect.selection.item).defaultData
+      val theoryJSON : JsonObject = JsonObject(
+        "data" -> edgeType
+      )
+
+      val eData = if (c.EdgeDirected.selected) DirEdge.fromJson(theoryJSON, theory)
+      else UndirEdge.fromJson(theoryJSON, theory)
+
+      addEdge(graph.edges.fresh, eData, (v1, v2))
+    }
+  }
+
   private def deleteEdge(e: EName) {
     val d = graph.edata(e)
     val vs = (graph.source(e), graph.target(e))
@@ -637,11 +652,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
                 if (!startedWithNew) cycleVertexType(vertex)
               } else {
                 // dragged to another vertex
-                controlsOpt.foreach { c =>
-                  val defaultData = if (c.EdgeDirected.selected) DirEdge.fromJson(theory.defaultEdgeData, theory)
-                  else UndirEdge.fromJson(theory.defaultEdgeData, theory)
-                  addEdge(graph.edges.fresh, defaultData, (maybeVName.get, vertex))
-                }
+                addEdgeFromController(maybeVName.get, vertex)
               }
             case None =>
               val coord = view.trans fromScreen(pt.getX, pt.getY)
@@ -650,11 +661,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
                 val vertexData = WireV(theory = theory)
                 addVertex(vname, vertexData.withCoord(coord))
               }                // dragged to another vertex
-              controlsOpt.foreach { c =>
-                val defaultData = if (c.EdgeDirected.selected) DirEdge.fromJson(theory.defaultEdgeData, theory)
-                else UndirEdge.fromJson(theory.defaultEdgeData, theory)
-                addEdge(graph.edges.fresh, defaultData, (maybeVName.get, vname))
-              }
+              addEdgeFromController(maybeVName.get, vname)
           }
           undoStack.commit()
           mouseState = FreehandTool(None, startedWithNew = false)
@@ -757,11 +764,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         case DragEdge(startV) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           vertexHit.map { endV =>
-            controlsOpt.map { c =>
-              val defaultData = if (c.EdgeDirected.selected) DirEdge.fromJson(theory.defaultEdgeData, theory)
-              else UndirEdge.fromJson(theory.defaultEdgeData, theory)
-              addEdge(graph.edges.fresh, defaultData, (startV, endV))
-            }
+              addEdgeFromController(startV, endV)
           }
           mouseState = AddEdgeTool()
           view.edgeOverlay = None
