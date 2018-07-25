@@ -371,7 +371,11 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     val result = d.StringField.text
     if (result != "") {
       if (!theory.edgeTypes.keys.exists(k => k == result)) {
-        val newEdgeTypes: Map[String, Theory.EdgeDesc] = theory.edgeTypes ++ Map(result -> Theory.PlainEdgeDesc)
+        val newEdgeTypes: Map[String, Theory.EdgeDesc] = theory.edgeTypes ++ Map(result -> EdgeDesc(
+          value = ValueDesc(typ = Vector(ValueType.Empty)),
+          style = EdgeStyleDesc(),
+          defaultData = JsonObject("type" -> result)
+        ))
         // Update the base document's theory
         theory = new Theory(name = theory.name,
           coreName = theory.coreName,

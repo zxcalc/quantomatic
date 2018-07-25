@@ -3,7 +3,7 @@ package quanto.data.test
 import org.scalatest._
 import quanto.data._
 import quanto.data.Names._
-import quanto.data.Theory.ValueType
+import quanto.data.Theory.{EdgeDesc, EdgeStyleDesc, ValueDesc, ValueType}
 import quanto.util.json._
 
 import scala.collection.immutable.TreeSet
@@ -75,6 +75,30 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     val g1 = g.copy()
     assert(g1 != null)
     assert(g1 === g)
+  }
+
+
+  it should "store and retrieve non-default edge types" in {
+
+    val eDesc = EdgeDesc(
+      value = ValueDesc(typ = Vector(ValueType.Empty)),
+      style = EdgeStyleDesc(),
+      defaultData = JsonObject("type" -> "recorded")
+    )
+
+    val TwoWireTheory = Theory.DefaultTheory.mixin(Map(), Map("recorded" -> eDesc), Some("TwoWireTheory"))
+
+    val eData = UndirEdge(eDesc.defaultData, JsonObject(), TwoWireTheory)
+
+    val g = new Graph()
+      .addVertex(VName("v1"), NodeV())
+      .addVertex(VName("v2"), NodeV())
+      .addEdge(EName("e"), eData, ("v1", "v2"))
+      .addEdge(EName("f"), UndirEdge(), ("v1", "v2"))
+    val json = g.toJson(TwoWireTheory)
+    assert (! (json / "undir_edges" / "e").isEmpty)
+    assert (! (json / "undir_edges" / "e" /"data").isEmpty)
+    assert (((json / "undir_edges" / "f") ? "data").isEmpty)
   }
 
   behavior of "Another graph"

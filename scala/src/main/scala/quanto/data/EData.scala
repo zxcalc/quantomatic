@@ -74,7 +74,11 @@ case class UndirEdge(
   */
 object DirEdge {
   def toJson(d: EData, theory: Theory): JsonObject = JsonObject(
-    "data" -> (if (d.data == theory.edgeTypes(d.typ).defaultData) JsonNull else d.data),
+    "data" -> (if (d.typ == theory.defaultEdgeType && d.data == theory.edgeTypes(d.typ).defaultData) {
+      JsonNull
+    } else {
+      d.data
+    }),
     "annotation" -> d.annotation).noEmpty
 
   def fromJson(json: Json, theory: Theory): DirEdge = {
@@ -93,7 +97,11 @@ object DirEdge {
   */
 object UndirEdge {
   def toJson(d: EData, theory: Theory): JsonObject = JsonObject(
-    "data" -> (if (d.data == theory.edgeTypes(d.typ).defaultData) JsonNull else d.data),
+    "data" -> (if (d.typ == theory.defaultEdgeType && d.data == theory.edgeTypes(d.typ).defaultData) {
+      JsonNull
+    } else {
+      d.data
+    }),
     "annotation" -> d.annotation).noEmpty
 
   def fromJson(json: Json, theory: Theory): UndirEdge = {
