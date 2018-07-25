@@ -333,6 +333,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
         addNewVertex()
 
     }
+    repaint()
   }
 
   def addNewVertex(): Unit = {
