@@ -386,6 +386,14 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     view.repaint()
   }
 
+  def selectAll() : Unit = {
+    selectedBBoxes = graph.bboxes
+    selectedVerts = graph.verts
+    selectedEdges = graph.edges
+    view.publish(VertexSelectionChanged(graph, graph.verts))
+    view.repaint()
+  }
+
   private def roundIfSnapped(d : Double) = {
     if (keepSnapped) math.rint(d / 0.25) * 0.25 else d // rounds to .25
   }
@@ -818,6 +826,8 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         undoStack.commit()
         view.repaint()
       }
+    case KeyPressed(_, Key.A, m, _) =>
+      if (Modifier.Control == (m & Modifier.Control)) selectAll()
     case KeyPressed(_, Key.R, m, _) =>
       startRelaxGraph((m & Modifier.Shift) != Modifier.Shift)
     case KeyReleased(_, Key.R, _, _) =>
