@@ -43,9 +43,9 @@ class AddRuleDialog(project: Project) extends Dialog {
     contents += FList
     def selection : List[String] = FList.ListComponent.selection.items.toList
     val radIncludeForwards = new RadioButton("Forwards")
-    radIncludeForwards.selected = true
     val radIncludeInverse = new RadioButton("Inverted")
     var radIncludeInverseAndForwards= new RadioButton("Both")
+    radIncludeInverseAndForwards.selected = true
     val radGroupIncludeInverse = new ButtonGroup(radIncludeForwards, radIncludeInverse, radIncludeInverseAndForwards)
 
     contents += Swing.VStrut(5)
