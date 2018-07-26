@@ -852,15 +852,31 @@ object QuantoDerive extends SimpleSwingApplication {
         case (Some(project), Some(gep: GraphEditPanel)) =>
           gep.document match {
             case (graphDoc: GraphDocument) =>
-              val page = new GraphDocumentPage(project.theory)
+              val newPage = new GraphDocumentPage(project.theory)
               val vertSelection = gep.graphEditController.selectedVerts
               if(vertSelection.nonEmpty) {
                 val inverseSelection = gep.graphEditController.graph.verts -- vertSelection
                 val snippedGraph = inverseSelection.foldLeft(graphDoc.graph) {
                   (g, v) => g.cutVertex(v, g.verts.filter(g.isBoundary))._1
                 }
-                page.document.asInstanceOf[GraphDocument].graph = snippedGraph
-                addAndFocusPage(page)
+                newPage.document.asInstanceOf[GraphDocument].graph = snippedGraph
+                addAndFocusPage(newPage)
+              }
+            case _ =>
+              warn("WARNING: Extract selection with no graph active")
+          }
+        case (Some(project), Some(rep: RuleEditPanel)) =>
+          rep.document match {
+            case (ruleDoc: RuleDocument) =>
+              val newPage = new GraphDocumentPage(project.theory)
+              val vertSelection = rep.focusedController.selectedVerts
+              if(vertSelection.nonEmpty) {
+                val inverseSelection = rep.focusedController.graph.verts -- vertSelection
+                val snippedGraph = inverseSelection.foldLeft(rep.focusedController.graph) {
+                  (g, v) => g.cutVertex(v, g.verts.filter(g.isBoundary))._1
+                }
+                newPage.document.asInstanceOf[GraphDocument].graph = snippedGraph
+                addAndFocusPage(newPage)
               }
             case _ =>
               warn("WARNING: Extract selection with no graph active")
