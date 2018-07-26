@@ -159,6 +159,16 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
     }
   }
 
+
+  def removeSelectedRulesFromList(): Unit = {
+
+    resultLock.acquire()
+    panel.ManualRewritePane.Rewrites.selection.items.foreach { line => resultSet -= line.rule }
+    resultLock.release()
+    refreshRewriteDisplay()
+  }
+
+
   def selectedRule =
     if (panel.ManualRewritePane.Rewrites.selection.items.length == 1)
       Some(panel.ManualRewritePane.Rewrites.selection.items(0).asInstanceOf[ResultLine].rule)
@@ -169,10 +179,14 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
   listenTo(panel.ManualRewritePane.ApplyButton)
   listenTo(panel.ManualRewritePane.Rewrites.selection)
   listenTo(panel)
+  listenTo(panel.ManualRewritePane.Rewrites.keys)
 
   reactions += {
+      case KeyPressed(_, Key.Delete | Key.BackSpace, _, _) =>
+        if (panel.ManualRewritePane.Rewrites.hasFocus) {
+          removeSelectedRulesFromList()
+        }
     case SuggestRewriteRule(ruleDesc) =>
-      UserAlerts.alert(s"Trying rule $ruleDesc")
       val currentRules = rules.toSet
       val newRules = Set(ruleDesc).filter(!currentRules.contains(_))
 
@@ -189,10 +203,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       if (newRules.nonEmpty) rules ++= newRules
       rules = rules.sortBy(r => r.name)
     case ButtonClicked(panel.ManualRewritePane.RemoveRuleButton) =>
-      resultLock.acquire()
-      panel.ManualRewritePane.Rewrites.selection.items.foreach { line => resultSet -= line.rule }
-      resultLock.release()
-      refreshRewriteDisplay()
+      removeSelectedRulesFromList()
     case ButtonClicked(panel.ManualRewritePane.PreviousResultButton) =>
       resultLock.acquire()
       selectedRule match {
