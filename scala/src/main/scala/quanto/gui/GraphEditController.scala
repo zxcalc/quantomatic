@@ -847,8 +847,14 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
       if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { cutSubgraph() }
     case KeyPressed(_, Key.V, modifiers, _) =>
       if (modifiers == 0) {
+
         mouseState = AddVertexTool()
-        controlsOpt.map { c => c.setMouseState(mouseState) }
+        controlsOpt.foreach { c =>
+          if (c.GraphToolGroup.selected.contains(c.AddVertexButton)) {
+            c.VertexTypeSelect.selection.index = (c.VertexTypeSelect.selection.index + 1) % (theory.vertexTypes.size + 1)
+          }
+          c.setMouseState(mouseState)
+        }
       }
       else if ((modifiers & Globals.CommandDownMask) == Globals.CommandDownMask) { pasteSubgraph() }
     case KeyPressed(_, Key.S, modifiers, _)  =>
@@ -859,7 +865,12 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
     case KeyPressed(_, Key.E, modifiers, _)  =>
       if (modifiers  == 0) {
         mouseState = AddEdgeTool()
-        controlsOpt.map { c => c.setMouseState(mouseState) }
+        controlsOpt.foreach { c =>
+          if (c.GraphToolGroup.selected.contains(c.AddEdgeButton)) {
+            c.EdgeTypeSelect.selection.index = (c.EdgeTypeSelect.selection.index + 1) % theory.edgeTypes.size
+          }
+          c.setMouseState(mouseState)
+        }
       }
     case KeyPressed(_, Key.B, modifiers, _)  =>
       if (modifiers  == 0) {
@@ -895,9 +906,19 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         view.repaint()
       }
     case KeyPressed(_, Key.D, _, _) =>
-      undoStack.start("Toggle edge directed")
-      selectedEdges.foreach { toggleDirected }
-      undoStack.commit()
-      view.repaint()
+      if(selectedEdges.nonEmpty) {
+        undoStack.start("Toggle edge directed")
+        selectedEdges.foreach {
+          toggleDirected
+        }
+        undoStack.commit()
+        view.repaint()
+      } else {
+        controlsOpt.foreach { c =>
+          if (c.GraphToolGroup.selected.contains(c.AddEdgeButton)) {
+            c.EdgeDirected.selected = true
+          }
+        }
+      }
   }
 }
