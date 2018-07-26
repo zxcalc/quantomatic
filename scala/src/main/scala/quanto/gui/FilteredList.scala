@@ -39,7 +39,7 @@ class FilteredList(val options: List[String],
     case ValueChanged(Regex) =>
       try {
         ListComponent.listData = listItems.filter(
-          s => s.matches(".*" + Regex.text + ".*"))
+          s => s.matches("(?i).*" + Regex.text + ".*"))
       } catch {
         case e: Exception =>
         //Exceptions here are thrown by inelligable regex from the user
