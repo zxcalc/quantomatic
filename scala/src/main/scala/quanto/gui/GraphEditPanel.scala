@@ -163,7 +163,8 @@ class GraphEditControls(theory: Theory) extends Publisher {
       setMouseState(t.tool)
   }
 
-  listenTo(RelaxButton.mouse.clicks, MinimiseButton, FocusGraphButton)
+  // These are all different, because they need to not take focus away from the view
+  listenTo(RelaxButton.mouse.clicks, MinimiseButton.mouse.clicks, FocusGraphButton.mouse.clicks)
 
   reactions += {
     case MousePressed(RelaxButton,_,_,_,_) =>
@@ -172,10 +173,18 @@ class GraphEditControls(theory: Theory) extends Publisher {
     case MouseReleased(RelaxButton,_,_,_,_) =>
       RelaxButton.selected= false
       publish(MouseStateChanged(RelaxToolUp()))
-    case ButtonClicked(MinimiseButton) =>
-      MinimiseButton.selected = false
-    case ButtonClicked(FocusGraphButton) =>
+    case MousePressed(FocusGraphButton,_,_,_,_) =>
       FocusGraphButton.selected = false
+      publish(MouseStateChanged(RequestFocusOnGraph()))
+    case MouseReleased(FocusGraphButton,_,_,_,_) =>
+      FocusGraphButton.selected= false
+      publish(MouseStateChanged(RequestFocusOnGraph()))
+    case MousePressed(MinimiseButton,_,_,_,_) =>
+      MinimiseButton.selected = false
+      publish(MouseStateChanged(RequestMinimiseGraph()))
+    case MouseReleased(MinimiseButton,_,_,_,_) =>
+      MinimiseButton.selected= false
+      publish(MouseStateChanged(RequestMinimiseGraph()))
   }
 
   val MainToolBar = new ToolBar {

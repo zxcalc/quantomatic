@@ -1,9 +1,10 @@
 package quanto.gui
 
 import quanto.gui.graphview.GraphView
-import quanto.data.{HasGraph, Theory, Graph}
-import scala.swing.{GridPanel, BorderPanel, ScrollPane}
-import scala.swing.event.UIElementResized
+import quanto.data.{Graph, HasGraph, Theory}
+
+import scala.swing.{BorderPanel, GridPanel, ScrollPane}
+import scala.swing.event.{MouseClicked, UIElementResized}
 
 class RuleEditPanel(val theory: Theory, val readOnly: Boolean = false)
 extends BorderPanel
@@ -22,7 +23,7 @@ with HasDocument
   val rhsController = new GraphEditController(rhsView, document.undoStack, readOnly)
   rhsController.controlsOpt = Some(controls)
 
-  def focusedController = if (rhsView.hasFocus) rhsController else lhsController
+  def focusedController: GraphEditController = if (rhsView.hasFocus) rhsController else lhsController
 
   val LhsScrollPane = new ScrollPane(lhsView)
   val RhsScrollPane = new ScrollPane(rhsView)
@@ -49,7 +50,10 @@ with HasDocument
     case UIElementResized(RhsScrollPane) =>
       rhsView.resizeViewToFit()
       rhsView.repaint()
-
+    case MouseStateChanged(RequestFocusOnGraph()) =>
+      focusedController.focusOnGraph()
+    case MouseStateChanged(RequestMinimiseGraph()) =>
+      focusedController.minimiseGraph()
     case MouseStateChanged(RelaxToolDown()) => focusedController.startRelaxGraph(true)
     case MouseStateChanged(RelaxToolUp()) => focusedController.endRelaxGraph()
     case MouseStateChanged(m) =>

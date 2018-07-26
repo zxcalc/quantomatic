@@ -244,10 +244,6 @@ private  def viewportOffset (): (Double, Double) = {
     val bottomRight = (max(graphBottomRight._1, defaultBottomRight._1),
       min(graphBottomRight._2, defaultBottomRight._2))
 
-    def d(x: Double, y: Double) = sqrt(x * x + y * y)
-
-    val graphSizeSquared = d(topLeft._1 - bottomRight._1, topLeft._2 - bottomRight._2)
-
     val (w, h) = (bottomRight._1 - topLeft._1,
       topLeft._2 - bottomRight._2)
 

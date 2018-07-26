@@ -475,10 +475,12 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   }
 
   def minimiseGraph(): Unit = {
+    view.requestFocusInWindow()
     replaceGraph(graph.minimise.coerceWiresAndBoundaries, "Minimised graph")
   }
 
   def focusOnGraph(): Unit = {
+    view.requestFocusInWindow()
     view.focusOnGraph()
   }
 
