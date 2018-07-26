@@ -448,8 +448,10 @@ case class Graph(
           // Create a boundary where we cut the wire
           val bName = g.verts.freshWithSuggestion(VName("c-" + vertexName.s + "-b"))
           newBoundaries += bName
+          val oldSource : VName = g.source(e)
+          val direction = if (oldSource == joinNode)  joinNode -> bName else bName -> joinNode
           g2 = g2.addVertex(bName, WireV()).
-            addEdge(g.edges.freshWithSuggestion(e), DirEdge(), bName -> joinNode)
+            addEdge(g.edges.freshWithSuggestion(e), g.edata(e), direction)
           // Add a coordinate to our new boundary
           val newCoordinate = midPoint(g.vdata(vertexName), g.vdata(joinNode))
           g2 = g2.updateVData(bName) { vd => vd.withCoord(newCoordinate) }
