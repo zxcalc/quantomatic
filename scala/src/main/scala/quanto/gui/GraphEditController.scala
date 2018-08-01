@@ -905,18 +905,29 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
         undoStack.commit()
         view.repaint()
       }
-    case KeyPressed(_, Key.D, _, _) =>
-      if(selectedEdges.nonEmpty) {
-        undoStack.start("Toggle edge directed")
-        selectedEdges.foreach {
-          toggleDirected
-        }
-        undoStack.commit()
-        view.repaint()
-      } else {
-        controlsOpt.foreach { c =>
-          if (c.GraphToolGroup.selected.contains(c.AddEdgeButton)) {
-            c.EdgeDirected.selected = true
+    case KeyPressed(_, Key.D, modifiers, _) =>
+      // DOn't do this if pressing ctrl: ctrl+d is "Start new derivation"
+      if((modifiers & Modifier.Control) != Modifier.Control) {
+        if (selectedEdges.nonEmpty) {
+          if((modifiers & Modifier.Shift) != Modifier.Shift){
+
+            undoStack.start("Toggle edge directed")
+            selectedEdges.foreach {
+              toggleDirected
+            }
+          }else{
+            undoStack.start("Flip edge direction")
+            selectedEdges.foreach {
+              flipEdge
+            }
+          }
+          undoStack.commit()
+          view.repaint()
+        } else {
+          controlsOpt.foreach { c =>
+            if (c.GraphToolGroup.selected.contains(c.AddEdgeButton)) {
+              c.EdgeDirected.selected = true
+            }
           }
         }
       }
