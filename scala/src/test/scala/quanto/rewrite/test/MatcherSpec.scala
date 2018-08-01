@@ -654,10 +654,40 @@ class MatcherSpec extends FlatSpec {
           |    "e1": {"data": {"type": "q"},"src": "v0", "tgt": "v1"}
           |  }
           |}
-        """.stripMargin), thy = rg)
+        """.stripMargin), thy = twoWire)
       val matches = Matcher.findMatches(g, g)
       assert(matches.size === 1)
    }
+
+
+  it should "fail to match bare edges of different types" ignore {
+    val g = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "node_vertices": {
+        |    "v0": {"data": {"type": "Z", "value": ""}},
+        |    "v1": {"data": {"type": "Z", "value": ""}}
+        |  },
+        |  "wire_vertices": ["i0"],
+        |  "undir_edges": {
+        |    "e0": {"data": {"type": "string"},"src": "v0", "tgt": "v1"},
+        |    "e1": {"data": {"type": "string"},"src": "v0", "tgt": "i0"}
+        |  }
+        |}
+      """.stripMargin), thy = twoWire)
+
+    val g2 = Graph.fromJson(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["i0", "o0"],
+        |  "undir_edges": {
+        |    "e0": {"data": {"type": "q"},"src": "i0", "tgt": "o0"}
+        |  }
+        |}
+      """.stripMargin), thy = twoWire)
+    val matches = Matcher.findMatches(g2, g)
+    assert(matches.size === 0)
+  }
 
 
   it should "find 2x2 matches from different wire types" in {
