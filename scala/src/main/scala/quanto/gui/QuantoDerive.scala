@@ -5,7 +5,7 @@ import org.python.util.PythonInterpreter
 
 import scala.io.Source
 import scala.swing._
-import scala.swing.event.{Key, SelectionChanged}
+import scala.swing.event.{Key, KeyPressed, SelectionChanged}
 import javax.swing.{JOptionPane, KeyStroke, SwingUtilities, UIManager}
 import java.awt.event.KeyEvent
 import java.awt.Frame
@@ -184,7 +184,7 @@ object QuantoDerive extends SimpleSwingApplication {
   def addAndFocusPage(d : DocumentPage): Unit = {
     MainDocumentTabs += d
     listenTo(d.tabComponent)
-    MainDocumentTabs.publishChanged()
+    MainDocumentTabs.focus(d)
     d.document.publish(DocumentChanged(d.document))
     d.document.focusOnNaturalComponent()
   }
@@ -1142,7 +1142,6 @@ object QuantoDerive extends SimpleSwingApplication {
                 }
               }
           }
-          MainDocumentTabs.publishChanged()
         case None => error("No project open.")
       }
 

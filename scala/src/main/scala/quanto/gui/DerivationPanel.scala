@@ -238,7 +238,7 @@ class DerivationPanel(val project: Project)
       SimplifyPane.Preview.resizeViewToFit()
       SimplifyPane.Preview.repaint()
     case DocumentRequestingNaturalFocus(_) =>
-      histView.requestFocus()
+      LhsView.requestFocus()
   }
 
   // construct the controller last, as it depends on the panel elements already being initialised

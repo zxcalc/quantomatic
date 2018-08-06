@@ -149,6 +149,11 @@ class DocumentTabs {
 
   def focus(index: Int): Unit = {
     selection.index = index
+    currentFocus match {
+      case Some(p) =>
+        p.document.focusOnNaturalComponent()
+      case None =>
+    }
   }
 
   def remove(page: DocumentPage): Unit = {
@@ -203,7 +208,7 @@ class DocumentTabs {
 
   def focus(p: DocumentPage): Unit = {
     try {
-      selection.index = pageIndex(p)
+      focus(pageIndex(p))
     } catch {
       case e: Exception => selection.index = -1
     }
@@ -218,8 +223,14 @@ class DocumentTabs {
     else Some(selection.page.content)
   }
 
+  // Add this reaction to the peer, then handle changes at this level.
+  tabbedPane.selection.reactions += {
+    case SelectionChanged(`tabbedPane`) =>
+      publishChanged()
+  }
+
   def publishChanged(): Unit = {
-    tabbedPane.selection.publish(SelectionChanged(tabbedPane))
+    currentFocus.foreach(_.document.focusOnNaturalComponent())
   }
 
   def documents: Iterable[DocumentPage] = pageIndex.keys
