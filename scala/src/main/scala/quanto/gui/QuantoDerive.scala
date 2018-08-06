@@ -989,6 +989,25 @@ object QuantoDerive extends SimpleSwingApplication {
       }
     }
 
+    val NextTabAction = new Action("Next tab") {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, CommandMask))
+      enabled = false
+      menu.contents += new MenuItem(this) {mnemonic = Key.N}
+
+      def apply(): Unit ={
+         MainDocumentTabs.cycle()
+      }
+    }
+
+    val PreviousTabAction = new Action("Previous tab") {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, CommandMask))
+      enabled = false
+      menu.contents += new MenuItem(this) {mnemonic = Key.P}
+
+      def apply(): Unit ={
+        MainDocumentTabs.cycle(forward = false)
+      }
+    }
 
     val CloseAllAction = new Action("Close all tabs") {
       accelerator = None
@@ -1169,6 +1188,8 @@ object QuantoDerive extends SimpleSwingApplication {
       DeriveMenu.ViewGraph.enabled = false
       DeriveMenu.ReRunLastSimproc.enabled = false
       WindowMenu.CloseAction.enabled = false
+      WindowMenu.PreviousTabAction.enabled = false
+      WindowMenu.NextTabAction.enabled = false
       WindowMenu.CloseAllAction.enabled = false
       ExportMenu.ExportAction.enabled = false
 
@@ -1180,6 +1201,8 @@ object QuantoDerive extends SimpleSwingApplication {
         case Some(content: HasDocument) =>
           WindowMenu.CloseAction.enabled = true
           WindowMenu.CloseAllAction.enabled = true
+          WindowMenu.NextTabAction.enabled = MainDocumentTabs.size > 1
+          WindowMenu.PreviousTabAction.enabled = MainDocumentTabs.size > 1
           FileMenu.SaveAction.enabled = true
           FileMenu.SaveAsAction.enabled = true
           FileMenu.SaveAllAction.enabled = true

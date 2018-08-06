@@ -127,6 +127,8 @@ class DocumentTabs {
   val tabbedPane = new TabbedPane()
   private var pageIndex: Map[DocumentPage, Int] = Map()
 
+  def size : Int = pageIndex.size
+
   def component: TabbedPane = tabbedPane
 
   def +=(p: DocumentPage) {
@@ -137,6 +139,12 @@ class DocumentTabs {
     }
     reorderPages()
     focus(p)
+  }
+
+  def cycle(forward: Boolean = true) : Unit = {
+    if(pageIndex.nonEmpty) {
+      focus((selection.index + (if (forward) 1 else -1) + size) % size)
+    }
   }
 
   def focus(index: Int): Unit = {
