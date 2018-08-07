@@ -53,6 +53,15 @@ case class Theory(
       defaultVertexType, defaultEdgeType)
   }
 
+  def copy(name: String = name,
+           coreName: String = coreName,
+           vertexTypes: Map[String, Theory.VertexDesc] = vertexTypes,
+           edgeTypes: Map[String, Theory.EdgeDesc] = edgeTypes,
+           defaultVertexType: String = defaultVertexType,
+           defaultEdgeType: String = defaultEdgeType): Theory = Theory(
+    name, coreName, vertexTypes, edgeTypes, defaultVertexType, defaultEdgeType
+  )
+
   override def toString: String = coreName
 }
 
@@ -185,6 +194,7 @@ object Theory {
   case class VertexStyleDesc(
                               shape: VertexShape,
                               customShape: Option[Shape] = None,
+                              strokeWidth: Int = 1,
                               strokeColor: Color = Color.BLACK,
                               fillColor: Color = Color.WHITE,
                               labelPosition: VertexLabelPosition = VertexLabelPosition.Center,
@@ -268,6 +278,7 @@ object Theory {
     implicit def fromJson(json: Json): VertexStyleDesc = VertexStyleDesc(
       shape = json / "shape",
       customShape = None,
+      strokeWidth = json.getOrElse("stroke_width", 1),
       strokeColor = json.getOrElse("stroke_color", Color.BLACK),
       fillColor = json.getOrElse("fill_color", Color.WHITE),
       labelPosition = (json ? "label").getOrElse("position", VertexLabelPosition.Center),
@@ -279,6 +290,7 @@ object Theory {
       JsonObject(
         "shape" -> v.shape,
         "custom_shape" -> JsonNull,
+        "stroke_width" -> v.strokeWidth,
         "stroke_color" -> v.strokeColor,
         "fill_color" -> v.fillColor,
         "label" -> JsonObject(

@@ -364,7 +364,7 @@ private  def viewportOffset (): (Double, Double) = {
 
     g.setStroke(new BasicStroke(1))
     var a = g.getColor
-    for ((v, VDisplay(shape,color,label)) <- vertexDisplay) {
+    for ((v, VDisplay(shape, strokeWidth, color,label)) <- vertexDisplay) {
 
       /* draw red line if vertex coordinates are within !-box rectangle
        * but the vertex is not a member of the !-box and also write
@@ -413,10 +413,10 @@ private  def viewportOffset (): (Double, Double) = {
       
       if (selectedVerts contains v) {
         g.setColor(Color.BLUE)
-        g.setStroke(new BasicStroke(2))
+        g.setStroke(new BasicStroke(strokeWidth + 1))
       } else {
         g.setColor(Color.BLACK)
-        g.setStroke(new BasicStroke(1))
+        g.setStroke(new BasicStroke(strokeWidth))
       }
 
       g.draw(shape)

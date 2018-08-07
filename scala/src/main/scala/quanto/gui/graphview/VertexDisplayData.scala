@@ -9,7 +9,7 @@ import quanto.gui._
 import quanto.core.data.TexConstants
 import quanto.util.UserOptions
 
-case class VDisplay(shape: Shape, color: Color, label: Option[LabelDisplayData]) {
+case class VDisplay(shape: Shape, borderWidth: Int, color: Color, label: Option[LabelDisplayData]) {
   def pointHit(pt: Point2D) = {
     val bnd = shape.getBounds2D
     pt.getX >= bnd.getMinX - GraphView.VertexSelectionTolerence &&
@@ -85,11 +85,10 @@ trait VertexDisplayData { self: GraphView =>
               // Default to square if no data, and stretch horizontally if needed
               val width = max(widthFromLabel, height)
 
+              val x = labelDisplay.bounds.getMinX - (width - labelDisplay.bounds.getWidth) / 2.0
+              val y = labelDisplay.bounds.getMinY - (height - labelDisplay.bounds.getHeight) / 2.0
 
-              new Rectangle2D.Double(
-                labelDisplay.bounds.getMinX - (width - labelDisplay.bounds.getWidth) / 2.0,
-                labelDisplay.bounds.getMinY - (height - labelDisplay.bounds.getHeight) / 2.0,
-                width, height)
+              new Rectangle2D.Double(x, y, width, height)
             case Theory.VertexShape.Circle =>
               // radius should fit to label if required
               val r = max(
@@ -97,20 +96,20 @@ trait VertexDisplayData { self: GraphView =>
                 trans.scaleToScreen(GraphView.NodeRadius)
               )
 
-              new Ellipse2D.Double(
-                labelDisplay.bounds.getCenterX - r,
-                labelDisplay.bounds.getCenterY - r,
-                2.0 * r, 2.0 * r)
+              val midX = labelDisplay.bounds.getCenterX - r
+              val midY = labelDisplay.bounds.getCenterY - r
+              new Ellipse2D.Double(midX, midY, 2.0 * r, 2.0 * r)
             case _ => throw new Exception("Shape not supported yet")
           }
 
-          VDisplay(shape, style.fillColor, Some(labelDisplay))
+          VDisplay(shape, style.strokeWidth, style.fillColor, Some(labelDisplay))
         case _: WireV =>
           VDisplay(
             new Rectangle2D.Double(
               x - trWireWidth, y - trWireWidth,
               2.0 * trWireWidth, 2.0 * trWireWidth),
-            Color.GRAY,None)
+            1,
+            Color.GRAY, None)
       }
     }
   }

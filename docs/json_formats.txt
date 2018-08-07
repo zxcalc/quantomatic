@@ -134,6 +134,7 @@ VTYPE_DESC ::=
   "style": {
     "shape": "circle" | "rectangle" | "custom",
     "custom_shape_path": JSON_STRING,
+    "stroke_width": JSON_INT,
     "stroke_color": COLOR,
     "fill_color": COLOR,
     "label" : {

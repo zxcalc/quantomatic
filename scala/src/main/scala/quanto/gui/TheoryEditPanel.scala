@@ -87,14 +87,28 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
 
       val newVertexTypes: Map[String, VertexDesc] = theory.vertexTypes + (node -> newVertexDesc)
       // Update the base document's theory
-      theory = new Theory(name = theory.name,
-        coreName = theory.coreName,
-        vertexTypes = newVertexTypes,
-        edgeTypes = theory.edgeTypes,
-        defaultVertexType = theory.defaultVertexType,
-        defaultEdgeType = theory.defaultEdgeType
-      )
+      theory = theory.copy(vertexTypes = newVertexTypes)
     }
+  }
+
+  def chooseNodeBorderWidth(node: String, current: Int): Unit = {
+
+    val dialog = new SizeDialog(s"$node's border", current)
+    dialog.centerOnScreen()
+    dialog.open()
+    val newSize = dialog.SizeComboBox.selection.item.toInt
+
+    val oldStyle: VertexStyleDesc = theory.vertexTypes(node).style
+    val newStyle: VertexStyleDesc = oldStyle.copy(strokeWidth = newSize)
+
+    val oldVertexDesc = theory.vertexTypes(node)
+    val newVertexDesc = new VertexDesc(oldVertexDesc.value,
+      newStyle,
+      oldVertexDesc.defaultData)
+
+    val newVertexTypes: Map[String, VertexDesc] = theory.vertexTypes + (node -> newVertexDesc)
+    // Update the base document's theory
+    theory = theory.copy(vertexTypes = newVertexTypes)
   }
 
   def chooseNodeColour(node: String, current: Color): Unit = {
@@ -104,15 +118,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     val newColourHex: String = dialog.CustomText.text
     val newColour = Color.decode(newColourHex)
     val oldStyle: VertexStyleDesc = theory.vertexTypes(node).style
-    val newStyle: VertexStyleDesc = new VertexStyleDesc(
-      shape = oldStyle.shape,
-      customShape = oldStyle.customShape,
-      strokeColor = oldStyle.strokeColor,
-      fillColor = newColour,
-      labelPosition = oldStyle.labelPosition,
-      labelForegroundColor = oldStyle.labelForegroundColor,
-      labelBackgroundColor = oldStyle.labelBackgroundColor
-    )
+    val newStyle: VertexStyleDesc = oldStyle.copy(fillColor = newColour)
 
     val oldVertexDesc = theory.vertexTypes(node)
     val newVertexDesc = new VertexDesc(oldVertexDesc.value,
@@ -121,13 +127,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
 
     val newVertexTypes: Map[String, VertexDesc] = theory.vertexTypes + (node -> newVertexDesc)
     // Update the base document's theory
-    theory = new Theory(name = theory.name,
-      coreName = theory.coreName,
-      vertexTypes = newVertexTypes,
-      edgeTypes = theory.edgeTypes,
-      defaultVertexType = theory.defaultVertexType,
-      defaultEdgeType = theory.defaultEdgeType
-    )
+    theory = theory.copy(vertexTypes = newVertexTypes)
   }
 
   // Method for choosing the strokecolour of an edge
@@ -138,13 +138,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     val newColourHex: String = dialog.CustomText.text
     val newColour = Color.decode(newColourHex)
     val oldStyle: EdgeStyleDesc = theory.edgeTypes(edge).style
-    val newStyle: EdgeStyleDesc = new EdgeStyleDesc(
-      strokeColor = newColour,
-      strokeWidth = oldStyle.strokeWidth,
-      labelPosition = oldStyle.labelPosition,
-      labelForegroundColor = oldStyle.labelForegroundColor,
-      labelBackgroundColor = oldStyle.labelBackgroundColor
-    )
+    val newStyle: EdgeStyleDesc = oldStyle.copy(strokeColor = newColour)
 
     val oldEdgeDesc = theory.edgeTypes(edge)
     val newEdgeDesc = new EdgeDesc(oldEdgeDesc.value,
@@ -153,29 +147,17 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
 
     val newEdgeTypes: Map[String, EdgeDesc] = theory.edgeTypes + (edge -> newEdgeDesc)
     // Update the base document's theory
-    theory = new Theory(name = theory.name,
-      coreName = theory.coreName,
-      vertexTypes = theory.vertexTypes,
-      edgeTypes = newEdgeTypes,
-      defaultVertexType = theory.defaultVertexType,
-      defaultEdgeType = theory.defaultEdgeType
-    )
+    theory = theory.copy(edgeTypes = newEdgeTypes)
   }
 
   // Method for choosing the strokewidth of an edge
   def chooseEdgeWidth(edge: String, current: Int): Unit = {
-    val dialog = new EdgeWidthDialog(edge, current)
+    val dialog = new SizeDialog(edge, current)
     dialog.centerOnScreen()
     dialog.open()
-    val newSize = dialog.PlacementComboBox.selection.item.toInt
+    val newSize = dialog.SizeComboBox.selection.item.toInt
     val oldStyle: EdgeStyleDesc = theory.edgeTypes(edge).style
-    val newStyle: EdgeStyleDesc = new EdgeStyleDesc(
-      strokeColor = oldStyle.strokeColor,
-      strokeWidth = newSize,
-      labelPosition = oldStyle.labelPosition,
-      labelForegroundColor = oldStyle.labelForegroundColor,
-      labelBackgroundColor = oldStyle.labelBackgroundColor
-    )
+    val newStyle: EdgeStyleDesc = oldStyle.copy(strokeWidth = newSize)
 
     val oldEdgeDesc = theory.edgeTypes(edge)
     val newEdgeDesc = new EdgeDesc(oldEdgeDesc.value,
@@ -184,33 +166,19 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
 
     val newEdgeTypes: Map[String, EdgeDesc] = theory.edgeTypes + (edge -> newEdgeDesc)
     // Update the base document's theory
-    theory = new Theory(name = theory.name,
-      coreName = theory.coreName,
-      vertexTypes = theory.vertexTypes,
-      edgeTypes = newEdgeTypes,
-      defaultVertexType = theory.defaultVertexType,
-      defaultEdgeType = theory.defaultEdgeType
-    )
+    theory = theory.copy(edgeTypes = newEdgeTypes)
   }
 
   // Choose label position for current node
   def chooseLabelPlacement(node: String, current: VertexLabelPosition): Unit = {
-    val dialog = new NodeLabelPlacementDialog(node, current)
+    val dialog = new LabelPlacementDialog(node, current)
     dialog.centerOnScreen()
     dialog.open()
     val newPlacementName: String = dialog.PlacementComboBox.item
     val newPlacement: VertexLabelPosition = VertexLabelPosition.fromName(newPlacementName).
       getOrElse(VertexLabelPosition.values.head)
     val oldStyle: VertexStyleDesc = theory.vertexTypes(node).style
-    val newStyle: VertexStyleDesc = new VertexStyleDesc(
-      oldStyle.shape,
-      oldStyle.customShape,
-      strokeColor = oldStyle.strokeColor,
-      fillColor = oldStyle.fillColor,
-      labelPosition = newPlacement,
-      labelForegroundColor = oldStyle.labelForegroundColor,
-      labelBackgroundColor = oldStyle.labelBackgroundColor
-    )
+    val newStyle: VertexStyleDesc = oldStyle.copy(labelPosition = newPlacement)
 
     val oldVertexDesc = theory.vertexTypes(node)
     val newVertexDesc = new VertexDesc(oldVertexDesc.value,
@@ -219,13 +187,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
 
     val newVertexTypes: Map[String, VertexDesc] = theory.vertexTypes + (node -> newVertexDesc)
     // Update the base document's theory
-    theory = new Theory(name = theory.name,
-      coreName = theory.coreName,
-      vertexTypes = newVertexTypes,
-      edgeTypes = theory.edgeTypes,
-      defaultVertexType = theory.defaultVertexType,
-      defaultEdgeType = theory.defaultEdgeType
-    )
+    theory = theory.copy(vertexTypes = newVertexTypes)
   }
 
   def theory: Theory = document.theory
@@ -244,7 +206,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     val newShapeName: String = dialog.ShapeComboBox.item
     val newShape = VertexShape.fromName(newShapeName).getOrElse(VertexShape.Circle)
     val oldStyle: VertexStyleDesc = theory.vertexTypes(node).style
-    val newStyle: VertexStyleDesc = new VertexStyleDesc(
+    val newStyle: VertexStyleDesc = oldStyle.copy(
       newShape,
       newShape match {
         case VertexShape.Custom =>
@@ -255,12 +217,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
               None
           }
         case _ => None
-      },
-      strokeColor = oldStyle.strokeColor,
-      fillColor = oldStyle.fillColor,
-      labelPosition = oldStyle.labelPosition,
-      labelForegroundColor = oldStyle.labelForegroundColor,
-      labelBackgroundColor = oldStyle.labelBackgroundColor
+      }
     )
 
     val oldVertexDesc = theory.vertexTypes(node)
@@ -270,13 +227,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
 
     val newVertexTypes: Map[String, VertexDesc] = theory.vertexTypes + (node -> newVertexDesc)
     // Update the base document's theory
-    theory = new Theory(name = theory.name,
-      coreName = theory.coreName,
-      vertexTypes = newVertexTypes,
-      edgeTypes = theory.edgeTypes,
-      defaultVertexType = theory.defaultVertexType,
-      defaultEdgeType = theory.defaultEdgeType
-    )
+    theory = theory.copy(vertexTypes = newVertexTypes)
   }
 
   def createPageComponents(): Unit = {
@@ -353,13 +304,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
       )
       val newVertexTypes: Map[String, Theory.VertexDesc] = theory.vertexTypes ++ Map(result -> newVertexDesc)
       // Update the base document's theory
-      theory = new Theory(name = theory.name,
-        coreName = theory.coreName,
-        vertexTypes = newVertexTypes,
-        edgeTypes = theory.edgeTypes,
-        defaultVertexType = theory.defaultVertexType,
-        defaultEdgeType = theory.defaultEdgeType
-      )
+      theory = theory.copy(vertexTypes = newVertexTypes)
     }
   }
 
@@ -434,23 +379,22 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
     }
   }
 
-  class EdgeWidthDialog(name: String, current: Int) extends Dialog {
-    title = s"Choose the stroke width for edge $name"
+  class SizeDialog(identifier: String,
+                   current: Int,
+                   sizeOptions: Seq[String] = (1 to 5).map(_.toString)) extends Dialog {
+    title = s"Choose the size of $identifier"
     modal = true
-
-    val sizeOptions: Seq[String] = (1 to 5).map(_.toString)
-
 
     val AcceptButton = new Button("Accept")
     val CancelButton = new Button("Cancel")
-    val PlacementComboBox = new ComboBox(sizeOptions)
-    PlacementComboBox.selection.item = current.toString
+    val SizeComboBox = new ComboBox(sizeOptions)
+    SizeComboBox.selection.item = current.toString
     defaultButton = Some(CancelButton)
     val ShapeEditorPanel : BoxPanel = new BoxPanel(Orientation.Vertical) {
 
       contents += Swing.VStrut(10)
       contents += new BoxPanel(Orientation.Horizontal) {
-        contents += (Swing.HStrut(10), new Label("Size:"), Swing.HStrut(5), PlacementComboBox, Swing.HStrut(10))
+        contents += (Swing.HStrut(10), new Label("Size:"), Swing.HStrut(5), SizeComboBox, Swing.HStrut(10))
       }
       contents += Swing.VStrut(10)
       contents += new BoxPanel(Orientation.Horizontal) {
@@ -461,20 +405,20 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
 
     contents = ShapeEditorPanel
 
-    listenTo(AcceptButton, CancelButton, PlacementComboBox.selection)
+    listenTo(AcceptButton, CancelButton, SizeComboBox.selection)
 
     reactions += {
       case ButtonClicked(AcceptButton) =>
         close()
       case ButtonClicked(CancelButton) =>
-        PlacementComboBox.item = current.toString
+        SizeComboBox.item = current.toString
         close()
-      case SelectionChanged(PlacementComboBox) =>
+      case SelectionChanged(SizeComboBox) =>
     }
   }
 
-  class NodeLabelPlacementDialog(name: String, current: VertexLabelPosition) extends Dialog {
-    title = s"Choose the label placement for node $name"
+  class LabelPlacementDialog(identifier: String, current: VertexLabelPosition) extends Dialog {
+    title = s"Choose the label placement for $identifier"
     modal = true
 
     val positionOptions: Seq[String] = VertexLabelPosition.values.
@@ -716,7 +660,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
   class NodeEditor(nodeName: String, desc: VertexDesc) extends BoxPanel(Orientation.Vertical) {
     // Note that GridPanel expands to fill parent
     maximumSize = maxGridSize
-    contents += new GridPanel(4, 2) {
+    contents += new GridPanel(5, 2) {
 
       contents += new Label("Name")
       contents += new Label(nodeName) // Currently doesn't support renaming nodes (and shouldn't?)
@@ -732,12 +676,18 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
       contents += new Label("Values")
       val EditValueTypeButton: Button = new Button(valueTypeVectorToString(desc.value.typ))
       contents += EditValueTypeButton
+
+      contents += new Label("Border width")
+      val EditBorderWidthButton: Button = new Button(desc.style.strokeWidth.toString)
+      contents += EditBorderWidthButton
+
+
       //contents += new Label("Label placement")
       //val EditPlacementButton: Button = new Button(desc.style.labelPosition.toString)
       //contents += EditPlacementButton
       //contents += new Label("Example")
       //contents += new Label("Example here")
-      listenTo(EditShapeButton, EditColourButton, EditValueTypeButton)
+      listenTo(EditShapeButton, EditColourButton, EditValueTypeButton, EditBorderWidthButton)
       reactions += {
         case ButtonClicked(EditShapeButton) =>
           chooseNodeShape(nodeName, (desc.style.shape, desc.style.customShape))
@@ -745,6 +695,8 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
           chooseNodeColour(nodeName, desc.style.fillColor)
         case ButtonClicked(EditValueTypeButton) =>
           chooseNodeDataType(nodeName, valueTypeVectorToString(desc.value.typ))
+        case ButtonClicked(EditBorderWidthButton) =>
+          chooseNodeBorderWidth(nodeName, desc.style.strokeWidth)
       }
     }
   }
