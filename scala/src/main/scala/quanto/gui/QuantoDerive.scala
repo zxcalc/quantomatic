@@ -31,6 +31,7 @@ import ExecutionContext.Implicits.global
 import java.awt.{Color, Desktop, Window}
 import java.lang.NullPointerException
 
+import javax.imageio.ImageIO
 import javax.swing.filechooser.FileNameExtensionFilter
 import quanto.gui.QuantoDerive.FileMenu.mnemonic
 import quanto.util._
@@ -132,7 +133,7 @@ object QuantoDerive extends SimpleSwingApplication {
         unloadProject()
         None
     } finally {
-      refreshAllMenus()
+      refreshAllMenusAndTitle()
     }
   }
 
@@ -555,7 +556,7 @@ object QuantoDerive extends SimpleSwingApplication {
                 Project.toJson(proj).writeTo(projectFile)
                 loadProject(projectFile.getAbsolutePath)
                 //core ! SetMLWorkingDir(rootFolder)
-                refreshAllMenus()
+                refreshAllMenusAndTitle()
               }
             case None =>
           }
@@ -584,7 +585,7 @@ object QuantoDerive extends SimpleSwingApplication {
                     error("Unexpected error when opening project")
                     e.printStackTrace()
                 } finally {
-                  refreshAllMenus()
+                  refreshAllMenusAndTitle()
                 }
               } else {
                 error(s"Folder does not contain a Quantomatic project: $projectFile")
@@ -601,7 +602,7 @@ object QuantoDerive extends SimpleSwingApplication {
         if (closeAllOrListOfDocuments()) {
           ProjectFileTree.root = None
           CurrentProject = None
-          refreshAllMenus()
+          refreshAllMenusAndTitle()
         }
       }
     }
@@ -1154,7 +1155,12 @@ object QuantoDerive extends SimpleSwingApplication {
 //    Swing.onEDT { CoreStatus.text = "OK"; CoreStatus.foreground = new Color(0,150,0) }
 //  }
 
-  private def refreshAllMenus() = {
+  private def refreshAllMenusAndTitle(): Unit = {
+    refreshAllMenus()
+    refreshTitle()
+  }
+
+  private def refreshAllMenus(): Unit = {
     try {
       FileMenu.SaveAction.enabled = false
       FileMenu.SaveAsAction.enabled = false
@@ -1259,15 +1265,19 @@ object QuantoDerive extends SimpleSwingApplication {
 
 
   val _mainframe = new MainFrame {
-    override def title : String = {
-      if (CurrentProject.isEmpty) {"Quantomatic"} else {
+
+    def refreshTitle() : Unit = {
+      // Setting the iconImage here isn't working on Windows
+      // iconImage = ImageIO.read(getClass.getResource("quantoderive.ico"))
+      title = if (CurrentProject.isEmpty) {"Quantomatic"} else {
         CurrentProject.get.name match {
           case "" => "Quantomatic"
-          case s => "Quantomatic - $s"
+          case s => s"Quantomatic - $s"
         }
       }
     }
     contents = Main
+
 
     if (prefs.getBoolean("fullscreen",false)) {
       peer.setExtendedState(peer.getExtendedState() | Frame.MAXIMIZED_BOTH)
@@ -1292,5 +1302,15 @@ object QuantoDerive extends SimpleSwingApplication {
   }
 
   def top = _mainframe
-  refreshAllMenus()
+
+  def refreshTitle(): Unit = {
+    try {
+      top.refreshTitle()
+    } catch {
+      case _: NullPointerException =>
+      // Null Pointer Exception thrown when accessing GUI too early
+    }
+  }
+
+  refreshAllMenusAndTitle()
 }
