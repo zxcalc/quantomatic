@@ -79,6 +79,7 @@ object Simproc {
              vertexLimit: Option[Int] = None) = new Simproc {
     override def simp(g: Graph): Iterator[(Graph, Rule)] = {
       val reduced = AutoReduce.annealingReduce(
+        RuleSynthesis.basicGraphComparison,
         RuleSynthesis.graphToDerivation(g),
         rules,
         steps,

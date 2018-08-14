@@ -1,5 +1,6 @@
 package quanto.cosy
 
+import quanto.cosy.RuleSynthesis.GraphComparison
 import quanto.data.Derivation.DerivationWithHead
 import quanto.data._
 import quanto.rewrite._
@@ -12,6 +13,20 @@ import scala.util.Random
   * Created by hector on 29/06/17.
   */
 object RuleSynthesis {
+
+  type GraphComparison = (Graph, Graph) => Int
+  // returns x where
+  // x < 0 iff left < right
+  // x > 0 iff left > right
+  // x == 0 otherwise
+
+  def basicGraphComparison(left: Graph, right: Graph): Int = {
+    if (left < right) -1 else {
+      if (left > right) 1 else 0
+    }
+  }
+
+
 
   def loadRuleDirectory(directory: String): List[Rule] = {
     quanto.util.FileHelper.getListOfFiles(directory, raw".*\.qrule").
@@ -51,32 +66,48 @@ object RuleSynthesis {
     }
   }
 
-  def discardDirectlyReducibleRules(rules: List[Rule], seed: Random = new Random()): List[Rule] = {
+  def greedyReduceRules(comparison: GraphComparison)(rules: List[Rule]): List[Rule] = {
+    // Only applies rules forwards when checking!
+    // Need to include inverses if you want rules to go backwards as well as forwards.
+
+    // Yes, this is imperative rather than functional. We really do want to update a list as we act on it.
+
+    var rulesAsMap = rules.zipWithIndex.map(ri => (ri._2, ri._1)).toMap // i -> rule_i
+    var updatedThisRun = true
+
+    while (updatedThisRun) {
+      updatedThisRun = false
+      for (i <- rulesAsMap.keys) {
+        val rule = rulesAsMap(i)
+        val otherRules = rulesAsMap.filterKeys(_ != i).values.toList
+        val newLhs: Graph = AutoReduce.greedyReduce(comparison, graphToDerivation(rule.lhs), otherRules)
+        val newRhs: Graph = AutoReduce.greedyReduce(comparison, graphToDerivation(rule.rhs), otherRules)
+        if (newLhs != rule.lhs || newRhs != rule.rhs) {
+          rulesAsMap = rulesAsMap + (i -> new Rule(newLhs,
+            newRhs,
+            derivation = None,
+            RuleDesc(rule.name + " reduced")
+          ))
+          updatedThisRun = true
+        }
+      }
+    }
+
+    rulesAsMap.values.toList
+  }
+
+  def discardDirectlyReducibleRules(comparison: GraphComparison,
+                                    rules: List[Rule],
+                                    seed: Random = new Random()): List[Rule] = {
     rules.filter(rule =>
-      AutoReduce.genericReduce(graphToDerivation(rule.lhs), rules.filter(r => r != rule), seed) >= rule.lhs
+      AutoReduce.greedyReduce(comparison, graphToDerivation(rule.lhs), rules.filter(r => r != rule)) >= rule.lhs
+    ).filter(rule =>
+      AutoReduce.greedyReduce(comparison, graphToDerivation(rule.rhs), rules.filter(r => r != rule)) >= rule.rhs
     )
   }
 
   def graphToDerivation(graph: Graph): DerivationWithHead = {
     (new Derivation(graph), None)
-  }
-
-  def minimiseRuleset(rules: List[Rule], theory: Theory, seed: Random = new Random()): List[Rule] = {
-    val reduced = rules.map(rule => minimiseRuleInPresenceOf(rule, rules.filter(otherRule => otherRule != rule), seed))
-    //val reducedLessTautologies = removeTautologies(reduced.map(_._1))
-    if (reduced.exists(_._2)) {
-      minimiseRuleset(reduced.map(_._1), theory)
-    } else {
-      reduced.map(_._1)
-    }
-  }
-
-  def minimiseRuleInPresenceOf(rule: Rule, otherRules: List[Rule], seed: Random = new Random()): (Rule, Boolean) = {
-    val minLhs: Graph = AutoReduce.genericReduce(graphToDerivation(rule.lhs), otherRules, seed)
-    val minRhs: Graph = AutoReduce.genericReduce(graphToDerivation(rule.rhs), otherRules, seed)
-    val wasItReduced = (minLhs < rule.lhs) || (minRhs < rule.rhs)
-    (new Rule(minLhs, minRhs, description = RuleDesc(
-      rule.name + (if (wasItReduced) " reduced" else ""))), wasItReduced)
   }
 
 }
@@ -107,19 +138,20 @@ object AutoReduce {
   }
 
   // Tries multiple methods and is sure to return nothing larger than what you started with
-  def genericReduce(derivationAndHead: DerivationWithHead,
+  def genericReduce(comparison: GraphComparison)
+                   (derivationAndHead: DerivationWithHead,
                     rules: List[Rule],
                     seed: Random = new Random()):
   DerivationWithHead = {
     var latestDerivation: DerivationWithHead = derivationAndHead
     latestDerivation._2 match {
       case Some(initialHead) =>
-        latestDerivation = annealingReduce(latestDerivation, rules, seed)
-        latestDerivation = greedyReduce(latestDerivation, rules)
-        latestDerivation = greedyReduce((latestDerivation._1.addHead(initialHead), Some(initialHead)), rules)
+        latestDerivation = annealingReduce(comparison, latestDerivation, rules, seed)
+        latestDerivation = greedyReduce(comparison, latestDerivation, rules)
+        latestDerivation = greedyReduce(comparison, (latestDerivation._1.addHead(initialHead), Some(initialHead)), rules)
       case None =>
-        latestDerivation = annealingReduce(latestDerivation, rules, seed)
-        latestDerivation = greedyReduce(latestDerivation, rules)
+        latestDerivation = annealingReduce(comparison, latestDerivation, rules, seed)
+        latestDerivation = greedyReduce(comparison, latestDerivation, rules)
     }
 
     // Go back to original request, find smallest child
@@ -127,17 +159,19 @@ object AutoReduce {
   }
 
   // Simplest entry point
-  def annealingReduce(derivationHeadPair: DerivationWithHead,
+  def annealingReduce(comparison: GraphComparison,
+                      derivationHeadPair: DerivationWithHead,
                       rules: List[Rule],
                       seed: Random = new Random(),
                       vertexLimit: Option[Int] = None): DerivationWithHead = {
     val maxTime = 100 + math.pow(derivationHeadPair.verts.size, 2).toInt // Set as squaring #vertices for now
     val timeDilation = 3 // Gives an e^-3 ~ 0.05% chance of a non-reduction rule on the final step
-    annealingReduce(derivationHeadPair, rules, maxTime, timeDilation, seed, vertexLimit)
+    annealingReduce(comparison, derivationHeadPair, rules, maxTime, timeDilation, seed, vertexLimit)
   }
 
   // Enter here to have control over e.g. how long it runs for
-  def annealingReduce(derivationHeadPair: DerivationWithHead,
+  def annealingReduce(comparison: GraphComparison,
+                      derivationHeadPair: DerivationWithHead,
                       rules: List[Rule],
                       maxTime: Int,
                       timeDilation: Double,
@@ -150,13 +184,14 @@ object AutoReduce {
         val suggestedNextStep = randomSingleApply(d, randRule, seed, None, None, None)
         val head = Derivation.derivationHeadPairToGraph(d)
         val smallEnough = vertexLimit.isEmpty || (head.verts.size < vertexLimit.get)
-        if ((allowIncrease && smallEnough) || suggestedNextStep < head) suggestedNextStep else d
+        if ((allowIncrease && smallEnough) || comparison(suggestedNextStep, head) < 0) suggestedNextStep else d
       } else d
     }
   }
 
   @tailrec
-  def greedyReduce(derivationHeadPair: DerivationWithHead,
+  def greedyReduce(comparison: GraphComparison,
+                   derivationHeadPair: DerivationWithHead,
                    rules: List[Rule],
                    remainingRules: List[Rule]): DerivationWithHead = {
     remainingRules match {
@@ -165,26 +200,29 @@ object AutoReduce {
           val reducedGraph = Rewriter.rewrite(ruleMatch, r.rhs)._1.minimise
           val stepName = quanto.data.Names.mapToNameMap(derivationHeadPair._1.steps).
             freshWithSuggestion(DSName(r.description.name))
-          greedyReduce((derivationHeadPair._1.addStep(
-            derivationHeadPair._2,
-            DStep(stepName, r, reducedGraph)
-          ), Some(stepName)),
+          greedyReduce(comparison,
+            (derivationHeadPair._1.addStep(
+              derivationHeadPair._2,
+              DStep(stepName, r, reducedGraph)
+            ), Some(stepName)),
             rules,
             rules)
         case Stream.Empty =>
-          greedyReduce(derivationHeadPair, rules, tailRules)
+          greedyReduce(comparison, derivationHeadPair, rules, tailRules)
       }
       case Nil => derivationHeadPair
     }
   }
 
   // Simply apply the first reduction rule it can find until there are none left
-  def greedyReduce(derivationHeadPair: DerivationWithHead, rules: List[Rule]): DerivationWithHead = {
+  def greedyReduce(comparison: GraphComparison,
+                   derivationHeadPair: DerivationWithHead,
+                   rules: List[Rule]): DerivationWithHead = {
     val reducingRules = rules.filter(rule => rule.lhs > rule.rhs)
-    val reduced = greedyReduce(derivationHeadPair, reducingRules, reducingRules)
+    val reduced = greedyReduce(comparison, derivationHeadPair, reducingRules, reducingRules)
     // Go round again until it stops reducing
-    if (reduced < derivationHeadPair) {
-      greedyReduce(reduced, rules)
+    if (comparison(reduced, derivationHeadPair) < 0) {
+      greedyReduce(comparison, reduced, rules)
     } else reduced
   }
 

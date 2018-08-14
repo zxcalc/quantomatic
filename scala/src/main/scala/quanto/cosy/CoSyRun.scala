@@ -37,8 +37,8 @@ abstract class CoSyRun[S, T](
   // If you want to check for isomorphisms specify a regex to match the boundaries here
   val matchBorders: Option[Regex]
 
-  // Compare two graphs. Strictly bigger than.
-  def graphLeftBiggerRight(left: Graph, right: Graph): Boolean
+  // Positive if left bigger than right:
+  def compareGraph(left: Graph, right: Graph): Int
 
   // See if two tensors should be considered equivalent
   // e.g. isRoughly or isRoughlyUpToScalar
@@ -104,7 +104,7 @@ abstract class CoSyRun[S, T](
 
             if (!isomorphic) {
               doWithUnmatched(next)
-              if (graphLeftBiggerRight(existing, nextGraph)) {
+              if (compareGraph(existing, nextGraph) > 0) {
                 // update class with smaller graph
                 equivClasses = equivClasses + (equivClass._1 -> nextGraph)
                 createRule(existing, nextGraph)
@@ -134,7 +134,7 @@ abstract class CoSyRun[S, T](
                 doWithUnmatched(next)
                 createRule(nextGraph, existing)
                 // update class with smaller graph
-                if (graphLeftBiggerRight(existing, nextGraph)) {
+                if (compareGraph(existing, nextGraph) > 0) {
                   equivClasses = equivClasses + (equivClass._1 -> nextGraph)
                 }
               } else {
@@ -248,15 +248,18 @@ abstract class CoSyRun[S, T](
   }
 
   def loadRule(rule: Rule): Unit = {
+    def reduceRules(rules: List[Rule]) : List[Rule] = RuleSynthesis.greedyReduceRules(compareGraph)(rules)
     // Please don't put bbox rules into here unless you really mean them to be here and they reduce left->right
     if (rule.lhs.bboxes.nonEmpty) {
       reductionRules = rule :: reductionRules
     } else {
       // No bboxes, act normally
-      if (graphLeftBiggerRight(rule.lhs, rule.rhs)) {
+      if (compareGraph(rule.lhs, rule.rhs) > 0) {
         reductionRules = rule :: reductionRules
-      } else if (graphLeftBiggerRight(rule.rhs, rule.lhs)) {
+        reductionRules = reduceRules(reductionRules)
+      } else if (compareGraph(rule.rhs, rule.lhs) > 0) {
         reductionRules = rule.inverse :: reductionRules
+        reductionRules = reduceRules(reductionRules)
       } else {
         // Not a reduction rule, so leave it out
       }
@@ -315,8 +318,7 @@ object CoSyRuns {
 
     override def compareTensor(a: Tensor, b: Tensor): Boolean = a.isRoughlyUpToScalar(b)
 
-    override def graphLeftBiggerRight(left: Graph, right: Graph): Boolean =
-      GraphAnalysis.zxCircuitCompare(left, right) > 0
+    override def compareGraph(left: Graph, right: Graph) : Int = GraphAnalysis.zxCircuitCompare(left, right)
 
     override def makeTensor(gen: BlockStack): Tensor = gen.tensor
 
@@ -397,8 +399,7 @@ object CoSyRuns {
       s"adj${a.hash}: ${b.toJson},"
     }
 
-    override def graphLeftBiggerRight(left: Graph, right: Graph): Boolean =
-      GraphAnalysis.zxGraphCompare(left, right) > 0
+    override def compareGraph(left: Graph, right: Graph) : Int = GraphAnalysis.zxGraphCompare(left, right)
 
     private def angleMap = (x: Int) => PhaseExpression(new Rational(2 * x, numAngles), ValueType.AngleExpr)
 
@@ -474,8 +475,9 @@ object CoSyRuns {
       s"adj${a.hash}: ${b.toJson},"
     }
 
-    override def graphLeftBiggerRight(left: Graph, right: Graph): Boolean =
-      GraphAnalysis.zxGraphCompare(left, right) > 0
+
+    //TODO: Graph comparison for ZXBool
+    override def compareGraph(left: Graph, right: Graph) : Int = RuleSynthesis.basicGraphComparison(left, right)
 
     private def angleMap(x: Int): CompositeExpression =
       if (x < numAngles) {

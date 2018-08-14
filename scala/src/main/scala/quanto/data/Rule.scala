@@ -36,6 +36,10 @@ case class RuleDesc(name: String = "unnamed", inverse: Boolean = false) {
   def invert: RuleDesc = RuleDesc(name, !inverse)
 }
 
+object RuleDesc {
+  implicit def fromString(string: String) : RuleDesc = RuleDesc(string)
+}
+
 object Rule {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory, description: Option[RuleDesc] = None): Rule = try {
     Rule(_lhs = Graph.fromJson(json / "lhs", thy),

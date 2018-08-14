@@ -153,7 +153,8 @@ object SimplificationProcedure {
 
       val changed = suggestedNextStep._1.steps.size > derivation._1.steps.size
 
-      val shrunkNextStep = AutoReduce.greedyReduce(suggestedNextStep, greedyRules.getOrElse(Set()).toList)
+      val shrunkNextStep = AutoReduce.greedyReduce(RuleSynthesis.basicGraphComparison,
+        suggestedNextStep, greedyRules.getOrElse(Set()).toList)
       val newErrors = GraphAnalysis.detectPiNodes(shrunkNextStep)
       val suggestedNewSize: Double = state.weightFunction(shrunkNextStep, newErrors).getOrElse(0)
 
