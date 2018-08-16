@@ -170,7 +170,11 @@ abstract class CoSyRun[S, T](
   }
 
   def loadRule(rule: Rule): Unit = {
-    def reduceRules(rules: List[Rule]) : List[Rule] = RuleSynthesis.greedyReduceRules(compareGraph)(rules)
+    def reduceRules(rules: List[Rule]) : List[Rule] = {
+      RuleSynthesis.greedyReduceRules(compareGraph, Some((theory, matchBorders)))(rules).filter(
+        rule => !checkIsomorphic(rule.lhs, rule.rhs)
+      )
+    }
     // Please don't put bbox rules into here unless you really mean them to be here and they reduce left->right
     if (rule.lhs.bboxes.nonEmpty) {
       reductionRules = rule :: reductionRules

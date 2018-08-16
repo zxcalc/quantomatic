@@ -72,22 +72,30 @@ object RuleSynthesis {
     rules.filter(!isIso(_))
   }
 
-  def greedyReduceRules(comparison: GraphComparison)(rules: List[Rule]): List[Rule] = {
+  def greedyReduceRules(comparison: GraphComparison, throwOutIsos : Option[(Theory, Option[Regex])] = None)
+                       (rules: List[Rule]): List[Rule] = {
     // Only applies rules forwards when checking!
     // Need to include inverses if you want rules to go backwards as well as forwards.
 
     // This does not throw out isomorphisms for you.
+    // It just refrains from trying to match them onto other rules.
 
     // Yes, this is imperative rather than functional. We really do want to update a list as we act on it.
 
     var rulesAsMap = rules.zipWithIndex.map(ri => (ri._2, ri._1)).toMap // i -> rule_i
     var updatedThisRun = true
 
+    def isomorphism(rule: Rule): Boolean = throwOutIsos match {
+      case Some(tor) =>
+        GraphAnalysis.checkIsomorphic(tor._1, tor._2)(rule.lhs, rule.rhs)
+      case None => false
+    }
+
     while (updatedThisRun) {
       updatedThisRun = false
       for (i <- rulesAsMap.keys) {
         val rule = rulesAsMap(i)
-        val otherRules = rulesAsMap.filterKeys(_ != i).values.toList
+        val otherRules = rulesAsMap.filterKeys(_ != i).values.toList.filter(!isomorphism(_))
         val newLhs: Graph = AutoReduce.greedyReduce(comparison, graphToDerivation(rule.lhs), otherRules)
         val newRhs: Graph = AutoReduce.greedyReduce(comparison, graphToDerivation(rule.rhs), otherRules)
         if (newLhs != rule.lhs || newRhs != rule.rhs) {
