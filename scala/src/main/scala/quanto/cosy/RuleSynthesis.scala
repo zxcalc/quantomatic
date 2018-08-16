@@ -8,6 +8,7 @@ import quanto.util.json.Json
 
 import scala.annotation.tailrec
 import scala.util.Random
+import scala.util.matching.Regex
 
 /**
   * Created by hector on 29/06/17.
@@ -66,9 +67,16 @@ object RuleSynthesis {
     }
   }
 
+  def removeIsomorphisms(theory: Theory, boundaryRegex: Option[Regex], rules: List[Rule]) : List[Rule] = {
+    def isIso(rule: Rule) : Boolean = GraphAnalysis.checkIsomorphic(theory, boundaryRegex)(rule.lhs, rule.rhs)
+    rules.filter(!isIso(_))
+  }
+
   def greedyReduceRules(comparison: GraphComparison)(rules: List[Rule]): List[Rule] = {
     // Only applies rules forwards when checking!
     // Need to include inverses if you want rules to go backwards as well as forwards.
+
+    // This does not throw out isomorphisms for you.
 
     // Yes, this is imperative rather than functional. We really do want to update a list as we act on it.
 

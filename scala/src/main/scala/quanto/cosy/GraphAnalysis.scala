@@ -1,8 +1,10 @@
 package quanto.cosy
 
-import quanto.data.Theory.ValueType
+import quanto.data.Theory.{ValueType, VertexDesc}
 import quanto.data._
+import quanto.rewrite.Matcher
 import quanto.util.Rational
+import quanto.util.json.{Json, JsonObject}
 
 import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
@@ -427,4 +429,100 @@ object GraphAnalysis {
     val index = names.indexOf(target)
     matrix(index).zipWithIndex.filter(_._1).map(_._2).map(names(_)).toSet
   }
+
+
+  def checkIsomorphic(theory: Theory = Theory.DefaultTheory, boundaryByRegex: Option[Regex] = None)
+                     (g1: Graph, g2: Graph): Boolean = {
+    // Check whether graphs are isomorphic, after constraining their boundaries
+
+    if(g1.verts.size != g2.verts.size) return false
+
+    // Currently the .isBoundary on wires is set by JSON, not programmatically, and as such I don't trust it.
+    def borderNodes(g: Graph): Set[VName] = boundaryByRegex match {
+      case Some(r) => g.verts.filter(vn => vn.s.matches(r.regex))
+      case None => g.verts.filter(vn => g.vdata(vn).isBoundary)
+    }
+
+    val overlappingNodes = borderNodes(g1).intersect(borderNodes(g2))
+
+    //First check they have the same number of boundaries, and the same names between them.
+
+    if(overlappingNodes != borderNodes(g1) || overlappingNodes != borderNodes(g2)){
+      return false
+    }
+
+    val dummyVertexDesc = VertexDesc.fromJson(
+      Json.parse("""{
+                   |            "value": {
+                   |                "type": "empty",
+                   |                "latex_constants": true,
+                   |                "validate_with_core": false
+                   |            },
+                   |            "style": {
+                   |                "label": {
+                   |                    "position": "center",
+                   |                    "fg_color": [
+                   |                        0.0,
+                   |                        0.0,
+                   |                        0.0
+                   |                    ]
+                   |                },
+                   |                "stroke_color": [
+                   |                    0.0,
+                   |                    0.0,
+                   |                    0.0
+                   |                ],
+                   |                "fill_color": [
+                   |                    0.0,
+                   |                    1.0,
+                   |                    1.0
+                   |                ],
+                   |                "shape": "rectangle"
+                   |            },
+                   |            "default_data": {
+                   |                "type": "dummyBoundary",
+                   |                "value": ""
+                   |            }
+                   |        } """.stripMargin))
+
+    def enforceUnique(s: String) : String = if(theory.vertexTypes.keys.exists(_ == s)){
+      enforceUnique(s + "1")
+    } else {
+      s
+    }
+    val dummyVertexName: String = enforceUnique("dummyBoundary")
+    val dummyTheory = theory.mixin(newVertexTypes = Map(dummyVertexName -> dummyVertexDesc))
+    val boundaryData = NodeV(JsonObject(
+      "type" -> dummyVertexName,
+      "value" -> ""
+    ),
+      JsonObject(),
+      dummyTheory)
+
+    def makeSolidBoundaries(graph: Graph): Graph = {
+      overlappingNodes.foldLeft(graph.copy(data = graph.data.copy(theory = dummyTheory))) { (g, vn) =>
+          g.updateVData(vn) { _ => boundaryData }
+        }
+    }
+
+    val solid1 = makeSolidBoundaries(g1)
+    val solid2 = makeSolidBoundaries(g2)
+
+    // The graphs are isomorphic if there are matches in both directions that are the identity on boundaries
+
+    val matches12 = Matcher.findMatches(solid1, solid2).filter(
+      m => overlappingNodes.forall(
+        vn => m.map.v.dom.toList.contains(vn) && m.map.v.domf(vn).contains(vn)
+      )
+    )
+
+    val matches21 = Matcher.findMatches(solid2, solid1).filter(
+      m => overlappingNodes.forall(
+        vn => m.map.v.dom.toList.contains(vn) && m.map.v.domf(vn).contains(vn)
+      )
+    )
+
+    matches21.nonEmpty && matches12.nonEmpty
+  }
+
 }

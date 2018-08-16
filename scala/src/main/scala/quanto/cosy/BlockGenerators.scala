@@ -4,6 +4,8 @@ import quanto.data._
 import quanto.util.json.JsonObject
 import quanto.data.Names._
 
+import scala.util.matching.Regex
+
 object BlockGenerators {
 
 
@@ -82,6 +84,8 @@ object BlockGenerators {
     )
 
     implicit def slow(qg: QuickGraph) : Graph = qg()
+
+    val boundaryRegex : Option[Regex] = Some(raw"""(i|o)-(\d+)""".r)
   }
 
   val ZXTheory : Theory = Theory.fromFile("ZX")

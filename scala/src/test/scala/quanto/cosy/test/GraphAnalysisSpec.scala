@@ -3,11 +3,14 @@ package quanto.cosy.test
 import java.io.File
 
 import org.scalatest.FlatSpec
+import quanto.cosy.BlockGenerators.QuickGraph
 import quanto.cosy.RuleSynthesis._
 import quanto.cosy.GraphAnalysis._
 import quanto.cosy._
 import quanto.data._
 import quanto.util.Rational
+
+import scala.util.matching.Regex
 
 /**
   * Test files for the Graph Analysis Object
@@ -221,6 +224,52 @@ class GraphAnalysisSpec extends FlatSpec {
     val e1 = stacks.find(_.toString == "( 1 ) o (0Z1)").get
     val e2 = stacks.find(_.toString == "(0Z1) o ( 1 )").get
     assert(zxCircuitCompare(e1.graph, e2.graph) < 0)
+  }
+
+  behavior of "Checking isomorphisms"
+
+  // Boundaries have names like i-20 or o-1
+  val boundaryRegex : Option[Regex] = Some(raw"""(i|o)-(\d+)""".r)
+  def ZXiso(left: Graph, right: Graph): Boolean = checkIsomorphic(rg, boundaryRegex)(left, right)
+
+  it should "not match empty onto non-empty" in {
+    val g = QuickGraph(rg)
+    assert(!ZXiso(g, g.node("Z", "0")))
+  }
+
+  it should "match discrete graphs onto only themselves" in {
+    var g = QuickGraph(rg)
+    val graphs = (for (_ <- 1 to 5) yield {
+      g = g.node("Z", "0")
+      g
+    }).toList.zipWithIndex
+    for(i <- graphs; j <- graphs) {
+      // Check we have made alrge enough graphs; index is out by 1
+      assert(i._1.verts.size == (i._2 + 1))
+      if(i._2 == j._2){
+        assert(ZXiso(i._1, j._1))
+      } else {
+        assert(!ZXiso(i._1, j._1))
+      }
+    }
+  }
+
+  it should "not match different data" in {
+    val g = QuickGraph(rg)
+    assert(!ZXiso(g.node("Z","0"), g.node("Z", "1")))
+    assert(!ZXiso(g.node("Z","0"), g.node("X", "0")))
+  }
+
+  it should "match outputs with the same name" in {
+    val g1 = QuickGraph(rg).node("Z", angle = "0", nodeName = "v").addInput().join("v", "i-0")
+    val g2 = QuickGraph(rg).node("Z", angle = "0", nodeName = "w").addInput().join("w", "i-0")
+    assert(ZXiso(g1,g2))
+  }
+
+  it should "not match boundaries with different names" in {
+    val g1 = QuickGraph(rg).node("Z", angle = "0", nodeName = "v").addInput().join("v", "i-0")
+    val g2 = QuickGraph(rg).node("Z", angle = "0", nodeName = "v").addOutput().join("v", "o-0")
+    assert(!ZXiso(g1,g2))
   }
 
 }

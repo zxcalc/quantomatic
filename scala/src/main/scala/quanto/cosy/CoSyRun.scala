@@ -37,6 +37,9 @@ abstract class CoSyRun[S, T](
   // If you want to check for isomorphisms specify a regex to match the boundaries here
   val matchBorders: Option[Regex]
 
+  def checkIsomorphic(graph1: Graph, graph2: Graph): Boolean =
+    GraphAnalysis.checkIsomorphic(theory, Some(matchBorders.getOrElse("".r)))(graph1,graph2)
+
   // Positive if left bigger than right:
   def compareGraph(left: Graph, right: Graph): Int
 
@@ -154,87 +157,6 @@ abstract class CoSyRun[S, T](
         makeString(next, interpretation),
         append = true)
     }
-  }
-
-  private def checkIsomorphic(g1: Graph, g2: Graph): Boolean = {
-    // Check whether graphs are isomorphic, after constraining their boundaries
-
-    if(g1.verts.size != g2.verts.size) return false
-
-    def borderNodes(g: Graph): Set[VName] = g.verts.filter(vn => vn.s.matches(matchBorders.get.regex))
-
-    val overlappingNodes = borderNodes(g1).intersect(borderNodes(g2))
-
-    if(overlappingNodes != borderNodes(g1) || overlappingNodes != borderNodes(g2)){
-      return false
-    }
-
-    val dummyVertexDesc = VertexDesc.fromJson(
-      Json.parse("""{
-                   |            "value": {
-                   |                "type": "empty",
-                   |                "latex_constants": true,
-                   |                "validate_with_core": false
-                   |            },
-                   |            "style": {
-                   |                "label": {
-                   |                    "position": "center",
-                   |                    "fg_color": [
-                   |                        0.0,
-                   |                        0.0,
-                   |                        0.0
-                   |                    ]
-                   |                },
-                   |                "stroke_color": [
-                   |                    0.0,
-                   |                    0.0,
-                   |                    0.0
-                   |                ],
-                   |                "fill_color": [
-                   |                    0.0,
-                   |                    1.0,
-                   |                    1.0
-                   |                ],
-                   |                "shape": "rectangle"
-                   |            },
-                   |            "default_data": {
-                   |                "type": "dummyBoundary",
-                   |                "value": ""
-                   |            }
-                   |        } """.stripMargin))
-
-    val dummyTheory = theory.mixin(newVertexTypes = Map("dummyBoundary" -> dummyVertexDesc))
-    val boundaryData = NodeV(JsonObject(
-      "type" -> "dummyBoundary",
-      "value" -> ""
-    ),
-      JsonObject(),
-      dummyTheory)
-
-    def makeSolidBoundaries(graph: Graph): Graph = {
-      graph.verts.filter(vn => matchBorders.get.findFirstIn(vn.s).nonEmpty).
-        foldLeft(graph.copy(data = graph.data.copy(theory = dummyTheory))) { (g, vn) =>
-          g.updateVData(vn) { _ => boundaryData }
-        }
-    }
-
-    val solid1 = makeSolidBoundaries(g1)
-    val solid2 = makeSolidBoundaries(g2)
-
-    // check that it isn't a duplicate of that graph
-    val matches12 = Matcher.findMatches(solid1, solid2).filter(
-      m => overlappingNodes.forall(
-        vn => m.map.v.dom.toList.contains(vn) && m.map.v.domf(vn).contains(vn)
-      )
-    )
-
-    val matches21 = Matcher.findMatches(solid2, solid1).filter(
-      m => overlappingNodes.forall(
-        vn => m.map.v.dom.toList.contains(vn) && m.map.v.domf(vn).contains(vn)
-      )
-    )
-
-    matches21.nonEmpty && matches12.nonEmpty
   }
 
   def createRule(lhs: Graph, rhs: Graph): Rule = {
