@@ -38,8 +38,15 @@ class FilteredList(val options: List[String],
   reactions += {
     case ValueChanged(Regex) =>
       try {
-        ListComponent.listData = listItems.filter(
+        val filtered = listItems.filter(
           s => s.matches("(?i).*" + Regex.text + ".*"))
+        ListComponent.listData = filtered
+        if(filtered.nonEmpty) {
+          ListComponent.peer.setSelectionInterval(0, filtered.length - 1)
+        }
+        if(Regex.text.isEmpty){
+          ListComponent.peer.clearSelection()
+        }
       } catch {
         case e: Exception =>
         //Exceptions here are thrown by inelligable regex from the user
