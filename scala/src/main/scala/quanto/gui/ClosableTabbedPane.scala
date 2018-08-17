@@ -237,6 +237,7 @@ class DocumentTabs {
 
   def clear(): Unit = {
     pages.clear()
+    pageIndex = Map()
   }
 }
 
