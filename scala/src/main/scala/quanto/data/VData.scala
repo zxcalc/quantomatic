@@ -68,6 +68,12 @@ case class NodeV(
     case obj: JsonObject => obj.getOrElse("pretty", JsonString("")).stringValue
     case _ => ""
   }
+
+  def newValue(value: String): NodeV = NodeV(data = JsonObject(
+    "type" -> typ,
+    "value" -> value
+  ), annotation = annotation, theory = theory)
+
   // if the theory says this node should have a value, try to parse it,
   // and store it in "phaseData". If it should have a value, but parsing fails, set
   // it to empty.

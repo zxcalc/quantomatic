@@ -1,6 +1,6 @@
 package quanto.gui
 
-import quanto.data._
+import quanto.data.{VData, _}
 import quanto.data.Names._
 import quanto.rewrite._
 
@@ -158,6 +158,13 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
     }
   }
 
+  def promptForVariableSpecification(strings: Set[(ValueType, String)]):
+  Map[(ValueType, String), String] = {
+    val d = new SpecifyVariablesDialog(strings.toList.sortBy(_._2))
+    d.centerOnScreen()
+    d.open()
+    d.result
+  }
 
   def removeSelectedRulesFromList(): Unit = {
 
@@ -226,15 +233,48 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       resultLock.release()
       refreshRewriteDisplay()
     case ButtonClicked(panel.ManualRewritePane.ApplyButton) =>
-      selectedRule.foreach { rd => resultSet.currentResult(rd).map { step =>
+      selectedRule.foreach { rd => resultSet.currentResult(rd).foreach { step =>
         val parentOpt = panel.controller.state.step
-
         val stepFr = step.copy(name = panel.derivation.steps.freshWithSuggestion(DSName(rd.name.replaceFirst("^.*\\/", "") + "-0")))
         panel.ManualRewritePane.Preview.graphRef = panel.DummyRef
 
+        // Check to see if new variables were introduced
+        val oldHead : Option[Graph] = parentOpt.map(panel.derivation.steps(_).graph)
+        val newHead : Graph = stepFr.graph
+
+        val oldVariables: Set[(ValueType, String)] = oldHead match {
+          case Some(head) => Graph.variablesUsedWithType(theory, head)
+          case None => Set()
+        }
+        val newVariables: Set[(ValueType, String)] = Graph.variablesUsedWithType(theory, newHead) -- oldVariables
+        val subs: Map[(ValueType, String), String] =
+          if (newVariables.nonEmpty) {
+            promptForVariableSpecification(newVariables)
+          } else {
+            Map()
+          }
+        val graphWithReplacements: Graph = if (newVariables.nonEmpty) {
+          newHead.updateAllVData {
+            case node: NodeV =>
+              node.newValue(node.phaseData.substSubVariables(subs).toString)
+            case vd =>
+              vd
+          }
+        } else {
+          newHead
+        }
+
+        val stepWithReplacements: DStep = stepFr.copy(graph = graphWithReplacements)
+
+        val description: String = if (subs.isEmpty) {
+          ""
+        } else {
+          subs.mkString(", ")
+        }
+
         panel.document.undoStack.start("Apply rewrite")
-        panel.controller.replaceDerivation(panel.derivation.addStep(parentOpt, stepFr), "")
-        panel.controller.state = HeadState(Some(stepFr.name))
+        panel.controller.replaceDerivation(panel.derivation.addStep(parentOpt, stepWithReplacements), description)
+        panel.controller.state = HeadState(Some(stepWithReplacements.name))
         panel.document.undoStack.commit()
       }}
 

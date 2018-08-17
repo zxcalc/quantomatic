@@ -16,6 +16,8 @@ import scala.language.postfixOps
 import scala.swing._
 import scala.swing.event.{ButtonClicked, SelectionChanged}
 
+import TheoryEditPanel._
+
 class TheoryEditPanel() extends BorderPanel with HasDocument {
   val document = new TheoryDocument(this)
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
@@ -25,37 +27,6 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
   val EditorsCombined = new BoxPanel(Orientation.Vertical)
   val TopScrollablePane = new ScrollPane(EditorsCombined)
 
-  implicit private def valueTypeVectorToString(vs: Vector[ValueType]) : String =
-    vs.map(approvedDataTypes).mkString("",", ","")
-
-  val approvedDataTypes: Map[ValueType, String] = ValueType.values.toList map (v =>
-    v -> (v match {
-    case ValueType.AngleExpr => "angle"
-    case ValueType.Boolean => "boolean"
-    case ValueType.Integer => "integer"
-    case ValueType.Rational => "rational"
-    case ValueType.String => "string"
-    case ValueType.Long => "long"
-    case ValueType.Enum => "string"
-    case ValueType.Empty => "empty"
-  })) toMap
-
-  val approvedColours: Map[String, Color] = Map(
-    "red" -> colourMute(new Color(255, 0, 0)),
-    "green" -> colourMute(new Color(0, 255, 0)),
-    "blue" -> colourMute(new Color(0, 0, 255)),
-    "white" -> colourMute(new Color(255, 255, 255)),
-    "black" -> colourMute(new Color(0, 0, 0)),
-    "yellow" -> colourMute(new Color(255, 255, 0)),
-    "magenta" -> colourMute(new Color(255, 0, 255)),
-    "cyan" -> colourMute(new Color(0, 255, 255))
-  )
-
-  def colourMute(c: Color): Color = {
-    def m(i: Int): Int = math.floor(i * 1).toInt
-
-    new Color(m(c.getRed), m(c.getGreen), m(c.getBlue))
-  }
 
 
   def chooseNodeDataType(node: String, current: String): Unit = {
@@ -481,7 +452,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
         }
     }
 
-    val dataTypeOptions: Seq[String] = approvedDataTypes.values.toSet.toSeq.sorted :+ "composite"
+    val dataTypeOptions: Seq[String] = valueTypesAsHumanReadable.values.toSet.toSeq.sorted :+ "composite"
     val AcceptButton = new Button("Accept")
     val CancelButton = new Button("Cancel")
     val DataComboBox = new ComboBox(dataTypeOptions)
@@ -694,7 +665,7 @@ class TheoryEditPanel() extends BorderPanel with HasDocument {
         case ButtonClicked(EditColourButton) =>
           chooseNodeColour(nodeName, desc.style.fillColor)
         case ButtonClicked(EditValueTypeButton) =>
-          chooseNodeDataType(nodeName, valueTypeVectorToString(desc.value.typ))
+          chooseNodeDataType(nodeName, TheoryEditPanel.valueTypeVectorToString(desc.value.typ))
         case ButtonClicked(EditBorderWidthButton) =>
           chooseNodeBorderWidth(nodeName, desc.style.strokeWidth)
       }
@@ -746,4 +717,41 @@ val maxGridSize = new Dimension(scaleInt(200), scaleInt(100))
       createPageComponents()
 
   }
+}
+
+object TheoryEditPanel {
+
+
+  implicit private def valueTypeVectorToString(vs: Vector[ValueType]) : String =
+    vs.map(valueTypesAsHumanReadable).mkString("",", ","")
+
+  def colourMute(c: Color): Color = {
+    def m(i: Int): Int = math.floor(i * 1).toInt
+
+    new Color(m(c.getRed), m(c.getGreen), m(c.getBlue))
+  }
+
+  val valueTypesAsHumanReadable: Map[ValueType, String] = ValueType.values.toList map (v =>
+    v -> (v match {
+      case ValueType.AngleExpr => "angle"
+      case ValueType.Boolean => "boolean"
+      case ValueType.Integer => "integer"
+      case ValueType.Rational => "rational"
+      case ValueType.String => "string"
+      case ValueType.Long => "long"
+      case ValueType.Enum => "string"
+      case ValueType.Empty => "empty"
+    })) toMap
+
+  val approvedColours: Map[String, Color] = Map(
+    "red" -> colourMute(new Color(255, 0, 0)),
+    "green" -> colourMute(new Color(0, 255, 0)),
+    "blue" -> colourMute(new Color(0, 0, 255)),
+    "white" -> colourMute(new Color(255, 255, 255)),
+    "black" -> colourMute(new Color(0, 0, 0)),
+    "yellow" -> colourMute(new Color(255, 255, 0)),
+    "magenta" -> colourMute(new Color(255, 0, 255)),
+    "cyan" -> colourMute(new Color(0, 255, 255))
+  )
+
 }

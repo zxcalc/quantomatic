@@ -73,4 +73,11 @@ object Rule {
       case None => obj
     }
   }
+
+  def namesUsed(rule: Rule, theory: Theory) : Set[String] = {
+
+    val namesUsedInLHS = Graph.variablesUsed(theory, rule.lhs)
+    val namesUsedInRHS = Graph.variablesUsed(theory, rule.rhs)
+    namesUsedInLHS union namesUsedInRHS
+  }
 }

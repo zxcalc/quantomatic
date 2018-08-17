@@ -1,5 +1,6 @@
 package quanto.data
 
+
 import quanto.cosy.AdjMat
 import quanto.data.Names._
 import quanto.data.Theory.ValueType
@@ -613,6 +614,13 @@ case class Graph(
   }
 
   def updateVData(vn: VName)(f: VData => VData): Graph = copy(vdata = vdata + (vn -> f(vdata(vn))))
+
+  def updateAllVData(f: VData => VData): Graph = {
+    val graph = this
+    graph.verts.foldLeft(graph) { (g, v) =>
+      g.updateVData(v)(f)
+    }
+  }
 
   def plugBoundaries(b1: VName, b2: VName): Graph = {
     // pull a boundary edge, which we'll inherit the data from
@@ -1263,6 +1271,29 @@ object Graph {
       }
 
     randomGraph
+  }
+
+  def variablesUsed(theory: Theory, graph: Graph): Set[String] = {
+    graph.vdata.foldLeft(Set[String]()) { (names, vnd) => {
+      val nodeDataType = theory.vertexTypes(vnd._2.typ).value.typ
+      val phases = CompositeExpression.parseKnowingTypes(vnd._2.data.toString(), nodeDataType)
+      val compositeExpression = CompositeExpression(nodeDataType, phases)
+      names union compositeExpression.vars
+    }
+    }
+  }
+
+  def variablesUsedWithType(theory: Theory, graph: Graph): Set[(ValueType, String)] = {
+    graph.vdata.foldLeft(Set[(ValueType, String)]()) { (names, vnd) =>
+      vnd._2 match {
+        case node: NodeV =>
+          val nodeDataType = theory.vertexTypes(node.typ).value.typ
+          val phases = CompositeExpression.parseKnowingTypes(node.data / "value", nodeDataType)
+          val compositeExpression = CompositeExpression(nodeDataType, phases)
+          names union compositeExpression.varsWithType
+        case _ => names
+      }
+    }
   }
 
   def fromAdjMat(amat: AdjMat, rdata: Vector[NodeV], gdata: Vector[NodeV]): Graph = {

@@ -19,7 +19,10 @@ case class TypeNotFoundException(message: String) extends Exception(message)
 case class CompositeExpression(valueTypes: Vector[ValueType], values: Vector[PhaseExpression]) {
 
   lazy val varsWithType: Set[(ValueType, String)] =
-    values.zipWithIndex.flatMap(valueWithIndex => valueWithIndex._1.vars.map(variableName => (valueTypes(valueWithIndex._2), variableName))).toSet
+    values.zipWithIndex.flatMap(valueWithIndex =>
+      valueWithIndex._1.vars.map(variableName =>
+        (valueTypes(valueWithIndex._2), variableName))
+    ).toSet
   val vars: Set[String] = values.flatMap(_.vars).toSet
   val description: ValueType = ValueType.Empty
 
@@ -89,6 +92,10 @@ case class CompositeExpression(valueTypes: Vector[ValueType], values: Vector[Pha
 
   def substSubValues(mp: Map[String, PhaseExpression]): CompositeExpression =
     mp.foldLeft(this) { case (e, (v, e1)) => e.substSubValue(v, e1) }
+
+  def substSubVariables(mp: Map[(ValueType, String), String]): CompositeExpression = {
+    substSubValues(mp.map(vss => vss._1._2 -> PhaseExpression(0, Map(vss._2 -> 1), vss._1._1)))
+  }
 
   def substSubValue(variableName: String, phase: PhaseExpression): CompositeExpression = {
     // Apply substitution to subvalues with the correct valueType
