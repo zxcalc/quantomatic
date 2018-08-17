@@ -14,8 +14,10 @@ import quanto.util.json._
 import scala.concurrent.ExecutionContext.Implicits.global
 import java.io.File
 
+import quanto.data.Theory.ValueType
 import quanto.layout.ForceLayout
 import quanto.util.UserAlerts
+import quanto.util.UserAlerts.Elevation
 
 
 class RewriteController(panel: DerivationPanel) extends Publisher {
@@ -46,17 +48,14 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
               else panel.LhsView.graph.verts
 
     for (rd <- rules) {
-      val rule = Rule.fromJson(Json.parse(new File(panel.project.rootFolder + "/" + rd.name + ".qrule")), theory)
-      val ms = Matcher.initialise(if (rd.inverse) rule.rhs else rule.lhs, panel.LhsView.graph, sel)
-      pullRewrite(ms, rd, rule)
-
-//        QuantoDerive.core ? Call(theory.coreName, "rewrite", "find_rewrites",
-//        JsonObject(
-//          "rule" -> Rule.toJson(if (rd.inverse) rule.inverse else rule, theory),
-//          "graph" -> Graph.toJson(panel.LhsView.graph, theory),
-//          "vertices" -> JsonArray(sel.toVector.map(v => JsonString(v.toString)))
-//        ))
-//      resp.map { case Success(JsonString(stack)) => pullRewrite(queryId, rd, stack); case _ => }
+      try {
+        val rule = Rule.fromJson(Json.parse(new File(panel.project.rootFolder + "/" + rd.name + ".qrule")), theory)
+        val ms = Matcher.initialise(if (rd.inverse) rule.rhs else rule.lhs, panel.LhsView.graph, sel)
+        pullRewrite(ms, rd, rule)
+      } catch {
+        case RuleLoadException(message, _) =>
+          UserAlerts.alert(s"Could not load ${rd.name}, error: $message", Elevation.WARNING)
+      }
     }
 
     resultLock.release()
