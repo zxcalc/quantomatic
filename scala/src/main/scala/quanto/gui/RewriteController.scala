@@ -1,10 +1,11 @@
 package quanto.gui
 
-import quanto.data.{VData, _}
+import quanto.data._
 import quanto.data.Names._
 import quanto.rewrite._
+import java.util.concurrent.locks.ReentrantLock
 
-import scala.concurrent.{Future, Lock}
+import scala.concurrent.Future
 import scala.swing._
 import scala.swing.event._
 import scala.swing.event.ButtonClicked
@@ -15,7 +16,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import java.io.File
 
 import quanto.data.Theory.ValueType
-import quanto.layout.ForceLayout
 import quanto.util.UserAlerts
 import quanto.util.UserAlerts.Elevation
 
@@ -23,15 +23,15 @@ import quanto.util.UserAlerts.Elevation
 class RewriteController(panel: DerivationPanel) extends Publisher {
   implicit val timeout = QuantoDerive.timeout
   var queryId = 0
-  val resultLock = new Lock
+  val resultLock = new ReentrantLock()
   var resultSet = ResultSet(Vector())
   def theory = panel.project.theory
 
   class ResultGraphRef(rule: RuleDesc, i: Int) extends HasGraph {
     protected def gr_=(g: Graph) {
-      resultLock.acquire()
+      resultLock.lock()
       resultSet = resultSet.replaceGraph(rule, i, g)
-      resultLock.release()
+      resultLock.unlock()
     }
 
     protected def gr = resultSet.graph(rule, i)
@@ -39,7 +39,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 
   def rules = resultSet.rules
   def rules_=(rules: Vector[RuleDesc]) {
-    resultLock.acquire()
+    resultLock.lock()
     resultSet = ResultSet(rules)
     queryId += 1
 
@@ -58,7 +58,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       }
     }
 
-    resultLock.release()
+    resultLock.unlock()
 
     refreshRewriteDisplay(clearSelection = true)
   }
@@ -116,7 +116,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
           rule = rule1,
           graph = graph1.minimise).layout
 
-        resultLock.acquire()
+        resultLock.lock()
 
         // make sure this rewrite query is still in progress, and the rule hasn't been manually removed by the user
         if (resultSet.rules.contains(rd)) {
@@ -127,7 +127,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
           }
         }
 
-        resultLock.release()
+        resultLock.unlock()
         refreshRewriteDisplay()
       case Success(None) => // out of matches
       case Failure(t) => println("An error occurred in the matcher: " + t.getMessage)
@@ -137,7 +137,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 
   def refreshRewriteDisplay(clearSelection: Boolean = false) {
     Swing.onEDT {
-      resultLock.acquire()
+      resultLock.lock()
 
       if (clearSelection) {
         panel.ManualRewritePane.PreviousResultButton.enabled = false
@@ -154,7 +154,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
         }
       }
 
-      resultLock.release()
+      resultLock.unlock()
     }
   }
 
@@ -168,9 +168,9 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 
   def removeSelectedRulesFromList(): Unit = {
 
-    resultLock.acquire()
+    resultLock.lock()
     panel.ManualRewritePane.Rewrites.selection.items.foreach { line => resultSet -= line.rule }
-    resultLock.release()
+    resultLock.unlock()
     refreshRewriteDisplay()
   }
 
@@ -211,7 +211,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
     case ButtonClicked(panel.ManualRewritePane.RemoveRuleButton) =>
       removeSelectedRulesFromList()
     case ButtonClicked(panel.ManualRewritePane.PreviousResultButton) =>
-      resultLock.acquire()
+      resultLock.lock()
       selectedRule match {
         case Some(rd) =>
           resultSet = resultSet.previousResult(rd)
@@ -219,10 +219,10 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
             { case 0 => panel.DummyRef ; case i => new ResultGraphRef(rd, i) }
         case None =>
       }
-      resultLock.release()
+      resultLock.unlock()
       refreshRewriteDisplay()
     case ButtonClicked(panel.ManualRewritePane.NextResultButton) =>
-      resultLock.acquire()
+      resultLock.lock()
       selectedRule match {
         case Some(rd) =>
           resultSet = resultSet.nextResult(rd)
@@ -230,7 +230,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
             { case 0 => panel.DummyRef ; case i => new ResultGraphRef(rd, i) }
         case None =>
       }
-      resultLock.release()
+      resultLock.unlock()
       refreshRewriteDisplay()
     case ButtonClicked(panel.ManualRewritePane.ApplyButton) =>
       selectedRule.foreach { rd => resultSet.currentResult(rd).foreach { step =>
