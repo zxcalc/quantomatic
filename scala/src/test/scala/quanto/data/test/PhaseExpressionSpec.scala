@@ -194,4 +194,21 @@ class PhaseExpressionSpec extends FlatSpec {
     val e1 = parse("2x + 3/4")
     assert(Math.abs(e1.evaluate(Map("x" -> 1.0/8.0)) - 1) < 1e-15)
   }
+
+  it should "evaluate a string" in {
+    val s1 = PhaseExpression.parse("Hi", ValueType.String)
+    assert(s1.toString == "Hi")
+  }
+
+  it should "evaluate an empty" in {
+    val e1 = PhaseExpression.parse("Hi", ValueType.Empty)
+    assert(e1.toString == "")
+  }
+
+  it should "print a rational" in {
+    val r1 = PhaseExpression.parse("3/27", ValueType.Rational)
+    assert(r1.toString == "1/9")
+    val r2 = PhaseExpression.parse("3/27 + a/4", ValueType.Rational)
+    assert(r2.toString == "1/9 + 1/4 a")
+  }
 }

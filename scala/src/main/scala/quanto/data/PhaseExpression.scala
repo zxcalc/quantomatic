@@ -146,7 +146,10 @@ object PhaseExpression {
     valueType match {
       case ValueType.AngleExpr => AngleExpressionParser.p(s)
       case ValueType.Boolean => BooleanExpressionParser.p(s)
-      case v => throw PhaseParseException("Asked to parse unexpected data", v)
+      case ValueType.Rational => RationalExpressionParser.p(s)
+      case ValueType.Empty => PhaseExpression(0, Map(), ValueType.Empty)
+      case ValueType.String => StringExpressionParser.p(s)
+      case v => throw PhaseParseException(s"Asked to parse unexpected '$s' for type $v", v)
     }
   }
 
@@ -169,9 +172,60 @@ object PhaseExpression {
         writeAsAngle(phaseExpression)
       case ValueType.Boolean =>
         writeAsBoolean(phaseExpression)
+      case ValueType.String =>
+        writeAsString(phaseExpression)
+      case ValueType.Empty =>
+        ""
       case ValueType.Rational =>
-        phaseExpression.constant +
-          phaseExpression.coefficients.map(kv => kv._2.toString + "*" + kv._1).mkString("+", "+", "")
+        writeAsRational(phaseExpression)
+    }
+  }
+
+  private def writeAsRational(phaseExpression: PhaseExpression): String = {
+    val constant = phaseExpression.constant
+    val coefficients = phaseExpression.coefficients
+    var fst = true
+    var s = ""
+    if (!constant.isZero) {
+
+      fst = false
+      val (n, sgn) =
+        if (constant.n > constant.d && constant.n < 2 * constant.d) (2 * constant.d - constant.n, "-")
+        else (constant.n, "")
+      if (n == 1) s += sgn + "1/" + constant.d
+      else s += sgn + n.toString + "/" + constant.d
+
+    }
+
+    def rStr(c: Rational) : String = writeAsRational(PhaseExpression(c, Map(), ValueType.Rational))
+
+    coefficients.keys.toList.sorted.foreach { variableName =>
+      val c = coefficients(variableName)
+      if (!c.isZero) {
+        if (fst) {
+          fst = false
+          s = s + (if (c == Rational(1)) "" else rStr(c) + " ") + variableName
+        } else {
+          if (c < Rational(0)) {
+            s = s + " - " + (if (c == Rational(-1)) "" else rStr(c * -1) + " ") + variableName
+          } else {
+            s = s + " + " + (if (c == Rational(1)) "" else rStr(c) + " ") + variableName
+          }
+        }
+      }
+    }
+    if (phaseExpression == PhaseExpression.zero(ValueType.Rational)) s = "0"
+
+    s
+  }
+
+  private def writeAsString(phaseExpression: PhaseExpression): String = {
+    val constant = phaseExpression.constant
+    val vars = phaseExpression.vars
+    if (vars.nonEmpty) {
+      vars.mkString("", ", ", "")
+    } else {
+      ""
     }
   }
 
@@ -276,6 +330,7 @@ object PhaseExpression {
         coeff ~ "*".? ~ PI ^^ { case c ~ _ ~ _ => angleExpression(c) } |
         PI ^^ { _ => one } |
         coeff ~ "*".? ~ IDENT ^^ { case c ~ _ ~ x => angleExpression(Rational(0), Map(x -> c)) } |
+        IDENT ~ "*" ~ coeff ^^ { case x ~ _ ~ c => angleExpression(Rational(0), Map(x -> c)) } |
         IDENT ^^ { x => angleExpression(Rational(0), Map(x -> Rational(1))) } |
         coeff ^^ angleExpression |
         "(" ~ expr ~ ")" ^^ { case _ ~ t ~ _ => t }
@@ -300,6 +355,80 @@ object PhaseExpression {
     }
   }
 
+
+  private object RationalExpressionParser extends RegexParsers {
+    val zero: PhaseExpression = PhaseExpression.zero(ValueType.AngleExpr)
+    val one: PhaseExpression = PhaseExpression.one(ValueType.AngleExpr)
+
+    def rationalExpression(r: Rational): PhaseExpression = PhaseExpression(r, ValueType.Rational)
+
+    def rationalExpression(r: Rational, m: Map[String, Rational]): PhaseExpression =
+      PhaseExpression(r, m, ValueType.Rational)
+
+    override def skipWhitespace = true
+
+    def INT: Parser[Int] =
+      """[0-9]+""".r ^^ {
+        _.toInt
+      }
+
+    def INT_OPT: Parser[Int] = INT.? ^^ {
+      _.getOrElse(1)
+    }
+
+    def IDENT: Parser[String] =
+      """[\\a-zA-Z_][a-zA-Z0-9_]*""".r ^^ {
+        _.toString
+      }
+
+    def coeff: Parser[Rational] =
+      INT ~ "/" ~ INT ^^ { case n ~ _ ~ d => Rational(n, d) } |
+        "(" ~ coeff ~ ")" ^^ { case _ ~ c ~ _ => c } |
+        INT ^^ { n => Rational(n) }
+
+    def frac: Parser[PhaseExpression] =
+        INT_OPT ~ "*".? ~ IDENT ~ "/" ~ INT ^^ {
+          case n ~ _ ~ x ~ _ ~ d => rationalExpression(Rational(0), Map(x -> Rational(n, d)))
+        }
+
+    def term: Parser[PhaseExpression] =
+      frac |
+        "-" ~ term ^^ { case _ ~ t => t * -1 } |
+        coeff ~ "*".? ~ IDENT ^^ { case c ~ _ ~ x => rationalExpression(Rational(0), Map(x -> c)) } |
+        IDENT ^^ { x => rationalExpression(Rational(0), Map(x -> Rational(1))) } |
+        IDENT ~ "*" ~ coeff ^^ { case x ~ _ ~ c => rationalExpression(Rational(0), Map(x -> c)) } |
+        coeff ^^ rationalExpression |
+        "(" ~ expr ~ ")" ^^ { case _ ~ t ~ _ => t }
+
+    def term1: Parser[PhaseExpression] =
+      "+" ~ term ^^ { case _ ~ t => t } |
+        "-" ~ term ^^ { case _ ~ t => t * -1 }
+
+    def terms: Parser[PhaseExpression] =
+      term1 ~ terms ^^ { case s ~ t => s + t } |
+        term1
+
+    def expr: Parser[PhaseExpression] =
+      term ~ terms ^^ { case s ~ t => s + t } |
+        term |
+        "" ^^ { _ => zero }
+
+    def p(s: String): PhaseExpression = parseAll(expr, s) match {
+      case Success(e, _) => e
+      case Failure(msg, _) => throw PhaseParseException(msg, ValueType.Rational)
+      case Error(msg, _) => throw PhaseParseException(msg, ValueType.Rational)
+    }
+  }
+
+
+  private object StringExpressionParser {
+    def zero: PhaseExpression = PhaseExpression.zero(ValueType.String)
+
+    def p(s: String): PhaseExpression = s match {
+      case "" => zero
+      case t => PhaseExpression(0, Map(t -> Rational(1,1)), ValueType.String)
+    }
+  }
 
   private object BooleanExpressionParser extends RegexParsers {
     def zero: PhaseExpression = PhaseExpression.zero(ValueType.Boolean)
