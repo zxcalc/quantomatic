@@ -11,7 +11,7 @@ import java.awt.event.KeyEvent
 import java.awt.Frame
 import java.awt.event.{KeyEvent, MouseAdapter, MouseEvent}
 
-import quanto.util.json.{Json, JsonString}
+import quanto.util.json.{Json, JsonObject, JsonString}
 import quanto.data._
 import java.io.{File, FilenameFilter, IOException, PrintWriter}
 
@@ -718,6 +718,36 @@ object QuantoDerive extends SimpleSwingApplication {
   val RuleMenu = new Menu("Rule") {
     menu =>
     mnemonic = Key.R
+
+    val ColourSwapRule = new Action("Colour Swap") {
+      accelerator = None
+      enabled = true
+      menu.contents += new MenuItem(this) {
+        mnemonic = Key.C
+      }
+
+      def apply(): Unit = (CurrentProject, MainDocumentTabs.currentContent) match {
+        case (Some(project), Some(doc: HasDocument)) =>
+          doc.document match {
+            case ruleDoc: RuleDocument =>
+              val dialog = new ColourSwapDialog(project.theory)
+              dialog.centerOnScreen()
+              dialog.open()
+              dialog.result
+              if (dialog.result != project.theory.vertexTypes.keys.map(k => k -> k)) {
+                val map = dialog.result
+                warn(map.toString())
+                val page = new RuleDocumentPage(project.theory)
+                page.document.asInstanceOf[RuleDocument].rule = ruleDoc.rule.colourSwap(map)
+                addAndFocusPage(page)
+              }
+            case _ =>
+              warn("Trying to colour swap a rule but no rule is active")
+
+          }
+        case _ => // no project and/or document open, do nothing
+      }
+    }
 
     val InvertRule = new Action("Invert Rule") {
       accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_I, CommandMask))

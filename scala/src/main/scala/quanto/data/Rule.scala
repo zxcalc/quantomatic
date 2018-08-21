@@ -23,6 +23,33 @@ case class Rule(private val _lhs: Graph,
 
   def hasBBoxes: Boolean = lhs.bboxes.nonEmpty || rhs.bboxes.nonEmpty
 
+  def map(f: Graph => Graph): Rule = {
+    new Rule(f(lhs), f(rhs))
+  }
+
+  def colourSwap(changes: Map[String, String]): Rule = {
+    def safeChanges(s: String) : String = {
+      changes.get(s) match {
+        case Some(t) => t
+        case None => s
+      }
+    }
+    map(graph => {
+      graph.verts.foldLeft(graph) { (g, v) =>
+        g.updateVData(v)(f = {
+          case n: NodeV =>
+            n.copy(data = JsonObject(
+              "type" -> safeChanges((n.data / "type").stringValue),
+              "value" -> (n.data / "value")
+            ))
+          case m =>
+            m
+        }
+        )
+      }
+    })
+  }
+
   override def toString: String = name + " := " + _lhs.toString +
     (if (description.inverse) {
       "<--"

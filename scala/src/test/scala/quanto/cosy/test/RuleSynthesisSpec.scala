@@ -6,7 +6,6 @@ import quanto.cosy._
 import org.scalatest.FlatSpec
 import quanto.data._
 import quanto.rewrite.{Matcher, Rewriter}
-import quanto.data.Derivation.DerivationWithHead
 import quanto.cosy.RuleSynthesis._
 import quanto.cosy.AutoReduce._
 import quanto.cosy.BlockGenerators.QuickGraph
@@ -203,6 +202,22 @@ class RuleSynthesisSpec extends FlatSpec {
     val duplicate = List(r1,r1.copy(description = "Different"))
     val duplicateReduced = reduce(duplicate)
     assert(duplicateReduced.toSet.intersect(duplicate.toSet).size == 1)
+  }
+
+  behavior of "colour swapping"
+
+  it should "Send X to Z" in {
+    val theory = rg
+    val g = QuickGraph(theory).addInput().
+      node(nodeType = "Z",nodeName = "z").
+      node(nodeType = "X",nodeName = "x").
+      node(nodeType = "hadamard",nodeName = "h").
+      join("x", "z")
+    val r = new Rule(g,g)
+    val r2 = r.colourSwap(Map("Z" -> "X", "X" -> "Z"))
+    assert(r2.lhs.vdata(VName("z")).typ == "X")
+    assert(r2.lhs.vdata(VName("x")).typ == "Z")
+    assert(r2.lhs.vdata(VName("h")).typ == "hadamard")
   }
 
 }
