@@ -734,9 +734,9 @@ object QuantoDerive extends SimpleSwingApplication {
               dialog.centerOnScreen()
               dialog.open()
               dialog.result
-              if (dialog.result != project.theory.vertexTypes.keys.map(k => k -> k)) {
+              if (dialog.result != project.theory.vertexTypes.keys.map(k => k -> k).toMap) {
                 val map = dialog.result
-                warn(map.toString())
+                warn(map.mkString("Mapping types: ",", ",""))
                 val page = new RuleDocumentPage(project.theory)
                 page.document.asInstanceOf[RuleDocument].rule = ruleDoc.rule.colourSwap(map)
                 addAndFocusPage(page)
