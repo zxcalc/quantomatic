@@ -211,4 +211,9 @@ class PhaseExpressionSpec extends FlatSpec {
     val r2 = PhaseExpression.parse("3/27 + a/4", ValueType.Rational)
     assert(r2.toString == "1/9 + 1/4 a")
   }
+
+  it should "parse alpha'" in {
+    val e = parse("alpha' + alpha")
+    assert(e.coefficients.keys.size == 2)
+  }
 }
