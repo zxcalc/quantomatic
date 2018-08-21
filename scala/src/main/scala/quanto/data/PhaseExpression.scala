@@ -1,7 +1,7 @@
 package quanto.data
 
 import quanto.data.Theory.ValueType
-import quanto.util.Rational
+import quanto.util.{Rational, UserAlerts}
 
 import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
@@ -144,13 +144,19 @@ object PhaseExpression {
   }
 
   def parse(s: String, valueType: ValueType): PhaseExpression = {
-    valueType match {
-      case ValueType.AngleExpr => AngleExpressionParser.p(s)
-      case ValueType.Boolean => BooleanExpressionParser.p(s)
-      case ValueType.Rational => RationalExpressionParser.p(s)
-      case ValueType.Empty => PhaseExpression(0, Map(), ValueType.Empty)
-      case ValueType.String => StringExpressionParser.p(s)
-      case v => throw PhaseParseException(s"Asked to parse unexpected '$s' for type $v", v)
+    try {
+      valueType match {
+        case ValueType.AngleExpr => AngleExpressionParser.p(s)
+        case ValueType.Boolean => BooleanExpressionParser.p(s)
+        case ValueType.Rational => RationalExpressionParser.p(s)
+        case ValueType.Empty => PhaseExpression(0, Map(), ValueType.Empty)
+        case ValueType.String => StringExpressionParser.p(s)
+        case v => throw PhaseParseException(s"Asked to parse unexpected '$s' for type $v", v)
+      }
+    }catch{
+      case PhaseParseException(m, v) =>
+        UserAlerts.alert(s"Could not parse $s for type $v, regex error: $m", UserAlerts.Elevation.ERROR)
+        PhaseExpression.zero(v)
     }
   }
 
