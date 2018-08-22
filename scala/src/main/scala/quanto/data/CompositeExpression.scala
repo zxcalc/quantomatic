@@ -94,7 +94,7 @@ case class CompositeExpression(valueTypes: Vector[ValueType], values: Vector[Pha
     mp.foldLeft(this) { case (e, (v, e1)) => e.substSubValue(v, e1) }
 
   def substSubVariables(mp: Map[(ValueType, String), String]): CompositeExpression = {
-    substSubValues(mp.map(vss => vss._1._2 -> PhaseExpression(0, Map(vss._2 -> 1), vss._1._1)))
+    substSubValues(mp.map(vss => vss._1._2 -> PhaseExpression.parse(vss._2, vss._1._1) ))
   }
 
   def substSubValue(variableName: String, phase: PhaseExpression): CompositeExpression = {

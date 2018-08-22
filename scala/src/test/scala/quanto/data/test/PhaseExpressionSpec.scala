@@ -174,14 +174,6 @@ class PhaseExpressionSpec extends FlatSpec {
     assert(parse("-(a - b)") === b - a)
   }
 
-  it should "throw an exception on failed parse" in {
-    intercept[PhaseParseException] {
-      parse("x + ")
-    }
-    intercept[PhaseParseException] {
-      parse("%")
-    }
-  }
 
   it should "do substitutions correctly" in {
     val e1 = parse("x - 2 y")
@@ -215,5 +207,18 @@ class PhaseExpressionSpec extends FlatSpec {
   it should "parse alpha'" in {
     val e = parse("alpha' + alpha")
     assert(e.coefficients.keys.size == 2)
+  }
+
+  it should "substitute beta" in {
+    val e = parse("-beta")
+    val f = e.subst("beta", parse("0"))
+    assert(f == zero)
+  }
+
+  it should "substitute composite beta" in {
+    val e = parse("-beta")
+    val ee = CompositeExpression.wrap(e)
+    val f = ee.substSubVariables(Map((ValueType.AngleExpr, "beta") -> "0"))
+    assert(f.values.head == zero)
   }
 }

@@ -401,7 +401,7 @@ object PhaseExpression {
   private abstract class CommonParser(T: ValueType) extends RegexParsers{
 
     val zero: PhaseExpression = PhaseExpression.zero(T)
-    val one: PhaseExpression = PhaseExpression.one(ValueType.AngleExpr)
+    val one: PhaseExpression = PhaseExpression.one(T)
 
     def INT: Parser[Int] =
       """[0-9]+""".r ^^ {

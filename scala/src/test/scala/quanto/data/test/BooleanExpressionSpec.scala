@@ -105,10 +105,6 @@ class BooleanExpressionSpec extends FlatSpec {
     assert(parse("-(a - b)") === b - a)
   }
 
-  it should "throw an exception on failed parse" in {
-    intercept[PhaseParseException] { parse("x + ") }
-    intercept[PhaseParseException] { parse("%") }
-  }
 
   it should "do substitutions correctly" in {
     val e1 = parse("x - 2*y")
