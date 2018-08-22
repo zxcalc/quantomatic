@@ -1290,7 +1290,7 @@ object Graph {
       vnd._2 match {
         case node: NodeV =>
           val nodeDataType = theory.vertexTypes(node.typ).value.typ
-          val phases = CompositeExpression.parseKnowingTypes(node.data / "value", nodeDataType)
+          val phases = CompositeExpression.parseKnowingTypes(node.data ? "value", nodeDataType)
           val compositeExpression = CompositeExpression(nodeDataType, phases)
           names union compositeExpression.varsWithType
         case _ => names
