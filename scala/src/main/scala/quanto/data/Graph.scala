@@ -418,6 +418,8 @@ case class Graph(
     * removes boundaries adjacent to the cut vertex,
     * dangling edges have a newly created boundary at one end.
     *
+    * If trying to remove a boundary, consider just using deleteVertex instead.
+    *
     * @param vertexName Vertex Name
     * @param removingBoundaries If any of these are neighbours then remove whole-cloth
     * @return (Cut graph, new boundaries, removed boundaries)

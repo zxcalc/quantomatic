@@ -25,6 +25,13 @@ object BlockGenerators {
       val data = NodeV(data = JsonObject("type" -> nodeType, "value" -> angle), theory = _g.data.theory).withCoord((xCoord, 0))
       QuickGraph(_g.addVertex(name, data))
     }
+
+    def bbox(name: String, vertices: Set[String]): QuickGraph = {
+      val bbname = _g.bboxes.freshWithSuggestion(BBName(name))
+      val bbdata = BBData(theory = _g.data.theory)
+      QuickGraph(_g.addBBox(bbname, bbdata, vertices.map(s => VName(s))))
+    }
+
     def addInput(count : Int = 1) : QuickGraph = {
       count match {
         case 0 => this
@@ -63,6 +70,10 @@ object BlockGenerators {
       val v1 = VName(s1)
       val v2 = VName(s2)
       QuickGraph(_g.addEdge(name, data, v1 -> v2))
+    }
+
+    def join(s1: String, s2s: Set[String], edgeType: Option[String]) : QuickGraph = {
+      s2s.foldLeft(this)((g,v) => g.join(s1, v, edgeType))
     }
 
     def joinIfNotAlready(s1: String, s2: String, edgeType : Option[String] = None) : QuickGraph = {

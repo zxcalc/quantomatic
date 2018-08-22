@@ -4,11 +4,12 @@ import quanto.cosy.RuleSynthesis.GraphComparison
 import quanto.data.Derivation.DerivationWithHead
 import quanto.data._
 import quanto.rewrite._
-import quanto.util.json.Json
+import quanto.util.json.{Json, JsonObject}
 
 import scala.annotation.tailrec
 import scala.util.Random
 import scala.util.matching.Regex
+import quanto.data.Names._
 
 /**
   * Created by hector on 29/06/17.
@@ -67,6 +68,53 @@ object RuleSynthesis {
     }
   }
 
+  def extendMatchingSpidersWithBBoxes(rule: Rule, boundariesRegex : Option[Regex]) : Rule = {
+    require(!rule.hasBBoxes)
+    // This is not safe to do if the rule already has bboxes.
+
+    val boundaries = GraphAnalysis.boundariesFromRegex(rule.lhs, boundariesRegex).toList
+    def nearestNeighbourType(graph: Graph, vName: VName) : Option[(VName, String)] = {
+      val neighbours = graph.adjacentNodesAndBoundaries(vName)
+      if(neighbours.size == 1){
+        val t : String = (graph.vdata(neighbours.head).data / "type").toString
+        Some((neighbours.head, t))
+      } else None
+    }
+
+    def addBBoxIfOkay(rule: Rule, vName: VName) : Rule = {
+      val lhsT = nearestNeighbourType(rule.lhs, vName)
+      val rhsT = nearestNeighbourType(rule.rhs, vName)
+      if(lhsT.nonEmpty && rhsT.nonEmpty && lhsT.get == rhsT.get && rule.lhs.vdata(lhsT.get._1).isInstanceOf[NodeV]){
+        val leftNeighbour = lhsT.get._1
+        val rightNeighbour = rhsT.get._1
+        val bBName = rule.lhs.bboxes.freshWithSuggestion("bb0")
+
+        val lhsB = rule.lhs.addBBox(bBName, BBData(), Set(vName))
+        val rhsB = rule.lhs.addBBox(bBName, BBData(), Set(vName))
+        Rule(lhsB, rhsB, rule.derivation, rule.description)
+      } else rule
+    }
+
+    def removeBoundaryIfSuperfluous(rule: Rule, vName: VName): Rule = {
+      val lhsT = nearestNeighbourType(rule.lhs, vName)
+      val rhsT = nearestNeighbourType(rule.rhs, vName)
+      if(lhsT.nonEmpty && rhsT.nonEmpty && lhsT.get == rhsT.get && rule.lhs.vdata(lhsT.get._1).isInstanceOf[NodeV]) {
+        val ln = lhsT.get._1
+        val rn = rhsT.get._1
+        val lNeighbourhood = rule.lhs.adjacentNodesAndBoundaries(ln).intersect(boundaries.toSet)
+        val rNeighbourhood = rule.rhs.adjacentNodesAndBoundaries(rn).intersect(boundaries.toSet)
+        if((lNeighbourhood intersect rNeighbourhood).size > 1) {
+          val lCut = rule.lhs.deleteVertex(vName)
+          val rCut = rule.rhs.deleteVertex(vName)
+          Rule(lCut, rCut)
+        } else rule
+      } else rule
+    }
+
+    val withBBoxes = boundaries.foldLeft(rule)(addBBoxIfOkay)
+    boundaries.foldLeft(withBBoxes)(removeBoundaryIfSuperfluous)
+  }
+
   def removeIsomorphisms(theory: Theory, boundaryRegex: Option[Regex], rules: List[Rule]) : List[Rule] = {
     def isIso(rule: Rule) : Boolean = GraphAnalysis.checkIsomorphic(theory, boundaryRegex)(rule.lhs, rule.rhs)
     rules.filter(!isIso(_))
@@ -74,11 +122,10 @@ object RuleSynthesis {
 
   def greedyReduceRules(comparison: GraphComparison, throwOutIsos : Option[(Theory, Option[Regex])] = None)
                        (rules: List[Rule]): List[Rule] = {
-    // Only applies rules forwards when checking!
-    // Need to include inverses if you want rules to go backwards as well as forwards.
 
-    // This does not throw out isomorphisms for you.
-    // It just refrains from trying to match them onto other rules.
+    // Will automatically invert rules that head upwards
+
+    // This does not throw out isomorphisms for you; it returns the list with each entry altered
 
     // Yes, this is imperative rather than functional. We really do want to update a list as we act on it.
 
@@ -95,7 +142,13 @@ object RuleSynthesis {
       updatedThisRun = false
       for (i <- rulesAsMap.keys) {
         val rule = rulesAsMap(i)
-        val otherRules = rulesAsMap.filterKeys(_ != i).values.toList.filter(!isomorphism(_))
+        val otherRules = rulesAsMap.filterKeys(_ != i).values.toList.filter(!isomorphism(_)).map(
+          rule => {
+            if (comparison(rule.lhs, rule.rhs) < 0) {
+              rule.inverse
+            } else rule
+          }
+        )
         val newLhs: Graph = AutoReduce.greedyReduce(comparison, graphToDerivation(rule.lhs), otherRules)
         val newRhs: Graph = AutoReduce.greedyReduce(comparison, graphToDerivation(rule.rhs), otherRules)
         if (newLhs != rule.lhs || newRhs != rule.rhs) {

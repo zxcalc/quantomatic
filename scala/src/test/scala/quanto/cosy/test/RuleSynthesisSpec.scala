@@ -140,11 +140,13 @@ class RuleSynthesisSpec extends FlatSpec {
   it should "automatically reduce" in {
     var ctRules = ZXRules
     // Pick out S1, S2 and REDUCIBLE
-    var smallRules = ctRules.filter(_.name.matches(raw"(S[12]|REDUCIBLE)"))
-    var minimisedRules = RuleSynthesis.greedyReduceRules(
-      GraphAnalysis.zxGraphCompare)(smallRules ::: smallRules.map(_.inverse))
+    def compare(left: Graph, right: Graph): Int = GraphAnalysis.zxGraphCompare(left, right)
+    var smallRules : List[Rule] =
+      ctRules.filter(_.name.matches(raw"REDUCIBLE")) :::
+      ctRules.filter(_.name.matches(raw"S[12]"))
+    var minimisedRules = RuleSynthesis.greedyReduceRules(compare)(smallRules)
     minimisedRules.foreach(println)
-    assert(minimisedRules.map(r => r.name).exists(_.contains("reduced")))
+    assert(minimisedRules.head.lhs.verts.size == 2)
   }
 
   it should "make a long derivation from annealing" in {
@@ -218,6 +220,81 @@ class RuleSynthesisSpec extends FlatSpec {
     assert(r2.lhs.vdata(VName("z")).typ == "X")
     assert(r2.lhs.vdata(VName("x")).typ == "Z")
     assert(r2.lhs.vdata(VName("h")).typ == "hadamard")
+  }
+
+  behavior of "extending rules"
+
+  it should "not try and extend the following rules" in {
+    val theory = rg
+    val r1l = QuickGraph(theory).addInput().node(nodeType = "Z",nodeName = "v").join("v","i-0")
+    val r1r = QuickGraph(theory).addInput().node(nodeType = "X",nodeName = "v").join("v","i-0")
+    val r1 = Rule(r1l, r1r)
+    assert(extendMatchingSpidersWithBBoxes(r1, QuickGraph.boundaryRegex) == r1)
+  }
+
+  it should "try and extend the following" in {
+    val theory = rg
+    val Z = NodeV(data = JsonObject("type" -> "Z"), theory = theory)
+    val X = NodeV(data = JsonObject("type" -> "X"), theory = theory)
+    val r1l = QuickGraph(theory).addInput().node(nodeType = "Z",nodeName = "v").join("v","i-0")
+    val r1 = Rule(r1l, r1l)
+    val extended = extendMatchingSpidersWithBBoxes(r1, QuickGraph.boundaryRegex)
+    assert(extended != r1)
+    assert(extended.hasBBoxes)
+    assert(extended.lhs.bboxesContaining(VName("i-0")).nonEmpty)
+  }
+
+  it should "satisfy one-input, one-node expansion" in {
+    val g = QuickGraph(rg)
+    val g1 = g.addInput().node(nodeType = "Z", nodeName = "z").join("i-0","z")
+    val r1 = Rule(g1,g1)
+    val ext = extendMatchingSpidersWithBBoxes(r1, QuickGraph.boundaryRegex)
+    assert(ext.lhs.bboxesContaining(VName("i-0")).nonEmpty)
+    assert(ext.lhs.bboxesContaining(VName("z")).isEmpty)
+  }
+
+  it should "satisfy two-input, two-node expansion" in {
+    val g = QuickGraph(rg)
+    val g1 = g.addInput(2).
+      node(nodeType = "Z", nodeName = "z").join("i-0","z").
+      node(nodeType = "X", nodeName = "x").join("i-1","x")
+    val r1 = Rule(g1,g1)
+    val ext = extendMatchingSpidersWithBBoxes(r1, QuickGraph.boundaryRegex)
+    assert(ext.lhs.bboxesContaining(VName("i-0")).nonEmpty)
+    assert(ext.lhs.bboxesContaining(VName("i-1")).nonEmpty)
+    assert(ext.lhs.bboxesContaining(VName("z")).isEmpty)
+    assert(ext.lhs.bboxesContaining(VName("x")).isEmpty)
+  }
+
+
+  it should "satisfy two-input, one-node expansion" in {
+    val g = QuickGraph(rg)
+    val g1 = g.addInput(2).
+      node(nodeType = "Z", nodeName = "z").
+      join("i-0","z").
+      join("i-1","z")
+    val r1 = Rule(g1,g1)
+    val ext = extendMatchingSpidersWithBBoxes(r1, QuickGraph.boundaryRegex)
+    assert(ext.lhs.adjacentNodesAndBoundaries(VName("z")).size == 1)
+    assert(ext.lhs.bboxesContaining(VName("z")).isEmpty)
+  }
+
+
+  it should "satisfy one-input, two-node expansion" in {
+    val g = QuickGraph(rg)
+    val g1 = g.addInput().node(nodeType = "Z", nodeName = "z").join("i-0","z").
+      node(nodeType = "X", nodeName = "x").join("z","x")
+    val r1 = Rule(g1,g1)
+    val ext = extendMatchingSpidersWithBBoxes(r1, QuickGraph.boundaryRegex)
+    assert(ext.lhs.bboxesContaining(VName ("i-0")).nonEmpty)
+  }
+
+  it should "not match different colours, one-input, one-node" in {
+    val g = QuickGraph(rg)
+    val g1 = g.addInput().node(nodeType = "Z", nodeName = "v").join("i-0","v")
+    val g2 = g.addInput().node(nodeType = "X", nodeName = "v").join("i-0","v")
+    val r1 = Rule(g1,g2)
+    assert(extendMatchingSpidersWithBBoxes(r1, QuickGraph.boundaryRegex) == r1)
   }
 
 }

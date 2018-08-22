@@ -430,6 +430,12 @@ object GraphAnalysis {
     matrix(index).zipWithIndex.filter(_._1).map(_._2).map(names(_)).toSet
   }
 
+  def boundariesFromRegex(graph: Graph, regex: Option[Regex]) : Set[VName] = {
+    regex match {
+      case Some(r) => graph.verts.filter(vn => vn.s.matches(r.regex))
+      case None => graph.verts.filter(vn => graph.vdata(vn).isBoundary)
+    }
+  }
 
   def checkIsomorphic(theory: Theory = Theory.DefaultTheory, boundaryByRegex: Option[Regex] = None)
                      (g1: Graph, g2: Graph): Boolean = {
@@ -438,10 +444,7 @@ object GraphAnalysis {
     if(g1.verts.size != g2.verts.size) return false
 
     // Currently the .isBoundary on wires is set by JSON, not programmatically, and as such I don't trust it.
-    def borderNodes(g: Graph): Set[VName] = boundaryByRegex match {
-      case Some(r) => g.verts.filter(vn => vn.s.matches(r.regex))
-      case None => g.verts.filter(vn => g.vdata(vn).isBoundary)
-    }
+    def borderNodes(g: Graph): Set[VName] = boundariesFromRegex(g, boundaryByRegex)
 
     val overlappingNodes = borderNodes(g1).intersect(borderNodes(g2))
 
