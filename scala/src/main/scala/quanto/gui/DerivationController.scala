@@ -196,7 +196,6 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
           replaceDerivation(derivation.deleteHead(s), "")
           panel.document.undoStack.commit()
         case StepState(s) =>
-          // TODO: make deletion undo-able?
           if (Dialog.showConfirmation(
                 title = "Confirm deletion",
                 message = "This will delete " + derivation.allChildren(s).size +
@@ -208,6 +207,12 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
             panel.document.undoStack.start("Delete proof step")
             state = HeadState(parentOpt)
             replaceDerivation(derivation.deleteStep(s), "")
+            if(parentOpt.nonEmpty && !derivation.isHead(parentOpt.get)){
+              val p = parentOpt.get
+              replaceDerivation(derivation.addHead(p), "")
+              state = HeadState(Some(p))
+            }
+
             panel.document.undoStack.commit()
           }
         case _ => // do nothing on root
