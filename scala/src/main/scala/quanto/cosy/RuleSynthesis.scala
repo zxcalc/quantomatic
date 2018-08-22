@@ -84,7 +84,7 @@ object RuleSynthesis {
     def addBBoxIfOkay(rule: Rule, vName: VName) : Rule = {
       val lhsT = nearestNeighbourType(rule.lhs, vName)
       val rhsT = nearestNeighbourType(rule.rhs, vName)
-      if(lhsT.nonEmpty && rhsT.nonEmpty && lhsT.get == rhsT.get && rule.lhs.vdata(lhsT.get._1).isInstanceOf[NodeV]){
+      if(lhsT.nonEmpty && rhsT.nonEmpty && lhsT.get._2 == rhsT.get._2 && rule.lhs.vdata(lhsT.get._1).isInstanceOf[NodeV]){
         val leftNeighbour = lhsT.get._1
         val rightNeighbour = rhsT.get._1
         val bBName = rule.lhs.bboxes.freshWithSuggestion("bb0")

@@ -257,8 +257,13 @@ class RuleSynthesisSpec extends FlatSpec {
     val g = QuickGraph(rg)
     val g1 = g.addInput(2).
       node(nodeType = "Z", nodeName = "z").join("i-0","z").
-      node(nodeType = "X", nodeName = "x").join("i-1","x")
-    val r1 = Rule(g1,g1)
+      node(nodeType = "X", nodeName = "x").join("i-1","x").
+      join("z","x")
+    val g2 = g.addInput(2).
+      node(nodeType = "Z", nodeName = "z2").join("i-0","z2").
+      node(nodeType = "X", nodeName = "x2").join("i-1","x2").
+      join("z2", "x2")
+    val r1 = Rule(g1,g2)
     val ext = extendMatchingSpidersWithBBoxes(r1, QuickGraph.boundaryRegex)
     assert(ext.lhs.bboxesContaining(VName("i-0")).nonEmpty)
     assert(ext.lhs.bboxesContaining(VName("i-1")).nonEmpty)
@@ -282,7 +287,7 @@ class RuleSynthesisSpec extends FlatSpec {
 
   it should "satisfy one-input, two-node expansion" in {
     val g = QuickGraph(rg)
-    val g1 = g.addInput().node(nodeType = "Z", nodeName = "z").join("i-0","z").
+    val g1 = g.addInput().node(nodeType = "Z", angle = "pi", nodeName = "z").join("i-0","z").
       node(nodeType = "X", nodeName = "x").join("z","x")
     val r1 = Rule(g1,g1)
     val ext = extendMatchingSpidersWithBBoxes(r1, QuickGraph.boundaryRegex)
