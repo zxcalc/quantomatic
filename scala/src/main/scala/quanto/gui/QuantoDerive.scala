@@ -34,12 +34,27 @@ import java.lang.NullPointerException
 import javax.imageio.ImageIO
 import javax.swing.filechooser.FileNameExtensionFilter
 import quanto.gui.QuantoDerive.FileMenu.mnemonic
+import quanto.gui.FileOpened
 import quanto.util._
 
 
 class NoProjectException extends Exception("No project open.")
 
 object QuantoDerive extends SimpleSwingApplication {
+  override def main(args: Array[String]): Unit = {
+    super.main(args)
+    if (args.length > 0) {
+      alert("Loading project from commandline")
+      val arg = args(0)
+      loadProject(arg)
+    }
+    if (args.length > 1) {
+      alert("Opening file from commandline")
+      val fname = args(1)
+      ProjectFileTree.publish(FileOpened(new File(fname)))
+    }
+  }
+
   System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
   val actorSystem = ActorSystem("QuantoDerive")
