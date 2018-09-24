@@ -1,1 +1,0 @@
-{"wire_vertices":{"w":{}},"node_vertices":{"a":{"data":{"type":"RT","tactic":"foo"}},"b":{"data":{"type":"Gs","goal_type":"bar","goal_names":[{"string":"x","number":1},{"string":"y","number":-1}]}}},"dir_edges":{"e1":{"src":"a","tgt":"w","data":"z"},"e2":{"src":"w","tgt":"b","data":"z"}}}

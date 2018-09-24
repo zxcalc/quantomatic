@@ -1,1 +1,0 @@
-{"wire_vertices":{"a":{"annotation":{"quanto-gui:position":"60:20"}},"b":{"annotation":{"quanto-gui:position":"107:20"}},"c":{"annotation":{"quanto-gui:position":"109:74"}},"d":{"annotation":{"quanto-gui:position":"60:81"}}},"undir_edges":{"Ea":{"src":"a","tgt":"d"},"Eb":{"src":"b","tgt":"c"}}}

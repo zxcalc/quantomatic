@@ -1,7 +1,0 @@
-{
-  "wire_vertices" : ["a","b"],
-  "dir_edges" :
-    {
-      "1" : { "src" : "a", "tgt" : "b" }
-    }
-}

@@ -1,1 +1,0 @@
-{"wire_vertices":{"w":{}},"node_vertices":{"c":{"data":{"type":"COPY"}},"s":{"data":{"type":"SWITCH"}},"0":{"data":{"type":"BUF0"}},"1":{"data":{"type":"BUF1"}}},"dir_edges":{"e1":{"src":"c","tgt":"w"},"e2":{"src":"w","tgt":"s"}}}

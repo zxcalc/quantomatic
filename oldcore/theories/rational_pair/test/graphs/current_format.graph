@@ -1,1 +1,0 @@
-{"wire_vertices":{"w":{}},"node_vertices":{"a":{"data":{"type":"B","value":""}},"b":{"data":{"type":"B","value":"a + b"}},"c":{"data":{"type":"W","value":""}},"d":{"data":{"type":"W","value":"c"}}},"dir_edges":{"e1":{"src":"a","tgt":"w"},"e2":{"src":"w","tgt":"b"}}}

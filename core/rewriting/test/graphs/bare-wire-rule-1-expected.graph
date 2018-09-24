@@ -1,8 +1,0 @@
-{
-  "node_vertices" : ["a","b","c"],
-  "dir_edges" :
-    {
-      "1" : { "src" : "a", "tgt" : "b" },
-      "2" : { "src" : "b", "tgt" : "c" }
-    }
-}
