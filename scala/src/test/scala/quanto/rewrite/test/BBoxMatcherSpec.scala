@@ -129,7 +129,9 @@ class BBoxMatcherSpec extends FlatSpec {
     // v3 has no neighbours
     // v1 and v2 are connected to v0
 
-    assert(matches.size === 4)
+    // 2 + 1 + 1 + 1 options (the 2 is from symmetry)
+
+    assert(matches.size === 5)
   }
 
 
@@ -260,8 +262,8 @@ class BBoxMatcherSpec extends FlatSpec {
 
     val matches = Matcher.findMatches(g1, g2)
 
-    // without symmetry smashing = 6
-    assert(matches.size === 1)
+    // with symmetry smashing = 1
+    assert(matches.size === 6)
   }
 
   it should "match the center of a star graph using two boxes" in {
@@ -304,8 +306,12 @@ class BBoxMatcherSpec extends FlatSpec {
 
     val matches = Matcher.findMatches(g1, g2)
 
-    // effectively match on all choices from three things; including 0 matches from one box and 3 from the other!
-    assert(matches.size === 8)
+    // effectively match on all choices from three things; including (0 matches from one box | 3 from the other)!
+    // 1 x 0|3 = 6
+    // 3 x 1|2 = 6
+    // 3 x 2|1 = 6
+    // 1 x 3|0 = 6
+    assert(matches.size === 24)
   }
 
 
@@ -448,9 +454,10 @@ class BBoxMatcherSpec extends FlatSpec {
 
     // v0 is the center
     // v5, v6 and v7 are next layer out
-    // they connect to a further 0, 1 and 2 more nodes respectively
+    // they connect to a further 2, 1 and 0 more nodes respectively
+    // 6 orderings on the first layer, 2 x 1 x 1 orderings on the second layer
 
-    assert(matches.size === 1)
+    assert(matches.size === 12)
   }
 
 
@@ -524,8 +531,8 @@ class BBoxMatcherSpec extends FlatSpec {
     val matches = Matcher.findMatches(g1, g2)
 
 
-    // without symmetry smashing = 2*6*2
-    assert(matches.size === 2)
+    // with symmetry smashing = 2
+    assert(matches.size === 24)
   }
 
 
@@ -551,6 +558,8 @@ class BBoxMatcherSpec extends FlatSpec {
       """.stripMargin), thy = rg)
 
     val matches = Matcher.findMatches(g1, g1)
+
+    // Symmetry accounts for 2x
 
     assert(matches.size === 2)
   }
@@ -601,8 +610,12 @@ class BBoxMatcherSpec extends FlatSpec {
 
     //matches.foreach(m => println(m.bbops.map(_.shortName)))
 
-    // // without symmetry smashing = 2*2*2
-    assert(matches.size === 2)
+    // with symmetry smashing = 2
+    // 2x for symmetry of the Z nodes
+    // 2x for symmetry at one end
+    // 2x for symmetry at the other
+    // NOTE assumes the bbox is instantiated at 0!
+    assert(matches.size === 8)
   }
 
   it should "match the LHS of the spider law with angles" in {
@@ -646,8 +659,8 @@ class BBoxMatcherSpec extends FlatSpec {
 
     val matches = Matcher.findMatches(g1, g2)
 
-    // without symmetry smashing = 2*6*2
-    assert(matches.size === 2)
+    // with symmetry smashing = 2
+    assert(matches.size === 24)
   }
 
   it should "instantiate the RHS of the spider law" in {
@@ -840,7 +853,8 @@ class BBoxMatcherSpec extends FlatSpec {
     matches.size
 
     // should match once as empty graph (killing both bboxes), and once using two copies of each bbox
-    assert(matches.size === 2)
+    // double the non-empty matches for symmetry
+    assert(matches.size === 5)
   }
 
   it should "match spider-law with multiple connecting edges (and no external ones)" in {
