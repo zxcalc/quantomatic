@@ -3,9 +3,18 @@ package quanto.gui.graphview
 import quanto.data._
 import quanto.util.RichCubicCurve._
 import java.awt.geom._
-import math._
 
-case class EDisplay(path: Path2D.Double, lines: List[Line2D.Double], label: Option[LabelDisplayData]) {
+import quanto.data.Theory.EdgeDesc
+import quanto.util.UserOptions
+
+import math._
+import scala.swing.Color
+
+case class EDisplay(path: Path2D.Double,
+                    width: Int,
+                    color: Color,
+                    lines: List[Line2D.Double],
+                    label: Option[LabelDisplayData]) {
   def pointHit(pt: Point2D) = {
     lines exists { l =>
       //println("line starts " + l.getP1 + " ends " + l.getP2 + ", distance to " + pt + " is " + l.ptSegDistSq(pt))
@@ -23,6 +32,7 @@ trait EdgeDisplayData { self: GraphView with VertexDisplayData =>
     for ((v1,sd) <- graph.vdata; (v2,td) <- graph.vdata if v1 <= v2) {
       val edges = graph.source.codf(v1) intersect graph.target.codf(v2)
       val rEdges = if (v1 == v2) Set[EName]() else graph.target.codf(v1) intersect graph.source.codf(v2)
+      // Count total edges v1 -> v2, and reverse edges (v2 -> v1)
       val numEdges = edges.size + rEdges.size
 
       if (numEdges != 0) {
@@ -115,7 +125,7 @@ trait EdgeDisplayData { self: GraphView with VertexDisplayData =>
           }
 
           val labelDisplay = edgeData.typeInfo.value.typ match {
-            case Theory.ValueType.String =>
+            case Vector(Theory.ValueType.String) =>
               val fm = peer.getGraphics.getFontMetrics(GraphView.EdgeLabelFont)
               val text = edgeData.label
               if (text == "") None
@@ -126,9 +136,10 @@ trait EdgeDisplayData { self: GraphView with VertexDisplayData =>
                   edgeData.typeInfo.style.labelBackgroundColor))
             case _ => None
           }
+          val width = UserOptions.scaleInt(edgeData.typeInfo.style.strokeWidth)
+          val color = edgeData.typeInfo.style.strokeColor
 
-
-          edgeDisplay(e) = EDisplay(p, lines, labelDisplay)
+          edgeDisplay(e) = EDisplay(p, width, color, lines, labelDisplay)
 
           i += 1
         }

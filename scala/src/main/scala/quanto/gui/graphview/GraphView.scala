@@ -15,7 +15,8 @@ import java.awt.font.TextLayout
 import java.io.File
 
 import quanto.util.FileHelper.printToFile
-import quanto.util.UserOptions
+import quanto.util.UserAlerts.alert
+import quanto.util.{UserAlerts, UserOptions}
 import quanto.util.json.JsonString
 
 
@@ -60,6 +61,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
   // gets called when the component is first painted
   lazy val init = {
+    focusOnGraph()
     resizeViewToFit()
   }
 
@@ -92,11 +94,39 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   private var _zoom = 1.0
   def zoom = _zoom
   def zoom_=(d: Double) {
+    // log where the middle of the screen currently is
     _zoom = d
     trans.scale = _zoom * 50.0
-    trans.origin = (_zoom * 250.0, _zoom * 250.0)
-    invalidateGraph(clearSelection = false)
     resizeViewToFit()
+    invalidateGraph(false)
+    repaint()
+  }
+
+private  def viewportOffset (): (Double, Double) = {
+  val viewRect = peer.getVisibleRect
+  (viewRect.width / 2, viewRect.height / 2)
+}
+
+  def graphFocus : (Double, Double) = {
+    val viewShift = viewportOffset()
+    trans.fromScreen(viewShift)
+  }
+
+  private def renderOriginAt(x : Double, y: Double): Unit ={
+    trans.screenDrawOrigin = (x, y)
+  }
+
+  def graphFocus_=(pointOnGraph : (Double, Double)) : Unit = {
+
+    val screenFocus = (trans scaleToScreen pointOnGraph._1, trans scaleToScreen pointOnGraph._2)
+
+    val viewShift = viewportOffset()
+
+    renderOriginAt(0-screenFocus._1 + viewShift._1, 0-screenFocus._2 + viewShift._2)
+
+    resizeViewToFit()
+    invalidateGraph(false)
+    revalidate()
     repaint()
   }
 
@@ -142,6 +172,8 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   }
 
   def resizeViewToFit() {
+
+    val bufferFocus = graphFocus
     // top left and bottom right of bounds, in screen coordinates
     val graphTopLeft = graph.vdata.foldLeft(0.0,0.0) { (c,v) =>
       (min(c._1, v._2.coord._1), max(c._2, v._2.coord._2))
@@ -152,14 +184,14 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
     } match {case (x,y) => trans toScreen (x + 1.0, y - 1.0)}
 
     // default bounds, based on the current position of the origin and the size of the visible region
-    val vRect = peer.getVisibleRect
-    val defaultTopLeft = (trans.origin._1 - (vRect.getWidth/2.0), trans.origin._2 - (vRect.getHeight/2.0))
-    val defaultBottomRight = (trans.origin._1 + (vRect.getWidth/2.0), trans.origin._2 + (vRect.getHeight/2.0))
+    val offset = viewportOffset()
+    val screenTopLeft = (trans.screenDrawOrigin._1 - offset._1, trans.screenDrawOrigin._2 - offset._2)
+    val screenBottomRight = (trans.screenDrawOrigin._1 + offset._1, trans.screenDrawOrigin._2 + offset._2)
 
-    val topLeft =     (min(graphTopLeft._1, defaultTopLeft._1),
-                       min(graphTopLeft._2, defaultTopLeft._2))
-    val bottomRight = (max(graphBottomRight._1, defaultBottomRight._1),
-                       max(graphBottomRight._2, defaultBottomRight._2))
+    val topLeft =     (min(graphTopLeft._1, screenTopLeft._1),
+                       min(graphTopLeft._2, screenTopLeft._2))
+    val bottomRight = (max(graphBottomRight._1, screenBottomRight._1),
+                       max(graphBottomRight._2, screenBottomRight._2))
 
     val (w,h) = (bottomRight._1 - topLeft._1,
                  bottomRight._2 - topLeft._2)
@@ -168,10 +200,12 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
                   (preferredSize.width != w) || (preferredSize.height != h)
 
     if (changed) {
-      trans.origin = (trans.origin._1 - topLeft._1, trans.origin._2 - topLeft._2)
+      trans.screenDrawOrigin = (trans.screenDrawOrigin._1 - topLeft._1, trans.screenDrawOrigin._2 - topLeft._2)
+      //graphFocus = bufferFocus
       preferredSize = new Dimension(w.toInt, h.toInt)
       invalidateGraph(clearSelection = false)
       revalidate()
+      repaint()
     }
   }
 
@@ -188,6 +222,48 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
   override def repaint() {
     //if (dynamicResize) resizeViewToFit()
     super.repaint()
+  }
+
+  def focusOnGraph(): Unit = {
+    // top left and bottom right of bounds, in screen coordinates
+    val graphTopLeft = graph.vdata.foldLeft(0.0, 0.0) { (c, v) =>
+      (min(c._1, v._2.coord._1), max(c._2, v._2.coord._2))
+    }
+
+
+    val graphBottomRight = graph.vdata.foldLeft((0.0, 0.0)) { (c, v) =>
+      (max(c._1, v._2.coord._1), min(c._2, v._2.coord._2))
+    }
+
+
+    val defaultTopLeft = (-5,5)
+    val defaultBottomRight = (5,-5)
+
+    val topLeft = (min(graphTopLeft._1, defaultTopLeft._1),
+      max(graphTopLeft._2, defaultTopLeft._2))
+    val bottomRight = (max(graphBottomRight._1, defaultBottomRight._1),
+      min(graphBottomRight._2, defaultBottomRight._2))
+
+    val (w, h) = (bottomRight._1 - topLeft._1,
+      topLeft._2 - bottomRight._2)
+
+    val graphCentre = ((topLeft._1 + bottomRight._1) / 2, (topLeft._2 + bottomRight._2) / 2)
+
+    // default bounds, based on the current position of the origin and the size of the visible region
+    val vRect = peer.getVisibleRect
+
+    val widthOnScreen = trans scaleToScreen w
+    val heightOnScreen = trans scaleToScreen h
+
+    val widthChange = widthOnScreen / vRect.width
+    val heightChange = heightOnScreen / vRect.height
+    val zoomChangeNeeded = max(widthChange, heightChange)
+
+    zoom = 0.9*zoom / zoomChangeNeeded
+
+    //trans.scale = trans.scale * zoomChangeNeeded
+
+    graphFocus = graphCentre
   }
 
   override def paintComponent(g: Graphics2D) {
@@ -265,16 +341,10 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
     for ((e, ed) <- edgeDisplay) {
       if (selectedEdges contains e) {
         g.setColor(Color.BLUE)
-        g.setStroke(new BasicStroke(2))
+        g.setStroke(new BasicStroke(ed.width))
       } else {
-        if (graph.edata(e).isDirected) {
-          g.setColor(Color.GRAY)
-          g.setStroke(new BasicStroke(1))
-        } else {
-          g.setColor(Color.BLACK)
-          g.setStroke(new BasicStroke(2))
-        }
-
+          g.setColor(ed.color)
+          g.setStroke(new BasicStroke(ed.width))
       }
 
       g.draw(ed.path)
@@ -294,7 +364,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
     g.setStroke(new BasicStroke(1))
     var a = g.getColor
-    for ((v, VDisplay(shape,color,label)) <- vertexDisplay) {
+    for ((v, VDisplay(shape, strokeWidth, color,label)) <- vertexDisplay) {
 
       /* draw red line if vertex coordinates are within !-box rectangle
        * but the vertex is not a member of the !-box and also write
@@ -343,10 +413,10 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
       
       if (selectedVerts contains v) {
         g.setColor(Color.BLUE)
-        g.setStroke(new BasicStroke(2))
+        g.setStroke(new BasicStroke(strokeWidth + 1))
       } else {
         g.setColor(Color.BLACK)
-        g.setStroke(new BasicStroke(1))
+        g.setStroke(new BasicStroke(strokeWidth))
       }
 
       g.draw(shape)
@@ -501,9 +571,12 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
       }
     }
 
+    val names = scala.collection.mutable.Map[String,Int]()
+
     /* Output view to a tikzit-readable file */
     printToFile(f, append)(p => {
-      p.println("\\begin{tikzpicture}[baseline={([yshift=-.5ex]current bounding box.center)}]")
+      //p.println("\\begin{tikzpicture}[baseline={([yshift=-.5ex]current bounding box.center)}]")
+      p.println("\\begin{tikzpicture}[quanto]")
       p.println("\t\\begin{pgfonlayer}{nodelayer}")
 
       /* fill in all vertices */
@@ -513,7 +586,9 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
           case _ : WireV => "wire"
         }
 
-        val number = vn.toString
+        names += vn.toString -> names.size
+
+        val number = names.size - 1
         val disp_rec = vertexDisplay(vn).shape.getBounds
         val trans_coord = trans.fromScreen(disp_rec.getCenterX, disp_rec.getCenterY)
         min_max(trans_coord)
@@ -530,25 +605,29 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
       /* fill in corners of !-boxes */
       for ((bbn,bbd) <- bboxDisplay) {
-        val number_ul = bbn.toString + "ul"
+        names += (bbn.toString + "ul") -> names.size
+        val number_ul = names.size - 1
         val trans_coord_ul = trans.fromScreen(bbd.rect.getMinX, bbd.rect.getMinY)
         min_max(trans_coord_ul)
         val coord_ul = coordToString(trans_coord_ul)
         p.println("\t\t\\node [style=bbox] (" + number_ul + ") at " + coord_ul + " {};")
 
-        val number_ur = bbn.toString + "ur"
+        names += (bbn.toString + "ur") -> names.size
+        val number_ur = names.size - 1
         val trans_coord_ur = trans.fromScreen(bbd.rect.getMaxX, bbd.rect.getMinY)
         min_max(trans_coord_ur)
         val coord_ur = coordToString(trans_coord_ur)
         p.println("\t\t\\node [style=none] (" + number_ur + ") at " + coord_ur + " {};")
 
-        val number_ll = bbn.toString + "ll"
+        names += (bbn.toString + "ll") -> names.size
+        val number_ll = names.size - 1
         val trans_coord_ll = trans.fromScreen(bbd.rect.getMinX, bbd.rect.getMaxY)
         min_max(trans_coord_ll)
         val coord_ll = coordToString(trans_coord_ll)
         p.println("\t\t\\node [style=none] (" + number_ll + ") at " + coord_ll + " {};")
 
-        val number_lr = bbn.toString + "lr"
+        names += (bbn.toString + "lr") -> names.size
+        val number_lr = names.size - 1
         val trans_coord_lr = trans.fromScreen(bbd.rect.getMaxX, bbd.rect.getMaxY)
         min_max(trans_coord_lr)
         val coord_lr = coordToString(trans_coord_lr)
@@ -556,16 +635,16 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
       }
 
       /* output 4 nodes used for padding*/
-      val pad_size = 1.0
-      minX -= pad_size
-      maxX += pad_size
-      minY -= pad_size
-      maxY += pad_size
-
-      p.println("\t\t\\node [style=none] (padl) at " + coordToString(minX, minY) + " {};")
-      p.println("\t\t\\node [style=none] (padr) at " + coordToString(maxX, maxY) + " {};")
-      p.println("\t\t\\node [style=none] (padu) at " + coordToString(minX, maxY) + " {};")
-      p.println("\t\t\\node [style=none] (padd) at " + coordToString(maxX, minY) + " {};")
+//      val pad_size = 1.0
+//      minX -= pad_size
+//      maxX += pad_size
+//      minY -= pad_size
+//      maxY += pad_size
+//
+//      p.println("\t\t\\node [style=none] (padl) at " + coordToString(minX, minY) + " {};")
+//      p.println("\t\t\\node [style=none] (padr) at " + coordToString(maxX, maxY) + " {};")
+//      p.println("\t\t\\node [style=none] (padu) at " + coordToString(minX, maxY) + " {};")
+//      p.println("\t\t\\node [style=none] (padd) at " + coordToString(maxX, minY) + " {};")
 
       p.println("\t\\end{pgfonlayer}")
 
@@ -574,9 +653,9 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
       /* fill in all graph edges */
       for (edge_set <- graph.edgePartition) {
         val edge_arr : Array[EName] = edge_set.toArray
-        val size = edge_arr.size
-        val canonical_source = graph.source(edge_arr(0)).toString
-        val canonical_target = graph.target(edge_arr(0)).toString
+        val size = edge_arr.length
+        val canonical_source = names(graph.source(edge_arr(0)).toString)
+        val canonical_target = names(graph.target(edge_arr(0)).toString)
 
         if (canonical_source != canonical_target) {
           /* edges are between different nodes */
@@ -588,7 +667,9 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
             val en = edge_arr(0)
             val ed = graph.edata(en)
             val style = if (ed.isDirected) "directed" else "simple"
-            p.println("\t\t\\draw [style=" + style + "] (" + graph.source(en).toString + ") to (" + graph.target(en).toString + ");" )
+            p.println("\t\t\\draw [style=" + style + "] (" +
+              names(graph.source(en).toString) + ") to (" +
+              names(graph.target(en).toString) + ");" )
             start = 1
           }
 
@@ -597,13 +678,13 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
           var right_left = "left="
 
           /* draw the rest of the edges as arcs by setting the bend angle */
-          for (i <- start to size-1) {
+          for (i <- start until size) {
             val en = edge_arr(i)
             val ed = graph.edata(en)
             val style = if (ed.isDirected) "directed" else "simple"
             val angle = angle_it.toString
-            val source = graph.source(en).toString
-            val target = graph.target(en).toString
+            val source = names(graph.source(en).toString)
+            val target = names(graph.target(en).toString)
 
             /* alternate bending left or right */
             if ((i-start) % 2 == 0) {
@@ -625,7 +706,7 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
           /* edges have same source and target, so we need to output loops */
 
           var looseness = 4.5
-          for (i <- 0 to size-1) {
+          for (i <- 0 until size) {
             val en = edge_arr(i)
             val ed = graph.edata(en)
             val style = if (ed.isDirected) "directed" else "simple"
@@ -643,10 +724,10 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
       for ((bbn, _) <- bboxDisplay) {
 
         /* fill in edges connecting !-box corners */
-        val number_ul = bbn.toString + "ul.center"
-        val number_ur = bbn.toString + "ur.center"
-        val number_ll = bbn.toString + "ll.center"
-        val number_lr = bbn.toString + "lr.center"
+        val number_ul = names(bbn.toString + "ul") + ".center"
+        val number_ur = names(bbn.toString + "ur") + ".center"
+        val number_ll = names(bbn.toString + "ll") + ".center"
+        val number_lr = names(bbn.toString + "lr") + ".center"
         p.println("\t\t\\draw [style=blue] (" + number_ul + ") to (" + number_ur + ");" )
         p.println("\t\t\\draw [style=blue] (" + number_ul + ") to (" + number_ll + ");" )
         p.println("\t\t\\draw [style=blue] (" + number_ll + ") to (" + number_lr + ");" )
@@ -654,10 +735,9 @@ class GraphView(val theory: Theory, gRef: HasGraph) extends Panel
 
         /* draw edges indicating nested !-boxes */
         graph.bboxParent.get(bbn) match {
-          case Some(bb_parent) => {
-            val parent_number_ul = bb_parent.toString + "ul.center"
+          case Some(bb_parent) =>
+            val parent_number_ul = names(bb_parent.toString + "ul") + ".center"
             p.println("\t\t\\draw [style=blue] (" + number_ul + ") to (" + parent_number_ul + ");" )
-          }
           case None =>
         }
       }

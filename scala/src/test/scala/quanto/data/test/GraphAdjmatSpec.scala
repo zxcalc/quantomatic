@@ -65,9 +65,13 @@ class GraphAdjMatSpec extends FlatSpec {
         |}
       """.stripMargin), rg)
 
-    assert(g.isBoundary("v0"))
-    assert(g.isBoundary("v1"))
-    assert(g === g1)
+    assert(g.isTerminalWire("v0"))
+    assert(g.isTerminalWire("v1"))
+    var g2 = g1.copy()
+    g1.verts.foreach(vn => g2 = g2.updateVData(vn) { vd => vd.withCoord(0, 0) })
+    var g3 = g.copy()
+    g.verts.foreach(vn => g3 = g3.updateVData(vn) { vd => vd.withCoord(0, 0) })
+    assert(g3 === g2)
 
     // LAYOUT A GRAPH LIKE THIS:
     // val layoutProc = new ForceLayout

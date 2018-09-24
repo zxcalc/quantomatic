@@ -134,9 +134,9 @@ object SimplificationProcedure {
     (DerivationWithHead, State) = {
       import state._
       val d = derivation
-      val randRule = rules.toList(seed.nextInt(rules.size))
+      val randRule = rules(seed.nextInt(rules.size))
       val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(d)
-      val errors = GraphAnalysis.detectErrors(d)
+      val errors = GraphAnalysis.detectPiNodes(d)
       val specialsDistances = errors.map(eName => (eName, state.weightFunction(d, Set(eName))))
       val maxDistance = specialsDistances.maxBy[Double](ed => ed._2.getOrElse(0))._2.getOrElse(0)
 
@@ -153,8 +153,9 @@ object SimplificationProcedure {
 
       val changed = suggestedNextStep._1.steps.size > derivation._1.steps.size
 
-      val shrunkNextStep = AutoReduce.greedyReduce(suggestedNextStep, greedyRules.getOrElse(Set()).toList)
-      val newErrors = GraphAnalysis.detectErrors(shrunkNextStep)
+      val shrunkNextStep = AutoReduce.greedyReduce(RuleSynthesis.basicGraphComparison,
+        suggestedNextStep, greedyRules.getOrElse(Set()).toList)
+      val newErrors = GraphAnalysis.detectPiNodes(shrunkNextStep)
       val suggestedNewSize: Double = state.weightFunction(shrunkNextStep, newErrors).getOrElse(0)
 
       // Bias towards strict reduction
@@ -168,7 +169,7 @@ object SimplificationProcedure {
         println(randRule.description)
         (shrunkNextStep, state.next(Some(suggestedNewSize)))
       } else {
-        println("rej "  + suggestedNewSize)
+        println("rej " + suggestedNewSize)
         (d, state.next(currentDistance))
       }
     }

@@ -9,13 +9,13 @@ class RationalMatrixSpec extends FlatSpec {
   behavior of "A rational matrix"
 
   it should "be constructable" in {
-    val m = new RationalMatrix(Vector(Vector(1,2,3), Vector(4,5,6), Vector(7,8,9)), 3)
+    val m = new RationalMatrix(Vector(Vector(1,2,3), Vector(4,5,6), Vector(7,8,9)), 3, Some(2))
   }
 
   it should "perform gaussian elimination" in {
-    val m1 = new RationalMatrix(Vector(Vector(1,2,3,4), Vector(2,2,2,2), Vector(2,1,3,1)), 3)
-    val m2 = new RationalMatrix(Vector(Vector(1,2), Vector(2,2)), 2)
-    val m3 = new RationalMatrix(Vector(Vector(Rational(1,5),2,3,4), Vector(2,2,2,2)), 3)
+    val m1 = new RationalMatrix(Vector(Vector(1,2,3,4), Vector(2,2,2,2), Vector(2,1,3,1)), 3, Some(2))
+    val m2 = new RationalMatrix(Vector(Vector(1,2), Vector(2,2)), 2, Some(2))
+    val m3 = new RationalMatrix(Vector(Vector(Rational(1,5),2,3,4), Vector(2,2,2,2)), 3, Some(2))
 
     assert(!m1.isReduced)
     assert(m1.gauss.get.isReduced)

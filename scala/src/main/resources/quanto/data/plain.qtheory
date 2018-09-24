@@ -1,0 +1,51 @@
+{
+  "name" : "Plain",
+  "core_name" : "plain",
+  "vertex_types" : {
+    "var" : {
+      "value" : {
+        "type" : "string",
+        "latex_constants" : true,
+        "validate_with_core" : true
+      },
+      "style" : {
+        "label" : {
+          "position" : "inside",
+          "fg_color" : [ 0.0, 0.0, 0.0 ]
+        },
+        "stroke_color" : [ 0.0, 0.0, 0.0 ],
+        "fill_color" : [ 1.0, 1.0, 1.0 ],
+        "shape" : "rectangle"
+      },
+      "default_data" : {
+        "type" : "var",
+        "label" : "",
+        "value" : {
+          "pretty" : ""
+        }
+      }
+    }
+  },
+  "default_vertex_type" : "var",
+  "default_edge_type" : "plain",
+  "edge_types" : {
+    "plain" : {
+      "value" : {
+        "type" : "empty",
+        "latex_constants" : false,
+        "validate_with_core" : false
+      },
+      "style" : {
+        "stroke_color" : [ 0.0, 0.0, 0.0 ],
+        "stroke_width" : 1,
+        "label" : {
+          "position" : "auto",
+          "fg_color" : [ 0.0, 0.0, 0.0 ]
+        }
+      },
+      "default_data" : {
+        "type" : "plain"
+      }
+    }
+  }
+}

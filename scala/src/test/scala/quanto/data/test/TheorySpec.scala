@@ -9,13 +9,13 @@ class TheorySpec extends FlatSpec {
   behavior of "A theory"
 
   val rgValueDesc = Theory.ValueDesc(
-    typ = Theory.ValueType.String,
+    typ = Vector(Theory.ValueType.String),
     latexConstants = true,
     validateWithCore = true
   )
 
   val hValueDesc = Theory.ValueDesc(
-    typ = Theory.ValueType.Empty,
+    typ = Vector(Theory.ValueType.Empty),
     latexConstants = false,
     validateWithCore = false
   )
@@ -68,9 +68,9 @@ class TheorySpec extends FlatSpec {
       |  "vertex_types" : {
       |    "red" : {
       |      "value" : {
-      |        "validate_with_core" : true,
+      |        "type" : "string",
       |        "latex_constants" : true,
-      |        "type" : "string"
+      |        "validate_with_core" : true
       |      },
       |      "style" : {
       |        "label" : {
@@ -79,7 +79,8 @@ class TheorySpec extends FlatSpec {
       |        },
       |        "stroke_color" : [ 0.0, 0.0, 0.0 ],
       |        "fill_color" : [ 1.0, 0.0, 0.0 ],
-      |        "shape" : "circle"
+      |        "shape" : "circle",
+      |        "stroke_width" : 1
       |      },
       |      "default_data" : {
       |        "type" : "red",
@@ -91,9 +92,9 @@ class TheorySpec extends FlatSpec {
       |    },
       |    "green" : {
       |      "value" : {
-      |        "validate_with_core" : true,
+      |        "type" : "string",
       |        "latex_constants" : true,
-      |        "type" : "string"
+      |        "validate_with_core" : true
       |      },
       |      "style" : {
       |        "label" : {
@@ -102,7 +103,8 @@ class TheorySpec extends FlatSpec {
       |        },
       |        "stroke_color" : [ 0.0, 0.0, 0.0 ],
       |        "fill_color" : [ 0.0, 1.0, 0.0 ],
-      |        "shape" : "circle"
+      |        "shape" : "circle",
+      |        "stroke_width" : 1
       |      },
       |      "default_data" : {
       |        "type" : "green",
@@ -114,9 +116,9 @@ class TheorySpec extends FlatSpec {
       |    },
       |    "hadamard" : {
       |      "value" : {
-      |        "validate_with_core" : false,
+      |        "type" : "empty",
       |        "latex_constants" : false,
-      |        "type" : "empty"
+      |        "validate_with_core" : false
       |      },
       |      "style" : {
       |        "label" : {
@@ -125,19 +127,22 @@ class TheorySpec extends FlatSpec {
       |        },
       |        "stroke_color" : [ 0.0, 0.0, 0.0 ],
       |        "fill_color" : [ 1.0, 1.0, 0.0 ],
-      |        "shape" : "rectangle"
+      |        "shape" : "rectangle",
+      |        "stroke_width" : 1
       |      },
       |      "default_data" : {
       |        "type" : "hadamard"
       |      }
       |    }
       |  },
+      |  "default_vertex_type" : "red",
+      |  "default_edge_type" : "plain",
       |  "edge_types" : {
       |    "plain" : {
       |      "value" : {
-      |        "validate_with_core" : false,
+      |        "type" : "empty",
       |        "latex_constants" : false,
-      |        "type" : "empty"
+      |        "validate_with_core" : false
       |      },
       |      "style" : {
       |        "stroke_color" : [ 0.0, 0.0, 0.0 ],
@@ -151,9 +156,7 @@ class TheorySpec extends FlatSpec {
       |        "type" : "plain"
       |      }
       |    }
-      |  },
-      |  "default_vertex_type" : "red",
-      |  "default_edge_type" : "plain"
+      |  }
       |}
     """.stripMargin)
 
@@ -164,6 +167,27 @@ class TheorySpec extends FlatSpec {
   }
 
   it should "load from JSON" in {
-    assert(Theory.fromJson(thyJson) === thy)
+    var loaded : Theory = Theory.fromJson(thyJson)
+    assert(loaded.vertexTypes === thy.vertexTypes)
+    print(loaded.vertexTypes)
+    assert(loaded === thy)
+  }
+
+  behavior of "mixing theories"
+
+  it should "mix with itself" in {
+    assert(thy.mixin(thy, None) == thy)
+  }
+
+  val plain = Theory.fromFile("plain")
+  val rg = Theory.fromFile("red_green")
+
+  it should "mix with others" in {
+    val mixedPlainRG = plain.mixin(rg, Some("plain with red_green"))
+    assert(mixedPlainRG.vertexTypes.keySet == Set("var", "hadamard", "Z", "X"))
+  }
+
+  it should "mix with fragments" in {
+    assert(plain.mixin(newVertexTypes = rg.vertexTypes.filter(_._1 == "Z")).vertexTypes.keySet == Set("var", "Z"))
   }
 }

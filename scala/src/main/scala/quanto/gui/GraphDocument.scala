@@ -23,6 +23,13 @@ class GraphDocument(val parent: Component, theory: Theory) extends Document with
 //    resetDocumentInfo()
 //  }
 
+  def replaceJson(json: Json) {
+    graph = Graph.fromJson(json, theory)
+    publish(GraphReplaced(this, clearSelection = true))
+    publish(DocumentReplaced(this))
+    publish(DocumentChanged(this))
+  }
+
   protected def loadDocument(f: File) {
     val json = Json.parse(f)
     storedGraph = Graph.fromJson(json, theory)

@@ -80,13 +80,16 @@ class TensorSpec extends FlatSpec {
     assert((p2 o l1.t) == l2.t)
   }
 
-  it should "construct swap matrices" in {
+  it should "construct 2-wire swap matrices" in {
     var s1 = Tensor.swap(2, x => 1 - x)
     assert(s1.toString == "1 0 0 0\n0 0 1 0\n0 1 0 0\n0 0 0 1")
-    var s2 = Tensor.swap(List(0, 2, 1))
-    assert(s2.toStringSparse ==
-      "1 . . . . . . .\n. . 1 . . . . .\n. 1 . . . . . .\n. . . 1 . . . ." +
-        "\n. . . . 1 . . .\n. . . . . . 1 .\n. . . . . 1 . .\n. . . . . . . 1")
+  }
+
+  it should "make swaps the right way up" in {
+    val id = Tensor.idWires(1)
+    val s1 = Tensor.swap(List(1,0))
+    val s2 = Tensor.swap(List(2,0,1))
+    assert(((id x s1) o (s1 x id)) == s2)
   }
 
   it should "plug tensors into other tensors" in {
@@ -119,8 +122,8 @@ class TensorSpec extends FlatSpec {
   }
 
   it should "create direct sums" in {
-    var t1 = Tensor.diagonal(Array[Complex](1,2))
-    var t2 = Tensor(Array(Array(3,4)))
+    var t1 = Tensor.diagonal(Array[Complex](1, 2))
+    var t2 = Tensor(Array(Array(3, 4)))
     assert((t1 sum t2) == Tensor(Array(Array(1, 0, 0, 0), Array(0, 2, 0, 0), Array(0, 0, 3, 4))))
     assert((t1 sum t2.transpose) == Tensor(Array(Array(1, 0, 0), Array(0, 2, 0), Array(0, 0, 3), Array(0, 0, 4))))
   }
@@ -160,5 +163,19 @@ class TensorSpec extends FlatSpec {
     assert(t1.isRoughlyUpToScalar(t2))
     var t3 = new Tensor(Array(Array(Complex(0, 1), zero), Array(zero, Complex(1, 0))))
     assert(!t1.isRoughlyUpToScalar(t3))
+  }
+
+
+  it should "compare zeroes" in {
+    var t1 = new Tensor(Array(Array(zero, zero)))
+    var t2 = Tensor(Array(Array(zero,Complex(0.000001,0))))
+    assert(!t1.isRoughlyUpToScalar(t2))
+    assert(t1.isRoughlyUpToScalar(t2.scaled(Complex(0.00000000001,0))))
+  }
+
+  it should "compare zero and one" in {
+    var t1 = new Tensor(Array(Array(Complex(0, 0.00000000000000001))))
+    var t2 = Tensor(Array(Array(one)))
+    assert(!t1.isRoughlyUpToScalar(t2))
   }
 }

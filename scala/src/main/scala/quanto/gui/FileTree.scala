@@ -15,6 +15,7 @@ import scala.swing.event.Event
 
 abstract class FileTreeEvent extends Event
 case class FileOpened(file: File) extends FileTreeEvent
+case class FileContextRequested(file: File, e: Option[MouseEvent]) extends FileTreeEvent
 
 class FileTree extends BorderPanel {
   val fileTreeModel = new FileTreeModel
@@ -41,12 +42,10 @@ class FileTree extends BorderPanel {
             }
         case _ =>
           if (e.isPopupTrigger) {
-            // TODO: Make actual popup menu
-            // cf https://stackoverflow.com/questions/938753/scala-popup-menu
-            // Needs access to a swing component to have as parent
+            val row = fileTree.getClosestRowForLocation(e.getX, e.getY)
+            fileTree.setSelectionRow(row)
             fileTree.getLastSelectedPathComponent match {
-              case FileNode(file) => Desktop.getDesktop.browse(file.toURI)
-              case _ =>
+              case FileNode(file) => publish(FileContextRequested(file, Some(e)))
             }
           }
       }

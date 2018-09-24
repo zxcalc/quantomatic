@@ -5,8 +5,14 @@
 
 BUNDLE=target/QuantoDerive
 
+# Pre-build cleanup, so we know we're building in a consistent environment.
+sbt clean
+rm -r ../core/heaps/* 
+rm -r $BUNDLE/*
+
 # Rebuild the core heap
 echo Rebuilding the core heap...
+mkdir -p ../core/heaps
 (cd ../core; ../scala/dist/linux-dist/poly --use build_heap.ML)
 
 
@@ -22,7 +28,8 @@ sbt package
 
 echo Including binaries...
 cp -f dist/linux-dist/quanto-derive.sh $BUNDLE/
-cp -f dist/linux-dist/polybin dist/linux-dist/poly $BUNDLE/bin
+cp -f dist/linux-dist/polybin $BUNDLE/bin
+cp -f dist/linux-dist/poly $BUNDLE/bin
 cp -f dist/linux-dist/libpolyml.so.4 $BUNDLE/bin
 
 echo Including heap...
@@ -36,7 +43,8 @@ echo Including jars...
 cp -f lib_managed/jars/*/*/akka-actor*.jar $BUNDLE/jars
 cp -f lib_managed/jars/*/*/scala-library*.jar $BUNDLE/jars
 cp -f lib_managed/jars/*/*/scala-swing*.jar $BUNDLE/jars
-cp -f lib_managed/jars/*/*/jackson-core*.jar $BUNDLE/jars
+cp -f lib_managed/bundles/*/*/scala-parser-combinators*.jar $BUNDLE/jars
+cp -f lib_managed/bundles/*/*/jackson-core*.jar $BUNDLE/jars
 cp -f lib_managed/bundles/*/*/config*.jar $BUNDLE/jars
 
 # grab local dependences

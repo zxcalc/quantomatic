@@ -2,14 +2,13 @@ package quanto.cosy
 
 import quanto.cosy.Interpreter._
 import quanto.data._
+import quanto.util.Rational
 import quanto.util.json.{Json, JsonAccessException, JsonArray, JsonObject}
-
-import scala.concurrent.{Await, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
 
 /**
   * Synthesises diagrams, holds the data and generates equivalence classes
+  *
+  * Everything here has essentially be superseded by the new CoSyRun system
   */
 
 
@@ -167,6 +166,11 @@ abstract class EquivClassRun[T](val tolerance: Double = 1e-14) {
     this
   }
 
+  def add(that: T, tensor: Tensor): EquivalenceClass[T] = {
+    compareAndAddToClass(that, tensor)
+    compareAndAddToClass(that, tensor, normalised = true)
+  }
+
   // Finds the closest class and adds it, or creates a new class if outside tolerance
   def compareAndAddToClass(candidate: T, tensor: Tensor, normalised: Boolean = false): EquivalenceClass[T] = {
 
@@ -190,6 +194,7 @@ abstract class EquivClassRun[T](val tolerance: Double = 1e-14) {
     }
   }
 
+  implicit def interpret(that: T): Tensor
 
   // Returns (new Class, -1) if no EquivalenceClasses here
   def closestClassTo(that: Tensor, normalised: Boolean = false): Option[(EquivalenceClass[T], Double)] = {
@@ -204,16 +209,9 @@ abstract class EquivClassRun[T](val tolerance: Double = 1e-14) {
 
   }
 
-  implicit def interpret(that: T): Tensor
-
   def add(that: T): EquivalenceClass[T] = {
     val tensor = interpret(that)
     add(that, tensor)
-  }
-
-  def add(that: T, tensor: Tensor): EquivalenceClass[T] = {
-    compareAndAddToClass(that, tensor)
-    compareAndAddToClass(that, tensor, normalised = true)
   }
 
   def newClass(t: T, tensor: Tensor, normalised: Boolean): EquivalenceClass[T]
@@ -299,7 +297,7 @@ object EquivClassRunBlockStack {
         Tensor.fromJson((js / "tensor").asObject))
     )
     val ecrr = new EquivClassRunBlockStack(tolerance)
-    for ((adj, ten) <- results) {
+    for ((adj, _) <- results) {
       ecrr.add(adj)
     }
     ecrr
@@ -365,7 +363,9 @@ object EquivClassRunAdjMat {
             tolerance: Double,
             theory: Theory,
             rulesList: List[Rule]): EquivClassRunAdjMat = {
-    def angleMap = (x: Int) => x * math.Pi * 2.0 / numAngles
+    def angleMap(x: Int): Rational = {
+      new Rational(x, numAngles)
+    }
 
     val gdata = (for (i <- 0 until numAngles) yield {
       NodeV(data = JsonObject("type" -> "Z", "value" -> angleMap(i).toString), theory = theory)

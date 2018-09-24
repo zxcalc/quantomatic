@@ -11,8 +11,6 @@ import quanto.util.json._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-
-
 // object providing functions specifically for python scripting
 
 object Scripting {
@@ -56,6 +54,12 @@ object Scripting {
     listToPyList(pyListToList[String](ss).map(load_rule))
   }
 
+  def include_inverses(rs: PyList) : PyList = {
+    listToPyList(pyListToList[Rule](rs).flatMap(r => {
+      List(r, r.inverse)
+    }).distinct)
+  }
+
   def plug(g1: Graph, g2: Graph, b1: String, b2: String) =
     g1.plugGraph(g2, VName(b1), VName(b2))
 
@@ -94,8 +98,13 @@ object Scripting {
 //    }
   }
 
+  def new_graph_from_json(jsonString: String): Unit = {
+    val doc = QuantoDerive.newGraph()
+    doc.replaceJson(Json.parse(jsonString))
+  }
+
   class derivation(start : Graph) {
-    var d = Derivation(theory, start)
+    var d = Derivation(start)
 
     def rewrite(r: (String, Rule)) = {
       false
@@ -135,7 +144,7 @@ object Scripting {
   }
 
   def vertex_angle_is(g: Graph, v: VName, a: String) = g.vdata(v) match {
-    case nv: NodeV => nv.angle == AngleExpression.parse(a)
+    case nv: NodeV => nv.phaseData.values == CompositeExpression.parseKnowingTypes(a, nv.phaseData.valueTypes)
     case _ => false
   }
 
@@ -148,6 +157,39 @@ object Scripting {
 
   // python wrappers for simproc combinators
   val EMPTY = Simproc.EMPTY
+
+  //takes in a python function that accepts a json version of the graph
+  // and outputs new json content for a new graph
+  def JSON_REWRITE(func: PyFunction) = new Simproc{
+    override def simp(g: Graph): Iterator[(Graph, Rule)] = {
+      val input = g.toJson().toString()
+      val output = Py.tojava(func.__call__(Py.java2py(input)),classOf[String])
+      Iterator.single((Graph.fromJson(Json.parse(output),project.theory),Rule(Graph(),Graph())))
+    }
+  }
+
+  def JSON_REWRITE_STEPS(starter: PyMethod, step_getter: PyMethod, name_getter: PyMethod) = new Simproc{
+    override def simp(g: Graph): Iterator[(Graph, Rule)] = {
+      val input = g.toJson().toString()
+      val total_steps = Py.tojava(starter.__call__(Py.java2py(input)),classOf[Integer])
+      var index = 0
+      new Iterator[(Graph, Rule)] {
+        override def length = total_steps
+        override def hasNext: Boolean = index < total_steps
+        override def next(): (Graph, Rule) = {
+          if (index < total_steps) {
+            val name = Py.tojava(name_getter.__call__(Py.java2py(index)), classOf[String])
+            println("Adding rewrite step: " + name)
+            val js = Py.tojava(step_getter.__call__(Py.java2py(index)), classOf[String])
+            val rule = Rule(Graph(), Graph(), None, RuleDesc(name))
+            index += 1
+            (Graph.fromJson(Json.parse(js), project.theory), rule)
+          }
+          else null
+        }
+      }
+    }
+  }
   def REWRITE(o: Object) = o match {
     case list: PyList => Simproc.REWRITE(pyListToList(list))
     case _ => Simproc.REWRITE(List(o.asInstanceOf[Rule]))
@@ -160,6 +202,15 @@ object Scripting {
     }
 
     Simproc.REWRITE_METRIC(rules, {g => Py.py2int(metric.__call__(Py.java2py(g)))})
+  }
+
+  def REWRITE_METRIC_TO(o: Object, metric: PyFunction, target: Int) = {
+    val rules = o match {
+      case list: PyList => pyListToList(list)
+      case _ => List(o.asInstanceOf[Rule])
+    }
+
+    Simproc.REWRITE_METRIC(rules, {g => Py.py2int(metric.__call__(Py.java2py(g)))}, target)
   }
 
   def REWRITE_WEAK_METRIC(o: Object, metric: PyFunction) = {
@@ -180,14 +231,33 @@ object Scripting {
       })
   }
 
+  def ANNEAL(r: PyList, steps: Int, dilation: Double) = Simproc.ANNEAL(pyListToList[Rule](r), steps, dilation)
+
+  def LOG(graphEval: PyFunction) = Simproc.LOG(
+    g => {
+      val pyReturn = graphEval.__call__(Py.java2py(g))
+      if (pyReturn.isInstanceOf[PyString]) pyReturn.toString else ""
+    }
+  )
+
+  def REWRITE_TARGET_LIST(rule: Rule, v: String, tlist: PyList) = Simproc.REWRITE_TARGET_LIST(rule, VName(v), pyListToList(tlist))
+
   def REPEAT(s: Simproc) = Simproc.REPEAT(s)
 
   // REDUCE_XXX(-) := REPEAT(REWRITE_XXX(-))
   def REDUCE(o: Object) = REPEAT(REWRITE(o))
   def REDUCE_TARGETED(rule: Rule, v: String, targ: PyFunction) = REPEAT(REWRITE_TARGETED(rule, v, targ))
   def REDUCE_METRIC(o: Object, metric: PyFunction) = REPEAT(REWRITE_METRIC(o, metric))
+  def REDUCE_METRIC_TO(o: Object, metric: PyFunction, target: Int) = REPEAT(REWRITE_METRIC_TO(o, metric, target))
   def REDUCE_WEAK_METRIC(o: Object, metric: PyFunction) = REPEAT(REWRITE_WEAK_METRIC(o, metric))
 
+  private def register_simproc(simprocName: String, simproc: Simproc, sourceFile: String): Unit = {
+    simproc.sourceFile = sourceFile
+    project.simprocs += simprocName -> simproc
+  }
 
-  def register_simproc(s: String, sp: Simproc) { project.simprocs += s -> sp }
+  def register_simproc(s: String, sp: Simproc): Unit = {
+    register_simproc(s, sp, project.lastRunPythonFilePath.getOrElse(""))
+  }
+
 }

@@ -62,3 +62,13 @@ case class AddBangBoxTool() extends MouseState
 
 /** A nesting edge is being dragged from the bang box corner */
 case class DragBangBoxNesting(startBBox: BBName) extends MouseState
+
+/** The relax tool is pressed down or released again */
+case class RelaxToolDown() extends MouseState
+case class RelaxToolUp() extends MouseState
+
+// The freehand tool is being used
+case class FreehandTool(start: Option[VName], startedWithNew: Boolean) extends MouseState
+
+case class RequestMinimiseGraph() extends MouseState
+case class RequestFocusOnGraph() extends MouseState

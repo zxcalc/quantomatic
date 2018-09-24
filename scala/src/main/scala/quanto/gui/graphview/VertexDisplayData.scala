@@ -1,13 +1,15 @@
 package quanto.gui.graphview
 
-import java.awt.geom.{Rectangle2D, Ellipse2D, Point2D}
-import java.awt.{FontMetrics, Color, Shape}
+import java.awt.geom.{Ellipse2D, Point2D, Rectangle2D}
+import java.awt.{Color, FontMetrics, Shape}
+
 import math._
 import quanto.data._
 import quanto.gui._
 import quanto.core.data.TexConstants
+import quanto.util.UserOptions
 
-case class VDisplay(shape: Shape, color: Color, label: Option[LabelDisplayData]) {
+case class VDisplay(shape: Shape, borderWidth: Int, color: Color, label: Option[LabelDisplayData]) {
   def pointHit(pt: Point2D) = {
     val bnd = shape.getBounds2D
     pt.getX >= bnd.getMinX - GraphView.VertexSelectionTolerence &&
@@ -52,13 +54,14 @@ trait VertexDisplayData { self: GraphView =>
   protected def computeVertexDisplay() {
     val trWireWidth = 0.707 * (trans scaleToScreen GraphView.WireRadius)
 
+    // Go through every vertex in the graph
     for ((v,data) <- graph.vdata if !vertexDisplay.contains(v)) {
       val (x,y) = trans toScreen data.coord
 
       vertexDisplay(v) = data match {
         case vertexData : NodeV =>
           val style = vertexData.typeInfo.style
-          val label = if (vertexData.hasAngle) vertexData.angle.toString else vertexData.value
+          val label = if (vertexData.hasValue) vertexData.phaseData.toString else vertexData.value
           val text = if(zoom < GraphView.zoomCutOut && label != "") "~"
                      else TexConstants.translate(label)
             /*vertexData.typeInfo.value.typ match {
@@ -66,19 +69,26 @@ trait VertexDisplayData { self: GraphView =>
             case _ => ""
           }*/
 
+          // Build the label
           val fm = peer.getGraphics.getFontMetrics(GraphView.VertexLabelFont)
           val labelDisplay = LabelDisplayData(
-            text, (x,y), fm,
+            text, (x, y), fm,
             vertexData.typeInfo.style.labelForegroundColor,
             vertexData.typeInfo.style.labelBackgroundColor)
 
-
+          // Build the shape around the label
           val shape = style.shape match {
             case Theory.VertexShape.Rectangle =>
+              val buffer = trans.scaleToScreen(GraphView.NodeTextPadding)
+              val height = labelDisplay.bounds.getHeight + buffer
+              val widthFromLabel = labelDisplay.bounds.getWidth + buffer
+              // Default to square if no data, and stretch horizontally if needed
+              val width = max(widthFromLabel, height)
 
-              new Rectangle2D.Double(
-                labelDisplay.bounds.getMinX - 5.0, labelDisplay.bounds.getMinY - 3.0,
-                labelDisplay.bounds.getWidth + 10.0, labelDisplay.bounds.getHeight + 6.0)
+              val x = labelDisplay.bounds.getMinX - (width - labelDisplay.bounds.getWidth) / 2.0
+              val y = labelDisplay.bounds.getMinY - (height - labelDisplay.bounds.getHeight) / 2.0
+
+              new Rectangle2D.Double(x, y, width, height)
             case Theory.VertexShape.Circle =>
               // radius should fit to label if required
               val r = max(
@@ -86,30 +96,38 @@ trait VertexDisplayData { self: GraphView =>
                 trans.scaleToScreen(GraphView.NodeRadius)
               )
 
-              new Ellipse2D.Double(
-                labelDisplay.bounds.getCenterX - r,
-                labelDisplay.bounds.getCenterY -r,
-                2.0 * r, 2.0 * r)
+              val midX = labelDisplay.bounds.getCenterX - r
+              val midY = labelDisplay.bounds.getCenterY - r
+              new Ellipse2D.Double(midX, midY, 2.0 * r, 2.0 * r)
             case _ => throw new Exception("Shape not supported yet")
           }
 
-          VDisplay(shape, style.fillColor, Some(labelDisplay))
+          VDisplay(shape, style.strokeWidth, style.fillColor, Some(labelDisplay))
         case _: WireV =>
           VDisplay(
             new Rectangle2D.Double(
               x - trWireWidth, y - trWireWidth,
               2.0 * trWireWidth, 2.0 * trWireWidth),
-            Color.GRAY,None)
+            1,
+            Color.GRAY, None)
       }
     }
   }
 
-  protected def boundsForVertexSet(vset: Set[VName]) = {
+  protected def boundsForVertexSet(vset: Set[VName]): Rectangle2D.Double = {
     var init = false
     var ulx,uly,lrx,lry = 0.0
 
+    val em = trans.scaleToScreen(0.25)
+
     vset.foreach { v =>
-      val rect = vertexDisplay(v).shape.getBounds
+      // grow the bounding box until it snaps to the grid
+      val bds = vertexDisplay(v).shape.getBounds
+      val rx = Math.ceil(bds.width / (2.0 * em)) * em
+      val ry = Math.ceil(bds.height / (2.0 * em)) * em
+      val p = trans toScreen graph.vdata(v).coord
+      val rect = new Rectangle2D.Double(p._1 - rx, p._2 - ry, 2.0 * rx, 2.0 * ry)
+
       if (init) {
         ulx = min(ulx, rect.getX)
         uly = min(uly, rect.getY)
@@ -125,9 +143,8 @@ trait VertexDisplayData { self: GraphView =>
     }
     
     val bounds = new Rectangle2D.Double(ulx, uly, lrx - ulx, lry - uly)
-    val em = trans.scaleToScreen(0.1)
-    val p = (bounds.getX - 3*em, bounds.getY - 3*em)
-    val q = (bounds.getWidth + 6*em, bounds.getHeight + 6*em)
+    val p = (bounds.getX - em, bounds.getY - em)
+    val q = (bounds.getWidth + 2*em, bounds.getHeight + 2*em)
 
     new Rectangle2D.Double(p._1, p._2, q._1, q._2)
   }

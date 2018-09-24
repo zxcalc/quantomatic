@@ -8,10 +8,13 @@ import scala.swing.event._
 import javax.swing.ImageIcon
 import quanto.gui.histview.HistView
 
+case class RequestReRunSimproc() extends Event
+case class SuggestRewriteRule(relativePath: RuleDesc) extends Event
 
 class DerivationPanel(val project: Project)
   extends BorderPanel
   with HasDocument
+  with Publisher
 {
   def theory = project.theory
   val document = new DerivationDocument(this)
@@ -37,6 +40,8 @@ class DerivationPanel(val project: Project)
 
   val lhsController = new GraphEditController(LhsView, document.undoStack, readOnly = true)
   val rhsController = new GraphEditController(RhsView, document.undoStack, readOnly = true)
+
+  def ReRunLastSimproc() : Unit = publish(RequestReRunSimproc())
 
   val RewindButton = new Button() {
     icon = new ImageIcon(getClass.getResource("go-first.png"), "First step")
@@ -174,42 +179,11 @@ class DerivationPanel(val project: Project)
     add(new SplitPane(Orientation.Horizontal, topPane, PreviewScrollPane), BorderPanel.Position.Center)
   }
 
-  val SimplifyBuiltInPane = new BorderPanel {
-    val Simprocs = new ListView[String]
-    val SimprocsScrollPane = new ScrollPane(Simprocs)
-    SimprocsScrollPane.preferredSize = new Dimension(400,200)
-    val Preview = new GraphView(theory, DummyRef)
-    val PreviewScrollPane = new ScrollPane(Preview)
-    Preview.zoom = 0.6
-
-    val SimplifyButton = new Button {
-      icon = new ImageIcon(GraphEditor.getClass.getResource("start.png"))
-      preferredSize = toolbarDim
-      tooltip = "Start"
-    }
-
-    val StopButton = new Button {
-      icon = new ImageIcon(GraphEditor.getClass.getResource("stop.png"))
-      preferredSize = toolbarDim
-      tooltip = "Stop"
-    }
-
-
-    val topPane = new BorderPanel {
-      add(SimprocsScrollPane, BorderPanel.Position.Center)
-      add(new FlowPanel(FlowPanel.Alignment.Center)(
-        SimplifyButton
-      ), BorderPanel.Position.South)
-    }
-
-    add(new SplitPane(Orientation.Horizontal, topPane, PreviewScrollPane), BorderPanel.Position.Center)
-  }
 
 
   val RhsRewritePane = new TabbedPane
   RhsRewritePane.pages += new TabbedPane.Page("Rewrite", ManualRewritePane)
   RhsRewritePane.pages += new TabbedPane.Page("Simplify", SimplifyPane)
-  RhsRewritePane.pages += new TabbedPane.Page("Simplify (built-in)", SimplifyBuiltInPane)
 
   val LhsLabel = new Label("(root)")
   val RhsLabel = new Label("(head)")
@@ -246,6 +220,7 @@ class DerivationPanel(val project: Project)
 
 
   add(GraphViewPanel, BorderPanel.Position.Center)
+  listenTo(document)
   listenTo(LhsGraphPane, RhsGraphPane)
   listenTo(ManualRewritePane.PreviewScrollPane, SimplifyPane.PreviewScrollPane)
 
@@ -262,6 +237,8 @@ class DerivationPanel(val project: Project)
     case UIElementResized(SimplifyPane.PreviewScrollPane) =>
       SimplifyPane.Preview.resizeViewToFit()
       SimplifyPane.Preview.repaint()
+    case DocumentRequestingNaturalFocus(_) =>
+      LhsView.requestFocus()
   }
 
   // construct the controller last, as it depends on the panel elements already being initialised
@@ -269,6 +246,5 @@ class DerivationPanel(val project: Project)
 
   val rewriteController = new RewriteController(this)
   val simplifyController = new SimplifyController(this)
-  val simplifyBuiltInController = new SimplifyBuiltInController(this)
 //  rewriteController.rules = Vector(RuleDesc("axioms/test1", inverse = false), RuleDesc("axioms/test2", inverse = true))
 }

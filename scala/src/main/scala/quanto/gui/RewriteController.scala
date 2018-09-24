@@ -3,29 +3,35 @@ package quanto.gui
 import quanto.data._
 import quanto.data.Names._
 import quanto.rewrite._
-import scala.concurrent.{Future, Lock}
+import java.util.concurrent.locks.ReentrantLock
+
+import scala.concurrent.Future
 import scala.swing._
 import scala.swing.event._
 import scala.swing.event.ButtonClicked
-import scala.util.{Success,Failure}
+import scala.util.{Failure, Success}
 import quanto.util.json._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import java.io.File
-import quanto.layout.ForceLayout
+
+import quanto.data.Theory.ValueType
+import quanto.util.UserAlerts
+import quanto.util.UserAlerts.Elevation
 
 
 class RewriteController(panel: DerivationPanel) extends Publisher {
   implicit val timeout = QuantoDerive.timeout
   var queryId = 0
-  val resultLock = new Lock
+  val resultLock = new ReentrantLock()
   var resultSet = ResultSet(Vector())
   def theory = panel.project.theory
 
   class ResultGraphRef(rule: RuleDesc, i: Int) extends HasGraph {
     protected def gr_=(g: Graph) {
-      resultLock.acquire()
+      resultLock.lock()
       resultSet = resultSet.replaceGraph(rule, i, g)
-      resultLock.release()
+      resultLock.unlock()
     }
 
     protected def gr = resultSet.graph(rule, i)
@@ -33,7 +39,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 
   def rules = resultSet.rules
   def rules_=(rules: Vector[RuleDesc]) {
-    resultLock.acquire()
+    resultLock.lock()
     resultSet = ResultSet(rules)
     queryId += 1
 
@@ -42,21 +48,18 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
               else panel.LhsView.graph.verts
 
     for (rd <- rules) {
-      val rule = Rule.fromJson(Json.parse(new File(panel.project.rootFolder + "/" + rd.name + ".qrule")), theory)
-      val ms = Matcher.initialise(if (rd.inverse) rule.rhs else rule.lhs, panel.LhsView.graph, sel)
-      pullRewrite(ms, rd, rule)
-
-//        QuantoDerive.core ? Call(theory.coreName, "rewrite", "find_rewrites",
-//        JsonObject(
-//          "rule" -> Rule.toJson(if (rd.inverse) rule.inverse else rule, theory),
-//          "graph" -> Graph.toJson(panel.LhsView.graph, theory),
-//          "vertices" -> JsonArray(sel.toVector.map(v => JsonString(v.toString)))
-//        ))
-//      resp.map { case Success(JsonString(stack)) => pullRewrite(queryId, rd, stack); case _ => }
+      try {
+        val rule = Rule.fromJson(Json.parse(new File(panel.project.rootFolder + "/" + rd.name + ".qrule")), theory)
+        val ms = Matcher.initialise(if (rd.inverse) rule.rhs else rule.lhs, panel.LhsView.graph, sel)
+        pullRewrite(ms, rd, rule)
+      } catch {
+        case RuleLoadException(message, _) =>
+          UserAlerts.alert(s"Could not load ${rd.name}, error: $message", Elevation.WARNING)
+      }
     }
 
-    resultLock.release()
-    
+    resultLock.unlock()
+
     refreshRewriteDisplay(clearSelection = true)
   }
 
@@ -111,10 +114,9 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
           name = DSName("s"),
           ruleName = rd.name,
           rule = rule1,
-          variant = if (rd.inverse) RuleInverse else RuleNormal,
           graph = graph1.minimise).layout
 
-        resultLock.acquire()
+        resultLock.lock()
 
         // make sure this rewrite query is still in progress, and the rule hasn't been manually removed by the user
         if (resultSet.rules.contains(rd)) {
@@ -125,7 +127,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
           }
         }
 
-        resultLock.release()
+        resultLock.unlock()
         refreshRewriteDisplay()
       case Success(None) => // out of matches
       case Failure(t) => println("An error occurred in the matcher: " + t.getMessage)
@@ -135,7 +137,7 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
 
   def refreshRewriteDisplay(clearSelection: Boolean = false) {
     Swing.onEDT {
-      resultLock.acquire()
+      resultLock.lock()
 
       if (clearSelection) {
         panel.ManualRewritePane.PreviousResultButton.enabled = false
@@ -152,9 +154,26 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
         }
       }
 
-      resultLock.release()
+      resultLock.unlock()
     }
   }
+
+  def promptForVariableSpecification(strings: Set[(ValueType, String)]):
+  Map[(ValueType, String), String] = {
+    val d = new SpecifyVariablesDialog(strings.toList.sortBy(_._2))
+    d.centerOnScreen()
+    d.open()
+    d.result
+  }
+
+  def removeSelectedRulesFromList(): Unit = {
+
+    resultLock.lock()
+    panel.ManualRewritePane.Rewrites.selection.items.foreach { line => resultSet -= line.rule }
+    resultLock.unlock()
+    refreshRewriteDisplay()
+  }
+
 
   def selectedRule =
     if (panel.ManualRewritePane.Rewrites.selection.items.length == 1)
@@ -165,8 +184,20 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
   listenTo(panel.ManualRewritePane.PreviousResultButton, panel.ManualRewritePane.NextResultButton)
   listenTo(panel.ManualRewritePane.ApplyButton)
   listenTo(panel.ManualRewritePane.Rewrites.selection)
+  listenTo(panel)
+  listenTo(panel.ManualRewritePane.Rewrites.keys)
 
   reactions += {
+      case KeyPressed(_, Key.Delete | Key.BackSpace, _, _) =>
+        if (panel.ManualRewritePane.Rewrites.hasFocus) {
+          removeSelectedRulesFromList()
+        }
+    case SuggestRewriteRule(ruleDesc) =>
+      val currentRules = rules.toSet
+      val newRules = Set(ruleDesc).filter(!currentRules.contains(_))
+
+      if (newRules.nonEmpty) rules ++= newRules
+      rules = rules.sortBy(r => r.name)
     case ButtonClicked(panel.ManualRewritePane.AddRuleButton) =>
       val d = new AddRuleDialog(panel.project)
       d.centerOnScreen()
@@ -178,12 +209,9 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
       if (newRules.nonEmpty) rules ++= newRules
       rules = rules.sortBy(r => r.name)
     case ButtonClicked(panel.ManualRewritePane.RemoveRuleButton) =>
-      resultLock.acquire()
-      panel.ManualRewritePane.Rewrites.selection.items.foreach { line => resultSet -= line.rule }
-      resultLock.release()
-      refreshRewriteDisplay()
+      removeSelectedRulesFromList()
     case ButtonClicked(panel.ManualRewritePane.PreviousResultButton) =>
-      resultLock.acquire()
+      resultLock.lock()
       selectedRule match {
         case Some(rd) =>
           resultSet = resultSet.previousResult(rd)
@@ -191,10 +219,10 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
             { case 0 => panel.DummyRef ; case i => new ResultGraphRef(rd, i) }
         case None =>
       }
-      resultLock.release()
+      resultLock.unlock()
       refreshRewriteDisplay()
     case ButtonClicked(panel.ManualRewritePane.NextResultButton) =>
-      resultLock.acquire()
+      resultLock.lock()
       selectedRule match {
         case Some(rd) =>
           resultSet = resultSet.nextResult(rd)
@@ -202,18 +230,51 @@ class RewriteController(panel: DerivationPanel) extends Publisher {
             { case 0 => panel.DummyRef ; case i => new ResultGraphRef(rd, i) }
         case None =>
       }
-      resultLock.release()
+      resultLock.unlock()
       refreshRewriteDisplay()
     case ButtonClicked(panel.ManualRewritePane.ApplyButton) =>
-      selectedRule.foreach { rd => resultSet.currentResult(rd).map { step =>
+      selectedRule.foreach { rd => resultSet.currentResult(rd).foreach { step =>
         val parentOpt = panel.controller.state.step
-
         val stepFr = step.copy(name = panel.derivation.steps.freshWithSuggestion(DSName(rd.name.replaceFirst("^.*\\/", "") + "-0")))
         panel.ManualRewritePane.Preview.graphRef = panel.DummyRef
 
+        // Check to see if new variables were introduced
+        val oldHead : Option[Graph] = parentOpt.map(panel.derivation.steps(_).graph)
+        val newHead : Graph = stepFr.graph
+
+        val oldVariables: Set[(ValueType, String)] = oldHead match {
+          case Some(head) => Graph.variablesUsedWithType(theory, head)
+          case None => Set()
+        }
+        val newVariables: Set[(ValueType, String)] = Graph.variablesUsedWithType(theory, newHead) -- oldVariables
+        val subs: Map[(ValueType, String), String] =
+          if (newVariables.nonEmpty) {
+            promptForVariableSpecification(newVariables)
+          } else {
+            Map()
+          }
+        val graphWithReplacements: Graph = if (newVariables.nonEmpty) {
+          newHead.updateAllVData {
+            case node: NodeV =>
+              node.newValue(node.phaseData.substSubVariables(subs).toString)
+            case vd =>
+              vd
+          }
+        } else {
+          newHead
+        }
+
+        val stepWithReplacements: DStep = stepFr.copy(graph = graphWithReplacements)
+
+        val description: String = if (subs.isEmpty) {
+          ""
+        } else {
+          subs.mkString(", ")
+        }
+
         panel.document.undoStack.start("Apply rewrite")
-        panel.controller.replaceDerivation(panel.derivation.addStep(parentOpt, stepFr), "")
-        panel.controller.state = HeadState(Some(stepFr.name))
+        panel.controller.replaceDerivation(panel.derivation.addStep(parentOpt, stepWithReplacements), description)
+        panel.controller.state = HeadState(Some(stepWithReplacements.name))
         panel.document.undoStack.commit()
       }}
 

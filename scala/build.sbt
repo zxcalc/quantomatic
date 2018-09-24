@@ -2,7 +2,7 @@ name := "quanto"
 
 version := "1.0"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.6"
 
 scalacOptions ++= Seq("-feature", "-language:implicitConversions")
 
@@ -14,19 +14,23 @@ fork := true
 
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
  
-libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.4.10" withSources() withJavadoc()
+libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.12" withSources() withJavadoc()
 
-libraryDependencies += "com.fasterxml.jackson.core" % "jackson-core" % "2.1.2"
+libraryDependencies += "com.fasterxml.jackson.core" % "jackson-core" % "2.9.5"
 
-libraryDependencies += "com.fasterxml.jackson.module" % "jackson-module-scala" % "2.1.2"
+libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.9.5"
 
-libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test"
+//libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test"
 
-libraryDependencies += "org.scala-lang.modules" % "scala-swing_2.11" % "1.0.1"
+//libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.4"
+
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
+
+libraryDependencies += "org.scala-lang.modules" %% "scala-swing" % "2.0.3"
 
 //libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value
 
-libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.5"
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.0"
 
 //EclipseKeys.withSource := true
 
@@ -36,7 +40,7 @@ seq(appbundle.settings: _*)
 
 appbundle.mainClass := Some("quanto.gui.QuantoDerive")
 
-appbundle.javaVersion := "1.7+"
+appbundle.javaVersion := "1.8+"
 
 appbundle.screenMenu := true
 
@@ -46,7 +50,7 @@ appbundle.normalizedName := "quantoderiveapp"
 
 appbundle.organization := "org.quantomatic"
 
-appbundle.version := "0.2.0"
+appbundle.version := "0.3.0"
 
 appbundle.icon := Some(file("../docs/graphics/quantoderive.icns"))
 

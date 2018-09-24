@@ -43,7 +43,7 @@ class SimplificationProcedureSpec extends FlatSpec {
       3,
       None)
     val simplificationProcedure = new SimplificationProcedure[State](
-      (new Derivation(rg, target), None),
+      (new Derivation(target), None),
       initialState,
       step,
       progress,
@@ -77,7 +77,7 @@ class SimplificationProcedureSpec extends FlatSpec {
     val t1 = raw"\beta"
     val targetString: String = t1.replaceAll(raw"\\", raw"\\\\")
     val replacementString: String = raw"\pi".replaceAll(raw"\\", raw"\\\\")
-    val initialDerivation = graphToDerivation(target, rg)
+    val initialDerivation = graphToDerivation(target)
     import SimplificationProcedure.Evaluation._
     if (targetString.length > 0) {
 
@@ -125,7 +125,7 @@ class SimplificationProcedureSpec extends FlatSpec {
       new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
       Graph.fromJson(_, rg)
     )
-    val initialDerivation: DerivationWithHead = graphToDerivation(targetGraph, rg)
+    val initialDerivation: DerivationWithHead = graphToDerivation(targetGraph)
     val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
     val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
     import SimplificationProcedure.LTEByWeight._
@@ -175,7 +175,7 @@ class SimplificationProcedureSpec extends FlatSpec {
       new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
       Graph.fromJson(_, rg)
     )
-    val initialDerivation: DerivationWithHead = graphToDerivation(targetGraph, rg)
+    val initialDerivation: DerivationWithHead = graphToDerivation(targetGraph)
     val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
     val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
     import SimplificationProcedure.PullErrors._
@@ -213,7 +213,7 @@ class SimplificationProcedureSpec extends FlatSpec {
         case Success(d) =>
           println("Success")
           println(data.Derivation.derivationHeadPairToGraph(d).vdata)
-          assert(errorsDistance(targets.toSet)(d, GraphAnalysis.detectErrors(d)).get < 1)
+          assert(errorsDistance(targets.toSet)(d, GraphAnalysis.detectPiNodes(d)).get < 1)
         case Failure(_) =>
           assert(false)
       }
@@ -221,61 +221,6 @@ class SimplificationProcedureSpec extends FlatSpec {
     }
   }
 
-  // AK: This one takes too long to run as a unit test.
-  // TODO: find a better solution for one-off tests like this.
-
-  ignore should "perform large error pull simplifications" in {
-    val allowedRules = ZXErrorRules
-    val targetGraph = quanto.util.FileHelper.readFile[Graph](
-      new File(examplesDirectory + "ZX_errors/Huge_With_Error.qgraph"),
-      Graph.fromJson(_, rg)
-    )
-    val initialDerivation: DerivationWithHead = graphToDerivation(targetGraph, rg)
-    val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
-    val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
-    import SimplificationProcedure.PullErrors._
-    val targets = boundaries.filter(t => t.toString.matches(raw"b(1[1-9]|2\d)")).toList
-    if (targets.nonEmpty) {
-      val initialState: State = State(
-        allowedRules.filterNot(r => r.name.matches(raw".*g_ann")),
-        0,
-        None,
-        new Random(),
-        weightFunction = errorsDistance(targets.toSet),
-        Some(ZXErrorRules.filter(r => r.name.matches(raw".*g_ann"))),
-        None,
-        heldVertices = None,
-        None
-      )
-      val simplificationProcedure = new SimplificationProcedure[State](
-        initialDerivation,
-        initialState,
-        step,
-        progress,
-        (_, state) => state.currentStep == state.maxSteps.getOrElse(-1) || state.currentDistance.getOrElse(2.0) < 1
-      )
-      var returningDerivation = simplificationProcedure.initialDerivation
-      val backgroundDerivation: Future[DerivationWithHead] = Future[DerivationWithHead] {
-        //println("future started")
-        while (!simplificationProcedure.stopped) {
-          //println("futured loop")
-          simplificationProcedure.step()
-          returningDerivation = simplificationProcedure.current
-        }
-        simplificationProcedure.current
-      }
-      backgroundDerivation onComplete {
-        case Success(_) =>
-          println("Success")
-          println(simplificationProcedure.state.currentDistance)
-          println(data.Derivation.derivationHeadPairToGraph(returningDerivation).vdata)
-          assert(true)
-        case Failure(_) =>
-          assert(false)
-      }
-      Await.result(backgroundDerivation, Duration(waitTime, "seconds"))
-    }
-  }
 
 
 }

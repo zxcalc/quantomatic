@@ -3,10 +3,14 @@ package quanto.cosy.test
 import java.io.File
 
 import org.scalatest.FlatSpec
+import quanto.cosy.BlockGenerators.QuickGraph
 import quanto.cosy.RuleSynthesis._
+import quanto.cosy.GraphAnalysis._
 import quanto.cosy._
 import quanto.data._
 import quanto.util.Rational
+
+import scala.util.matching.Regex
 
 /**
   * Test files for the Graph Analysis Object
@@ -25,13 +29,15 @@ class GraphAnalysisSpec extends FlatSpec {
 
   behavior of "Graph Analysis"
 
+
+  private val errorGates = quanto.util.FileHelper.readFile[Graph](
+    new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
+    Graph.fromJson(_, rg)
+  )
+
   it should "compute adjacency matrices" in {
 
-    val targetGraph = quanto.util.FileHelper.readFile[Graph](
-      new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
-      Graph.fromJson(_, rg)
-    )
-    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(targetGraph)
+    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(errorGates)
     // boundary b2, error v2, next gate vertex v3
     val bIndex = adjacencyMatrix._1.indexOf(VName("b2"))
     val eIndex = adjacencyMatrix._1.indexOf(VName("v2"))
@@ -40,18 +46,14 @@ class GraphAnalysisSpec extends FlatSpec {
     assert(!adjacencyMatrix._2(bIndex)(vIndex))
 
 
-    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectErrors)(targetGraph, adjacencyMatrix)
+    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectPiNodes)(errorGates, adjacencyMatrix)
     assert(ghostedErrors._2(bIndex)(eIndex))
     assert(ghostedErrors._2(bIndex)(vIndex))
   }
 
   it should "calculate distance from ends" in {
 
-    val targetGraph = quanto.util.FileHelper.readFile[Graph](
-      new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
-      Graph.fromJson(_, rg)
-    )
-    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(targetGraph)
+    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(errorGates)
 
     val errorName = VName("v2")
     val leftBoundary = VName("b2")
@@ -73,11 +75,7 @@ class GraphAnalysisSpec extends FlatSpec {
 
   it should "find neighbours" in {
 
-    val targetGraph = quanto.util.FileHelper.readFile[Graph](
-      new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
-      Graph.fromJson(_, rg)
-    )
-    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(targetGraph)
+    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(errorGates)
 
     val errorName = VName("v2")
 
@@ -87,12 +85,8 @@ class GraphAnalysisSpec extends FlatSpec {
 
   it should "calculate distance of a given, ignored set from ends" in {
 
-    val targetGraph = quanto.util.FileHelper.readFile[Graph](
-      new File(examplesDirectory + "ZX_errors/ErrorGate.qgraph"),
-      Graph.fromJson(_, rg)
-    )
-    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(targetGraph)
-    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectErrors)(targetGraph, adjacencyMatrix)
+    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(errorGates)
+    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectPiNodes)(errorGates, adjacencyMatrix)
 
     val errorName = VName("v2")
     val leftBoundary = VName("b2")
@@ -119,9 +113,163 @@ class GraphAnalysisSpec extends FlatSpec {
 
     // Now check with the simproc methods
 
-    val eDistances = SimplificationProcedure.PullErrors.errorsDistance(rightBoundaries)(targetGraph, Set(errorName))
+    val eDistances = SimplificationProcedure.PullErrors.errorsDistance(rightBoundaries)(errorGates, Set(errorName))
 
     assert(eDistances.get == 2.0)
+  }
+
+  behavior of "Graph comparison"
+
+  it should "compare all these graphs" in {
+    def compare(a: Graph, b: Graph) = GraphAnalysis.zxGraphCompare(a, b)
+
+    implicit def stackToGraph(s: BlockStack) : Graph = s.graph
+    implicit def rowToGraph(s: BlockRow) : Graph = s.graph
+    implicit def blockToGraph(s: Block) : Graph = s.graph
+
+    def zx(s: String) : Graph = BlockGenerators.ZXClifford.filter(b => b.name == s).head
+
+    val hadamard = zx(" H ")
+    val id = zx(" 1 ")
+
+    assert(compare(hadamard, id) > 0)
+  }
+
+  behavior of "Connectiviy analysis"
+
+  it should "leave empty graph disconnected" in {
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.addVertex(Vector(false, false))
+    val cc = connectionClasses(amat)
+    assert(cc == (0 until 3).toVector)
+  }
+
+
+  it should "connect all in line graph" in {
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(true))
+    amat = amat.addVertex(Vector(false, true))
+    val cc = connectionClasses(amat)
+    assert(cc == Vector(0,0,0))
+  }
+
+
+  it should "find two classes" in {
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.addVertex(Vector(true, false))
+    val cc = connectionClasses(amat)
+    assert(cc == Vector(0,1,0))
+  }
+
+  it should "detect no scalars in all boundaries" in {
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.addVertex(Vector(true, false))
+    assert(!containsScalars(amat))
+  }
+
+  it should "detect no scalars with some non-boundaries" in {
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.addVertex(Vector(true, false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, true, false))
+    assert(!containsScalars(amat))
+  }
+
+
+  it should "detect scalars with some non-boundaries" in {
+    var amat = new AdjMat(numRedTypes = 1, numGreenTypes = 1)
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.addVertex(Vector(true, false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(false, false, false))
+    amat = amat.addVertex(Vector(false, false, false, true))
+    assert(containsScalars(amat))
+  }
+
+  behavior of "circuit analysis"
+
+  // Only works for circuits generated inside CoSy
+  // Note that this will not magically give you reductions - it is not graph-invariant by circuit-invariant
+  // Turning a graph upside down gives very a very different measure
+
+  it should "distill circuit placement from name via regex" in {
+    val example = "r-2-bl-1-h-1"
+    val output = CircuitPlacementParser.p(example)
+    assert (output == (2,1,"h"))
+  }
+
+  it should "bias circuits to the left" in {
+    val blocks: List[Block] = BlockGenerators.ZXGates(1)
+    val rows: List[BlockRow] = BlockRowMaker.makeRowsUpToSize(2, blocks, Some(2))
+    val stacks = BlockStackMaker.makeStacksOfSize(1, rows)
+    val e1 = stacks.find(_.toString == "( 1  x 0Z1)").get
+    val e2 = stacks.find(_.toString == "(0Z1 x  1 )").get
+    assert(zxCircuitCompare(e1.graph, e2.graph) > 0)
+  }
+
+  it should "bias circuits down" in {
+    val blocks: List[Block] = BlockGenerators.ZXGates(1)
+    val rows: List[BlockRow] = BlockRowMaker.makeRowsUpToSize(1, blocks, Some(1))
+    val stacks = BlockStackMaker.makeStacksOfSize(2, rows)
+    val e1 = stacks.find(_.toString == "( 1 ) o (0Z1)").get
+    val e2 = stacks.find(_.toString == "(0Z1) o ( 1 )").get
+    assert(zxCircuitCompare(e1.graph, e2.graph) < 0)
+  }
+
+  behavior of "Checking isomorphisms"
+
+  // Boundaries have names like i-20 or o-1
+  val boundaryRegex : Option[Regex] = Some(raw"""(i|o)-(\d+)""".r)
+  def ZXiso(left: Graph, right: Graph): Boolean = checkIsomorphic(rg, boundaryRegex)(left, right)
+
+  it should "not match empty onto non-empty" in {
+    val g = QuickGraph(rg)
+    assert(!ZXiso(g, g.node("Z", "0")))
+  }
+
+  it should "match discrete graphs onto only themselves" in {
+    var g = QuickGraph(rg)
+    val graphs = (for (_ <- 1 to 5) yield {
+      g = g.node("Z", "0")
+      g
+    }).toList.zipWithIndex
+    for(i <- graphs; j <- graphs) {
+      // Check we have made alrge enough graphs; index is out by 1
+      assert(i._1.verts.size == (i._2 + 1))
+      if(i._2 == j._2){
+        assert(ZXiso(i._1, j._1))
+      } else {
+        assert(!ZXiso(i._1, j._1))
+      }
+    }
+  }
+
+  it should "not match different data" in {
+    val g = QuickGraph(rg)
+    assert(!ZXiso(g.node("Z","0"), g.node("Z", "1")))
+    assert(!ZXiso(g.node("Z","0"), g.node("X", "0")))
+  }
+
+  it should "match outputs with the same name" in {
+    val g1 = QuickGraph(rg).node("Z", angle = "0", nodeName = "v").addInput().join("v", "i-0")
+    val g2 = QuickGraph(rg).node("Z", angle = "0", nodeName = "w").addInput().join("w", "i-0")
+    assert(ZXiso(g1,g2))
+  }
+
+  it should "not match boundaries with different names" in {
+    val g1 = QuickGraph(rg).node("Z", angle = "0", nodeName = "v").addInput().join("v", "i-0")
+    val g2 = QuickGraph(rg).node("Z", angle = "0", nodeName = "v").addOutput().join("v", "o-0")
+    assert(!ZXiso(g1,g2))
   }
 
 }

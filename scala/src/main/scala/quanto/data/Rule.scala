@@ -11,19 +11,46 @@ case class RuleLoadException(message: String, cause: Throwable = null)
 case class Rule(private val _lhs: Graph,
                 private val _rhs: Graph,
                 derivation: Option[String] = None,
-                description: RuleDesc = RuleDesc("unnamed")) {
+                description: RuleDesc = RuleDesc()) {
+
+  val lhs: Graph = if (description.inverse) _rhs else _lhs
+  val rhs: Graph = if (description.inverse) _lhs else _rhs
+  val name: String = description.name + (if (description.inverse) " inverted" else "")
 
   def inverse: Rule = {
     Rule(lhs, rhs, derivation, description.invert)
   }
 
-  val lhs: Graph = if (description.inverse) _rhs else _lhs
+  def hasBBoxes: Boolean = lhs.bboxes.nonEmpty || rhs.bboxes.nonEmpty
 
-  val rhs: Graph = if (description.inverse) _lhs else _rhs
+  def map(f: Graph => Graph): Rule = {
+    new Rule(f(lhs), f(rhs))
+  }
 
-  val name: String = description.name + (if (description.inverse) " inverted" else "")
+  def colourSwap(changes: Map[String, String]): Rule = {
+    def safeChanges(s: String) : String = {
+      changes.get(s) match {
+        case Some(t) => t
+        case None => s
+      }
+    }
+    map(graph => {
+      graph.verts.foldLeft(graph) { (g, v) =>
+        g.updateVData(v)(f = {
+          case n: NodeV =>
+            n.copy(data = JsonObject(
+              "type" -> safeChanges((n.data / "type").stringValue),
+              "value" -> (n.data / "value")
+            ))
+          case m =>
+            m
+        }
+        )
+      }
+    })
+  }
 
-  override def toString: String = name + " := "+ _lhs.toString +
+  override def toString: String = name + " := " + _lhs.toString +
     (if (description.inverse) {
       "<--"
     } else {
@@ -36,6 +63,10 @@ case class RuleDesc(name: String = "unnamed", inverse: Boolean = false) {
   def invert: RuleDesc = RuleDesc(name, !inverse)
 }
 
+object RuleDesc {
+  implicit def fromString(string: String) : RuleDesc = RuleDesc(string)
+}
+
 object Rule {
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory, description: Option[RuleDesc] = None): Rule = try {
     Rule(_lhs = Graph.fromJson(json / "lhs", thy),
@@ -46,7 +77,7 @@ object Rule {
       },
       description = if (description.isDefined) description.get else json.get("description") match {
         case Some(JsonString(s)) => RuleDesc(s);
-        case _ => RuleDesc("unnamed")
+        case _ => RuleDesc()
       })
   } catch {
     case e: JsonAccessException =>
@@ -68,5 +99,12 @@ object Rule {
       case Some(x) => obj + ("derivation" -> JsonString(x))
       case None => obj
     }
+  }
+
+  def namesUsed(rule: Rule, theory: Theory) : Set[String] = {
+
+    val namesUsedInLHS = Graph.variablesUsed(theory, rule.lhs)
+    val namesUsedInRHS = Graph.variablesUsed(theory, rule.rhs)
+    namesUsedInLHS union namesUsedInRHS
   }
 }

@@ -1,7 +1,11 @@
 package quanto.rewrite
+import quanto.data.Theory.ValueType
 import quanto.data._
+import quanto.util.UserAlerts
 
-class MatchException(msg: String) extends Exception(msg)
+class MatchException(msg: String) extends Exception(msg) {
+  UserAlerts.alert(s"Match Exception: $msg", UserAlerts.Elevation.WARNING)
+}
 
 case class Match(pattern0: Graph, // the pattern without bbox operations
                  pattern: Graph,
@@ -9,7 +13,8 @@ case class Match(pattern0: Graph, // the pattern without bbox operations
                  map: GraphMap = GraphMap(),
                  bareWireMap: Map[VName, Vector[VName]] = Map(),
                  bbops: List[BBOp] = List(),
-                 subst: Map[String,AngleExpression] = Map()) {
+                 subst: Map[ValueType, Map[String,PhaseExpression]] = Map() // matching individual phases inside composite phases
+                ) {
 
   def addVertex(vPair: (VName, VName)): Match = {
     copy(map = map addVertex vPair)
@@ -41,16 +46,16 @@ case class Match(pattern0: Graph, // the pattern without bbox operations
     bareWireMap.headOption match {
       case Some((tw, pw +: pws)) =>
         val (target1, (newW1, newW2, newE)) = target.expandWire(tw)
-        val emap1 = map.e + (pattern.outEdges(pw).head -> newE)
+        val edgeMap1 = map.e + (pattern.outEdges(pw).head -> newE)
 
-        var vmap1 = map.v
+        var vertexMap1 = map.v
         for (pw1 <- map.v.codf(tw)) {
-          if (pattern.isInput(pw1)) vmap1 = vmap1 + (pw1 -> newW2)
+          if (pattern.isInputWire(pw1)) vertexMap1 = vertexMap1 + (pw1 -> newW2)
         }
-        vmap1 = vmap1 + (pw -> newW1) + (pattern.succVerts(pw).head -> newW2)
+        vertexMap1 = vertexMap1 + (pw -> newW1) + (pattern.succVerts(pw).head -> newW2)
 
         copy(
-          map = map.copy(v = vmap1, e = emap1),
+          map = map.copy(v = vertexMap1, e = edgeMap1),
           target = target1,
           bareWireMap = bareWireMap + (tw -> pws)
         ).normalize

@@ -1,12 +1,15 @@
 package quanto.gui
 
 import quanto.data._
+
 import scala.swing._
-import scala.swing.event.{SelectionChanged, ButtonClicked, Event}
+import scala.swing.event.{ButtonClicked, Event, SelectionChanged}
 import quanto.gui.histview._
 import java.awt.Color
+
 import quanto.gui.graphview.Highlight
 import quanto.layout.DeriveLayout
+import quanto.util.UserAlerts
 
 sealed abstract class DeriveState extends HistNode { def step: Option[DSName] }
 case class StepState(s: DSName) extends DeriveState {
@@ -193,7 +196,6 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
           replaceDerivation(derivation.deleteHead(s), "")
           panel.document.undoStack.commit()
         case StepState(s) =>
-          // TODO: make deletion undo-able?
           if (Dialog.showConfirmation(
                 title = "Confirm deletion",
                 message = "This will delete " + derivation.allChildren(s).size +
@@ -205,34 +207,40 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
             panel.document.undoStack.start("Delete proof step")
             state = HeadState(parentOpt)
             replaceDerivation(derivation.deleteStep(s), "")
+            if(parentOpt.nonEmpty && !derivation.isHead(parentOpt.get)){
+              val p = parentOpt.get
+              replaceDerivation(derivation.addHead(p), "")
+              state = HeadState(Some(p))
+            }
+
             panel.document.undoStack.commit()
           }
         case _ => // do nothing on root
       }
 
     case ButtonClicked(panel.ExportTheoremButton) =>
-      panel.document.file match {
-        case Some(f) =>
-          val rf = panel.project.rootFolder
-          var dname = f.getAbsolutePath
-          dname = if (dname.startsWith(rf) && dname.length > rf.length) dname.substring(rf.length + 1, dname.length) else dname
-          dname = if (dname.endsWith(".qderive")) dname.substring(0, dname.length - 8) else dname
+      if(!panel.document.unsavedChanges && panel.document.file.nonEmpty) {
+        val f = panel.document.file.get
+        val rf = panel.project.rootFolder
+        var dname = panel.project.relativePath(f)
+        dname = if (dname.endsWith(".qderive")) dname.substring(0, dname.length - 8) else dname
 
-          state.step.map { s =>
-            val ruleDoc = new RuleDocument(panel, panel.theory)
-            ruleDoc.rule = new Rule(panel.document.root, derivation.steps(s).graph, Some(dname))
-            ruleDoc.showSaveAsDialog(Some(panel.project.rootFolder))
-          }
+        state.step.foreach { s =>
+          val ruleDoc = new RuleDocument(panel, panel.theory)
+          val newRule = new Rule(panel.document.root, derivation.steps(s).graph, Some(dname))
+          val page = new RuleDocumentPage(panel.theory)
+          page.document.asInstanceOf[RuleDocument].rule = newRule
+          QuantoDerive.addAndFocusPage(page)
+        }
 
-        case None =>
-          Dialog.showMessage(
-            title = "Error",
-            message = "You must first save this derivation before exporting a theorem",
-            messageType = Dialog.Message.Error)
+      } else {
+          UserAlerts.errorBox("You must first save this derivation before exporting a theorem")
       }
 
     case SelectionChanged(_) =>
-      if (panel.histView.selectedNode != Some(state))
+      if (panel.histView.selectedNode != Some(state)) {
         panel.histView.selectedNode.map { st => state = st }
+        panel.histView.ensureIndexIsVisible(panel.histView.selectedIndex())
+      }
   }
 }

@@ -2,8 +2,6 @@ package quanto.cosy
 
 import quanto.util.json.{JsonArray, JsonObject}
 
-import scala.runtime.RichInt
-
 /**
   * A tensor-valued interpretation of a graph
   *
@@ -81,14 +79,14 @@ class Tensor(c: Array[Array[Complex]]) {
 
   def t: Tensor = this.transpose
 
-  def transpose: Tensor = {
-    // transpose
-    Tensor(this.width, this.height, (i, j) => this.c(j)(i))
-  }
-
   def dagger: Tensor = {
     // conjugate transpose
     this.conjugate.transpose
+  }
+
+  def transpose: Tensor = {
+    // transpose
+    Tensor(this.width, this.height, (i, j) => this.c(j)(i))
   }
 
   def conjugate: Tensor = {
@@ -164,20 +162,41 @@ class Tensor(c: Array[Array[Complex]]) {
   def entry(down: Int, across: Int): Complex = contents(down)(across)
 
   def isRoughlyUpToScalar(that: Tensor, distance: Double = Tensor.defaultDistance): Boolean = {
-    //
+
+    if (!this.isSameShapeAs(that)) return false
+
+    val thisIsRoughly0 = this.isRoughly(Tensor.zero(this.height, this.width), distance)
+    val thatIsRoughly0 = that.isRoughly(Tensor.zero(this.height, this.width), distance)
+
+    if (thisIsRoughly0 && thatIsRoughly0) return true
+    if (thisIsRoughly0 && !thatIsRoughly0) return false
+    if (!thisIsRoughly0 && thatIsRoughly0) return false
     this.distanceAfterScaling(that) < distance
   }
 
   def distanceAfterScaling(that: Tensor): Double = {
     if (this.isSameShapeAs(that)) {
-      var maxEntry = (0, 0)
-      var maxEntryValue = Complex.zero
-      for (i <- this.c.indices; j <- this.c.head.indices) {
+
+      val (maxEntry, maxEntryValue) =
+        (for (i <- this.c.indices; j <- this.c.head.indices) yield (i, j)).toList.foldLeft((0, 0), Complex.zero) {
+          (agg, coord) => {
+            val value = this.c(coord._1)(coord._2)
+            if (value.abs > agg._2.abs) {
+              (coord, value)
+            } else {
+              agg
+            }
+          }
+        }
+
+      /*
+      {
         if (this.c(i)(j).abs > maxEntryValue.abs) {
           maxEntry = (i, j)
           maxEntryValue = this.c(i)(j)
         }
       }
+      */
       if (maxEntryValue == Complex.zero) {
         this.distance(that)
       } else {
@@ -189,13 +208,48 @@ class Tensor(c: Array[Array[Complex]]) {
         }
       }
     } else {
-      -1
+      1
     }
   }
 
   def approximates(maxDist: Double): Tensor => Boolean = {
     // uncurried form of isRoughly
     isRoughly(_, maxDist)
+  }
+
+  def isRoughly(that: Tensor, maxDistance: Double = 1e-14): Boolean =
+  // Compare two tensors up to a given distance
+    if (this.isSameShapeAs(that)) {
+      this.distance(that) < maxDistance
+    } else {
+      false
+    }
+
+  /** Returns max abs distance */
+  def distance(that: Tensor): Double = {
+    require(this.isSameShapeAs(that))
+    (this - that).contents.flatten.foldLeft(0.0) { (a: Double, b: Complex) => math.max(a, b.abs) }
+  }
+
+  def isSameShapeAs(that: Tensor): Boolean = {
+    this.width == that.width && this.height == that.height
+  }
+
+  def -(that: Tensor): Tensor = {
+    // this - that
+    this + that.scaled(Complex(-1, 0))
+  }
+
+  def +(that: Tensor): Tensor = {
+    // this + that
+    require(this.width == that.width)
+    require(this.height == that.height)
+    Tensor(this.height, this.width, (i, j) => this.c(i)(j) + that.contents(i)(j))
+  }
+
+  def scaled(factor: Complex): Tensor = {
+    // scalar multiplication
+    Tensor(this.height, this.width, (i, j) => this.c(i)(j) * factor)
   }
 
   override def equals(other: Any): Boolean =
@@ -250,37 +304,6 @@ class Tensor(c: Array[Array[Complex]]) {
       this.scaled(maxAbsEntry.inverse())
     }
   }
-
-  def isRoughly(that: Tensor, maxDistance: Double = 1e-14): Boolean =
-  // Compare two tensors up to a given distance
-    this.distance(that) < maxDistance
-
-  /** Returns max abs distance */
-  def distance(that: Tensor): Double = {
-    require(this.isSameShapeAs(that))
-    (this - that).contents.flatten.foldLeft(0.0) { (a: Double, b: Complex) => math.max(a, b.abs) }
-  }
-
-  def isSameShapeAs(that: Tensor): Boolean = {
-    this.width == that.width && this.height == that.height
-  }
-
-  def -(that: Tensor): Tensor = {
-    // this - that
-    this + that.scaled(Complex(-1, 0))
-  }
-
-  def +(that: Tensor): Tensor = {
-    // this + that
-    require(this.width == that.width)
-    require(this.height == that.height)
-    Tensor(this.height, this.width, (i, j) => this.c(i)(j) + that.contents(i)(j))
-  }
-
-  def scaled(factor: Complex): Tensor = {
-    // scalar multiplication
-    Tensor(this.height, this.width, (i, j) => this.c(i)(j) * factor)
-  }
 }
 
 object Tensor {
@@ -293,6 +316,8 @@ object Tensor {
     Tensor(Array(Array(1, 1), Array(1, -1))).scaled(math.pow(2, -0.5))
   }
   val defaultDistance = 1e-14
+  private var permutationCache: Map[List[Int], Matrix] = Map()
+  private var swapCache: Map[List[Int], Tensor] = Map()
 
   def idWires(n: Int): Tensor = {
     // Identity on n wires, i.e. 2^n * 2^n matrix
@@ -302,13 +327,6 @@ object Tensor {
   def id(n: Int): Tensor = {
     // Identity as n*n matrix
     Tensor(n, n, (a: Int, b: Int) => if (a == b) new Complex(1) else new Complex(0))
-  }
-
-  def apply(c: Array[Array[Complex]]) = new Tensor(c)
-
-  def apply(cInt: Array[Array[Int]]): Tensor = {
-    // Convert integer matrix to complex matrix
-    Tensor(cInt.length, cInt(0).length, (i, j) => Complex.doubleToComplex(cInt(i)(j)))
   }
 
   def apply(height: Int, width: Int, generator: Tensor.Generator): Tensor = {
@@ -335,18 +353,17 @@ object Tensor {
       (for (_ <- 0 until width) yield Complex.zero).toArray).toArray
   }
 
+  def apply(c: Array[Array[Complex]]) = new Tensor(c)
+
+  def apply(cInt: Array[Array[Int]]): Tensor = {
+    // Convert integer matrix to complex matrix
+    Tensor(cInt.length, cInt(0).length, (i, j) => Complex.doubleToComplex(cInt(i)(j)))
+  }
+
   def permutation(asList: List[Int]): Tensor = {
     // Produce the matrix that sends i -> asList(i)
     val gen = (x: Int) => asList(x)
     new Tensor(permutationMatrix(asList.length, gen))
-  }
-
-  def permutationMatrix(size: Int, gen: Int => Int): Matrix = {
-    val base = emptyMatrix(size, size)
-    for (i <- 0 until size) {
-      base(gen(i))(i) = Complex.one
-    }
-    base
   }
 
   def permutation(asArray: Array[Int]): Tensor = {
@@ -355,27 +372,53 @@ object Tensor {
     new Tensor(permutationMatrix(asArray.length, gen))
   }
 
+  def permutationMatrix(size: Int, gen: Int => Int): Matrix = {
+    val genAsList: List[Int] = (0 until size).map(gen(_)).toList
+    if (permutationCache.contains(genAsList)) {
+      permutationCache(genAsList)
+    } else {
+      val base = emptyMatrix(size, size)
+      for (i <- 0 until size) {
+        base(genAsList(i))(i) = Complex.one
+      }
+      permutationCache += genAsList -> base
+      base
+    }
+  }
+
   def swap(asList: List[Int]): Tensor = {
     // Produce the matrix that sends WIRE i to WIRE asList(i)
+    // READ BOTTOM TO TOP
     val gen = (x: Int) => asList(x)
     swap(asList.length, gen)
   }
 
   def swap(size: Int, gen: Int => Int): Tensor = {
     // Produce the matrix that sends WIRE i to WIRE gen(i)
-    def padLeft(s: String, n: Int): String = if (s.length < n) padLeft("0" + s, n) else s
+    // READ BOTTOM TO TOP
+    val genAsList: List[Int] = (0 until size).map(gen).toList
 
-    def permGen(i: Int): Int = {
-      val binaryStringIn = padLeft((i: RichInt).toBinaryString, size)
-      val permedString = (for (j <- 0 until size) yield binaryStringIn(gen(j))).mkString("")
-      permedString match {
-        case "" => 0
-        case s => Integer.parseInt(s, 2)
+    if (swapCache.contains(genAsList)) {
+      swapCache(genAsList)
+    } else {
+
+      def padLeft(s: String, n: Int): String = if (s.length < n) padLeft("0" + s, n) else s
+
+      def permGen(i: Int): Int = {
+        val binaryStringIn = padLeft(i.toBinaryString, size)
+        val permedString = (for (j <- 0 until size) yield binaryStringIn(gen(j))).mkString("")
+        permedString match {
+          case "" => 0
+          case s => Integer.parseInt(s, 2)
+        }
+
       }
 
+      val answer = permutation(math.pow(2, size).toInt, permGen).transpose
+      swapCache += genAsList -> answer
+      answer
     }
 
-    permutation(math.pow(2, size).toInt, permGen)
   }
 
   def permutation(size: Int, gen: Int => Int): Tensor = {

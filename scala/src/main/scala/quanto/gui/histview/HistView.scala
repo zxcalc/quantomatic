@@ -31,11 +31,10 @@ class HistView[A <: HistNode](data: TreeSeq[A]) extends ListView[(Seq[TreeSeq.De
   }
 
   renderer = new ListView.Renderer[(Seq[TreeSeq.Decoration[A]], A)] {
-    def componentFor(list: ListView[_], isSelected: Boolean,
-                     focused: Boolean, a: (Seq[TreeSeq.Decoration[A]], A), index: Int): Component =
+    override def componentFor(list: ListView[_ <: (Seq[TreeSeq.Decoration[A]], A)], isSelected: Boolean, focused: Boolean, a: (Seq[TreeSeq.Decoration[A]], A), index: Int): Component =
     {
-      if (itemWidth == -1) computeItemWidth()
-      new HistViewItem[A](a._1, a._2, isSelected, new Dimension(itemWidth,scaleInt(30)))
+        if (itemWidth == -1) computeItemWidth()
+        new HistViewItem[A](a._1, a._2, isSelected, new Dimension(itemWidth,scaleInt(30)))
     }
   }
 
@@ -46,6 +45,10 @@ class HistView[A <: HistNode](data: TreeSeq[A]) extends ListView[(Seq[TreeSeq.De
       else selectIndices()
     case None =>
       selectIndices()
+  }
+
+  def selectedIndex() : Int = {
+    peer.getSelectedIndex
   }
 
   def selectedNode: Option[A] =

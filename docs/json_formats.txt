@@ -134,6 +134,7 @@ VTYPE_DESC ::=
   "style": {
     "shape": "circle" | "rectangle" | "custom",
     "custom_shape_path": JSON_STRING,
+    "stroke_width": JSON_INT,
     "stroke_color": COLOR,
     "fill_color": COLOR,
     "label" : {
@@ -207,5 +208,42 @@ STEP ::=
   "replaced": { "vertices": VERTEX_NAMESET },
   "graph": GRAPH
 }
+
+
+
+========================
+Simproc Batch Run
+========================
+
+File extension: .qsbr
+
+A simproc batch run takes a collection of simprocs and applies them to a list of graphs. The resulting derivations are then recorded and timestamped.
+Notes are optional notes added to the file by the job creator.
+"python" contains all the python source code of the simprocs in memory.
+"selected_simprocs" contains the names of just those simprocs used in this job.
+
+SIMPROC_BATCH_RUN ::=
+{
+  "python": {SIMPROC_NAME: PYTHON_STRING (, SIMPROC_NAME: PYTHON_STRING)*},
+  "selected_simprocs": Array[String],
+  "results": {DERIVATION_WITH_TIMINGS (, DERIVATION_WITH_TIMINGS)*},
+  "notes": String
+}
+
+DERIVATION_WITH_TIMINGS ::=
+{
+  "simproc" : STRING,
+  "derivation": DERIVATION,
+  "timings": {STEP_TIME(, STEP_TIME)*}
+}
+
+STEP_TIME ::=
+{
+  "step": STEP_NAME,
+  "time": TIMESTAMP
+}
+
+TIMESTAMP : NUMBER = time in seconds since process began
+
 
 

@@ -15,7 +15,12 @@ class NewProjectDialog extends Dialog {
   val NameField = new TextField()
   val ProjectLocationField = new TextField(System.getProperty("user.home"))
   val BrowseProjectButton = new Button("...")
-  val TheoryChoiceDropdown = new ComboBox(Seq[String]("ZX", "ZW", "From existing project", "From .qtheory file"))
+  val TheoryChoiceDropdown = new ComboBox(Seq[String](
+    "ZX",
+    "ZW",
+    "From existing project",
+    "From .qtheory file",
+    "plain"))
   val TheoryLocationField = new TextField("")
   val BrowseTheoryButton = new Button("...")
   val theoryName = new TextField("")
@@ -102,7 +107,7 @@ class NewProjectDialog extends Dialog {
     fileChoiceFilter = filter
   }
 
-  disableFileChoosers("red_green")
+  disableFileChoosers("ZX")
 
   reactions += {
     case ButtonClicked(CreateButton) =>
@@ -111,11 +116,11 @@ class NewProjectDialog extends Dialog {
       val path = ProjectLocationField.text
       val folder = new File(path + "/" + name)
       if (name.isEmpty) {
-        UserAlerts.errorbox("Please enter a name for your project.")
+        UserAlerts.errorBox("Please enter a name for your project.")
       } else if (folder.exists()) {
-        UserAlerts.errorbox("That folder is already in use.")
+        UserAlerts.errorBox("That folder is already in use.")
       } else if (theory.isEmpty) {
-        UserAlerts.errorbox("Please choose a theory.")
+        UserAlerts.errorBox("Please choose a theory.")
       } else {
         result = Some((theory, name, path))
         close()
@@ -143,9 +148,11 @@ class NewProjectDialog extends Dialog {
     case SelectionChanged(TheoryChoiceDropdown) =>
       TheoryChoiceDropdown.selection.item match {
         case "ZX" =>
-          disableFileChoosers("red_green")
+          disableFileChoosers("ZX")
         case "ZW" =>
-          disableFileChoosers("black_white")
+          disableFileChoosers("ZW")
+        case "plain" =>
+          disableFileChoosers("plain")
         case "From existing project" =>
           enableFileChoosers("Project files", "qproject")
         case "From .qtheory file" =>

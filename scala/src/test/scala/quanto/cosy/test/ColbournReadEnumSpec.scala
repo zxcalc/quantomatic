@@ -2,6 +2,8 @@ package quanto.cosy.test
 
 import org.scalatest._
 import quanto.cosy._
+import quanto.data.{Graph, NodeV, Theory}
+import quanto.util.json.JsonObject
 
 
 class ColbournReadEnumSpec extends FlatSpec {
@@ -197,5 +199,29 @@ class ColbournReadEnumSpec extends FlatSpec {
     assert(numBi(5) === 1 + 1 + 1 + 1 + 3 + 5)
     assert(numBi(6) === 1 + 1 + 1 + 1 + 3 + 5 + 17)
     assert(numBi(7) === 1 + 1 + 1 + 1 + 3 + 5 + 17 + 44)
+  }
+
+  behavior of "conversion to graph"
+
+  it should "convert small amats into ZX graphs" in {
+    val rg = Theory.fromFile("red_green")
+
+    val pi = math.Pi
+    val rdata = Vector(
+      NodeV(data = JsonObject("type" -> "X", "value" -> "0"), theory = rg),
+      NodeV(data = JsonObject("type" -> "X", "value" -> pi.toString), theory = rg),
+      NodeV(data = JsonObject("type" -> "X", "value" -> (0.5 * pi).toString), theory = rg),
+      NodeV(data = JsonObject("type" -> "X", "value" -> (-0.5 * pi).toString), theory = rg)
+    )
+    val gdata = Vector(
+      NodeV(data = JsonObject("type" -> "Z", "value" -> "0"), theory = rg),
+      NodeV(data = JsonObject("type" -> "Z", "value" -> pi.toString), theory = rg),
+      NodeV(data = JsonObject("type" -> "Z", "value" -> (0.5 * pi).toString), theory = rg),
+      NodeV(data = JsonObject("type" -> "Z", "value" -> (-0.5 * pi).toString), theory = rg)
+    )
+
+    var one = Complex.one
+    def quickGraph(amat: AdjMat) : Graph = Graph.fromAdjMat(amat, rdata, gdata)
+    ColbournReadEnum.enumerate(2,2,2,2).map(quickGraph)
   }
 }
