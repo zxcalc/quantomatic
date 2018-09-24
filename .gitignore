@@ -31,3 +31,5 @@ lib_managed/
 out/
 
 cosy_synth/
+
+target/
