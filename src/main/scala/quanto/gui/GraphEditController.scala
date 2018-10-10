@@ -310,7 +310,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
   private def setVertexTyp(v: VName, typ: String) {
     graph.vdata(v) match {
       case data: NodeV =>
-        val oldTyp = data.typ
+        val oldTyp = data.vertexType
         graph = graph.updateVData(v) { _ => data.withTyp(typ) }
         view.invalidateVertex(v)
         graph.adjacentEdges(v).foreach { view.invalidateEdge }
@@ -445,7 +445,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
 
     val currentData = graph.vdata(vertex)
     val options = theory.vertexTypes.keys.toSeq :+ "<wire>"
-    val current = options.indexOf(currentData.typ)
+    val current = options.indexOf(currentData.vertexType)
 
     val next = options((current + shift + options.length) % options.length)
     val newTyp = if (next == "<wire>" & !includeWire)
@@ -508,7 +508,7 @@ class GraphEditController(view: GraphView, undoStack: UndoStack, val readOnly: B
                     Dialog.showInput(
                       title = "Vertex type",
                       message = "Vertex type",
-                      initial = data.typ).foreach { newTyp => setVertexTyp(v, newTyp) }
+                      initial = data.vertexType).foreach { newTyp => setVertexTyp(v, newTyp) }
                   } else {
                     Dialog.showInput(
                       title = "Vertex data",

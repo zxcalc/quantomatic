@@ -390,7 +390,7 @@ private  def viewportOffset (): (Double, Double) = {
         }
       }
 
-      if (graph.vdata(v).isBoundary) g.setColor(Color.BLACK)
+      if (graph.isBoundary(v)) g.setColor(Color.BLACK)
       else g.setColor(color)
 
       g.fill(shape)
@@ -401,7 +401,7 @@ private  def viewportOffset (): (Double, Double) = {
         val px = sh.getX.toInt
         val py = sh.getY.toInt
 
-        if (showNames || graph.vdata(v).isBoundary) {
+        if (showNames || graph.isBoundary(v)) {
           a = g.getColor
           g.setFont(EdgeLabelFont)
           g.setColor(Color.BLACK)
@@ -582,7 +582,7 @@ private  def viewportOffset (): (Double, Double) = {
       /* fill in all vertices */
       for ((vn,vd) <- graph.vdata) {
         val style = vd match {
-          case vertexData : NodeV => vertexData.typ
+          case vertexData : NodeV => vertexData.vertexType
           case _ : WireV => "wire"
         }
 

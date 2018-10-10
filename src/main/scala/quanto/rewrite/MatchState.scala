@@ -314,7 +314,7 @@ case class MatchState(
     else
       (m.pattern.vdata(np), m.target.vdata(nt)) match {
         case (pd: NodeV, td: NodeV) =>
-          if (pd.typ == td.typ) {
+          if (pd.vertexType == td.vertexType) {
             if (pd.hasValue)
               expressionMatcher.addMatch(pd.phaseData, td.phaseData).map {
                 angleMatcher1 =>

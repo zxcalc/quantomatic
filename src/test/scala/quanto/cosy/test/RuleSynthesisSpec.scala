@@ -217,9 +217,9 @@ class RuleSynthesisSpec extends FlatSpec {
       join("x", "z")
     val r = new Rule(g,g)
     val r2 = r.colourSwap(Map("Z" -> "X", "X" -> "Z"))
-    assert(r2.lhs.vdata(VName("z")).typ == "X")
-    assert(r2.lhs.vdata(VName("x")).typ == "Z")
-    assert(r2.lhs.vdata(VName("h")).typ == "hadamard")
+    assert(r2.lhs.vdata(VName("z")).vertexType == "X")
+    assert(r2.lhs.vdata(VName("x")).vertexType == "Z")
+    assert(r2.lhs.vdata(VName("h")).vertexType == "hadamard")
   }
 
   behavior of "extending rules"

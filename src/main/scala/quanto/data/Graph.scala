@@ -71,7 +71,7 @@ case class Graph(
 
   def isAdjacentToType(v: VName, t: String): Boolean = adjacentVerts(v).exists(typeOf(_) == t)
 
-  def typeOf(v: VName): String = vdata(v).typ
+  def typeOf(v: VName): String = vdata(v).vertexType
 
   /** Returns a set of vertex names adjacent to vn */
   def adjacentVerts(vn: VName): Set[VName] = predVerts(vn) union succVerts(vn)
@@ -1277,7 +1277,7 @@ object Graph {
 
   def variablesUsed(theory: Theory, graph: Graph): Set[String] = {
     graph.vdata.foldLeft(Set[String]()) { (names, vnd) => {
-      val nodeDataType = theory.vertexTypes(vnd._2.typ).value.typ
+      val nodeDataType = theory.vertexTypes(vnd._2.vertexType).value.typ
       val phases = CompositeExpression.parseKnowingTypes(vnd._2.data.toString(), nodeDataType)
       val compositeExpression = CompositeExpression(nodeDataType, phases)
       names union compositeExpression.vars
@@ -1289,7 +1289,7 @@ object Graph {
     graph.vdata.foldLeft(Set[(ValueType, String)]()) { (names, vnd) =>
       vnd._2 match {
         case node: NodeV =>
-          val nodeDataType = theory.vertexTypes(node.typ).value.typ
+          val nodeDataType = theory.vertexTypes(node.vertexType).value.typ
           val phases = CompositeExpression.parseKnowingTypes(node.data ? "value", nodeDataType)
           val compositeExpression = CompositeExpression(nodeDataType, phases)
           names union compositeExpression.varsWithType

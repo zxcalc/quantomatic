@@ -58,7 +58,7 @@ object GraphAnalysis {
     // Number of "Z" nodes
     // We favour these!
     // Purely for aesthetic reasons
-    def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.typ == "Z")
+    def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.vertexType == "Z")
 
     val zDiff = countZ(left) - countZ(right)
     if (zDiff != 0) return zDiff
@@ -75,7 +75,7 @@ object GraphAnalysis {
     // example node name: r-2-bl-1-h-1
     def positionWeighting(graph: Graph): Double = {
       def nodeWeighting(node: NodeV): Double = {
-        (node.typ match {
+        (node.vertexType match {
           case "X" =>
             2 * (1 + node.phaseData.values.head.constant)
           case "Z" =>
@@ -167,7 +167,7 @@ object GraphAnalysis {
     if (edge != 0) return edge
 
     // Number of "Z" nodes
-    def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.typ == "Z")
+    def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.vertexType == "Z")
 
     val zDiff = countZ(left) - countZ(right)
     if (zDiff != 0) return zDiff
@@ -176,7 +176,7 @@ object GraphAnalysis {
     val Pi = math.Pi
 
     def sumAngles(graph: Graph, filterType: String): Rational = graph.vdata.
-      filter(nd => nd._2.typ == filterType).
+      filter(nd => nd._2.vertexType == filterType).
       foldLeft(Rational(0, 1)) {
         (angle, nd) => angle + stringToPhase(nd._2.asInstanceOf[NodeV].value).constant
       }
@@ -305,7 +305,7 @@ object GraphAnalysis {
 
   def detectPiNodes(graph: Graph): Set[VName] = {
     graph.verts.
-      filterNot(name => graph.vdata(name).isBoundary || graph.vdata(name).isWireVertex).
+      filterNot(name => graph.vdata(name).isWireVertex).
       filter(name => graph.vdata(name).asInstanceOf[NodeV].phaseData.
         firstOrError(ValueType.AngleExpr).
         equals(PhaseExpression(Rational(1), ValueType.AngleExpr))) // Pull out those angle expressions with value \pi
@@ -433,7 +433,7 @@ object GraphAnalysis {
   def boundariesFromRegex(graph: Graph, regex: Option[Regex]) : Set[VName] = {
     regex match {
       case Some(r) => graph.verts.filter(vn => vn.s.matches(r.regex))
-      case None => graph.verts.filter(vn => graph.vdata(vn).isBoundary)
+      case None => graph.verts.filter(vn => graph.isBoundary(vn))
     }
   }
 

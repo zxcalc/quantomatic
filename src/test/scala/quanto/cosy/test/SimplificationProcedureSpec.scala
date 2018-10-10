@@ -127,7 +127,7 @@ class SimplificationProcedureSpec extends FlatSpec {
     )
     val initialDerivation: DerivationWithHead = graphToDerivation(targetGraph)
     val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
-    val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
+    val boundaries = graph.verts.filter(v => graph.isBoundary(v))
     import SimplificationProcedure.LTEByWeight._
     val targets = boundaries.filter(t => t.toString.matches("b[345]")).toList
     if (targets.nonEmpty) {
@@ -177,7 +177,7 @@ class SimplificationProcedureSpec extends FlatSpec {
     )
     val initialDerivation: DerivationWithHead = graphToDerivation(targetGraph)
     val graph = Derivation.derivationHeadPairToGraph(initialDerivation)
-    val boundaries = graph.verts.filter(v => graph.vdata(v).isBoundary)
+    val boundaries = graph.verts.filter(v => graph.isBoundary(v))
     import SimplificationProcedure.PullErrors._
     val targets = boundaries.filter(t => t.toString.matches(raw"b[3-5]")).toList
     if (targets.nonEmpty) {

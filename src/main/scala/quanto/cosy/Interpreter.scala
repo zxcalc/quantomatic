@@ -94,7 +94,7 @@ object Interpreter {
   def zwSpiderInterpreter(nodeV: NodeV, inputs: Int, outputs: Int) : Tensor = {
     (inputs, outputs) match {
       case (0, 0) => Tensor.id(1)
-      case (0, n) => interpretZWSpiderNoInputs( nodeV.typ.toLowerCase == "w",n)
+      case (0, n) => interpretZWSpiderNoInputs( nodeV.vertexType.toLowerCase == "w",n)
       case (m, n) =>
         (Tensor.idWires(n) x Tensor(Array(Array(1, 0, 0, 1)))) o
           (zwSpiderInterpreter(nodeV, m-1, n+1) x Tensor.idWires(1))
@@ -142,7 +142,7 @@ object Interpreter {
   def zxSpiderInterpreter(vdata: NodeV, inputs: Int, outputs: Int): Tensor = {
 
     val zxData: ZXAngleData = {
-      val isGreen = vdata.typ == "Z"
+      val isGreen = vdata.vertexType == "Z"
       val angle = PhaseExpression.parse(vdata.value, ValueType.AngleExpr)
       ZXAngleData(isGreen, angle)
     }

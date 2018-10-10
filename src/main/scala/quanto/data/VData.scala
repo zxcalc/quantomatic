@@ -27,11 +27,10 @@ abstract class VData extends GraphElementData {
   /** Create a copy of the current vertex with the new coordinates  */
   def withCoord(c: (Double, Double)): VData
 
-  def typ: String
+  def vertexType: String
 
   def isWireVertex: Boolean
 
-  def isBoundary: Boolean
 }
 
 /**
@@ -61,7 +60,7 @@ case class NodeV(
                   annotation: JsonObject = JsonObject(),
                   theory: Theory = Theory.DefaultTheory) extends VData {
   /** Type of the vertex */
-  val typ: String = (data / "type").stringValue
+  val vertexType: String = (data / "type").stringValue
   // support input of old-style graphs, where data may be stored at value/pretty
   val value: String = data ? "value" match {
     case str: JsonString => str.stringValue
@@ -70,7 +69,7 @@ case class NodeV(
   }
 
   def newValue(value: String): NodeV = NodeV(data = JsonObject(
-    "type" -> typ,
+    "type" -> vertexType,
     "value" -> value
   ), annotation = annotation, theory = theory)
 
@@ -79,7 +78,7 @@ case class NodeV(
   // it to empty.
   lazy val (phaseData: CompositeExpression, hasValue: Boolean) =
   try {
-    val phaseTypes = theory.vertexTypes(typ).value.typ
+    val phaseTypes = theory.vertexTypes(vertexType).value.typ
     val phaseValues = CompositeExpression.parseKnowingTypes(value, phaseTypes)
     (CompositeExpression(phaseTypes, phaseValues), true)
   }
@@ -90,7 +89,7 @@ case class NodeV(
   }
 
   //  def label = data.getOrElse("label","").stringValue
-  def typeInfo = theory.vertexTypes(typ)
+  def typeInfo = theory.vertexTypes(vertexType)
 
   def withCoord(c: (Double, Double)): NodeV =
     copy(annotation = annotation + ("coord" -> JsonArray(c._1, c._2)))
@@ -128,7 +127,7 @@ object NodeV {
   def apply(coord: (Double, Double)): NodeV = NodeV(annotation = JsonObject("coord" -> JsonArray(coord._1, coord._2)))
 
   def toJson(d: NodeV, theory: Theory): JsonObject = JsonObject(
-    "data" -> (if (d.data == theory.vertexTypes(d.typ).defaultData) JsonNull else d.data),
+    "data" -> (if (d.data == theory.vertexTypes(d.vertexType).defaultData) JsonNull else d.data),
     "annotation" -> d.annotation).noEmpty
 
   def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): NodeV = {
@@ -137,7 +136,7 @@ object NodeV {
 
     val n = NodeV(data, annotation, thy)
     n.coord // make sure coord is accessible
-    if (!thy.vertexTypes.keySet.contains(n.typ)) throw new GraphLoadException("Unrecognized vertex type: " + n.typ)
+    if (!thy.vertexTypes.keySet.contains(n.vertexType)) throw new GraphLoadException("Unrecognized vertex type: " + n.vertexType)
 
     n
   }
@@ -153,7 +152,7 @@ case class WireV(
                   data: JsonObject = JsonObject(),
                   annotation: JsonObject = JsonObject(),
                   theory: Theory = Theory.DefaultTheory) extends VData {
-  def typ = "wire"
+  def vertexType = "wire"
 
   def isWireVertex = true
 

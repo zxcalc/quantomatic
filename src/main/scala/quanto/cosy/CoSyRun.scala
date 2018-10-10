@@ -379,7 +379,7 @@ object CoSyRuns {
       def spiderInterpreter(vdata: NodeV, inputs: Int, outputs: Int): Tensor = {
 
         val zxData: ZXAngleData = {
-          val isGreen = vdata.typ == "Z"
+          val isGreen = vdata.vertexType == "Z"
           val angle = CompositeExpression.parseKnowingTypes(vdata.value, Vector(ValueType.AngleExpr, ValueType.Boolean))
           if (angle(1).constant == Rational(1, 1)) {
             ZXAngleData(isGreen, angle(0))
