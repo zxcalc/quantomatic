@@ -67,8 +67,6 @@ case class Graph(
 
   def isAdjacentToBoundary(v: VName): Boolean = adjacentVerts(v).exists(isBoundary)
 
-  def isBoundary(vn: VName): Boolean = isTerminalWire(vn)
-
   def isAdjacentToType(v: VName, t: String): Boolean = adjacentVerts(v).exists(typeOf(_) == t)
 
   def typeOf(v: VName): String = vdata(v).vertexType
@@ -82,7 +80,7 @@ case class Graph(
 
   def isWireVertex(v: VName): Boolean = vdata(v).isWireVertex
 
-  def numAdjacentBoundaries(vn: VName): Int = adjacentVerts(vn).count(isTerminalWire)
+  def numAdjacentBoundaries(vn: VName): Int = adjacentVerts(vn).count(isBoundary)
 
   def representsWire(vn: VName): Boolean = vdata(vn).isWireVertex &&
     (predVerts(vn).headOption match {
@@ -107,7 +105,7 @@ case class Graph(
 
   def outputs: Set[VName] = verts.filter(isOutputWire)
 
-  def boundary: Set[VName] = verts.filter(isTerminalWire)
+  def boundary: Set[VName] = verts.filter(isBoundary)
 
   override def hashCode: Int = {
     var h = data.hashCode
@@ -443,7 +441,7 @@ case class Graph(
       val (ends, edges, wireNodes) = edgeEndPoints(e)
       if (ends.size == 2) {
         val joinNode = (ends - vertexName).head
-        if (g2.isTerminalWire(joinNode) && removingBoundaries.contains(joinNode)) {
+        if (g2.isBoundary(joinNode) && removingBoundaries.contains(joinNode)) {
           oldBoundaries += joinNode
           // Delete boundaries that would otherwise float after vertex removal
           g2 = g2.deleteVertex(joinNode)
@@ -887,14 +885,14 @@ case class Graph(
       g.updateVData(v) { d =>
         if (d.isWireVertex) {
           d.asInstanceOf[WireV].makeBoundary(
-            graph.isTerminalWire(v)
+            graph.isBoundary(v)
           )
         } else d
       }
     }
   }
 
-  def isTerminalWire(vn: VName): Boolean =
+  def isBoundary(vn: VName): Boolean =
     vdata(vn).isWireVertex && (inEdges(vn).size + outEdges(vn).size) <= 1
 
   /**
@@ -919,7 +917,7 @@ case class Graph(
             /**
               * Collapse if between two internal wires, unless going in or out of a bbox
               */
-            if (!isTerminalWire(s) && !isTerminalWire(t)) {
+            if (!isBoundary(s) && !isBoundary(t)) {
               g = g.collapseWire(e)
               ch = true
             }
@@ -1034,10 +1032,10 @@ case class Graph(
     */
   def applyBBOp(bbop: BBOp, avoidV: Set[VName] = Set()): Graph = bbop match {
     case BBExpand(bb, mp) =>
-      val mp1 = GraphMap(v = mp.v.filterKeys(v => verts.contains(v) && isTerminalWire(v)), bb = mp.bb)
+      val mp1 = GraphMap(v = mp.v.filterKeys(v => verts.contains(v) && isBoundary(v)), bb = mp.bb)
       expandBBox(bb, avoidV, mp1)._1
     case BBCopy(bb, mp) =>
-      val mp1 = GraphMap(v = mp.v.filterKeys(v => verts.contains(v) && isTerminalWire(v)), bb = mp.bb)
+      val mp1 = GraphMap(v = mp.v.filterKeys(v => verts.contains(v) && isBoundary(v)), bb = mp.bb)
       copyBBox(bb, avoidV, mp1)._1
     case BBDrop(bb) => dropBBox(bb)._1
     case BBKill(bb) => killBBox(bb)._1

@@ -25,7 +25,7 @@ case class DStep(name: DSName,
     //layoutProc.edgeLength = 0.1
     layoutProc.gravity = 0.0
 
-    val rhsi = rule.rhs.verts.filter(!rule.rhs.isTerminalWire(_))
+    val rhsi = rule.rhs.verts.filter(!rule.rhs.isBoundary(_))
 
     graph.verts.foreach { v =>
       if (!rhsi.contains(v)) layoutProc.lockVertex(v)

@@ -267,7 +267,7 @@ class InterpreterSpec extends FlatSpec {
   def amatToGraphToZXTensor(adjMat: AdjMat) = {
     val asGraph = quickGraph(adjMat)
     Interpreter.interpretZXGraph(asGraph,
-      asGraph.verts.filter(asGraph.isTerminalWire).toList.sortBy(vn => vn.s), List())
+      asGraph.verts.filter(asGraph.isBoundary).toList.sortBy(vn => vn.s), List())
   }
 
   it should "process red spider law" in {

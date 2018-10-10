@@ -316,7 +316,7 @@ object CoSyRuns {
 
     override def makeTensor(gen: AdjMat): Tensor = {
       val asGraph = makeGraph(gen)
-      Interpreter.interpretZXGraph(asGraph, asGraph.verts.filter(asGraph.isTerminalWire).toList.sortBy(_.s), List())
+      Interpreter.interpretZXGraph(asGraph, asGraph.verts.filter(asGraph.isBoundary).toList.sortBy(_.s), List())
     }
 
     override def makeGraph(gen: AdjMat): Graph = Graph.fromAdjMat(gen, rdata, gdata)
@@ -392,7 +392,7 @@ object CoSyRuns {
       }
 
 
-      Interpreter.interpretSpiderGraph(spiderInterpreter)(asGraph, asGraph.verts.filter(asGraph.isTerminalWire).toList.sortBy(_.s), List())
+      Interpreter.interpretSpiderGraph(spiderInterpreter)(asGraph, asGraph.verts.filter(asGraph.isBoundary).toList.sortBy(_.s), List())
     }
 
     override def makeGraph(gen: AdjMat): Graph = Graph.fromAdjMat(gen, rdata, gdata)

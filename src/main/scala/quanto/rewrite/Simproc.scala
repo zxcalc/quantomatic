@@ -120,7 +120,7 @@ object Simproc {
     layoutProc.maxIterations = 300
     //layoutProc.keepCentered = false
 
-    val rhsInterior = rule.rhs.verts.filter(!rule.rhs.isTerminalWire(_))
+    val rhsInterior = rule.rhs.verts.filter(!rule.rhs.isBoundary(_))
     //println(rhsi)
     graph.verts.foreach { v => if (!rhsInterior.contains(v)) layoutProc.lockVertex(v) }
     //graph.verts.foreach { v =>  if (graph.isBoundary(v)) layoutProc.lockVertex(v) }
