@@ -29,7 +29,6 @@ object RuleSynthesis {
   }
 
 
-
   def loadRuleDirectory(directory: String): List[Rule] = {
     quanto.util.FileHelper.getListOfFiles(directory, raw".*\.qrule").
       map(file => (file.getName.replaceFirst(raw"\.qrule", ""), Json.parse(file))).
@@ -37,54 +36,24 @@ object RuleSynthesis {
       )
   }
 
-  /** Given an equivalence class creates rules for any irreducible members of the class */
-  // Superseded by CoSyRun
-  def graphEquivClassReduction[T](makeGraph: (T => Graph),
-                                  equivalenceClass: EquivalenceClass[T],
-                                  knownRules: List[Rule]): List[Rule] = {
-    val reductionRules = knownRules.filter(r => r.lhs > r.rhs)
-    // If you want to include the other direction as well, then pass a list of rule.inverse
-    val irreducibleMembers = equivalenceClass.members.filter(
-      m =>
-        reductionRules.forall(r => Matcher.findMatches(r.lhs, makeGraph(m)).nonEmpty)
-    )
-
-    if (irreducibleMembers.nonEmpty) {
-      val smallestMember = irreducibleMembers.minBy(makeGraph(_).verts.size)
-      irreducibleMembers.filter(_ != smallestMember).map(
-        member => new Rule(makeGraph(member), makeGraph(smallestMember))
-      )
-    } else List()
-  }
-
-  def rulesFromEquivalenceClasses[T](makeGraph: (T => Graph),
-                                     equivalenceClasses: List[EquivalenceClass[T]],
-                                     knownRules: List[Rule]): List[Rule] = {
-    equivalenceClasses match {
-      case Nil => knownRules
-      case x :: xs =>
-        val newRules = graphEquivClassReduction[T](makeGraph, x, knownRules)
-        newRules ::: rulesFromEquivalenceClasses(makeGraph, xs, newRules)
-    }
-  }
-
-  def extendMatchingSpidersWithBBoxes(rule: Rule, boundariesRegex : Option[Regex]) : Rule = {
+  def extendMatchingSpidersWithBBoxes(rule: Rule, boundariesRegex: Option[Regex]): Rule = {
     require(!rule.hasBBoxes)
     // This is not safe to do if the rule already has bboxes.
 
     val boundaries = GraphAnalysis.boundariesFromRegex(rule.lhs, boundariesRegex).toList
-    def nearestNeighbourType(graph: Graph, vName: VName) : Option[(VName, String)] = {
+
+    def nearestNeighbourType(graph: Graph, vName: VName): Option[(VName, String)] = {
       val neighbours = graph.adjacentNodesAndBoundaries(vName)
-      if(neighbours.size == 1){
-        val t : String = (graph.vdata(neighbours.head).data / "type").toString
+      if (neighbours.size == 1) {
+        val t: String = (graph.vdata(neighbours.head).data / "type").toString
         Some((neighbours.head, t))
       } else None
     }
 
-    def addBBoxIfOkay(rule: Rule, vName: VName) : Rule = {
+    def addBBoxIfOkay(rule: Rule, vName: VName): Rule = {
       val lhsT = nearestNeighbourType(rule.lhs, vName)
       val rhsT = nearestNeighbourType(rule.rhs, vName)
-      if(lhsT.nonEmpty && rhsT.nonEmpty && lhsT.get._2 == rhsT.get._2 && rule.lhs.vdata(lhsT.get._1).isInstanceOf[NodeV]){
+      if (lhsT.nonEmpty && rhsT.nonEmpty && lhsT.get._2 == rhsT.get._2 && rule.lhs.vdata(lhsT.get._1).isInstanceOf[NodeV]) {
         val leftNeighbour = lhsT.get._1
         val rightNeighbour = rhsT.get._1
         val bBName = rule.lhs.bboxes.freshWithSuggestion("bb0")
@@ -98,12 +67,12 @@ object RuleSynthesis {
     def removeBoundaryIfSuperfluous(rule: Rule, vName: VName): Rule = {
       val lhsT = nearestNeighbourType(rule.lhs, vName)
       val rhsT = nearestNeighbourType(rule.rhs, vName)
-      if(lhsT.nonEmpty && rhsT.nonEmpty && lhsT.get == rhsT.get && rule.lhs.vdata(lhsT.get._1).isInstanceOf[NodeV]) {
+      if (lhsT.nonEmpty && rhsT.nonEmpty && lhsT.get == rhsT.get && rule.lhs.vdata(lhsT.get._1).isInstanceOf[NodeV]) {
         val ln = lhsT.get._1
         val rn = rhsT.get._1
         val lNeighbourhood = rule.lhs.adjacentNodesAndBoundaries(ln).intersect(boundaries.toSet)
         val rNeighbourhood = rule.rhs.adjacentNodesAndBoundaries(rn).intersect(boundaries.toSet)
-        if((lNeighbourhood intersect rNeighbourhood).size > 1) {
+        if ((lNeighbourhood intersect rNeighbourhood).size > 1) {
           val lCut = rule.lhs.deleteVertex(vName)
           val rCut = rule.rhs.deleteVertex(vName)
           Rule(lCut, rCut)
@@ -115,12 +84,13 @@ object RuleSynthesis {
     boundaries.foldLeft(withBBoxes)(removeBoundaryIfSuperfluous)
   }
 
-  def removeIsomorphisms(theory: Theory, boundaryRegex: Option[Regex], rules: List[Rule]) : List[Rule] = {
-    def isIso(rule: Rule) : Boolean = GraphAnalysis.checkIsomorphic(theory, boundaryRegex)(rule.lhs, rule.rhs)
+  def removeIsomorphisms(theory: Theory, boundaryRegex: Option[Regex], rules: List[Rule]): List[Rule] = {
+    def isIso(rule: Rule): Boolean = GraphAnalysis.checkIsomorphic(theory, boundaryRegex)(rule.lhs, rule.rhs)
+
     rules.filter(!isIso(_))
   }
 
-  def greedyReduceRules(comparison: GraphComparison, throwOutIsos : Option[(Theory, Option[Regex])] = None)
+  def greedyReduceRules(comparison: GraphComparison, throwOutIsos: Option[(Theory, Option[Regex])] = None)
                        (rules: List[Rule]): List[Rule] = {
 
     // Will automatically invert rules that head upwards

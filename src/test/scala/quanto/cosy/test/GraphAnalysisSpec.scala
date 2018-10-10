@@ -83,40 +83,6 @@ class GraphAnalysisSpec extends FlatSpec {
   }
 
 
-  it should "calculate distance of a given, ignored set from ends" in {
-
-    val adjacencyMatrix = GraphAnalysis.adjacencyMatrix(errorGates)
-    val ghostedErrors = GraphAnalysis.bypassSpecial(GraphAnalysis.detectPiNodes)(errorGates, adjacencyMatrix)
-
-    val errorName = VName("v2")
-    val leftBoundary = VName("b2")
-    val rightBoundaries = Set(VName("b3"), VName("b4"), VName("b5"))
-
-    val names = ghostedErrors._1
-
-    def getIndex(name: VName) = names.indexOf(name)
-
-    // boundary b2, error v2, next gate vertex v3
-    val bIndex = ghostedErrors._1.indexOf(VName("b2"))
-    val eIndex = ghostedErrors._1.indexOf(VName("v2"))
-    val vIndex = ghostedErrors._1.indexOf(VName("v3"))
-
-
-    val distances = GraphAnalysis.distancesFromInitial(ghostedErrors, Set(errorName), rightBoundaries)
-    val distance = GraphAnalysis.pathDistanceSet(
-      ghostedErrors,
-      Set(errorName).map(getIndex),
-      rightBoundaries.map(getIndex)
-    )
-
-    assert(distance.get == 3.0)
-
-    // Now check with the simproc methods
-
-    val eDistances = SimplificationProcedure.PullErrors.errorsDistance(rightBoundaries)(errorGates, Set(errorName))
-
-    assert(eDistances.get == 2.0)
-  }
 
   behavior of "Graph comparison"
 
