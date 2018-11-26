@@ -1296,50 +1296,5 @@ object Graph {
     }
   }
 
-  def fromAdjMat(amat: AdjMat, rdata: Vector[NodeV], gdata: Vector[NodeV]): Graph = {
-    val thy =
-      if (gdata.nonEmpty) gdata(0).theory
-      else if (rdata.nonEmpty) rdata(0).theory
-      else throw new GraphException("Must give at least one piece of node data")
-
-
-    var g = Graph(thy)
-    for (i <- 0 until amat.numBoundaries) g = g.addVertex(VName("v" + i), WireV(theory = thy).withCoord(i,0))
-
-    var i = amat.numBoundaries
-
-    def red(i: Int): Int = if (amat.red.size > i) {
-      amat.red(i)
-    } else {
-      0
-    }
-
-    def green(i: Int): Int = if (amat.green.size > i) {
-      amat.green(i)
-    } else {
-      0
-    }
-
-    for (t <- 0 until amat.numRedTypes; _ <- 0 until red(t)) {
-      g = g.addVertex(VName("v" + i), rdata(t).withCoord(i, math.sin(i + t)))
-      i += 1
-    }
-
-    for (t <- 0 until amat.numGreenTypes; _ <- 0 until green(t)) {
-      g = g.addVertex(VName("v" + i), gdata(t).withCoord(i, math.sin(i + t)))
-      i += 1
-    }
-
-    val ed = UndirEdge(theory = thy, data = thy.defaultEdgeData)
-
-    i = 0
-    for (j <- 0 until amat.size; k <- 0 until j; if amat.mat(j)(k)) {
-      g = g.addEdge(EName("e" + i), ed, VName("v" + j) -> VName("v" + k))
-      i += 1
-    }
-
-    g
-  }
-
   def apply(theory: Theory): Graph = Graph(data = GData(theory = theory))
 }

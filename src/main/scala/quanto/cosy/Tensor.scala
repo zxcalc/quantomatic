@@ -13,10 +13,9 @@ import quanto.util.json.{JsonArray, JsonObject}
 
 class Tensor(c: Array[Array[Complex]]) {
   // A tensor as a matrix in the computational basis
-  type contentType = Array[Array[Complex]]
   lazy val normalised: Tensor = this.normalise()
   override lazy val hashCode: Int = this.contents.flatten.count(c => c.re > 0)
-  val contents: contentType = c
+  val contents: Array[Array[Complex]] = c
   val width: Int = contents(0).length
   val height: Int = contents.length
   val isDiagramShape: Boolean = {
@@ -160,6 +159,8 @@ class Tensor(c: Array[Array[Complex]]) {
   }
 
   def entry(down: Int, across: Int): Complex = contents(down)(across)
+
+  def ~(that: Tensor) : Boolean = this.isRoughlyUpToScalar(that)
 
   def isRoughlyUpToScalar(that: Tensor, distance: Double = Tensor.defaultDistance): Boolean = {
 

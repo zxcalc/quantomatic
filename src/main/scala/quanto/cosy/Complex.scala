@@ -1,5 +1,6 @@
 package quanto.cosy
 
+import quanto.util.Rational
 import quanto.util.json.JsonObject
 
 /* Complex numbers for use in Tensor
@@ -96,11 +97,13 @@ object Complex {
 
   def apply(r: Double, i: Double) = new Complex(r, i)
 
-  implicit def intToCOmplex(x: Int): Complex = new Complex(x)
+  implicit def intToComplex(x: Int): Complex = new Complex(x)
 
   implicit def doubleToComplex(x: Double): Complex = new Complex(x)
 
   def apply(r: Int, i: Int) = new Complex(r, i)
+
+  def apply(r: Rational, i: Rational) = new Complex(r,i)
 
   def fromJson(json: JsonObject): Complex = {
     new Complex((json / "real").doubleValue,

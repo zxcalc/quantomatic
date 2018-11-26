@@ -1,10 +1,11 @@
 package quanto.cosy.test
 
 import org.scalatest.FlatSpec
+import quanto.cosy
 import quanto.cosy.BlockGenerators.QuickGraph
 import quanto.cosy.Interpreter._
 import quanto.cosy._
-import quanto.data.Theory.ValueType
+import quanto.data.Theory.{ValueDesc, ValueType, VertexDesc, VertexShape, VertexStyleDesc}
 import quanto.data._
 import quanto.util.json.JsonObject
 
@@ -23,7 +24,7 @@ class InterpreterSpec extends FlatSpec {
   implicit def ename(str: String): EName = EName(str)
 
 
-  val cap : Tensor = Tensor(Array(Array[Complex](1, 0, 0, 1)))
+  val cap: Tensor = Tensor(Array(Array[Complex](1, 0, 0, 1)))
 
   it should "make two id wires" in {
     var g = new Graph().
@@ -45,7 +46,7 @@ class InterpreterSpec extends FlatSpec {
       addVertex(vname("v3"), WireV()).
       addEdge("e0", UndirEdge(), "v0" -> "v2").
       addEdge("e1", UndirEdge(), "v1" -> "v3")
-    val tensor = stringGraph(g, cap, List("v0", "v2", "v1","v3"), List())
+    val tensor = stringGraph(g, cap, List("v0", "v2", "v1", "v3"), List())
     assert(tensor == (cap x cap))
   }
 
@@ -59,7 +60,7 @@ class InterpreterSpec extends FlatSpec {
       addEdge("e0", UndirEdge(), "v0" -> "v3").
       addEdge("e1", UndirEdge(), "v1" -> "v2")
     val tensor = stringGraph(g, cap, List("v1", "v2", "v0"), List("v3"))
-    assert(tensor == ( cap x Tensor.idWires(1)))
+    assert(tensor == (cap x Tensor.idWires(1)))
   }
 
 
@@ -85,9 +86,8 @@ class InterpreterSpec extends FlatSpec {
       addEdge("e0", UndirEdge(), "v0" -> "v3").
       addEdge("e1", UndirEdge(), "v1" -> "v2")
     val tensor = stringGraph(g, cap, List("v0"), List("v1", "v2", "v3"))
-    assert(tensor == ( cap.transpose x Tensor.idWires(1)))
+    assert(tensor == (cap.transpose x Tensor.idWires(1)))
   }
-
 
 
   it should "make wire and cup" in {
@@ -103,7 +103,6 @@ class InterpreterSpec extends FlatSpec {
   }
 
 
-
   it should "make crossing" in {
     var g = new Graph().
       addVertex(vname("v0"), WireV()).
@@ -113,9 +112,8 @@ class InterpreterSpec extends FlatSpec {
       addEdge("e0", UndirEdge(), "v0" -> "v3").
       addEdge("e1", UndirEdge(), "v1" -> "v2")
     val tensor = stringGraph(g, cap, List("v0", "v1"), List("v2", "v3"))
-    assert(tensor == Tensor.swap(List(1,0)))
+    assert(tensor == Tensor.swap(List(1, 0)))
   }
-
 
 
   it should "make cap and cup" in {
@@ -127,9 +125,8 @@ class InterpreterSpec extends FlatSpec {
       addEdge("e0", UndirEdge(), "v0" -> "v3").
       addEdge("e1", UndirEdge(), "v1" -> "v2")
     val tensor = stringGraph(g, cap, List("v0", "v3"), List("v1", "v2"))
-    assert(tensor == Tensor(Array(Array(1,0,0,1),Array(0,0,0,0), Array(0,0,0,0), Array(1,0,0,1))))
+    assert(tensor == Tensor(Array(Array(1, 0, 0, 1), Array(0, 0, 0, 0), Array(0, 0, 0, 0), Array(1, 0, 0, 1))))
   }
-
 
 
   it should "make (id x s) o (s x id)" in {
@@ -137,7 +134,7 @@ class InterpreterSpec extends FlatSpec {
       .join("i-0", "o-2")
       .join("i-1", "o-0")
       .join("i-2", "o-1")
-    val tensor = stringGraph(g, cap, List("i-0","i-1","i-2"), List("o-0","o-1","o-2"))
+    val tensor = stringGraph(g, cap, List("i-0", "i-1", "i-2"), List("o-0", "o-1", "o-2"))
     assert(tensor == Tensor.swap(List(2, 0, 1)))
   }
 
@@ -147,8 +144,8 @@ class InterpreterSpec extends FlatSpec {
       .join("i-0", "o-1")
       .join("i-1", "o-2")
       .join("i-2", "o-0")
-    val tensor = stringGraph(g, cap, List("i-0","i-1","i-2"), List("o-0","o-1","o-2"))
-    assert(tensor == Tensor.swap(List(1,2,0)))
+    val tensor = stringGraph(g, cap, List("i-0", "i-1", "i-2"), List("o-0", "o-1", "o-2"))
+    assert(tensor == Tensor.swap(List(1, 2, 0)))
   }
 
   behavior of "ZX"
@@ -171,7 +168,7 @@ class InterpreterSpec extends FlatSpec {
   //Don't include boundaries as the methods can give permutations of each other's answers
   val smallAdjMats: Stream[AdjMat] = ColbournReadEnum.enumerate(2, 2, 2, 2)
 
-  implicit def quickGraph(amat: AdjMat): Graph = Graph.fromAdjMat(amat, rdata, gdata)
+  implicit def quickGraph(amat: AdjMat): Graph = cosy.AdjMat.toZXGraph(amat, rdata, gdata)
 
   implicit def stringToPhase(s: String): PhaseExpression = {
     PhaseExpression.parse(s, ValueType.AngleExpr)
@@ -393,11 +390,11 @@ class InterpreterSpec extends FlatSpec {
 
   it should "agree on rule inv" in {
 
-    val g = QuickGraph(Theory.fromFile("ZW")).addInput().addOutput().node("w",nodeName = "w1").node("w",nodeName = "w2")
-      .join("i-0", "w1").join("w1","w2").join("w2", "o-0")
+    val g = QuickGraph(Theory.fromFile("ZW")).addInput().addOutput().node("w", nodeName = "w1").node("w", nodeName = "w2")
+      .join("i-0", "w1").join("w1", "w2").join("w2", "o-0")
 
 
-    var t1 = Interpreter.interpretSpiderGraph(zwSpiderInterpreter)(g, List("i-0"),List("o-0"))
+    var t1 = Interpreter.interpretSpiderGraph(zwSpiderInterpreter)(g, List("i-0"), List("o-0"))
     assert(t1.isRoughly(Tensor.idWires(1)))
   }
 
@@ -467,24 +464,24 @@ class InterpreterSpec extends FlatSpec {
     val stacks = BlockStackMaker.makeStacksOfSize(height, rows)
     var gate = stacks.filter(_.toString == "(CNT x  1 )")
 
-    val breakdown = Tensor.swap(List(2,1,0)) o
-      (Tensor.idWires(2) x Tensor(Array(Array(1,0,0,0), Array(0,0,0,1)))) o
-      Tensor.swap(List(2,0,1,3)) o
-      (Tensor.idWires(2) x Tensor(Array(Array(1,0,0,1), Array(0,1,1,0))).transpose) o
-      Tensor.swap(List(0,2,1))
+    val breakdown = Tensor.swap(List(2, 1, 0)) o
+      (Tensor.idWires(2) x Tensor(Array(Array(1, 0, 0, 0), Array(0, 0, 0, 1)))) o
+      Tensor.swap(List(2, 0, 1, 3)) o
+      (Tensor.idWires(2) x Tensor(Array(Array(1, 0, 0, 1), Array(0, 1, 1, 0))).transpose) o
+      Tensor.swap(List(0, 2, 1))
 
 
-    val breakdown2 = Tensor(Array(Array(1,0,0,0), Array(0,1,0,0), Array(0,0,0,1), Array(0,0,1,0))) x Tensor.idWires(1)
+    val breakdown2 = Tensor(Array(Array(1, 0, 0, 0), Array(0, 1, 0, 0), Array(0, 0, 0, 1), Array(0, 0, 1, 0))) x Tensor.idWires(1)
 
     assert(breakdown.isRoughlyUpToScalar(breakdown2))
 
 
-    assert(Interpreter.interpretZXGraph(cnotGraph, List("i-0", "i-1","i-2"), List("o-0", "o-1","o-2")).isRoughlyUpToScalar(
+    assert(Interpreter.interpretZXGraph(cnotGraph, List("i-0", "i-1", "i-2"), List("o-0", "o-1", "o-2")).isRoughlyUpToScalar(
       breakdown
     ))
 
 
-    assert(Interpreter.interpretZXGraph(cnotGraph, List("i-0", "i-1","i-2"), List("o-0", "o-1","o-2")).isRoughlyUpToScalar(
+    assert(Interpreter.interpretZXGraph(cnotGraph, List("i-0", "i-1", "i-2"), List("o-0", "o-1", "o-2")).isRoughlyUpToScalar(
       gate.head.tensor
     ))
 
@@ -525,16 +522,90 @@ class InterpreterSpec extends FlatSpec {
       val asGraph = bs.graph
       val tensorFromGraph = Interpreter.interpretZXGraph(asGraph,
         asGraph.verts.filter(_.s.matches(raw"r-0-i-\d+")).toList.sortBy(vn => vn.s),
-        asGraph.verts.filter(_.s.matches(raw"r-"+(height-1)+raw"-o-\d+")).toList.sortBy(vn => vn.s))
+        asGraph.verts.filter(_.s.matches(raw"r-" + (height - 1) + raw"-o-\d+")).toList.sortBy(vn => vn.s))
       assert(bs.tensor.isRoughlyUpToScalar(tensorFromGraph))
       val asGraph2 = bs.graph
       val tensorFromGraph2 = Interpreter.interpretZXGraph(asGraph,
         asGraph.verts.filter(_.s.matches(raw"r-0-i-\d+")).toList.sortBy(vn => vn.s),
-        asGraph.verts.filter(_.s.matches(raw"r-"+(height-1)+raw"-o-\d+")).toList.sortBy(vn => vn.s))
+        asGraph.verts.filter(_.s.matches(raw"r-" + (height - 1) + raw"-o-\d+")).toList.sortBy(vn => vn.s))
       assert(bs.tensor.isRoughlyUpToScalar(tensorFromGraph))
     }
     )
   }
 
+  behavior of "ZH interpreter"
+
+  val zhTheory: Theory = Theories.ZH
+
+  it should "generate the right tensors for generalised hadamard" in {
+    // Normal hadamard
+    val hm1 = ZHSpiderData(ZHSpiderType.H, -1, 0)
+    val in = zhSpiderInterpreter(hm1, 1, 1)
+    assert(in.isRoughlyUpToScalar(Tensor.hadamard))
+
+    // Hadamard with phase 1
+    val h1 = ZHSpiderData(ZHSpiderType.H, 1, 0)
+    val in2 = zhSpiderInterpreter(h1, 1, 1)
+    assert(in2 == Tensor(2, 2, (_, _) => 1))
+
+    // Hadamard with 2 inputs, phase 0
+    val h2 = ZHSpiderData(ZHSpiderType.H, 0, 0)
+    val in3 = zhSpiderInterpreter(h2, 2, 1)
+    assert(in3.width == 4)
+    assert(in3.height == 2)
+    assert(in3.contents(1)(3) == Complex.zero)
+  }
+
+  it should "generate the right tensors for Z" in {
+    val z21 = zhSpiderInterpreter(ZHSpiderData(ZHSpiderType.Z, 0, 0), 2, 1)
+    assert(z21.width == 4)
+    assert(z21.height == 2)
+    assert(z21.isRoughly(Tensor(Array(Array(1, 0, 0, 0), Array(0, 0, 0, 1)))))
+  }
+
+  it should "obey (HS2)" in {
+    val hm1 = ZHSpiderData(ZHSpiderType.H, -1, 0)
+    val in = zhSpiderInterpreter(hm1, 1, 1)
+    assert((in o in).isRoughlyUpToScalar(Tensor.idWires(1)))
+
+    var amat = AdjMat.emptyZH()
+    amat = amat.addVertex(Vector())
+    amat = amat.addVertex(Vector(false))
+    amat = amat.nextType.get
+    amat = amat.addVertex(Vector(true, true))
+    val g = amat.toZHGraph()
+
+    val i1 = Interpreter.interpretZHGraph(g, List("v0"), List("v1"))
+    assert(i1 ~ Tensor.hadamard)
+
+    val g2 = AdjMat.emptyZH()
+      .addVertex(Vector())
+      .addVertex(Vector(false))
+      .nextType.get
+      .addVertex(Vector(true, false))
+      .addVertex(Vector(false, true, true))
+      .toZHGraph()
+
+    val i2 = Interpreter.interpretZHGraph(g2, List("v0"), List("v1"))
+
+    assert(i2 ~ Tensor.idWires(1))
+  }
+
+
+  it should "obey (ZS2)" in {
+    val amat = AdjMat.emptyZH()
+      .addVertex(Vector())
+      .addVertex(Vector(false))
+      .nextType.get // -1
+      .nextType.get // i
+      .nextType.get // 2
+      .nextType.get // Z
+      .addVertex(Vector(true, true))
+
+    val g = amat.toZHGraph()
+
+    val i = Interpreter.interpretZHGraph(g, List("v0"), List("v1"))
+    assert(i ~ Tensor.idWires(1))
+  }
 
 }

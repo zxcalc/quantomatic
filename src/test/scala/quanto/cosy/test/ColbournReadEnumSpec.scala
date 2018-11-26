@@ -221,7 +221,7 @@ class ColbournReadEnumSpec extends FlatSpec {
     )
 
     var one = Complex.one
-    def quickGraph(amat: AdjMat) : Graph = Graph.fromAdjMat(amat, rdata, gdata)
+    def quickGraph(amat: AdjMat) : Graph = AdjMat.toZXGraph(amat, rdata, gdata)
     ColbournReadEnum.enumerate(2,2,2,2).map(quickGraph)
   }
 }

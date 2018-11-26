@@ -1,5 +1,8 @@
 package quanto.cosy
 
+import quanto.cosy.Interpreter.{ZHSpiderData, ZHSpiderType}
+import quanto.data._
+import quanto.util.Rational
 import quanto.util.json.JsonObject
 
 /**
@@ -229,6 +232,10 @@ case class AdjMat(numRedTypes: Int,
         mat.flatten.foldLeft("")((a, b) => if (b) a + "1" else a + "0")
         , 2)
   }
+
+  def toZXGraph(rdata: Vector[NodeV], gdata: Vector[NodeV]): Graph = AdjMat.toZXGraph(this, rdata, gdata)
+
+  def toZHGraph(hdata: Vector[NodeV] = AdjMat.ZHNodeData): Graph = AdjMat.toZHGraph(this, hdata)
 }
 
 object AdjMat {
@@ -263,6 +270,104 @@ object AdjMat {
     val mat = if (size > 0) longMatVec.grouped(size).toVector else List().toVector
     new AdjMat(red.length, green.length, numBoundaries, red, green, mat)
   }
+
+  def emptyZH(): AdjMat = new AdjMat(numRedTypes = 3, numGreenTypes = 1)
+
+  val ZHNodeData: Vector[NodeV] = Vector[(Rational, Rational)](
+    (-1,0),
+    (0,1),
+    (2,0)
+  ).map(a => ZHSpiderData(ZHSpiderType.H,a._1, a._2)).map(Interpreter.zhToNodeV)
+
+
+  def toZHGraph(amat: AdjMat, hdata: Vector[NodeV]): Graph = {
+    val thy = Theories.ZH
+    var g = Graph(thy)
+
+    for (i <- 0 until amat.numBoundaries) g = g.addVertex(VName("v" + i), WireV(theory = thy).withCoord(i, 0))
+
+    var i = amat.numBoundaries
+
+    def red(i: Int): Int = if (amat.red.size > i) {
+      amat.red(i)
+    } else {
+      0
+    }
+
+    def green(i: Int): Int = if (amat.green.size > i) {
+      amat.green(i)
+    } else {
+      0
+    }
+
+    for (t <- 0 until amat.numRedTypes; _ <- 0 until red(t)) {
+      g = g.addVertex(VName("v" + i), hdata(t).withCoord(i, math.sin(i + t)))
+      i += 1
+    }
+
+    for (t <- 0 until amat.numGreenTypes; _ <- 0 until green(t)) {
+      g = g.addVertex(VName("v" + i), NodeV(data = JsonObject("type" -> "Z", "value" -> "0"), theory = thy)
+        .withCoord(i, math.sin(i + t)))
+      i += 1
+    }
+
+    val ed = UndirEdge(theory = thy, data = thy.defaultEdgeData)
+
+    i = 0
+    for (j <- 0 until amat.size; k <- 0 until j; if amat.mat(j)(k)) {
+      g = g.addEdge(EName("e" + i), ed, VName("v" + j) -> VName("v" + k))
+      i += 1
+    }
+
+    g
+  }
+
+  def toZXGraph(amat: AdjMat, rdata: Vector[NodeV], gdata: Vector[NodeV]): Graph = {
+    val thy =
+      if (gdata.nonEmpty) gdata(0).theory
+      else if (rdata.nonEmpty) rdata(0).theory
+      else throw new GraphException("Must give at least one piece of node data")
+
+
+    var g = Graph(thy)
+    for (i <- 0 until amat.numBoundaries) g = g.addVertex(VName("v" + i), WireV(theory = thy).withCoord(i, 0))
+
+    var i = amat.numBoundaries
+
+    def red(i: Int): Int = if (amat.red.size > i) {
+      amat.red(i)
+    } else {
+      0
+    }
+
+    def green(i: Int): Int = if (amat.green.size > i) {
+      amat.green(i)
+    } else {
+      0
+    }
+
+    for (t <- 0 until amat.numRedTypes; _ <- 0 until red(t)) {
+      g = g.addVertex(VName("v" + i), rdata(t).withCoord(i, math.sin(i + t)))
+      i += 1
+    }
+
+    for (t <- 0 until amat.numGreenTypes; _ <- 0 until green(t)) {
+      g = g.addVertex(VName("v" + i), gdata(t).withCoord(i, math.sin(i + t)))
+      i += 1
+    }
+
+    val ed = UndirEdge(theory = thy, data = thy.defaultEdgeData)
+
+    i = 0
+    for (j <- 0 until amat.size; k <- 0 until j; if amat.mat(j)(k)) {
+      g = g.addEdge(EName("e" + i), ed, VName("v" + j) -> VName("v" + k))
+      i += 1
+    }
+
+    g
+  }
+
+
 }
 
 object ColbournReadEnum {

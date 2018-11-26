@@ -2,6 +2,7 @@ package quanto.cosy
 
 import quanto.data.Theory.ValueType
 import quanto.data._
+import quanto.util.Rational
 import quanto.util.json.JsonObject
 
 /**
@@ -18,6 +19,7 @@ object Interpreter {
     case 0 => Tensor.id(1)
     case _ => Tensor.hadamard x makeHadamards(n - 1, current)
   }
+
 
   def interpretZXSpider(zxAngleData: ZXAngleData, inputs: Int, outputs: Int): Tensor = {
     // Converts spider to tensor. If green==false then it is a red spider
@@ -91,13 +93,13 @@ object Interpreter {
     interpretZXAdjMatSpidersFirst(adjMat, greenAM, redAM)
   }
 
-  def zwSpiderInterpreter(nodeV: NodeV, inputs: Int, outputs: Int) : Tensor = {
+  def zwSpiderInterpreter(nodeV: NodeV, inputs: Int, outputs: Int): Tensor = {
     (inputs, outputs) match {
       case (0, 0) => Tensor.id(1)
-      case (0, n) => interpretZWSpiderNoInputs( nodeV.vertexType.toLowerCase == "w",n)
+      case (0, n) => interpretZWSpiderNoInputs(nodeV.vertexType.toLowerCase == "w", n)
       case (m, n) =>
         (Tensor.idWires(n) x Tensor(Array(Array(1, 0, 0, 1)))) o
-          (zwSpiderInterpreter(nodeV, m-1, n+1) x Tensor.idWires(1))
+          (zwSpiderInterpreter(nodeV, m - 1, n + 1) x Tensor.idWires(1))
     }
   }
 
@@ -118,11 +120,11 @@ object Interpreter {
         )
       )
     )
-    val graph = Graph.fromAdjMat(adjMat, blackNodes, whiteNodes)
+    val graph = AdjMat.toZXGraph(adjMat, blackNodes, whiteNodes)
     interpretSpiderGraph(zwSpiderInterpreter)(graph, inputs, outputs)
   }
 
-  def interpretSpiderGraph(spiderInterpreter: (NodeV, Int, Int) => Tensor)(graph: Graph,  inputList: List[VName], outputList: List[VName]): Tensor = {
+  def interpretSpiderGraph(spiderInterpreter: (NodeV, Int, Int) => Tensor)(graph: Graph, inputList: List[VName], outputList: List[VName]): Tensor = {
 
     // remove any wire vertices etc
     val minGraph = graph.minimise
@@ -150,7 +152,65 @@ object Interpreter {
     interpretZXSpider(zxData, inputs, outputs)
   }
 
-  val interpretZXGraph : (Graph, List[VName], List[VName]) => Tensor = interpretSpiderGraph(zxSpiderInterpreter)
+
+  object ZHSpiderType extends Enumeration {
+    val Z, H = Value
+  }
+
+  implicit def zhToNodeV(ZHSpiderData: ZHSpiderData): NodeV = {
+    ZHSpiderData.spiderType match {
+      case ZHSpiderType.H =>
+        NodeV(data = JsonObject("type" -> "H", "value" -> s"${ZHSpiderData.phaseRe}, ${ZHSpiderData.phaseIm}"),
+          theory = Theories.ZH)
+      case ZHSpiderType.Z =>
+        NodeV(data = JsonObject("type" -> "Z", "value" -> "0"), theory = Theories.ZH)
+    }
+  }
+
+
+  case class ZHSpiderData(spiderType: ZHSpiderType.Value, phaseRe: Rational, phaseIm: Rational)
+
+  def zhSpiderInterpreter(nodeV: NodeV, inputs: Int, outputs: Int): Tensor = {
+
+    val nodeData: ZHSpiderData = nodeV.vertexType match {
+      case "Z" => ZHSpiderData(ZHSpiderType.Z, 0, 0)
+      case "H" => ZHSpiderData(ZHSpiderType.H,
+        nodeV.phaseData.values(0).constant, nodeV.phaseData.values(1).constant
+      )
+    }
+
+    def interpret(zhSpiderData: ZHSpiderData, inputs: Int, outputs: Int): Tensor = {
+      val width = math.pow(2, inputs).toInt
+      val height = math.pow(2, outputs).toInt
+      zhSpiderData.spiderType match {
+        case ZHSpiderType.H =>
+          Tensor(height, width,
+            (a, b) => {
+              if (a < (height - 1) || b < (width - 1)) 1 else Complex(zhSpiderData.phaseRe, zhSpiderData.phaseIm)
+            })
+        case ZHSpiderType.Z =>
+          Tensor(height, width,
+            (a, b) => {
+              if (a == 0 && b == 0) 1
+              else if (a == (height - 1) && b == (width - 1)) 1
+              else 0
+            })
+      }
+    }
+
+    val cache = collection.mutable.Map.empty[(ZHSpiderData, Int, Int), Tensor]
+
+    val inputTuple = (nodeData, inputs, outputs)
+
+    cache.getOrElse(inputTuple, {
+      cache update(inputTuple, interpret(nodeData, inputs, outputs))
+      cache(inputTuple)
+    })
+  }
+
+
+  val interpretZXGraph: (Graph, List[VName], List[VName]) => Tensor = interpretSpiderGraph(zxSpiderInterpreter)
+  val interpretZHGraph: (Graph, List[VName], List[VName]) => Tensor = interpretSpiderGraph(zhSpiderInterpreter)
 
   /**
     * Given a graph of just boundaries and edges,
@@ -218,7 +278,7 @@ object Interpreter {
       }
     }
 
-    def toJoin(place: Int) : Int = {
+    def toJoin(place: Int): Int = {
       val name: VName = joinLowerList(place)
       val neighbour: VName = graph.adjacentVerts(name).head
       joinUpperList.indexOf(neighbour)

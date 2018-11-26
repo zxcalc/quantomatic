@@ -40,7 +40,7 @@ class GraphAdjMatSpec extends FlatSpec {
     amat = amat.addVertex(Vector(false, false, false, true, false))
     amat = amat.nextType.get
     amat = amat.addVertex(Vector(false, false, false, true, false, true))
-    val g = Graph.fromAdjMat(amat, rdata, gdata)
+    val g = AdjMat.toZXGraph(amat, rdata, gdata)
     println(Graph.toJson(g))
 
     val g1 = Graph.fromJson(Json.parse(

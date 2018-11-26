@@ -15,7 +15,7 @@ object GraphAnalysis {
 
     // returns x where
     // x < 0 iff this < that
-    // x == 0 iff this == that
+    // x == 0 iff this <> that
     // x > 0 iff this > that
 
     // Circuit comparison of graphs
@@ -137,6 +137,65 @@ object GraphAnalysis {
     }
   }
 
+
+  def zhGraphCompare(left: Graph, right: Graph): Int = {
+
+    // returns x where
+    // x < 0 iff this < that
+    // x == 0 iff this <> that
+    // x > 0 iff this > that
+
+
+    // Graph comparison for ZH diagrams
+    // Cares about node count, then phases
+
+    implicit def stringToPhase(s: String): PhaseExpression = {
+      PhaseExpression.parse(s, ValueType.AngleExpr)
+    }
+
+
+    // First count number of nodes
+    def nodes(graph: Graph): Int = graph.vdata.size
+
+    val node = nodes(left) - nodes(right)
+    if (node != 0) return node
+
+    // Number of edges
+    def edges(graph: Graph): Int = graph.edata.size
+
+    val edge = edges(left) - edges(right)
+    if (edge != 0) return edge
+
+    // Number of "Z" nodes
+    def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.vertexType == "Z")
+
+    val zDiff = countZ(left) - countZ(right)
+    if (zDiff != 0) return zDiff
+
+    // Sum of Z angles
+    val Pi = math.Pi
+
+    def sumAngles(graph: Graph, filterType: String): Rational = graph.vdata.
+      filter(nd => nd._2.vertexType == filterType).
+      foldLeft(Rational(0, 1)) {
+        (angle, nd) => angle + stringToPhase(nd._2.asInstanceOf[NodeV].value).constant
+      }
+
+    // sumAngles returns a rational that is probably bigger than 2 (remember that the pi is left out)
+
+    val ZAngles: Rational = sumAngles(left, "Z") - sumAngles(right, "Z")
+    if (ZAngles > 0) return 1
+    if (ZAngles < 0) return -1
+
+    // Sum of X angles
+
+    val XAngles: Rational = sumAngles(left, "X") - sumAngles(right, "X")
+    if (XAngles > 0) return 1
+    if (XAngles < 0) return -1
+
+
+    0
+  }
 
   def zxGraphCompare(left: Graph, right: Graph): Int = {
 
