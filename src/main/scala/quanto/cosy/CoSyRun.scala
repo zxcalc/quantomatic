@@ -4,11 +4,11 @@ import java.io.File
 import java.util.Calendar
 
 import quanto.cosy.Interpreter.{ZXAngleData, interpretZXSpider}
-import quanto.data.Theory.{ValueType, VertexDesc}
+import quanto.data.Theory.ValueType
 import quanto.data._
-import quanto.rewrite.{Match, Matcher}
+import quanto.rewrite.Matcher
 import quanto.util.FileHelper._
-import quanto.util.json.{Json, JsonObject}
+import quanto.util.json.JsonObject
 import quanto.util.{FileHelper, Rational, UserAlerts}
 
 import scala.concurrent.duration.Duration
@@ -277,20 +277,13 @@ object CoSyRuns {
       val identitiesFirst  = ColbournReadEnum.enumerate(1, 1, numBoundaries.max, 0).
         filter(a => numBoundaries.contains(a.numBoundaries))
 
-      val CR = ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries.max, numVertices)
+      def CR = ColbournReadEnum.enumerate(numAngles, numAngles, numBoundaries.max, numVertices)
 
-      UserAlerts.alert(s"CoSy: Finished Colbourn-Read (${CR.size})")
+      def CRScalars = if(scalars) CR else CR.filter(adj => !GraphAnalysis.containsScalars(adj))
 
-      val CRScalars = if(scalars) CR else CR.filter(adj => !GraphAnalysis.containsScalars(adj))
 
-      UserAlerts.alert(s"CoSy: Filtered out scalars (${CRScalars.size})")
-
-      val CRScalarsSorted = CRScalars.sortBy(_.size)
-
-      UserAlerts.alert("CoSy: Sorted AdjMats")
-
-      val combined = identitiesFirst.iterator ++
-        CRScalarsSorted.iterator.filter(a => numBoundaries.contains(a.numBoundaries))
+      def combined = identitiesFirst.iterator ++
+        CRScalars.iterator.filter(a => numBoundaries.contains(a.numBoundaries))
 
       combined
     }
@@ -446,11 +439,7 @@ object CoSyRuns {
           bipartite = false)
       }
 
-      UserAlerts.alert(s"CoSy: Finished Colbourn-Read (${CR.size})")
-
       def CRScalars = CR.filter(adj => !GraphAnalysis.containsScalars(adj))
-
-      UserAlerts.alert(s"CoSy: Filtered out scalars (${CRScalars.size})")
 
       def combined = identitiesFirst ++
         CRScalars.filter(a => numBoundaries.contains(a.numBoundaries))

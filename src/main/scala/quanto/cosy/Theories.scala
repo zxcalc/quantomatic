@@ -1,10 +1,8 @@
 package quanto.cosy
 
-import quanto.cosy.Interpreter.{ZHSpiderData, ZHSpiderType}
-import quanto.data.{NodeV, Theory}
+import quanto.data.Theory
 import quanto.data.Theory.{ValueDesc, ValueType, VertexDesc, VertexShape, VertexStyleDesc}
-import quanto.util.Rational
-import quanto.util.json.JsonObject
+import quanto.util.json.{Json, JsonObject}
 
 object Theories {
 
@@ -14,12 +12,18 @@ object Theories {
         value = ValueDesc(
           typ = Vector(ValueType.Empty)),
         style = VertexStyleDesc(shape = VertexShape.Circle),
-        defaultData = JsonObject()),
+        defaultData = JsonObject(
+          "type" -> Json.stringToJson("Z"),
+          "value" -> Json.stringToJson("0")
+        )),
       "H" -> VertexDesc(
         value = ValueDesc(
           typ = Vector(ValueType.Rational, ValueType.Rational)),
         style = VertexStyleDesc(shape = VertexShape.Rectangle),
-        defaultData = JsonObject()),
+        defaultData = JsonObject(
+          "type" -> Json.stringToJson("H"),
+          "value" -> Json.stringToJson("-1,0")
+        )),
     ),
     defaultVertexType = "Z")
 

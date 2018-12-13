@@ -166,33 +166,34 @@ object GraphAnalysis {
     val edge = edges(left) - edges(right)
     if (edge != 0) return edge
 
+    // Number of "H2" nodes
+    def countH2(graph: Graph): Int = graph.vdata.count(nd => nd._2.vertexType == "H" &&
+      nd._2.asInstanceOf[NodeV].phaseData.values.head.constant == Rational(2,1))
+
+    val h2Diff = countH2(left) - countH2(right)
+    if (h2Diff != 0) return h2Diff
+
+
+    // Number of "Hi" nodes
+    def countHi(graph: Graph): Int = graph.vdata.count(nd => nd._2.vertexType == "H" &&
+      nd._2.asInstanceOf[NodeV].phaseData.values(1).constant == Rational(1,1))
+
+    val hiDiff = countHi(left) - countHi(right)
+    if (hiDiff != 0) return hiDiff
+
+
+    // Number of "H-1" nodes
+    def countHm1(graph: Graph): Int = graph.vdata.count(nd => nd._2.vertexType == "H" &&
+      nd._2.asInstanceOf[NodeV].phaseData.values(0).constant == Rational(1,1))
+
+    val hmDiff = countHm1(left) - countHm1(right)
+    if (hmDiff != 0) return hmDiff
+
     // Number of "Z" nodes
     def countZ(graph: Graph): Int = graph.vdata.count(nd => nd._2.vertexType == "Z")
 
     val zDiff = countZ(left) - countZ(right)
     if (zDiff != 0) return zDiff
-
-    // Sum of Z angles
-    val Pi = math.Pi
-
-    def sumAngles(graph: Graph, filterType: String): Rational = graph.vdata.
-      filter(nd => nd._2.vertexType == filterType).
-      foldLeft(Rational(0, 1)) {
-        (angle, nd) => angle + stringToPhase(nd._2.asInstanceOf[NodeV].value).constant
-      }
-
-    // sumAngles returns a rational that is probably bigger than 2 (remember that the pi is left out)
-
-    val ZAngles: Rational = sumAngles(left, "Z") - sumAngles(right, "Z")
-    if (ZAngles > 0) return 1
-    if (ZAngles < 0) return -1
-
-    // Sum of X angles
-
-    val XAngles: Rational = sumAngles(left, "X") - sumAngles(right, "X")
-    if (XAngles > 0) return 1
-    if (XAngles < 0) return -1
-
 
     0
   }
