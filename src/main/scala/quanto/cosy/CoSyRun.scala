@@ -432,7 +432,7 @@ object CoSyRuns {
 
       def CR = {
         ColbournReadEnum.enumerate(
-          numRedTypes = 3,
+          numRedTypes = 3, // phases "-1", "2" and "i"
           numGreenTypes = 1,
           maxBoundaries = numBoundaries.max,
           maxVertices = numVertices,
@@ -466,7 +466,60 @@ object CoSyRuns {
       s"adj${a.hash}: ${b.toJson},"
     }
 
-    override def compareGraph(left: Graph, right: Graph) : Int = GraphAnalysis.zxGraphCompare(left, right)
+    override def compareGraph(left: Graph, right: Graph) : Int = GraphAnalysis.zhGraphCompare(left, right)
+  }
+
+  class CoSyZHPhaseFree(rulesDir: File,
+                theory: Theory = Theories.ZH,
+                duration: Duration = Duration.Inf,
+                outputDir: Option[File],
+                numBoundaries: List[Int],
+                numVertices: Int,
+               ) extends CoSyRun[AdjMat, Tensor](rulesDir, theory, duration, outputDir) {
+
+
+    override val Generator: Iterator[AdjMat] = {
+      def identitiesFirst: Stream[AdjMat] = ColbournReadEnum.enumerate(
+        numRedTypes = 1, numGreenTypes = 1, maxBoundaries = numBoundaries.max, maxVertices = 0).
+        filter(a => numBoundaries.contains(a.numBoundaries))
+
+      def CR = {
+        ColbournReadEnum.enumerate(
+          numRedTypes = 1, // only one red type, which is the "-1" phase
+          numGreenTypes = 1,
+          maxBoundaries = numBoundaries.max,
+          maxVertices = numVertices,
+          bipartite = false)
+      }
+
+      def CRScalars = CR.filter(adj => !GraphAnalysis.containsScalars(adj))
+
+      def combined = identitiesFirst ++
+        CRScalars.filter(a => numBoundaries.contains(a.numBoundaries))
+
+      combined.toIterator
+    }
+
+    override def compareTensor(a: Tensor, b: Tensor): Boolean = a ~ b
+
+    override val matchBorders: Option[Regex] = None
+
+    override def doWithUnmatched(a: AdjMat): Unit = {
+      // Don't need to do anything, since Colbourn-Read handles generating adj-mats
+    }
+
+    override def makeTensor(gen: AdjMat): Tensor = {
+      val asGraph = makeGraph(gen)
+      Interpreter.interpretZHGraph(asGraph, asGraph.verts.filter(asGraph.isBoundary).toList.sortBy(_.s), List())
+    }
+
+    override def makeGraph(gen: AdjMat): Graph = gen.toZHGraph()
+
+    override def makeString(a: AdjMat, b: Tensor): String = {
+      s"adj${a.hash}: ${b.toJson},"
+    }
+
+    override def compareGraph(left: Graph, right: Graph) : Int = GraphAnalysis.zhGraphCompare(left, right)
   }
 }
 
