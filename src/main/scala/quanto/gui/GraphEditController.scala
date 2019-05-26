@@ -3,7 +3,6 @@ package quanto.gui
 import java.awt.Toolkit
 import java.awt.datatransfer._
 import java.awt.event.{ActionEvent, ActionListener}
-import java.util.Calendar
 
 import quanto.data.Names._
 import quanto.data._
@@ -11,7 +10,7 @@ import quanto.gui.graphview.{BBoxOverlay, EdgeOverlay, _}
 import quanto.layout.ForceLayout
 import quanto.layout.constraint._
 import quanto.util.json._
-import quanto.util.{Globals, UserOptions}
+import quanto.util.Globals
 
 import scala.swing._
 import scala.swing.event.Key.Modifier

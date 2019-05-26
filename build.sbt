@@ -4,7 +4,7 @@ version := "1.0"
 
 scalaVersion := "2.12.6"
 
-scalacOptions ++= Seq("-feature", "-language:implicitConversions")
+scalacOptions ++= Seq("-feature", "-language:implicitConversions", "-Ywarn-unused:imports")
 
 retrieveManaged := true
 
@@ -19,6 +19,9 @@ libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.5.12" withSource
 libraryDependencies += "com.fasterxml.jackson.core" % "jackson-core" % "2.9.5"
 
 libraryDependencies += "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.9.5"
+
+// Breeze is a linear algebra library for Scala.
+libraryDependencies += "org.scalanlp" %% "breeze" % "1.0-RC2"
 
 //libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test"
 
@@ -35,7 +38,7 @@ libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % 
 //EclipseKeys.withSource := true
 
 //exportJars := true
-
+/*
 Seq(appbundle.settings: _*)
 
 appbundle.mainClass := Some("quanto.gui.QuantoDerive")
@@ -53,7 +56,7 @@ appbundle.organization := "org.quantomatic"
 appbundle.version := "0.3.0"
 
 appbundle.icon := Some(file("../docs/graphics/quantoderive.icns"))
-
+*/
 test in assembly := {}
 
 assemblyJarName in assembly := "Quantomatic.jar"

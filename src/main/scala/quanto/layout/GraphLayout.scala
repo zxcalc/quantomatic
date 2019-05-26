@@ -12,23 +12,35 @@ abstract class GraphLayout {
   private val _coords = collection.mutable.Map[VName, (Double, Double)]()
   private var _graph: Graph = _
 
+  /// Lock vertex named v.
+  /// @param v Name of vertex to lock.
   def lockVertex(v: VName) {
     lockedVertices += v
   }
 
+  /// Clear the set of locked vertices.
   def clearLockedVertices() {
     lockedVertices.clear()
   }
 
-  def setCoord(v: VName, p: (Double, Double)) {
+  /// Setter of existing values in _coords.
+  /// @param v Vertex name to set coordinate of. 
+  /// @param p New coordinates of vertex named v.
+  final def setCoord(v: VName, p: (Double, Double)) {
     if (!lockedVertices.contains(v)) _coords(v) = p
   }
 
-  def coord(v: VName) = _coords(v)
+  /// Getter for values in _coords.
+  /// @param v Vertex name to get coordinate of.
+  final def coord(v: VName) = _coords(v)
 
-  def coords: mutable.Map[VName, (Double, Double)] = _coords.clone()
+  /// Copying getter (no matching setter) for _coords.
+  final def coords: mutable.Map[VName, (Double, Double)] = _coords.clone()
 
-  def layout(g: Graph, randomCoords: Boolean = true): Graph = {
+  /// Layout graph g, initialising the algorithm with either the existing vertex coordinates from g or randomised coordinates.
+  /// @param g Graph to lay out
+  /// @param randomCoords true to randomise initial coordinates, false to use g's existing vertex coordinates as initial coordinates.
+  final def layout(g: Graph, randomCoords: Boolean = true): Graph = {
     initialize(g, randomCoords)
     compute()
     updateGraph()
@@ -36,24 +48,36 @@ abstract class GraphLayout {
     graph
   }
 
+  /// Initialise _coords to either the existing vertex coordinates of the graph g or to randomised coordinates.
+  /// @param g Graph to lay out
+  /// @param randomCoords true to randomise _coords, false to use g's existing vertex coordinates.
   def initialize(g: Graph, randomCoords: Boolean = true) {
     _graph = g
     _coords.clear()
-    val r = new Random(0xdeadbeef)
-    graph.vdata.foreach { case (v, d) =>
-      _coords(v) = if (randomCoords) (0.5 - r.nextDouble(), 0.5 - r.nextDouble()) else d.coord
+    if (randomCoords) {
+      val r = new Random(0xdeadbeef)
+      graph.vdata.foreach { case (v, d) =>
+        _coords(v) = (0.5 - r.nextDouble(), 0.5 - r.nextDouble())
+      }
+    }
+    else {
+      graph.vdata.foreach { case (v, d) =>
+        _coords(v) = d.coord
+      }
     }
   }
 
-  def updateGraph() {
+  /// Write the coordinates of the new layout to _graph.
+  final def updateGraph() {
     _graph = _coords.foldLeft(graph) { case (g, (v, c)) => g.updateVData(v) {
       _.withCoord(c)
     }
     }
   }
 
-  def graph: Graph = _graph
+  /// Getter (no matching setter) for _graph.
+  final def graph: Graph = _graph
 
-  // override to compute layout data
+  /// Lay out _graph, writing new vertex coordinates to _coords (and helper functions above).
   protected def compute()
 }

@@ -3,17 +3,16 @@ package quanto.gui
 
 import org.python.util.PythonInterpreter
 
-import scala.io.Source
 import scala.swing._
-import scala.swing.event.{Key, KeyPressed, SelectionChanged}
+import scala.swing.event.{Key, SelectionChanged}
 import javax.swing.{JOptionPane, KeyStroke, SwingUtilities, UIManager}
 import java.awt.event.KeyEvent
 import java.awt.Frame
-import java.awt.event.{KeyEvent, MouseAdapter, MouseEvent}
+import java.awt.event.{KeyEvent, MouseEvent}
 
-import quanto.util.json.{Json, JsonObject, JsonString}
+import quanto.util.json.{Json, JsonString}
 import quanto.data._
-import java.io.{File, FilenameFilter, IOException, PrintWriter}
+import java.io.{File, FilenameFilter}
 
 import javax.swing.plaf.metal.MetalLookAndFeel
 import java.util.prefs.Preferences
@@ -21,21 +20,19 @@ import java.util.prefs.Preferences
 import quanto.gui.histview.HistView
 import akka.actor.{ActorSystem, Props}
 import quanto.core._
-import akka.pattern.ask
 import akka.util.Timeout
 import akka.actor.PoisonPill
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
-import ExecutionContext.Implicits.global
 import java.awt.{Color, Desktop, Window}
 import java.lang.NullPointerException
 
-import javax.imageio.ImageIO
 import javax.swing.filechooser.FileNameExtensionFilter
 import quanto.gui.QuantoDerive.FileMenu.mnemonic
 import quanto.gui.FileOpened
 import quanto.util._
+import quanto.layout._
 
 
 class NoProjectException extends Exception("No project open.")
@@ -54,6 +51,9 @@ object QuantoDerive extends SimpleSwingApplication {
       ProjectFileTree.publish(FileOpened(new File(fname)))
     }
   }
+
+  // Uncomment the following line to force-enable OpenGL acceleration for Java2D contexts.
+  //System.setProperty("sun.java2d.opengl", "True")
 
   System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS")
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
@@ -962,20 +962,21 @@ object QuantoDerive extends SimpleSwingApplication {
     menu =>
     mnemonic = Key.D
 
-    val LayoutDerivation = new Action("Layout derivation") {
-      //      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_L, CommandMask))
+    val LayoutDerivation = new Menu("Lay out") {
+      layoutMenu =>
+      mnemonic = Key.L
       enabled = false
-      menu.contents += new MenuItem(this) {
-        mnemonic = Key.L
+      class LayoutMenuAction(layoutProc : DerivationLayoutStrategy, caption : String) extends Action(caption) {
+        def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
+          case (Some(project), Some(derivePanel: DerivationPanel)) =>
+            derivePanel.controller.layoutDerivation(layoutProc) // As objects of generic types cannot be constructed in Scala due to type erasure, a single shared DerivationLayoutStrategy object is used for each strategy.
+          case _ => // no project and/or derivation open, do nothing
+        }
       }
-
-      def apply() = (CurrentProject, MainDocumentTabs.currentContent) match {
-        case (Some(project), Some(derivePanel: DerivationPanel)) =>
-          derivePanel.controller.layoutDerivation()
-        case _ => // no project and/or derivation open, do nothing
-      }
+      layoutMenu.contents += new MenuItem(new LayoutMenuAction(new ForceClusterDerivationLayoutStrategy, "Force-based syntactic layout with clusters"))
+      layoutMenu.contents += new MenuItem(new LayoutMenuAction(new LiftedDStepLayoutDerivationLayoutStrategy(new RuleDStepLayoutStrategy), "Rule-based semantic layout"))
     }
-
+    menu.contents += LayoutDerivation
 
     val ViewGraph = new Action("Extract to new graph") {
       enabled = true
@@ -1312,8 +1313,6 @@ object QuantoDerive extends SimpleSwingApplication {
   val _mainframe = new MainFrame {
 
     def refreshTitle() : Unit = {
-      // Setting the iconImage here isn't working on Windows
-      // iconImage = ImageIO.read(getClass.getResource("quantoderive.ico"))
       title = if (CurrentProject.isEmpty) {"Quantomatic"} else {
         CurrentProject.get.name match {
           case "" => "Quantomatic"

@@ -8,7 +8,7 @@ import quanto.gui.histview._
 import java.awt.Color
 
 import quanto.gui.graphview.Highlight
-import quanto.layout.DeriveLayout
+import quanto.layout.{DerivationLayoutStrategy, DStepLayoutStrategy, RuleDStepLayoutStrategy}
 import quanto.util.UserAlerts
 
 sealed abstract class DeriveState extends HistNode { def step: Option[DSName] }
@@ -53,6 +53,8 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
     panel.FastForwardButton.enabled = false
     panel.NewHeadButton.enabled = false
     panel.DeleteStepButton.enabled = false
+    panel.LayoutStepButton.enabled = false
+    panel.InsertLayoutStepButton.enabled = false
     panel.ExportTheoremButton.enabled = false
 
     s match {
@@ -115,6 +117,8 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
 
         panel.NextButton.enabled = true
         panel.FastForwardButton.enabled = true
+        panel.LayoutStepButton.enabled = true
+        panel.InsertLayoutStepButton.enabled = true
     }
 
     publish(DeriveStateChanged(s))
@@ -129,10 +133,9 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
     }
   }
 
-  def layoutDerivation() {
-    val layoutProc = new DeriveLayout
-    val d = layoutProc.layout(panel.document.derivation)
-    replaceDerivation(d, "Layout Derivation")
+  def layoutDerivation(layoutProc : DerivationLayoutStrategy) {
+    layoutProc.setDerivation(panel.document.derivation)
+    replaceDerivation(layoutProc.layout().asDerivation(), "Layout Derivation")
     // force state refresh
     state = state
   }
@@ -217,6 +220,66 @@ class DerivationController(panel: DerivationPanel) extends Publisher {
           }
         case _ => // do nothing on root
       }
+
+    case ButtonClicked(panel.LayoutStepButton) => {
+      state match {
+        case StepState(s) => {
+          val parentDSO = derivation.parentMap.get(s)
+
+          panel.document.undoStack.start("Lay out proof step")
+
+          val layoutStrategy : DStepLayoutStrategy = new RuleDStepLayoutStrategy;
+          if (parentDSO.isEmpty) {
+            layoutStrategy.setStep(derivation.steps(s), derivation.root)
+          }
+          else {
+            layoutStrategy.setStep(derivation.steps(s), derivation.steps(parentDSO.get).graph)
+          }
+          val newDerivation = derivation.updateGraphInStep(s, layoutStrategy.layoutOutput().asGraph())
+          if (parentDSO.isEmpty) {
+            replaceDerivation(newDerivation.copy(root=layoutStrategy.layoutSource().asGraph()), "")
+          }
+          else {
+            replaceDerivation(newDerivation.updateGraphInStep(parentDSO.get, layoutStrategy.layoutSource().asGraph()), "")
+          }
+          state = StepState(s) // Refresh the display.
+
+          panel.document.undoStack.commit()
+        }
+        case _ => // do nothing on root and heads, which are not DSteps
+      }
+    }
+
+    case ButtonClicked(panel.InsertLayoutStepButton) => {
+      state match {
+        case StepState(s) => {
+          val parentDSO = derivation.parentMap.get(s)
+
+          panel.document.undoStack.start("Lay out and add proof step")
+
+          val layoutStrategy : DStepLayoutStrategy = new RuleDStepLayoutStrategy;
+          if (parentDSO.isEmpty) {
+            layoutStrategy.setStep(derivation.steps(s), derivation.root)
+          }
+          else {
+            layoutStrategy.setStep(derivation.steps(s), derivation.steps(parentDSO.get).graph)
+          }
+          val newStep = new DStep((new Names.NameSet(derivation.steps.keySet)).freshWithSuggestion(new DSName("/no-op/")), null, new Rule(new Graph, new Graph), layoutStrategy.layoutSource().asGraph()) // Slashes in the name make it an illegal file name, to avoid confusion with actual rules with associated files.
+          var newDerivation = derivation.updateGraphInStep(s, layoutStrategy.layoutOutput().asGraph())
+          newDerivation = newDerivation.copy(steps = newDerivation.steps + (newStep.name -> newStep), parent = newDerivation.parentMap + (s -> newStep.name))
+          if (parentDSO.isEmpty) {
+            replaceDerivation(newDerivation.copy(parent = newDerivation.parentMap - newStep.name), "")
+          }
+          else {
+            replaceDerivation(newDerivation.copy(parent = newDerivation.parentMap + (newStep.name -> parentDSO.get)), "")
+          }
+          state = StepState(s) // Refresh the display.
+
+          panel.document.undoStack.commit()
+        }
+        case _ => // do nothing on root and heads, which are not DSteps
+      }
+    }
 
     case ButtonClicked(panel.ExportTheoremButton) =>
       if(!panel.document.unsavedChanges && panel.document.file.nonEmpty) {

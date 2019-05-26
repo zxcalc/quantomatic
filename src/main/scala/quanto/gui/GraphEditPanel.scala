@@ -7,7 +7,6 @@ import swing._
 import swing.event._
 import javax.swing.ImageIcon
 
-import quanto.util.UserAlerts
 import quanto.util.swing.ToolBar
 
 case class MouseStateChanged(m : MouseState) extends Event
