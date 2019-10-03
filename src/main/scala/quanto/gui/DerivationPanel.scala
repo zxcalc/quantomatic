@@ -73,6 +73,16 @@ class DerivationPanel(val project: Project)
     tooltip = "Delete proof step(s)"
   }
 
+  val LayoutStepButton = new Button() {
+    icon = new ImageIcon(getClass.getResource("layout.png"), "Layout this step but don't insert a layout proof step")
+    tooltip = "Layout this step but don't insert a layout proof step"
+  }
+
+  val InsertLayoutStepButton = new Button() {
+    icon = new ImageIcon(getClass.getResource("layout-plus.png"), "Layout this step and insert a relayout proof step")
+    tooltip = "Layout this step and insert a relayout proof step"
+  }
+
   val ExportTheoremButton = new Button() {
     icon = new ImageIcon(getClass.getResource("document-save.png"), "Export theorem")
     tooltip = "Export theorem"
@@ -80,11 +90,11 @@ class DerivationPanel(val project: Project)
 
   val derivationButtons = List(
     RewindButton, PreviousButton, NextButton, FastForwardButton,
-    NewHeadButton, DeleteStepButton, ExportTheoremButton)
+    NewHeadButton, DeleteStepButton, LayoutStepButton, InsertLayoutStepButton, ExportTheoremButton)
 
   val DeriveToolbar = new ToolBar {
     contents += (RewindButton, PreviousButton, NextButton, FastForwardButton, NewHeadButton,
-      DeleteStepButton, ExportTheoremButton)
+      DeleteStepButton, LayoutStepButton, InsertLayoutStepButton, ExportTheoremButton)
   }
 
   val LhsGraphPane = new ScrollPane(LhsView)

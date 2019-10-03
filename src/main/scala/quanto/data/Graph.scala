@@ -1,7 +1,6 @@
 package quanto.data
 
 
-import quanto.cosy.AdjMat
 import quanto.data.Names._
 import quanto.data.Theory.ValueType
 import quanto.util.json.JsonValues._
@@ -805,6 +804,14 @@ case class Graph(
   }
 
   def expandWire(w: VName): (Graph, (VName, VName, EName)) = {
+    def midPoint(v1: VData, v2: VData): (Double, Double) = {
+      val c1 = v1.coord
+      val c2 = v2.coord
+      val x = (c1._1 + c2._1) / 2.0
+      val y = (c1._2 + c2._2) / 2.0
+      (x, y)
+    }
+
     val ed = adjacentEdges(w).headOption match {
       case Some(e) => edata(e)
       case None =>
@@ -822,12 +829,18 @@ case class Graph(
         g = g.addEdge(newE, ed, newW -> w)
         inEdges(w).headOption.foreach { e =>
           g = g.deleteEdge(e).addEdge(e, ed, source(e) -> newW)
+          // Place newW at midpoint of source(e) and w
+          val newCoordinate = midPoint(g.vdata(source(e)), g.vdata(w))
+          g = g.updateVData(newW) { vd => vd.withCoord(newCoordinate) }
         }
 
         (g, (newW, w, newE))
       case Some(e) => // 'w' is not an output, so we don't care
         g = g.addEdge(newE, ed, w -> newW)
         g = g.deleteEdge(e).addEdge(e, ed, newW -> target(e))
+        // Place newW at midpoint of w and target(e)
+        val newCoordinate = midPoint(g.vdata(w), g.vdata(target(e)))
+        g = g.updateVData(newW) { vd => vd.withCoord(newCoordinate) }
 
         (g, (w, newW, newE))
     }
@@ -1215,7 +1228,7 @@ object Graph {
   }
 
   def random(nverts: Int, nedges: Int, nbboxes: Int = 0): Graph = {
-    val rand = new util.Random
+    val rand = new Random
     var randomGraph = Graph()
     for (_ <- 1 to nverts) {
       val p = (rand.nextDouble * 6.0 - 3.0, rand.nextDouble * 6.0 - 3.0)
@@ -1252,7 +1265,7 @@ object Graph {
   }
 
   def randomDag(nverts: Int, nedges: Int): Graph = {
-    val rand = new util.Random
+    val rand = new Random
     var randomGraph = Graph()
     for (_ <- 1 to nverts) {
       val p = (rand.nextDouble * 6.0 - 3.0, rand.nextDouble * 6.0 - 3.0)

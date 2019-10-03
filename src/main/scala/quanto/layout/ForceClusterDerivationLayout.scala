@@ -3,9 +3,13 @@ package quanto.layout
 import quanto.data._
 import quanto.layout.constraint._
 
+class ForceClusterDerivationLayoutStrategy extends DerivationLayoutStrategy {
+  private var derivation : Derivation = null;
+  def setDerivation(derivation : Derivation) {
+    this.derivation = derivation
+  }
 
-class DeriveLayout {
-  def layout(derivation: Derivation): Derivation = {
+  def layout() : DerivationLayout = {
     var steps = Map[DSName, DStep]()
 
     val layoutProc = new ForceLayout with Clusters
@@ -45,6 +49,27 @@ class DeriveLayout {
       }
     }
 
-    derivation.copy(steps = steps)
+    new ForceClusterDerivationLayout(derivation, steps)
+  }
+}
+
+class ForceClusterDerivationLayout private extends DerivationLayout {
+  private var _derivation : Derivation = null;
+  private var steps : Map[DSName, DStep] = null;
+  /// Not part of the public interface. Constructs a RuleDerivationLayout.
+  private[layout] def this(derivation : Derivation, steps : Map[DSName, DStep]) = {
+    this()
+    this._derivation = derivation
+    this.steps = steps
+  }
+
+  /// The Derivation that this layout was computed for.
+  def derivation : Derivation = {
+    return _derivation
+  }
+
+  def getCoords(dso : Option[DSName], v : VName) : (Double, Double) = dso match {
+    case Some(ds) => steps.getOrElse(ds, _derivation.steps(ds)).graph.vdata(v).coord
+    case None => _derivation.root.vdata(v).coord
   }
 }
