@@ -1,10 +1,11 @@
 ABOUT: 
 
-Quantomatic is a piece of software for reasoning about monoidal theories. In particular, it was designed to reason about quantum information processing.
+Quantomatic was a piece of software for reasoning about monoidal theories. In particular, it was designed to reason about quantum information processing.
 
-More details are available at: 
+It is no longer being actively maintained. While there is no direct successor to this project, there are two more recent projects that have some similar features/goals to Quantomatic:
 
-  http://quantomatic.github.io/
+ZX Live - https://github.com/zxcalc/zxlive
+Chyp - https://github.com/akissinger/chyp
 
 
 LICENSE: 
